@@ -3,36 +3,55 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { Play, Pause, Disc3, ChevronLeft } from "lucide-react";
 
-interface AlbumGroup {
-  album: string;
-  coverUrl: string | null;
+interface Album {
+  id: string;
+  title: string;
   artist: string;
+  cover_url: string | null;
   songs: PlayerSong[];
 }
 
 const AlbumSection = () => {
-  const [albums, setAlbums] = useState<AlbumGroup[]>([]);
-  const [selectedAlbum, setSelectedAlbum] = useState<AlbumGroup | null>(null);
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
   const { playSong, playQueue, currentSong, isPlaying } = usePlayer();
 
   useEffect(() => {
-    supabase.from("songs").select("*").eq("is_top", true).order("album").then(({ data }) => {
-      if (!data || data.length === 0) return;
-      const grouped: Record<string, AlbumGroup> = {};
-      data.forEach((s) => {
-        const key = s.album || s.title;
-        if (!grouped[key]) {
-          grouped[key] = { album: key, coverUrl: s.cover_url, artist: s.artist, songs: [] };
-        }
-        grouped[key].songs.push({
+    const fetchAlbums = async () => {
+      // Fetch top albums
+      const { data: albumData } = await supabase
+        .from("albums")
+        .select("*")
+        .eq("is_top", true)
+        .order("created_at", { ascending: false });
+
+      if (!albumData || albumData.length === 0) return;
+
+      // Fetch songs that belong to these albums
+      const albumIds = albumData.map(a => a.id);
+      const { data: songData } = await supabase
+        .from("songs")
+        .select("*")
+        .in("album_id", albumIds);
+
+      const songsMap: Record<string, PlayerSong[]> = {};
+      (songData || []).forEach(s => {
+        if (!s.album_id) return;
+        if (!songsMap[s.album_id]) songsMap[s.album_id] = [];
+        songsMap[s.album_id].push({
           id: s.id, title: s.title, artist: s.artist, album: s.album || undefined,
           coverUrl: s.cover_url || undefined, audioUrl: s.audio_url || undefined,
           instrumentalUrl: s.instrumental_url || undefined, lyricsLrc: s.lyrics_lrc || undefined,
           durationSeconds: s.duration_seconds,
         });
       });
-      setAlbums(Object.values(grouped));
-    });
+
+      setAlbums(albumData.map(a => ({
+        id: a.id, title: a.title, artist: a.artist, cover_url: a.cover_url,
+        songs: songsMap[a.id] || [],
+      })));
+    };
+    fetchAlbums();
   }, []);
 
   if (albums.length === 0) return null;
@@ -46,14 +65,14 @@ const AlbumSection = () => {
         </button>
         <div className="flex items-end gap-4 mb-6">
           <div className="w-28 h-28 rounded-xl gradient-purple flex-shrink-0 overflow-hidden flex items-center justify-center glow-gold">
-            {selectedAlbum.coverUrl ? (
-              <img src={selectedAlbum.coverUrl} alt="" className="w-full h-full object-cover" />
+            {selectedAlbum.cover_url ? (
+              <img src={selectedAlbum.cover_url} alt="" className="w-full h-full object-cover" />
             ) : (
               <Disc3 className="w-10 h-10 text-gold/30" />
             )}
           </div>
           <div>
-            <h3 className="text-xl font-serif font-bold text-foreground">{selectedAlbum.album}</h3>
+            <h3 className="text-xl font-serif font-bold text-foreground">{selectedAlbum.title}</h3>
             <p className="text-sm text-muted-foreground">{selectedAlbum.artist} • {selectedAlbum.songs.length} songs</p>
             <button
               onClick={() => playQueue(selectedAlbum.songs)}
@@ -92,6 +111,9 @@ const AlbumSection = () => {
               </button>
             );
           })}
+          {selectedAlbum.songs.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-6">No songs in this album yet.</p>
+          )}
         </div>
       </section>
     );
@@ -107,14 +129,14 @@ const AlbumSection = () => {
       <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1">
         {albums.map((album, i) => (
           <button
-            key={album.album}
+            key={album.id}
             onClick={() => setSelectedAlbum(album)}
             className="group flex-shrink-0 w-40 md:w-44 text-left animate-fade-in-up"
             style={{ animationDelay: `${i * 0.07}s` }}
           >
             <div className="relative aspect-square rounded-xl overflow-hidden mb-3 glass-card transition-all duration-300 group-hover:shadow-[0_8px_32px_hsl(43_70%_53%/0.12)]">
-              {album.coverUrl ? (
-                <img src={album.coverUrl} alt={album.album} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+              {album.cover_url ? (
+                <img src={album.cover_url} alt={album.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
               ) : (
                 <div className="w-full h-full gradient-purple flex items-center justify-center">
                   <Disc3 className="w-10 h-10 text-gold/30" />
@@ -126,7 +148,7 @@ const AlbumSection = () => {
                 </div>
               </div>
             </div>
-            <p className="text-sm font-medium text-foreground truncate group-hover:text-gold transition-colors duration-200">{album.album}</p>
+            <p className="text-sm font-medium text-foreground truncate group-hover:text-gold transition-colors duration-200">{album.title}</p>
             <p className="text-xs text-muted-foreground truncate">{album.artist} • {album.songs.length} songs</p>
           </button>
         ))}

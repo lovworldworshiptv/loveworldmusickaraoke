@@ -12,6 +12,7 @@ import Games from "./pages/Games";
 import Auth from "./pages/Auth";
 import Articles from "./pages/Articles";
 import AdminSongs from "./pages/AdminSongs";
+import AdminAlbums from "./pages/AdminAlbums";
 import AdminArticles from "./pages/AdminArticles";
 import AdminCategories from "./pages/AdminCategories";
 import Profile from "./pages/Profile";
@@ -38,6 +39,7 @@ const App = () => (
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/discover" element={<Discover />} />
                 <Route path="/admin/songs" element={<AdminSongs />} />
+                <Route path="/admin/albums" element={<AdminAlbums />} />
                 <Route path="/admin/articles" element={<AdminArticles />} />
                 <Route path="/admin/categories" element={<AdminCategories />} />
                 <Route path="*" element={<NotFound />} />
