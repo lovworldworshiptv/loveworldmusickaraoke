@@ -6,32 +6,32 @@
 
 @layer base {
   :root {
-    --background: 270 30% 6%;
+    --background: 220 40% 6%;
     --foreground: 40 20% 95%;
 
-    --card: 270 25% 10%;
+    --card: 220 35% 10%;
     --card-foreground: 40 20% 95%;
 
-    --popover: 270 25% 10%;
+    --popover: 220 35% 10%;
     --popover-foreground: 40 20% 95%;
 
     --primary: 43 70% 53%;
-    --primary-foreground: 270 30% 6%;
+    --primary-foreground: 220 40% 6%;
 
-    --secondary: 270 30% 16%;
+    --secondary: 220 35% 16%;
     --secondary-foreground: 40 20% 90%;
 
-    --muted: 270 20% 14%;
-    --muted-foreground: 270 10% 55%;
+    --muted: 220 25% 14%;
+    --muted-foreground: 220 15% 55%;
 
-    --accent: 280 60% 35%;
+    --accent: 215 60% 35%;
     --accent-foreground: 40 20% 95%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 40 20% 95%;
 
-    --border: 270 20% 18%;
-    --input: 270 20% 18%;
+    --border: 220 25% 18%;
+    --input: 220 25% 18%;
     --ring: 43 70% 53%;
 
     --radius: 1rem;
@@ -39,26 +39,26 @@
     --gold: 43 70% 53%;
     --gold-light: 43 80% 65%;
     --gold-dark: 43 60% 40%;
-    --purple: 270 60% 30%;
-    --purple-light: 270 50% 45%;
-    --purple-deep: 270 80% 15%;
+    --purple: 220 60% 30%;
+    --purple-light: 215 50% 45%;
+    --purple-deep: 220 80% 12%;
 
-    --sidebar-background: 270 30% 8%;
+    --sidebar-background: 220 40% 8%;
     --sidebar-foreground: 40 20% 85%;
     --sidebar-primary: 43 70% 53%;
-    --sidebar-primary-foreground: 270 30% 6%;
-    --sidebar-accent: 270 30% 14%;
+    --sidebar-primary-foreground: 220 40% 6%;
+    --sidebar-accent: 220 35% 14%;
     --sidebar-accent-foreground: 40 20% 90%;
-    --sidebar-border: 270 20% 16%;
+    --sidebar-border: 220 25% 16%;
     --sidebar-ring: 43 70% 53%;
 
-    --player-background: 270 35% 8%;
-    --glass-bg: 270 30% 12%;
-    --glass-border: 270 20% 22%;
+    --player-background: 220 40% 8%;
+    --glass-bg: 220 35% 12%;
+    --glass-border: 220 25% 22%;
   }
 
   .dark {
-    --background: 270 30% 6%;
+    --background: 220 40% 6%;
     --foreground: 40 20% 95%;
   }
 }
@@ -84,7 +84,7 @@
   }
 
   .gradient-purple {
-    background: linear-gradient(135deg, hsl(270 80% 15%), hsl(280 60% 35%));
+    background: linear-gradient(135deg, hsl(220 80% 12%), hsl(215 60% 35%));
   }
 
   .gradient-gold-text {
