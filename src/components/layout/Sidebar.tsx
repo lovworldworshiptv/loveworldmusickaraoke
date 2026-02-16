@@ -1,7 +1,8 @@
-import { Home, Library, Clock, Podcast, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2 } from "lucide-react";
+import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
@@ -14,12 +15,15 @@ const navItems = [
 
 const adminItems = [
   { icon: Music2, label: "Manage Songs", path: "/admin/songs" },
+  { icon: Newspaper, label: "Manage Articles", path: "/admin/articles" },
+  { icon: Grid3X3, label: "Manage Categories", path: "/admin/categories" },
 ];
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut, user } = useAuth();
+  const { isAdmin } = useIsAdmin();
 
   return (
     <aside className="hidden lg:flex flex-col w-64 h-screen bg-sidebar border-r border-sidebar-border fixed left-0 top-0 z-30">
@@ -45,7 +49,7 @@ const Sidebar = () => {
           </button>
         ))}
 
-        {user && (
+        {isAdmin && (
           <>
             <div className="pt-4 pb-1 px-3">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Admin</p>

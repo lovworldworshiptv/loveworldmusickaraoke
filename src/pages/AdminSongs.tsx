@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Music, Upload, Save, Plus, Trash2, Edit3, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -22,7 +22,7 @@ interface Song {
 }
 
 const AdminSongs = () => {
-  const { user } = useAuth();
+  const { isAdmin, loading: adminLoading } = useIsAdmin();
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
@@ -85,7 +85,8 @@ const AdminSongs = () => {
     fetchSongs();
   };
 
-  if (!user) return <AppLayout><div className="p-6 text-center text-muted-foreground">Sign in as admin to manage songs.</div></AppLayout>;
+  if (adminLoading) return <AppLayout><div className="p-6 text-center text-muted-foreground">Loading...</div></AppLayout>;
+  if (!isAdmin) return <AppLayout><div className="p-6 text-center text-muted-foreground">Admin access required.</div></AppLayout>;
 
   return (
     <AppLayout>

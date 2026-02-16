@@ -11,6 +11,9 @@ import Games from "./pages/Games";
 import Auth from "./pages/Auth";
 import Articles from "./pages/Articles";
 import AdminSongs from "./pages/AdminSongs";
+import AdminArticles from "./pages/AdminArticles";
+import AdminCategories from "./pages/AdminCategories";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,7 +32,10 @@ const App = () => (
               <Route path="/games" element={<Games />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/articles" element={<Articles />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="/admin/songs" element={<AdminSongs />} />
+              <Route path="/admin/articles" element={<AdminArticles />} />
+              <Route path="/admin/categories" element={<AdminCategories />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </PlayerProvider>
