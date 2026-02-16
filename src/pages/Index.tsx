@@ -1,13 +1,30 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import AppLayout from "@/components/layout/AppLayout";
+import HeroBanner from "@/components/home/HeroBanner";
+import SongSection from "@/components/home/SongSection";
+import CategorySection from "@/components/home/CategorySection";
+import ArticleSection from "@/components/home/ArticleSection";
+import GameSection from "@/components/home/GameSection";
+import { topSongs, featuredSongs } from "@/data/mockData";
 
 const Index = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <AppLayout>
+      {/* Welcome Header */}
+      <div className="px-4 lg:px-6 pt-4 lg:pt-6">
+        <p className="text-sm text-muted-foreground">Welcome Esteemed</p>
+        <h1 className="text-2xl font-serif font-bold gradient-gold-text">Guest</h1>
       </div>
-    </div>
+
+      <HeroBanner />
+      <SongSection title="Top Songs" songs={topSongs} />
+      <CategorySection />
+      <SongSection title="Featured Songs" songs={featuredSongs} />
+      <ArticleSection />
+      <GameSection />
+
+      {/* Bottom spacer */}
+      <div className="h-8" />
+    </AppLayout>
   );
 };
 
