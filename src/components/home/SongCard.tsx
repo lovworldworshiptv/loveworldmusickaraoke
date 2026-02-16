@@ -21,19 +21,22 @@ const SongCard = ({ song, index }: SongCardProps) => {
   };
 
   return (
-    <div className="group flex-shrink-0 w-40 md:w-44">
-      <div className={`relative aspect-square rounded-xl overflow-hidden mb-3 glass-card ${isActive ? "ring-2 ring-primary glow-gold" : ""}`}>
+    <div
+      className="group flex-shrink-0 w-40 md:w-44 animate-fade-in-up"
+      style={{ animationDelay: `${index * 0.07}s` }}
+    >
+      <div className={`relative aspect-square rounded-xl overflow-hidden mb-3 glass-card transition-all duration-300 group-hover:shadow-[0_8px_32px_hsl(43_70%_53%/0.12)] ${isActive ? "ring-2 ring-primary glow-gold" : ""}`}>
         <div className="w-full h-full gradient-purple flex items-center justify-center">
-          <span className="text-3xl font-serif font-bold text-gold opacity-40">{index + 1}</span>
+          <span className="text-3xl font-serif font-bold text-gold opacity-30">{index + 1}</span>
         </div>
-        <div className="absolute inset-0 bg-background/0 group-hover:bg-background/30 transition-all duration-300 flex items-center justify-center">
+        <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-all duration-300 flex items-center justify-center">
           <button onClick={handlePlay}
-            className="w-12 h-12 rounded-full gradient-gold flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100">
+            className="w-12 h-12 rounded-full gradient-gold flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 scale-75 group-hover:scale-100 shadow-lg">
             {isActive && isPlaying ? <Pause className="w-5 h-5 text-primary-foreground" /> : <Play className="w-5 h-5 text-primary-foreground ml-0.5" />}
           </button>
         </div>
       </div>
-      <p className="text-sm font-medium text-foreground truncate">{song.title}</p>
+      <p className="text-sm font-medium text-foreground truncate group-hover:text-gold transition-colors duration-200">{song.title}</p>
       <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
     </div>
   );

@@ -14,8 +14,8 @@ const Index = () => {
 
   return (
     <AppLayout>
-      <div className="px-4 lg:px-6 pt-4 lg:pt-6">
-        <p className="text-sm text-muted-foreground">Welcome Esteemed</p>
+      <div className="px-4 lg:px-6 pt-4 lg:pt-6 animate-fade-in-up">
+        <p className="text-sm text-muted-foreground tracking-wide">Welcome Esteemed</p>
         <h1 className="text-2xl font-serif font-bold gradient-gold-text">{username}</h1>
       </div>
 
