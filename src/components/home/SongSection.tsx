@@ -8,12 +8,12 @@ interface SongSectionProps {
 
 const SongSection = ({ title, songs }: SongSectionProps) => {
   return (
-    <section className="px-4 lg:px-6 mt-8">
+    <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-serif font-bold text-foreground">{title}</h3>
-        <button className="text-xs text-gold hover:underline font-medium">See All</button>
+        <button className="text-xs text-gold hover:text-gold-light font-medium transition-colors duration-200">See All</button>
       </div>
-      <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+      <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1">
         {songs.map((song, i) => (
           <SongCard key={song.id} song={song} index={i} />
         ))}

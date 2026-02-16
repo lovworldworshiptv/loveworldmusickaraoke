@@ -4,16 +4,14 @@ import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 const RecentlyPlayed = () => {
   const { currentSong, isPlaying, playSong } = usePlayer();
 
-  // For now, show a placeholder if no history exists
-  // TODO: persist recently played to DB
   if (!currentSong) {
     return (
-      <section className="px-4 lg:px-6 mt-8">
+      <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-serif font-bold text-foreground">Recently Played</h3>
         </div>
         <div className="glass-card p-8 text-center">
-          <Clock className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+          <Clock className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
           <p className="text-sm text-muted-foreground">Songs you listen to will appear here</p>
         </div>
       </section>
@@ -21,18 +19,18 @@ const RecentlyPlayed = () => {
   }
 
   return (
-    <section className="px-4 lg:px-6 mt-8">
+    <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-serif font-bold text-foreground">Recently Played</h3>
       </div>
       <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
         <button
           onClick={() => playSong(currentSong)}
-          className="flex-shrink-0 w-40 glass-card p-3 hover:glow-gold transition-all duration-300 text-left"
+          className="flex-shrink-0 w-40 glass-card p-3 hover:glow-gold transition-all duration-300 text-left group hover:-translate-y-1"
         >
           <div className="w-full aspect-square rounded-xl gradient-purple flex items-center justify-center mb-3 relative overflow-hidden">
             {currentSong.coverUrl ? (
-              <img src={currentSong.coverUrl} alt="" className="w-full h-full object-cover" />
+              <img src={currentSong.coverUrl} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
             ) : (
               <Play className="w-8 h-8 text-gold/40" />
             )}
@@ -44,7 +42,7 @@ const RecentlyPlayed = () => {
               </div>
             )}
           </div>
-          <p className="text-xs font-medium text-foreground truncate">{currentSong.title}</p>
+          <p className="text-xs font-medium text-foreground truncate group-hover:text-gold transition-colors duration-200">{currentSong.title}</p>
           <p className="text-[10px] text-muted-foreground truncate">{currentSong.artist}</p>
         </button>
       </div>
