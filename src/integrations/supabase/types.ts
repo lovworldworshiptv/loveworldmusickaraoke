@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      albums: {
+        Row: {
+          artist: string
+          cover_url: string | null
+          created_at: string
+          id: string
+          is_top: boolean
+          title: string
+        }
+        Insert: {
+          artist?: string
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          is_top?: boolean
+          title: string
+        }
+        Update: {
+          artist?: string
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          is_top?: boolean
+          title?: string
+        }
+        Relationships: []
+      }
       articles: {
         Row: {
           audio_url: string | null
@@ -276,6 +303,7 @@ export type Database = {
       songs: {
         Row: {
           album: string | null
+          album_id: string | null
           artist: string
           audio_url: string | null
           category_id: string | null
@@ -292,6 +320,7 @@ export type Database = {
         }
         Insert: {
           album?: string | null
+          album_id?: string | null
           artist: string
           audio_url?: string | null
           category_id?: string | null
@@ -308,6 +337,7 @@ export type Database = {
         }
         Update: {
           album?: string | null
+          album_id?: string | null
           artist?: string
           audio_url?: string | null
           category_id?: string | null
@@ -323,6 +353,13 @@ export type Database = {
           title?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "songs_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "albums"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "songs_category_id_fkey"
             columns: ["category_id"]

@@ -11,6 +11,7 @@ interface Song {
   title: string;
   artist: string;
   album: string | null;
+  album_id: string | null;
   audio_url: string | null;
   instrumental_url: string | null;
   cover_url: string | null;
@@ -19,6 +20,11 @@ interface Song {
   is_featured: boolean;
   is_top: boolean;
   category_id: string | null;
+}
+
+interface AlbumOption {
+  id: string;
+  title: string;
 }
 
 interface StorageFile {
@@ -117,13 +123,14 @@ const AdminSongs = () => {
   const [lrcText, setLrcText] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
-    title: "", artist: "", album: "", duration_seconds: 240,
+    title: "", artist: "", album: "", album_id: "", duration_seconds: 240,
     is_featured: false, is_top: false, audio_url: "", instrumental_url: "", lyrics_raw: "",
   });
   const [editForm, setEditForm] = useState({
-    title: "", artist: "", album: "", duration_seconds: 240,
+    title: "", artist: "", album: "", album_id: "", duration_seconds: 240,
     is_featured: false, is_top: false, audio_url: "", instrumental_url: "",
   });
+  const [albumOptions, setAlbumOptions] = useState<AlbumOption[]>([]);
 
   // Sync state
   const [syncLines, setSyncLines] = useState<string[]>([]);
@@ -133,7 +140,12 @@ const AdminSongs = () => {
   const syncAudioRef = useRef<HTMLAudioElement | null>(null);
   const [syncTime, setSyncTime] = useState(0);
 
-  useEffect(() => { fetchSongs(); }, []);
+  useEffect(() => { fetchSongs(); fetchAlbumOptions(); }, []);
+
+  const fetchAlbumOptions = async () => {
+    const { data } = await supabase.from("albums").select("id, title").order("title");
+    if (data) setAlbumOptions(data);
+  };
 
   const fetchSongs = async () => {
     const { data } = await supabase.from("songs").select("*").order("created_at", { ascending: false });
@@ -164,6 +176,7 @@ const AdminSongs = () => {
   const handleCreateSong = async () => {
     const { error } = await supabase.from("songs").insert({
       title: form.title, artist: form.artist, album: form.album || null,
+      album_id: form.album_id || null,
       duration_seconds: form.duration_seconds, is_featured: form.is_featured,
       is_top: form.is_top, audio_url: form.audio_url || null,
       instrumental_url: form.instrumental_url || null,
@@ -172,7 +185,7 @@ const AdminSongs = () => {
     if (error) { toast.error("Failed: " + error.message); return; }
     toast.success("Song created!");
     setShowForm(false);
-    setForm({ title: "", artist: "", album: "", duration_seconds: 240, is_featured: false, is_top: false, audio_url: "", instrumental_url: "", lyrics_raw: "" });
+    setForm({ title: "", artist: "", album: "", album_id: "", duration_seconds: 240, is_featured: false, is_top: false, audio_url: "", instrumental_url: "", lyrics_raw: "" });
     fetchSongs();
   };
 
@@ -187,6 +200,7 @@ const AdminSongs = () => {
     if (!editingSong) return;
     const { error } = await supabase.from("songs").update({
       title: editForm.title, artist: editForm.artist, album: editForm.album || null,
+      album_id: editForm.album_id || null,
       duration_seconds: editForm.duration_seconds, is_featured: editForm.is_featured,
       is_top: editForm.is_top, audio_url: editForm.audio_url || null,
       instrumental_url: editForm.instrumental_url || null,
@@ -259,6 +273,7 @@ const AdminSongs = () => {
     } else {
       setEditForm({
         title: song.title, artist: song.artist, album: song.album || "",
+        album_id: song.album_id || "",
         duration_seconds: song.duration_seconds, is_featured: song.is_featured,
         is_top: song.is_top, audio_url: song.audio_url || "", instrumental_url: song.instrumental_url || "",
       });
@@ -294,8 +309,13 @@ const AdminSongs = () => {
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
               <input placeholder="Artist" value={form.artist} onChange={e => setForm({ ...form, artist: e.target.value })}
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
-              <input placeholder="Album" value={form.album} onChange={e => setForm({ ...form, album: e.target.value })}
-                className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
+              <select value={form.album_id} onChange={e => {
+                const sel = albumOptions.find(a => a.id === e.target.value);
+                setForm({ ...form, album_id: e.target.value, album: sel?.title || form.album });
+              }} className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm">
+                <option value="">No Album</option>
+                {albumOptions.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
+              </select>
               <input placeholder="Duration (seconds)" type="number" value={form.duration_seconds}
                 onChange={e => setForm({ ...form, duration_seconds: Number(e.target.value) })}
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
@@ -353,8 +373,13 @@ const AdminSongs = () => {
                       className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
                     <input placeholder="Artist" value={editForm.artist} onChange={e => setEditForm({ ...editForm, artist: e.target.value })}
                       className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
-                    <input placeholder="Album" value={editForm.album} onChange={e => setEditForm({ ...editForm, album: e.target.value })}
-                      className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
+                    <select value={editForm.album_id} onChange={e => {
+                      const sel = albumOptions.find(a => a.id === e.target.value);
+                      setEditForm({ ...editForm, album_id: e.target.value, album: sel?.title || editForm.album });
+                    }} className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm">
+                      <option value="">No Album</option>
+                      {albumOptions.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
+                    </select>
                     <input placeholder="Duration (seconds)" type="number" value={editForm.duration_seconds}
                       onChange={e => setEditForm({ ...editForm, duration_seconds: Number(e.target.value) })}
                       className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
