@@ -1,22 +1,22 @@
 import { Home, Library, Clock, Podcast, ListMusic, MessageSquare, LogOut, Shield, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
-  { icon: Home, label: "Home", active: true },
-  { icon: Library, label: "My Library" },
-  { icon: Clock, label: "History" },
-  { icon: Podcast, label: "Podcast" },
-  { icon: ListMusic, label: "Playlist" },
-  { icon: MessageSquare, label: "Feedback" },
-];
-
-const bottomItems = [
-  { icon: LogOut, label: "Sign Out", danger: true },
-  { icon: Shield, label: "Privacy Policy" },
-  { icon: FileText, label: "Terms of Use" },
+  { icon: Home, label: "Home", path: "/" },
+  { icon: Library, label: "My Library", path: "/library" },
+  { icon: Clock, label: "History", path: "/history" },
+  { icon: Podcast, label: "Podcast", path: "/podcast" },
+  { icon: ListMusic, label: "Playlist", path: "/playlists" },
+  { icon: MessageSquare, label: "Feedback", path: "/feedback" },
 ];
 
 const Sidebar = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { signOut, user } = useAuth();
+
   return (
     <aside className="hidden lg:flex flex-col w-64 h-screen bg-sidebar border-r border-sidebar-border fixed left-0 top-0 z-30">
       <div className="p-6">
@@ -28,9 +28,10 @@ const Sidebar = () => {
         {navItems.map((item) => (
           <button
             key={item.label}
+            onClick={() => navigate(item.path)}
             className={cn(
               "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-              item.active
+              location.pathname === item.path
                 ? "bg-sidebar-accent text-gold"
                 : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             )}
@@ -42,20 +43,23 @@ const Sidebar = () => {
       </nav>
 
       <div className="px-3 pb-6 space-y-1">
-        {bottomItems.map((item) => (
-          <button
-            key={item.label}
-            className={cn(
-              "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-              item.danger
-                ? "text-destructive hover:bg-destructive/10"
-                : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            )}
-          >
-            <item.icon className="w-5 h-5" />
-            {item.label}
+        {user ? (
+          <button onClick={() => signOut()}
+            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-all duration-200">
+            <LogOut className="w-5 h-5" /> Sign Out
           </button>
-        ))}
+        ) : (
+          <button onClick={() => navigate("/auth")}
+            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gold hover:bg-sidebar-accent transition-all duration-200">
+            <LogOut className="w-5 h-5" /> Sign In
+          </button>
+        )}
+        <button className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200">
+          <Shield className="w-5 h-5" /> Privacy Policy
+        </button>
+        <button className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200">
+          <FileText className="w-5 h-5" /> Terms of Use
+        </button>
       </div>
     </aside>
   );
