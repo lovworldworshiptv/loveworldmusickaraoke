@@ -14,16 +14,341 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categories: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          is_visible: boolean
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_visible?: boolean
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_visible?: boolean
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      favorites: {
+        Row: {
+          created_at: string
+          id: string
+          song_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          song_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          song_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_levels: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          level: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          level: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          level?: number
+          title?: string
+        }
+        Relationships: []
+      }
+      playlist_songs: {
+        Row: {
+          id: string
+          playlist_id: string
+          song_id: string
+          sort_order: number
+        }
+        Insert: {
+          id?: string
+          playlist_id: string
+          song_id: string
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          playlist_id?: string
+          song_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playlist_songs_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "playlists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playlist_songs_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      playlists: {
+        Row: {
+          cover_url: string | null
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      quiz_questions: {
+        Row: {
+          created_at: string
+          id: string
+          level_id: string
+          lyric_text: string
+          missing_word: string
+          options: string[]
+          song_title: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level_id: string
+          lyric_text: string
+          missing_word: string
+          options: string[]
+          song_title: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level_id?: string
+          lyric_text?: string
+          missing_word?: string
+          options?: string[]
+          song_title?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_questions_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "game_levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      songs: {
+        Row: {
+          album: string | null
+          artist: string
+          audio_url: string | null
+          category_id: string | null
+          cover_url: string | null
+          created_at: string
+          duration_seconds: number
+          id: string
+          instrumental_url: string | null
+          is_featured: boolean
+          is_top: boolean
+          lyrics_lrc: string | null
+          play_count: number
+          title: string
+        }
+        Insert: {
+          album?: string | null
+          artist: string
+          audio_url?: string | null
+          category_id?: string | null
+          cover_url?: string | null
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          instrumental_url?: string | null
+          is_featured?: boolean
+          is_top?: boolean
+          lyrics_lrc?: string | null
+          play_count?: number
+          title: string
+        }
+        Update: {
+          album?: string | null
+          artist?: string
+          audio_url?: string | null
+          category_id?: string | null
+          cover_url?: string | null
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          instrumental_url?: string | null
+          is_featured?: boolean
+          is_top?: boolean
+          lyrics_lrc?: string | null
+          play_count?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "songs_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_game_progress: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          id: string
+          level_id: string
+          score: number
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          id?: string
+          level_id: string
+          score?: number
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          id?: string
+          level_id?: string
+          score?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_game_progress_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "game_levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "free" | "premium"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +475,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "free", "premium"],
+    },
   },
 } as const
