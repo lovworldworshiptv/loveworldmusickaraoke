@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-export type ThemeName = "midnight-gold" | "ocean-teal" | "royal-purple" | "forest-emerald" | "sunset-coral";
+export type ThemeName = "midnight-gold" | "ocean-teal" | "royal-purple" | "forest-emerald" | "sunset-coral" | "light-clean";
 
 interface ThemeContextType {
   theme: ThemeName;
@@ -157,6 +157,34 @@ const themeVars: Record<ThemeName, Record<string, string>> = {
     "--glass-bg": "15 35% 12%",
     "--glass-border": "15 25% 22%",
   },
+  "light-clean": {
+    "--background": "0 0% 98%",
+    "--foreground": "220 20% 15%",
+    "--card": "0 0% 100%",
+    "--card-foreground": "220 20% 15%",
+    "--popover": "0 0% 100%",
+    "--popover-foreground": "220 20% 15%",
+    "--primary": "43 70% 50%",
+    "--primary-foreground": "0 0% 100%",
+    "--secondary": "220 15% 93%",
+    "--secondary-foreground": "220 20% 25%",
+    "--muted": "220 10% 92%",
+    "--muted-foreground": "220 10% 45%",
+    "--accent": "215 50% 55%",
+    "--accent-foreground": "0 0% 100%",
+    "--border": "220 15% 88%",
+    "--input": "220 15% 88%",
+    "--ring": "43 70% 50%",
+    "--gold": "43 70% 50%",
+    "--gold-light": "43 80% 62%",
+    "--gold-dark": "43 60% 38%",
+    "--sidebar-background": "0 0% 100%",
+    "--sidebar-foreground": "220 20% 30%",
+    "--sidebar-primary": "43 70% 50%",
+    "--sidebar-border": "220 15% 90%",
+    "--glass-bg": "0 0% 100%",
+    "--glass-border": "220 15% 85%",
+  },
 };
 
 const themes: { name: ThemeName; label: string; preview: string }[] = [
@@ -165,6 +193,7 @@ const themes: { name: ThemeName; label: string; preview: string }[] = [
   { name: "royal-purple", label: "Royal Purple", preview: "hsl(280, 70%, 60%)" },
   { name: "forest-emerald", label: "Forest Emerald", preview: "hsl(142, 60%, 45%)" },
   { name: "sunset-coral", label: "Sunset Coral", preview: "hsl(12, 80%, 55%)" },
+  { name: "light-clean", label: "Light Mode", preview: "hsl(43, 70%, 50%)" },
 ];
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
