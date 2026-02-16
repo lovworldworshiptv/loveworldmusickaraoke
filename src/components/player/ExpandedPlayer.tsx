@@ -1,7 +1,7 @@
-import { usePlayer } from "@/contexts/PlayerContext";
-import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Mic2, Music, Heart } from "lucide-react";
+import { usePlayer, RepeatMode } from "@/contexts/PlayerContext";
+import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 
 const formatTime = (s: number) => {
   const m = Math.floor(s / 60);
@@ -9,14 +9,51 @@ const formatTime = (s: number) => {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 };
 
+// Extract dominant color from image via canvas sampling
+function useDominantColor(imageUrl?: string) {
+  const [color, setColor] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!imageUrl) { setColor(null); return; }
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 50;
+        canvas.height = 50;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0, 50, 50);
+        const data = ctx.getImageData(0, 0, 50, 50).data;
+        let r = 0, g = 0, b = 0, count = 0;
+        for (let i = 0; i < data.length; i += 16) {
+          r += data[i]; g += data[i + 1]; b += data[i + 2]; count++;
+        }
+        r = Math.round(r / count); g = Math.round(g / count); b = Math.round(b / count);
+        setColor(`${r}, ${g}, ${b}`);
+      } catch {
+        setColor(null);
+      }
+    };
+    img.onerror = () => setColor(null);
+    img.src = imageUrl;
+  }, [imageUrl]);
+
+  return color;
+}
+
 const ExpandedPlayer = () => {
   const {
     currentSong, isPlaying, isKaraoke, progress, duration, currentTime,
     lrcLines, activeLrcIndex, togglePlay, toggleKaraoke, toggleExpanded, seekTo,
+    skipNext, skipPrev, repeatMode, cycleRepeat, shuffleOn, toggleShuffle,
   } = usePlayer();
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
   const [showLyrics, setShowLyrics] = useState(true);
+
+  const dominantColor = useDominantColor(currentSong?.coverUrl);
 
   // Smooth scroll active lyric to center
   useEffect(() => {
@@ -44,10 +81,18 @@ const ExpandedPlayer = () => {
     return "text-sm text-muted-foreground/30 opacity-40 blur-[0.5px]";
   };
 
+  const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
+
+  const bgStyle = dominantColor
+    ? { background: `linear-gradient(180deg, rgba(${dominantColor}, 0.5) 0%, hsl(var(--background)) 70%)` }
+    : undefined;
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col overflow-hidden">
-      {/* Background gradient from album art */}
-      <div className="absolute inset-0 gradient-purple" />
+      {/* Background — dynamic or fallback */}
+      <div className="absolute inset-0" style={bgStyle}>
+        {!dominantColor && <div className="absolute inset-0 gradient-purple" />}
+      </div>
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/80 to-background" />
 
       {/* Content */}
@@ -67,10 +112,9 @@ const ExpandedPlayer = () => {
 
         {/* Toggle: Album Art / Lyrics */}
         {!showLyrics ? (
-          /* Album Art View */
           <div className="flex-1 flex flex-col items-center justify-center px-8 min-h-0">
             <button onClick={() => setShowLyrics(true)} className="w-full max-w-[280px] aspect-square">
-              <div className="w-full h-full rounded-3xl gradient-purple flex items-center justify-center glow-gold shadow-2xl">
+              <div className="w-full h-full rounded-3xl gradient-purple flex items-center justify-center glow-gold shadow-2xl overflow-hidden">
                 {currentSong.coverUrl ? (
                   <img src={currentSong.coverUrl} alt={currentSong.title} className="w-full h-full rounded-3xl object-cover" />
                 ) : (
@@ -81,12 +125,11 @@ const ExpandedPlayer = () => {
             <div className="mt-8 text-center w-full px-4">
               <h2 className="text-2xl font-serif font-bold text-foreground truncate">{currentSong.title}</h2>
               <p className="text-base text-muted-foreground mt-1">{currentSong.artist}</p>
+              {currentSong.album && <p className="text-xs text-muted-foreground/60 mt-0.5">{currentSong.album}</p>}
             </div>
           </div>
         ) : (
-          /* Lyrics View */
           <div className="flex-1 flex flex-col min-h-0">
-            {/* Song info compact */}
             <div className="px-6 pb-3 flex-shrink-0">
               <button onClick={() => setShowLyrics(false)} className="flex items-center gap-3 w-full">
                 <div className="w-12 h-12 rounded-xl gradient-purple flex-shrink-0 flex items-center justify-center glow-gold overflow-hidden">
@@ -170,10 +213,10 @@ const ExpandedPlayer = () => {
 
           {/* Playback Controls */}
           <div className="flex items-center justify-center gap-8">
-            <button className="text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={toggleShuffle} className={`transition-colors ${shuffleOn ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               <Shuffle className="w-5 h-5" />
             </button>
-            <button className="text-foreground hover:text-gold transition-colors">
+            <button onClick={skipPrev} className="text-foreground hover:text-gold transition-colors">
               <SkipBack className="w-7 h-7" />
             </button>
             <button
@@ -183,11 +226,14 @@ const ExpandedPlayer = () => {
             >
               {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8 ml-1" />}
             </button>
-            <button className="text-foreground hover:text-gold transition-colors">
+            <button onClick={skipNext} className="text-foreground hover:text-gold transition-colors">
               <SkipForward className="w-7 h-7" />
             </button>
-            <button className="text-muted-foreground hover:text-foreground transition-colors">
-              <Repeat className="w-5 h-5" />
+            <button onClick={cycleRepeat} className={`relative transition-colors ${repeatMode !== "off" ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
+              <RepeatIcon className="w-5 h-5" />
+              {repeatMode === "one" && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-gold" />
+              )}
             </button>
           </div>
         </div>

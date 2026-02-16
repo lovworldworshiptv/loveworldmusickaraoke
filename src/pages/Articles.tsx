@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { BookOpen, Type, Video, Headphones, FileText, Music, X, ChevronRight, Minus, Plus } from "lucide-react";
@@ -23,6 +24,7 @@ interface Article {
 type ContentMode = "text" | "video" | "audio";
 
 const Articles = () => {
+  const [searchParams] = useSearchParams();
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [fontSize, setFontSize] = useState(16);
@@ -34,6 +36,15 @@ const Articles = () => {
   useEffect(() => {
     fetchArticles();
   }, []);
+
+  // Deep link: open article by id from query param
+  useEffect(() => {
+    const articleId = searchParams.get("id");
+    if (articleId && articles.length > 0 && !selectedArticle) {
+      const found = articles.find(a => a.id === articleId);
+      if (found) { setSelectedArticle(found); setContentMode("text"); }
+    }
+  }, [searchParams, articles]);
 
   // Show song suggestion popup after 10s of reading
   useEffect(() => {

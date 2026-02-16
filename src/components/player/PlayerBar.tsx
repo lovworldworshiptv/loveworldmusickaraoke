@@ -1,4 +1,4 @@
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Volume2, Mic2, ListMusic, ChevronUp } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, Mic2, ListMusic, ChevronUp } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { usePlayer } from "@/contexts/PlayerContext";
 import ExpandedPlayer from "./ExpandedPlayer";
@@ -10,9 +10,15 @@ const formatTime = (s: number) => {
 };
 
 const PlayerBar = () => {
-  const { currentSong, isPlaying, isKaraoke, isExpanded, progress, currentTime, duration, togglePlay, toggleKaraoke, toggleExpanded, seekTo } = usePlayer();
+  const {
+    currentSong, isPlaying, isKaraoke, isExpanded, progress, currentTime, duration,
+    togglePlay, toggleKaraoke, toggleExpanded, seekTo,
+    skipNext, skipPrev, repeatMode, cycleRepeat, shuffleOn, toggleShuffle,
+  } = usePlayer();
 
   if (isExpanded) return <ExpandedPlayer />;
+
+  const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
 
   return (
     <div className="fixed bottom-12 lg:bottom-0 left-0 lg:left-64 right-0 z-30 glass border-t border-border">
@@ -23,8 +29,12 @@ const PlayerBar = () => {
       <div className="flex items-center justify-between px-4 py-3">
         {/* Song Info */}
         <button onClick={toggleExpanded} className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="w-10 h-10 rounded-lg gradient-gold flex-shrink-0 flex items-center justify-center">
-            {currentSong && <ChevronUp className="w-4 h-4 text-primary-foreground" />}
+          <div className="w-10 h-10 rounded-lg gradient-gold flex-shrink-0 flex items-center justify-center overflow-hidden">
+            {currentSong?.coverUrl ? (
+              <img src={currentSong.coverUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <ChevronUp className="w-4 h-4 text-primary-foreground" />
+            )}
           </div>
           <div className="min-w-0 text-left">
             <p className="text-sm font-medium truncate text-foreground">{currentSong?.title || "No song selected"}</p>
@@ -34,21 +44,21 @@ const PlayerBar = () => {
 
         {/* Controls */}
         <div className="flex items-center gap-2 md:gap-4">
-          <button className="hidden md:block text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={toggleShuffle} className={`hidden md:block transition-colors ${shuffleOn ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
             <Shuffle className="w-4 h-4" />
           </button>
-          <button className="text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={skipPrev} className="text-muted-foreground hover:text-foreground transition-colors">
             <SkipBack className="w-5 h-5" />
           </button>
           <button onClick={togglePlay}
             className="w-10 h-10 rounded-full gradient-gold flex items-center justify-center text-primary-foreground hover:opacity-90 transition-opacity">
             {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
           </button>
-          <button className="text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={skipNext} className="text-muted-foreground hover:text-foreground transition-colors">
             <SkipForward className="w-5 h-5" />
           </button>
-          <button className="hidden md:block text-muted-foreground hover:text-foreground transition-colors">
-            <Repeat className="w-4 h-4" />
+          <button onClick={cycleRepeat} className={`hidden md:block transition-colors ${repeatMode !== "off" ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
+            <RepeatIcon className="w-4 h-4" />
           </button>
         </div>
 
