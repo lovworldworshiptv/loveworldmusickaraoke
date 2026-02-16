@@ -89,11 +89,11 @@ const ExpandedPlayer = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col overflow-hidden">
-      {/* Background — dynamic or fallback */}
-      <div className="absolute inset-0" style={bgStyle}>
-        {!dominantColor && <div className="absolute inset-0 gradient-purple" />}
+      {/* Background — solid, not transparent */}
+      <div className="absolute inset-0 bg-background" />
+      <div className="absolute inset-0" style={dominantColor ? { background: `linear-gradient(180deg, rgba(${dominantColor}, 0.35) 0%, hsl(var(--background)) 60%)` } : undefined}>
+        {!dominantColor && <div className="absolute inset-0 gradient-purple opacity-30" />}
       </div>
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/80 to-background" />
 
       {/* Content */}
       <div className="relative flex flex-col h-full">

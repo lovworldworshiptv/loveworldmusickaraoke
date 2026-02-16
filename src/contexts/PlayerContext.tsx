@@ -68,6 +68,14 @@ function parseLrc(lrc: string): LrcLine[] {
   return lines.sort((a, b) => a.time - b.time);
 }
 
+// Convert Google Drive view links to direct streamable URLs
+function toDirectUrl(url?: string): string | undefined {
+  if (!url) return undefined;
+  const match = url.match(/\/file\/d\/([^/]+)/);
+  if (match) return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+  return url;
+}
+
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -140,7 +148,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       setLrcLines([]);
     }
 
-    const url = useKaraoke ? song.instrumentalUrl : song.audioUrl;
+    const url = toDirectUrl(useKaraoke ? song.instrumentalUrl : song.audioUrl);
     if (url) {
       const audio = new Audio(url);
       audioRef.current = audio;
@@ -271,7 +279,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       if (audioRef.current && currentSong) {
         const ct = audioRef.current.currentTime;
         audioRef.current.pause();
-        const url = next ? currentSong.instrumentalUrl : currentSong.audioUrl;
+        const url = toDirectUrl(next ? currentSong.instrumentalUrl : currentSong.audioUrl);
         if (url) {
           const audio = new Audio(url);
           audioRef.current = audio;
