@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { Music, Upload, Save, Plus, Trash2, Edit3, X } from "lucide-react";
+import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -26,17 +26,28 @@ const AdminSongs = () => {
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
+  const [editMode, setEditMode] = useState<"lrc" | "sync" | "details">("lrc");
   const [lrcText, setLrcText] = useState("");
-  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
+    title: "", artist: "", album: "", duration_seconds: 240,
+    is_featured: false, is_top: false, audio_url: "", instrumental_url: "", lyrics_raw: "",
+  });
+  // Edit details form
+  const [editForm, setEditForm] = useState({
     title: "", artist: "", album: "", duration_seconds: 240,
     is_featured: false, is_top: false, audio_url: "", instrumental_url: "",
   });
 
-  useEffect(() => {
-    fetchSongs();
-  }, []);
+  // Sync state
+  const [syncLines, setSyncLines] = useState<string[]>([]);
+  const [syncTimestamps, setSyncTimestamps] = useState<number[]>([]);
+  const [syncCurrentLine, setSyncCurrentLine] = useState(0);
+  const [syncPlaying, setSyncPlaying] = useState(false);
+  const syncAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [syncTime, setSyncTime] = useState(0);
+
+  useEffect(() => { fetchSongs(); }, []);
 
   const fetchSongs = async () => {
     const { data } = await supabase.from("songs").select("*").order("created_at", { ascending: false });
@@ -70,11 +81,12 @@ const AdminSongs = () => {
       duration_seconds: form.duration_seconds, is_featured: form.is_featured,
       is_top: form.is_top, audio_url: form.audio_url || null,
       instrumental_url: form.instrumental_url || null,
+      lyrics_lrc: form.lyrics_raw || null,
     });
     if (error) { toast.error("Failed: " + error.message); return; }
     toast.success("Song created!");
     setShowForm(false);
-    setForm({ title: "", artist: "", album: "", duration_seconds: 240, is_featured: false, is_top: false, audio_url: "", instrumental_url: "" });
+    setForm({ title: "", artist: "", album: "", duration_seconds: 240, is_featured: false, is_top: false, audio_url: "", instrumental_url: "", lyrics_raw: "" });
     fetchSongs();
   };
 
@@ -83,6 +95,104 @@ const AdminSongs = () => {
     await supabase.from("songs").delete().eq("id", id);
     toast.success("Deleted");
     fetchSongs();
+  };
+
+  const handleUpdateDetails = async () => {
+    if (!editingSong) return;
+    const { error } = await supabase.from("songs").update({
+      title: editForm.title, artist: editForm.artist, album: editForm.album || null,
+      duration_seconds: editForm.duration_seconds, is_featured: editForm.is_featured,
+      is_top: editForm.is_top, audio_url: editForm.audio_url || null,
+      instrumental_url: editForm.instrumental_url || null,
+    }).eq("id", editingSong.id);
+    if (error) { toast.error("Failed: " + error.message); return; }
+    toast.success("Song updated!");
+    setEditingSong(null);
+    fetchSongs();
+  };
+
+  // --- Sync lyrics ---
+  const startSync = () => {
+    // Parse raw lyrics (without timestamps) into lines
+    const rawLrc = lrcText || "";
+    // Strip any existing timestamps
+    const lines = rawLrc.split("\n").map(l => l.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, "").trim()).filter(Boolean);
+    setSyncLines(lines);
+    setSyncTimestamps(new Array(lines.length).fill(-1));
+    setSyncCurrentLine(0);
+    setEditMode("sync");
+
+    // Start playing instrumental
+    const url = editingSong?.instrumental_url || editingSong?.audio_url;
+    if (url) {
+      const audio = new Audio(url);
+      syncAudioRef.current = audio;
+      audio.play();
+      setSyncPlaying(true);
+      const interval = setInterval(() => {
+        if (audio.paused || audio.ended) { clearInterval(interval); setSyncPlaying(false); return; }
+        setSyncTime(audio.currentTime);
+      }, 100);
+    }
+  };
+
+  const handleSyncClick = (lineIndex: number) => {
+    if (!syncAudioRef.current) return;
+    const time = syncAudioRef.current.currentTime;
+    setSyncTimestamps(prev => {
+      const n = [...prev];
+      n[lineIndex] = time;
+      return n;
+    });
+    setSyncCurrentLine(lineIndex + 1);
+  };
+
+  const stopSync = () => {
+    if (syncAudioRef.current) { syncAudioRef.current.pause(); syncAudioRef.current = null; }
+    setSyncPlaying(false);
+  };
+
+  const saveSyncedLyrics = async () => {
+    stopSync();
+    // Build LRC
+    const lrc = syncLines.map((line, i) => {
+      const t = syncTimestamps[i];
+      if (t < 0) return `[00:00.00]${line}`;
+      const min = Math.floor(t / 60).toString().padStart(2, "0");
+      const sec = Math.floor(t % 60).toString().padStart(2, "0");
+      const ms = Math.round((t % 1) * 100).toString().padStart(2, "0");
+      return `[${min}:${sec}.${ms}]${line}`;
+    }).join("\n");
+
+    setLrcText(lrc);
+    if (editingSong) {
+      const { error } = await supabase.from("songs").update({ lyrics_lrc: lrc }).eq("id", editingSong.id);
+      if (error) toast.error("Failed to save");
+      else toast.success("Synced lyrics saved!");
+    }
+    setEditMode("lrc");
+    fetchSongs();
+  };
+
+  const openEdit = (song: Song, mode: "lrc" | "details") => {
+    setEditingSong(song);
+    setEditMode(mode);
+    if (mode === "lrc") {
+      setLrcText(song.lyrics_lrc || "");
+    } else {
+      setEditForm({
+        title: song.title, artist: song.artist, album: song.album || "",
+        duration_seconds: song.duration_seconds, is_featured: song.is_featured,
+        is_top: song.is_top, audio_url: song.audio_url || "", instrumental_url: song.instrumental_url || "",
+      });
+    }
+  };
+
+  const formatSyncTime = (t: number) => {
+    if (t < 0) return "--:--";
+    const m = Math.floor(t / 60).toString().padStart(2, "0");
+    const s = Math.floor(t % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
   };
 
   if (adminLoading) return <AppLayout><div className="p-6 text-center text-muted-foreground">Loading...</div></AppLayout>;
@@ -117,6 +227,9 @@ const AdminSongs = () => {
               <input placeholder="Instrumental URL" value={form.instrumental_url} onChange={e => setForm({ ...form, instrumental_url: e.target.value })}
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
             </div>
+            <textarea placeholder="Lyrics (plain text, one line per verse line)" value={form.lyrics_raw}
+              onChange={e => setForm({ ...form, lyrics_raw: e.target.value })}
+              className="w-full min-h-[120px] px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm font-mono resize-y" />
             <div className="flex gap-3">
               <label className="flex items-center gap-2 text-sm text-foreground">
                 <input type="checkbox" checked={form.is_top} onChange={e => setForm({ ...form, is_top: e.target.checked })} /> Top Song
@@ -129,30 +242,135 @@ const AdminSongs = () => {
           </div>
         )}
 
-        {/* LRC Editor Modal */}
+        {/* Edit Modal */}
         {editingSong && (
           <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="glass-card p-6 w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="glass-card p-6 w-full max-w-2xl max-h-[85vh] flex flex-col">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-serif font-bold text-foreground">Edit Lyrics — {editingSong.title}</h3>
-                <button onClick={() => setEditingSong(null)} className="text-muted-foreground hover:text-foreground">
+                <h3 className="font-serif font-bold text-foreground">
+                  {editMode === "details" ? "Edit Song" : editMode === "sync" ? "Sync Lyrics" : "Edit Lyrics"} — {editingSong.title}
+                </h3>
+                <button onClick={() => { setEditingSong(null); stopSync(); }} className="text-muted-foreground hover:text-foreground">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                Use LRC format with timestamps. Example:<br />
-                <code className="text-gold">[00:12.50]Amazing grace how sweet the sound</code><br />
-                <code className="text-gold">[00:18.20]That saved a wretch like me</code>
-              </p>
-              <textarea
-                value={lrcText}
-                onChange={e => setLrcText(e.target.value)}
-                placeholder="[00:00.00]Title&#10;[00:05.00]First line of lyrics&#10;[00:10.00]Second line..."
-                className="flex-1 min-h-[300px] px-4 py-3 rounded-lg bg-muted border border-border text-foreground font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <Button onClick={handleSaveLyrics} className="mt-4 gradient-gold text-primary-foreground gap-2 self-end">
-                <Save className="w-4 h-4" /> Save Lyrics
-              </Button>
+
+              {/* Mode tabs */}
+              {editMode !== "sync" && (
+                <div className="flex gap-1 mb-4">
+                  <button onClick={() => setEditMode("details")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium ${editMode === "details" ? "gradient-gold text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                    Details
+                  </button>
+                  <button onClick={() => { setEditMode("lrc"); setLrcText(editingSong.lyrics_lrc || ""); }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium ${editMode === "lrc" ? "gradient-gold text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                    Lyrics
+                  </button>
+                </div>
+              )}
+
+              {/* Details edit */}
+              {editMode === "details" && (
+                <div className="space-y-3 overflow-y-auto flex-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <input placeholder="Title" value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })}
+                      className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
+                    <input placeholder="Artist" value={editForm.artist} onChange={e => setEditForm({ ...editForm, artist: e.target.value })}
+                      className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
+                    <input placeholder="Album" value={editForm.album} onChange={e => setEditForm({ ...editForm, album: e.target.value })}
+                      className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
+                    <input placeholder="Duration (seconds)" type="number" value={editForm.duration_seconds}
+                      onChange={e => setEditForm({ ...editForm, duration_seconds: Number(e.target.value) })}
+                      className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
+                    <input placeholder="Audio URL" value={editForm.audio_url} onChange={e => setEditForm({ ...editForm, audio_url: e.target.value })}
+                      className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
+                    <input placeholder="Instrumental URL" value={editForm.instrumental_url} onChange={e => setEditForm({ ...editForm, instrumental_url: e.target.value })}
+                      className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
+                  </div>
+                  <div className="flex gap-3">
+                    <label className="flex items-center gap-2 text-sm text-foreground">
+                      <input type="checkbox" checked={editForm.is_top} onChange={e => setEditForm({ ...editForm, is_top: e.target.checked })} /> Top Song
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-foreground">
+                      <input type="checkbox" checked={editForm.is_featured} onChange={e => setEditForm({ ...editForm, is_featured: e.target.checked })} /> Featured
+                    </label>
+                  </div>
+                  <Button onClick={handleUpdateDetails} className="gradient-gold text-primary-foreground gap-2">
+                    <Save className="w-4 h-4" /> Save Changes
+                  </Button>
+                </div>
+              )}
+
+              {/* LRC editor */}
+              {editMode === "lrc" && (
+                <>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs text-muted-foreground">
+                      Enter lyrics (with or without timestamps). Use "Sync Lyrics" to time them to audio.
+                    </p>
+                    <Button onClick={startSync} size="sm" variant="outline" className="gap-1.5 text-gold border-gold/30">
+                      <MousePointer className="w-3.5 h-3.5" /> Sync Lyrics
+                    </Button>
+                  </div>
+                  <textarea
+                    value={lrcText}
+                    onChange={e => setLrcText(e.target.value)}
+                    placeholder="Enter lyrics line by line...&#10;Amazing grace how sweet the sound&#10;That saved a wretch like me"
+                    className="flex-1 min-h-[300px] px-4 py-3 rounded-lg bg-muted border border-border text-foreground font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <Button onClick={handleSaveLyrics} className="mt-4 gradient-gold text-primary-foreground gap-2 self-end">
+                    <Save className="w-4 h-4" /> Save Lyrics
+                  </Button>
+                </>
+              )}
+
+              {/* Sync mode */}
+              {editMode === "sync" && (
+                <div className="flex-1 flex flex-col min-h-0">
+                  <div className="flex items-center gap-3 mb-4 glass-card px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      {syncPlaying ? (
+                        <button onClick={stopSync} className="p-1.5 rounded-lg bg-destructive/20 text-destructive">
+                          <Square className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <button onClick={startSync} className="p-1.5 rounded-lg bg-gold/20 text-gold">
+                          <Play className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    <span className="text-sm text-foreground font-mono">{formatSyncTime(syncTime)}</span>
+                    <span className="text-xs text-muted-foreground flex-1">Click each line as the audio plays to sync it</span>
+                    <Button onClick={saveSyncedLyrics} size="sm" className="gradient-gold text-primary-foreground gap-1">
+                      <Save className="w-3.5 h-3.5" /> Save
+                    </Button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto space-y-1">
+                    {syncLines.map((line, i) => {
+                      const isActive = i === syncCurrentLine;
+                      const isSynced = syncTimestamps[i] >= 0;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handleSyncClick(i)}
+                          className={`w-full text-left px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all ${
+                            isActive
+                              ? "bg-gold/20 border border-gold/40 text-gold"
+                              : isSynced
+                              ? "bg-muted/40 text-foreground"
+                              : "text-muted-foreground hover:bg-muted/30"
+                          }`}
+                        >
+                          <span className="text-[10px] font-mono w-10 text-right flex-shrink-0">
+                            {isSynced ? formatSyncTime(syncTimestamps[i]) : "—"}
+                          </span>
+                          <span className="text-sm">{line}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -193,9 +411,13 @@ const AdminSongs = () => {
 
                 {/* Actions */}
                 <div className="flex gap-2">
-                  <button onClick={() => { setEditingSong(song); setLrcText(song.lyrics_lrc || ""); }}
-                    className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors" title="Edit Lyrics">
+                  <button onClick={() => openEdit(song, "details")}
+                    className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors" title="Edit Details">
                     <Edit3 className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => openEdit(song, "lrc")}
+                    className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors" title="Edit Lyrics">
+                    <Music className="w-4 h-4" />
                   </button>
                   <button onClick={() => handleDelete(song.id)}
                     className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Delete">

@@ -4,6 +4,7 @@ export interface PlayerSong {
   id: string;
   title: string;
   artist: string;
+  album?: string;
   coverUrl?: string;
   audioUrl?: string;
   instrumentalUrl?: string;
@@ -16,6 +17,8 @@ interface LrcLine {
   text: string;
 }
 
+export type RepeatMode = "off" | "all" | "one";
+
 interface PlayerContextType {
   currentSong: PlayerSong | null;
   isPlaying: boolean;
@@ -26,11 +29,20 @@ interface PlayerContextType {
   currentTime: number;
   lrcLines: LrcLine[];
   activeLrcIndex: number;
+  repeatMode: RepeatMode;
+  shuffleOn: boolean;
+  queue: PlayerSong[];
+  queueIndex: number;
   playSong: (song: PlayerSong) => void;
+  playQueue: (songs: PlayerSong[], startIndex?: number) => void;
   togglePlay: () => void;
   toggleKaraoke: () => void;
   toggleExpanded: () => void;
   seekTo: (percent: number) => void;
+  skipNext: () => void;
+  skipPrev: () => void;
+  cycleRepeat: () => void;
+  toggleShuffle: () => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
@@ -56,6 +68,15 @@ function parseLrc(lrc: string): LrcLine[] {
   return lines.sort((a, b) => a.time - b.time);
 }
 
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [currentSong, setCurrentSong] = useState<PlayerSong | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -66,6 +87,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [lrcLines, setLrcLines] = useState<LrcLine[]>([]);
   const [activeLrcIndex, setActiveLrcIndex] = useState(-1);
+  const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
+  const [shuffleOn, setShuffleOn] = useState(false);
+  const [queue, setQueue] = useState<PlayerSong[]>([]);
+  const [queueIndex, setQueueIndex] = useState(-1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<number | null>(null);
 
@@ -84,7 +109,6 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         const dur = audioRef.current.duration || 1;
         setCurrentTime(ct);
         setProgress((ct / dur) * 100);
-        // Update active lyric
         setLrcLines((lines) => {
           let idx = -1;
           for (let i = lines.length - 1; i >= 0; i--) {
@@ -97,14 +121,15 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }, 200);
   }, [stopInterval]);
 
-  const playSong = useCallback((song: PlayerSong) => {
+  const loadAndPlay = useCallback((song: PlayerSong, karaokeMode?: boolean) => {
     stopInterval();
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
     }
     setCurrentSong(song);
-    setIsKaraoke(false);
+    const useKaraoke = karaokeMode ?? false;
+    setIsKaraoke(useKaraoke);
     setProgress(0);
     setCurrentTime(0);
     setActiveLrcIndex(-1);
@@ -115,20 +140,122 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       setLrcLines([]);
     }
 
-    const url = song.audioUrl;
+    const url = useKaraoke ? song.instrumentalUrl : song.audioUrl;
     if (url) {
       const audio = new Audio(url);
       audioRef.current = audio;
       audio.addEventListener("loadedmetadata", () => setDuration(audio.duration));
-      audio.addEventListener("ended", () => { setIsPlaying(false); stopInterval(); });
+      // onEnded handled separately so repeat/shuffle logic works
       audio.play().then(() => { setIsPlaying(true); startInterval(); }).catch(() => {});
     } else {
-      // Mock: simulate with duration
       setDuration(song.durationSeconds || 240);
       setIsPlaying(true);
       startInterval();
     }
   }, [startInterval, stopInterval]);
+
+  // Handle song ended — needs access to latest state via refs
+  const repeatModeRef = useRef(repeatMode);
+  repeatModeRef.current = repeatMode;
+  const shuffleOnRef = useRef(shuffleOn);
+  shuffleOnRef.current = shuffleOn;
+  const queueRef = useRef(queue);
+  queueRef.current = queue;
+  const queueIndexRef = useRef(queueIndex);
+  queueIndexRef.current = queueIndex;
+
+  const handleEnded = useCallback(() => {
+    const rm = repeatModeRef.current;
+    const q = queueRef.current;
+    const qi = queueIndexRef.current;
+
+    if (rm === "one") {
+      // Replay same song
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play();
+      }
+      return;
+    }
+
+    if (q.length > 0 && qi >= 0) {
+      let nextIdx = qi + 1;
+      if (nextIdx >= q.length) {
+        if (rm === "all") {
+          nextIdx = 0;
+        } else {
+          setIsPlaying(false);
+          stopInterval();
+          return;
+        }
+      }
+      setQueueIndex(nextIdx);
+      loadAndPlay(q[nextIdx]);
+    } else {
+      setIsPlaying(false);
+      stopInterval();
+    }
+  }, [loadAndPlay, stopInterval]);
+
+  // Attach ended listener whenever audio changes
+  const attachEndedListener = useCallback((audio: HTMLAudioElement) => {
+    audio.addEventListener("ended", handleEnded);
+  }, [handleEnded]);
+
+  const playSong = useCallback((song: PlayerSong) => {
+    setQueue([song]);
+    setQueueIndex(0);
+    loadAndPlay(song);
+    // Attach ended
+    setTimeout(() => {
+      if (audioRef.current) attachEndedListener(audioRef.current);
+    }, 0);
+  }, [loadAndPlay, attachEndedListener]);
+
+  const playQueue = useCallback((songs: PlayerSong[], startIndex = 0) => {
+    const q = shuffleOnRef.current ? shuffleArray(songs) : songs;
+    setQueue(q);
+    setQueueIndex(startIndex);
+    if (q[startIndex]) {
+      loadAndPlay(q[startIndex]);
+      setTimeout(() => {
+        if (audioRef.current) attachEndedListener(audioRef.current);
+      }, 0);
+    }
+  }, [loadAndPlay, attachEndedListener]);
+
+  const skipNext = useCallback(() => {
+    if (queue.length === 0) return;
+    let nextIdx = queueIndex + 1;
+    if (nextIdx >= queue.length) {
+      if (repeatMode === "all") nextIdx = 0;
+      else return;
+    }
+    setQueueIndex(nextIdx);
+    loadAndPlay(queue[nextIdx]);
+    setTimeout(() => {
+      if (audioRef.current) attachEndedListener(audioRef.current);
+    }, 0);
+  }, [queue, queueIndex, repeatMode, loadAndPlay, attachEndedListener]);
+
+  const skipPrev = useCallback(() => {
+    if (queue.length === 0) return;
+    // If > 3s in, restart; otherwise go previous
+    if (audioRef.current && audioRef.current.currentTime > 3) {
+      audioRef.current.currentTime = 0;
+      return;
+    }
+    let prevIdx = queueIndex - 1;
+    if (prevIdx < 0) {
+      if (repeatMode === "all") prevIdx = queue.length - 1;
+      else { if (audioRef.current) audioRef.current.currentTime = 0; return; }
+    }
+    setQueueIndex(prevIdx);
+    loadAndPlay(queue[prevIdx]);
+    setTimeout(() => {
+      if (audioRef.current) attachEndedListener(audioRef.current);
+    }, 0);
+  }, [queue, queueIndex, repeatMode, loadAndPlay, attachEndedListener]);
 
   const togglePlay = useCallback(() => {
     if (audioRef.current) {
@@ -153,12 +280,12 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             setDuration(audio.duration);
             if (isPlaying) audio.play();
           });
-          audio.addEventListener("ended", () => { setIsPlaying(false); stopInterval(); });
+          attachEndedListener(audio);
         }
       }
       return next;
     });
-  }, [currentSong, isPlaying, stopInterval]);
+  }, [currentSong, isPlaying, attachEndedListener]);
 
   const toggleExpanded = useCallback(() => setIsExpanded((e) => !e), []);
 
@@ -169,11 +296,21 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     setProgress(percent);
   }, []);
 
+  const cycleRepeat = useCallback(() => {
+    setRepeatMode((m) => m === "off" ? "all" : m === "all" ? "one" : "off");
+  }, []);
+
+  const toggleShuffle = useCallback(() => {
+    setShuffleOn((s) => !s);
+  }, []);
+
   return (
     <PlayerContext.Provider value={{
       currentSong, isPlaying, isKaraoke, isExpanded, progress, duration,
-      currentTime, lrcLines, activeLrcIndex, playSong, togglePlay,
-      toggleKaraoke, toggleExpanded, seekTo,
+      currentTime, lrcLines, activeLrcIndex, repeatMode, shuffleOn,
+      queue, queueIndex, playSong, playQueue, togglePlay,
+      toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev,
+      cycleRepeat, toggleShuffle,
     }}>
       {children}
     </PlayerContext.Provider>

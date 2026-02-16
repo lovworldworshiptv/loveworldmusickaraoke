@@ -1,12 +1,31 @@
-import type { Song } from "@/data/mockData";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import SongCard from "./SongCard";
+import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 
 interface SongSectionProps {
   title: string;
-  songs: Song[];
 }
 
-const SongSection = ({ title, songs }: SongSectionProps) => {
+const SongSection = ({ title }: SongSectionProps) => {
+  const [songs, setSongs] = useState<PlayerSong[]>([]);
+
+  useEffect(() => {
+    supabase.from("songs").select("*").eq("is_featured", true).order("play_count", { ascending: false }).limit(10)
+      .then(({ data }) => {
+        if (data) {
+          setSongs(data.map(s => ({
+            id: s.id, title: s.title, artist: s.artist, album: s.album || undefined,
+            coverUrl: s.cover_url || undefined, audioUrl: s.audio_url || undefined,
+            instrumentalUrl: s.instrumental_url || undefined, lyricsLrc: s.lyrics_lrc || undefined,
+            durationSeconds: s.duration_seconds,
+          })));
+        }
+      });
+  }, []);
+
+  if (songs.length === 0) return null;
+
   return (
     <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
       <div className="flex items-center justify-between mb-4">
@@ -15,7 +34,7 @@ const SongSection = ({ title, songs }: SongSectionProps) => {
       </div>
       <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1">
         {songs.map((song, i) => (
-          <SongCard key={song.id} song={song} index={i} />
+          <SongCard key={song.id} song={song} index={i} allSongs={songs} />
         ))}
       </div>
     </section>

@@ -1,12 +1,12 @@
 import AppLayout from "@/components/layout/AppLayout";
 import HeroBanner from "@/components/home/HeroBanner";
 import SongSection from "@/components/home/SongSection";
+import AlbumSection from "@/components/home/AlbumSection";
 import CategorySection from "@/components/home/CategorySection";
 import ArticleSection from "@/components/home/ArticleSection";
 import GameSection from "@/components/home/GameSection";
 import SecondaryBanner from "@/components/home/SecondaryBanner";
 import RecentlyPlayed from "@/components/home/RecentlyPlayed";
-import { topSongs, featuredSongs } from "@/data/mockData";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
@@ -19,10 +19,10 @@ const Index = () => {
         <h1 className="text-2xl font-serif font-bold gradient-gold-text">{username}</h1>
       </div>
 
-      {/* PRD Order: Hero → Top Songs → Featured Songs → Secondary Banner (4th) → Categories → Recently Played → Articles → Games */}
+      {/* PRD Order: Hero → Top Albums → Featured Songs → Secondary Banner → Categories → Recently Played → Articles → Games */}
       <HeroBanner />
-      <SongSection title="Top Songs" songs={topSongs} />
-      <SongSection title="Featured Songs" songs={featuredSongs} />
+      <AlbumSection />
+      <SongSection title="Featured Songs" />
       <SecondaryBanner />
       <CategorySection />
       <RecentlyPlayed />
