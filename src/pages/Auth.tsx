@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { ArrowLeft } from "lucide-react";
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -29,6 +30,9 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <button onClick={() => navigate(-1)} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+        <ArrowLeft className="w-5 h-5" />
+      </button>
       <div className="w-full max-w-md glass-card p-8">
         <h1 className="text-2xl font-serif gradient-gold-text font-bold text-center mb-2">Loveworld Music</h1>
         <p className="text-sm text-muted-foreground text-center mb-8">Karaoke & Study+</p>

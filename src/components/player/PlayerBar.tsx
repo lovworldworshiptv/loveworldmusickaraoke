@@ -1,4 +1,5 @@
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, Mic2, ListMusic, ChevronUp } from "lucide-react";
+import { useState } from "react";
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, Mic2, ListMusic, ChevronUp, X } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { usePlayer } from "@/contexts/PlayerContext";
 import ExpandedPlayer from "./ExpandedPlayer";
@@ -15,7 +16,14 @@ const PlayerBar = () => {
     togglePlay, toggleKaraoke, toggleExpanded, seekTo,
     skipNext, skipPrev, repeatMode, cycleRepeat, shuffleOn, toggleShuffle,
   } = usePlayer();
+  const [hidden, setHidden] = useState(false);
 
+  if (!currentSong) return null;
+  if (hidden) return (
+    <button onClick={() => setHidden(false)} className="fixed bottom-14 lg:bottom-2 right-2 z-30 w-10 h-10 rounded-full gradient-gold flex items-center justify-center text-primary-foreground shadow-lg hover:opacity-90 transition-opacity">
+      <ChevronUp className="w-5 h-5" />
+    </button>
+  );
   if (isExpanded) return <ExpandedPlayer />;
 
   const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
@@ -75,6 +83,9 @@ const PlayerBar = () => {
             <Slider defaultValue={[70]} max={100} step={1} className="flex-1" />
           </div>
           <span className="text-xs text-muted-foreground w-16 text-right">{formatTime(currentTime)} / {formatTime(duration)}</span>
+          <button onClick={() => setHidden(true)} className="text-muted-foreground hover:text-foreground transition-colors ml-1">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>
