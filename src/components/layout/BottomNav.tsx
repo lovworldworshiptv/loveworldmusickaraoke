@@ -1,13 +1,12 @@
-import { Home, BookOpen, Library, Gamepad2, User } from "lucide-react";
+import { Home, Compass, Library, Gamepad2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
-  { icon: BookOpen, label: "Articles", path: "/articles" },
+  { icon: Compass, label: "Discover", path: "/discover" },
   { icon: Library, label: "My Library", path: "/library" },
   { icon: Gamepad2, label: "Trivial", path: "/games" },
-  { icon: User, label: "You", path: "/profile" },
 ];
 
 const BottomNav = () => {
