@@ -1,15 +1,19 @@
-import { Home, Library, Clock, Podcast, ListMusic, MessageSquare, LogOut, Shield, FileText } from "lucide-react";
+import { Home, Library, Clock, Podcast, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
+  { icon: BookOpen, label: "Articles", path: "/articles" },
   { icon: Library, label: "My Library", path: "/library" },
   { icon: Clock, label: "History", path: "/history" },
-  { icon: Podcast, label: "Podcast", path: "/podcast" },
   { icon: ListMusic, label: "Playlist", path: "/playlists" },
   { icon: MessageSquare, label: "Feedback", path: "/feedback" },
+];
+
+const adminItems = [
+  { icon: Music2, label: "Manage Songs", path: "/admin/songs" },
 ];
 
 const Sidebar = () => {
@@ -40,6 +44,29 @@ const Sidebar = () => {
             {item.label}
           </button>
         ))}
+
+        {user && (
+          <>
+            <div className="pt-4 pb-1 px-3">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Admin</p>
+            </div>
+            {adminItems.map((item) => (
+              <button
+                key={item.label}
+                onClick={() => navigate(item.path)}
+                className={cn(
+                  "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                  location.pathname === item.path
+                    ? "bg-sidebar-accent text-gold"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                )}
+              >
+                <item.icon className="w-5 h-5" />
+                {item.label}
+              </button>
+            ))}
+          </>
+        )}
       </nav>
 
       <div className="px-3 pb-6 space-y-1">

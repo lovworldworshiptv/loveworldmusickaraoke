@@ -9,6 +9,8 @@ import Index from "./pages/Index";
 import Library from "./pages/Library";
 import Games from "./pages/Games";
 import Auth from "./pages/Auth";
+import Articles from "./pages/Articles";
+import AdminSongs from "./pages/AdminSongs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +28,8 @@ const App = () => (
               <Route path="/library" element={<Library />} />
               <Route path="/games" element={<Games />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/articles" element={<Articles />} />
+              <Route path="/admin/songs" element={<AdminSongs />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </PlayerProvider>
