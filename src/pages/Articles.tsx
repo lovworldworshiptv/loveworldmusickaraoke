@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { BookOpen, Type, Video, Headphones, FileText, Music, X, ChevronRight, Minus, Plus } from "lucide-react";
+import ShareInviteButton from "@/components/articles/ShareInviteButton";
 import { articles as mockArticles } from "@/data/mockData";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { topSongs } from "@/data/mockData";
@@ -133,7 +134,10 @@ const Articles = () => {
           <h1 className="text-3xl font-serif font-bold text-foreground mb-2 leading-tight">
             {selectedArticle.title}
           </h1>
-          <p className="text-sm text-muted-foreground mb-6">By {selectedArticle.author}</p>
+          <div className="flex items-center justify-between mb-6">
+            <p className="text-sm text-muted-foreground">By {selectedArticle.author}</p>
+            <ShareInviteButton article={selectedArticle} />
+          </div>
 
           {/* Font Size Control */}
           <div className="flex items-center gap-3 mb-6 glass-card px-4 py-2.5 w-fit">
