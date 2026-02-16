@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer } from "lucide-react";
+import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer, FileAudio, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -21,6 +21,93 @@ interface Song {
   category_id: string | null;
 }
 
+interface StorageFile {
+  name: string;
+  url: string;
+}
+
+// ── Audio picker: upload or choose existing ──
+const AudioPicker = ({ bucket, label, value, onChange }: {
+  bucket: string; label: string; value: string; onChange: (url: string) => void;
+}) => {
+  const [existing, setExisting] = useState<StorageFile[]>([]);
+  const [showPicker, setShowPicker] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const fetchExisting = async () => {
+    const { data } = await supabase.storage.from(bucket).list("", { limit: 200, sortBy: { column: "created_at", order: "desc" } });
+    if (data) {
+      setExisting(data.filter(f => !f.name.startsWith(".")).map(f => ({
+        name: f.name,
+        url: supabase.storage.from(bucket).getPublicUrl(f.name).data.publicUrl,
+      })));
+    }
+  };
+
+  useEffect(() => { fetchExisting(); }, [bucket]);
+
+  const handleUpload = async (file: File) => {
+    setUploading(true);
+    const path = `${Date.now()}-${file.name}`;
+    const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: false });
+    if (error) { toast.error("Upload failed: " + error.message); setUploading(false); return; }
+    const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(path);
+    onChange(publicUrl);
+    toast.success(`${label} uploaded!`);
+    setUploading(false);
+    setShowPicker(false);
+    fetchExisting();
+  };
+
+  const selectedName = value ? decodeURIComponent(value.split("/").pop() || "") : "";
+
+  return (
+    <div className="space-y-1">
+      <label className="text-xs text-muted-foreground font-medium">{label}</label>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setShowPicker(!showPicker)}
+          className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-muted border border-border text-sm text-left min-w-0"
+        >
+          <FileAudio className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          <span className="truncate text-foreground">{selectedName || "No file selected"}</span>
+          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground ml-auto flex-shrink-0" />
+        </button>
+        <label className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium cursor-pointer ${uploading ? "opacity-50 pointer-events-none" : "gradient-gold text-primary-foreground"}`}>
+          <Upload className="w-3.5 h-3.5" /> {uploading ? "..." : "Upload"}
+          <input type="file" accept="audio/*" className="hidden" onChange={e => { if (e.target.files?.[0]) handleUpload(e.target.files[0]); }} />
+        </label>
+      </div>
+
+      {/* URL input fallback */}
+      <input
+        placeholder="Or paste URL directly"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="w-full px-3 py-1.5 rounded-lg bg-muted border border-border text-foreground text-xs"
+      />
+
+      {showPicker && (
+        <div className="border border-border rounded-lg bg-card max-h-48 overflow-y-auto">
+          {existing.length === 0 ? (
+            <p className="text-xs text-muted-foreground p-3 text-center">No files uploaded yet</p>
+          ) : existing.map(f => (
+            <button
+              key={f.name}
+              type="button"
+              onClick={() => { onChange(f.url); setShowPicker(false); }}
+              className={`w-full text-left px-3 py-2 text-xs hover:bg-muted transition-colors truncate ${value === f.url ? "bg-primary/10 text-primary" : "text-foreground"}`}
+            >
+              {f.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const AdminSongs = () => {
   const { isAdmin, loading: adminLoading } = useIsAdmin();
   const [songs, setSongs] = useState<Song[]>([]);
@@ -33,7 +120,6 @@ const AdminSongs = () => {
     title: "", artist: "", album: "", duration_seconds: 240,
     is_featured: false, is_top: false, audio_url: "", instrumental_url: "", lyrics_raw: "",
   });
-  // Edit details form
   const [editForm, setEditForm] = useState({
     title: "", artist: "", album: "", duration_seconds: 240,
     is_featured: false, is_top: false, audio_url: "", instrumental_url: "",
@@ -113,16 +199,13 @@ const AdminSongs = () => {
 
   // --- Sync lyrics ---
   const startSync = () => {
-    // Parse raw lyrics (without timestamps) into lines
     const rawLrc = lrcText || "";
-    // Strip any existing timestamps
     const lines = rawLrc.split("\n").map(l => l.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, "").trim()).filter(Boolean);
     setSyncLines(lines);
     setSyncTimestamps(new Array(lines.length).fill(-1));
     setSyncCurrentLine(0);
     setEditMode("sync");
 
-    // Start playing instrumental
     const url = editingSong?.instrumental_url || editingSong?.audio_url;
     if (url) {
       const audio = new Audio(url);
@@ -139,11 +222,7 @@ const AdminSongs = () => {
   const handleSyncClick = (lineIndex: number) => {
     if (!syncAudioRef.current) return;
     const time = syncAudioRef.current.currentTime;
-    setSyncTimestamps(prev => {
-      const n = [...prev];
-      n[lineIndex] = time;
-      return n;
-    });
+    setSyncTimestamps(prev => { const n = [...prev]; n[lineIndex] = time; return n; });
     setSyncCurrentLine(lineIndex + 1);
   };
 
@@ -154,7 +233,6 @@ const AdminSongs = () => {
 
   const saveSyncedLyrics = async () => {
     stopSync();
-    // Build LRC
     const lrc = syncLines.map((line, i) => {
       const t = syncTimestamps[i];
       if (t < 0) return `[00:00.00]${line}`;
@@ -163,7 +241,6 @@ const AdminSongs = () => {
       const ms = Math.round((t % 1) * 100).toString().padStart(2, "0");
       return `[${min}:${sec}.${ms}]${line}`;
     }).join("\n");
-
     setLrcText(lrc);
     if (editingSong) {
       const { error } = await supabase.from("songs").update({ lyrics_lrc: lrc }).eq("id", editingSong.id);
@@ -222,11 +299,11 @@ const AdminSongs = () => {
               <input placeholder="Duration (seconds)" type="number" value={form.duration_seconds}
                 onChange={e => setForm({ ...form, duration_seconds: Number(e.target.value) })}
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
-              <input placeholder="Audio URL" value={form.audio_url} onChange={e => setForm({ ...form, audio_url: e.target.value })}
-                className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
-              <input placeholder="Instrumental URL" value={form.instrumental_url} onChange={e => setForm({ ...form, instrumental_url: e.target.value })}
-                className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
             </div>
+
+            <AudioPicker bucket="song-audio" label="Audio File" value={form.audio_url} onChange={url => setForm({ ...form, audio_url: url })} />
+            <AudioPicker bucket="song-instrumentals" label="Instrumental File" value={form.instrumental_url} onChange={url => setForm({ ...form, instrumental_url: url })} />
+
             <textarea placeholder="Lyrics (plain text, one line per verse line)" value={form.lyrics_raw}
               onChange={e => setForm({ ...form, lyrics_raw: e.target.value })}
               className="w-full min-h-[120px] px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm font-mono resize-y" />
@@ -255,7 +332,6 @@ const AdminSongs = () => {
                 </button>
               </div>
 
-              {/* Mode tabs */}
               {editMode !== "sync" && (
                 <div className="flex gap-1 mb-4">
                   <button onClick={() => setEditMode("details")}
@@ -282,11 +358,11 @@ const AdminSongs = () => {
                     <input placeholder="Duration (seconds)" type="number" value={editForm.duration_seconds}
                       onChange={e => setEditForm({ ...editForm, duration_seconds: Number(e.target.value) })}
                       className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
-                    <input placeholder="Audio URL" value={editForm.audio_url} onChange={e => setEditForm({ ...editForm, audio_url: e.target.value })}
-                      className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
-                    <input placeholder="Instrumental URL" value={editForm.instrumental_url} onChange={e => setEditForm({ ...editForm, instrumental_url: e.target.value })}
-                      className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
                   </div>
+
+                  <AudioPicker bucket="song-audio" label="Audio File" value={editForm.audio_url} onChange={url => setEditForm({ ...editForm, audio_url: url })} />
+                  <AudioPicker bucket="song-instrumentals" label="Instrumental File" value={editForm.instrumental_url} onChange={url => setEditForm({ ...editForm, instrumental_url: url })} />
+
                   <div className="flex gap-3">
                     <label className="flex items-center gap-2 text-sm text-foreground">
                       <input type="checkbox" checked={editForm.is_top} onChange={e => setEditForm({ ...editForm, is_top: e.target.checked })} /> Top Song
@@ -384,7 +460,6 @@ const AdminSongs = () => {
           <div className="space-y-2">
             {songs.map(song => (
               <div key={song.id} className="glass-card p-4 flex items-center gap-4">
-                {/* Cover */}
                 <div className="w-14 h-14 rounded-lg gradient-purple flex-shrink-0 overflow-hidden flex items-center justify-center relative group">
                   {song.cover_url ? (
                     <img src={song.cover_url} alt="" className="w-full h-full object-cover" />
@@ -398,18 +473,18 @@ const AdminSongs = () => {
                   </label>
                 </div>
 
-                {/* Info */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{song.title}</p>
                   <p className="text-xs text-muted-foreground truncate">{song.artist} {song.album ? `• ${song.album}` : ""}</p>
                   <div className="flex gap-2 mt-1">
+                    {song.audio_url && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded">Audio</span>}
+                    {song.instrumental_url && <span className="text-[10px] bg-accent/20 text-accent-foreground px-1.5 py-0.5 rounded">Instrumental</span>}
                     {song.lyrics_lrc && <span className="text-[10px] bg-gold/20 text-gold px-1.5 py-0.5 rounded">LRC</span>}
                     {song.is_top && <span className="text-[10px] bg-accent/30 text-accent-foreground px-1.5 py-0.5 rounded">Top</span>}
                     {song.is_featured && <span className="text-[10px] bg-accent/30 text-accent-foreground px-1.5 py-0.5 rounded">Featured</span>}
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="flex gap-2">
                   <button onClick={() => openEdit(song, "details")}
                     className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors" title="Edit Details">
