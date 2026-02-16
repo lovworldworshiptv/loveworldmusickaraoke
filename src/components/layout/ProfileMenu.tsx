@@ -33,18 +33,9 @@ const ProfileMenu = () => {
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        {user ? (
-          <button className="w-9 h-9 rounded-full gradient-gold flex items-center justify-center text-primary-foreground text-sm font-bold font-serif hover:opacity-90 transition-opacity">
-            {username.charAt(0).toUpperCase()}
-          </button>
-        ) : (
-          <button
-            onClick={() => navigate("/auth")}
-            className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <User className="w-5 h-5" />
-          </button>
-        )}
+        <button className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold font-serif transition-opacity ${user ? "gradient-gold text-primary-foreground hover:opacity-90" : "bg-muted text-muted-foreground hover:text-foreground"}`}>
+          {user ? username.charAt(0).toUpperCase() : <User className="w-5 h-5" />}
+        </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 p-0 bg-card border-border overflow-hidden">
         {user ? (
@@ -137,19 +128,67 @@ const ProfileMenu = () => {
             </>
           )
         ) : (
-          <div className="p-4 text-center">
-            <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
-              <User className="w-7 h-7 text-muted-foreground" />
-            </div>
-            <p className="text-sm text-foreground font-medium mb-1">Not signed in</p>
-            <p className="text-xs text-muted-foreground mb-3">Sign in to access your profile</p>
-            <button
-              onClick={() => { setOpen(false); navigate("/auth"); }}
-              className="gradient-gold text-primary-foreground px-6 py-2 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
-            >
-              Sign In
-            </button>
-          </div>
+          view === "main" ? (
+            <>
+              <div className="p-4 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                    <User className="w-6 h-6" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Welcome Esteemed</p>
+                    <p className="text-sm gradient-gold-text font-bold">Guest</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-2">
+                <button
+                  onClick={() => setView("settings")}
+                  className="w-full flex items-center justify-between p-2.5 rounded-lg text-sm text-foreground hover:bg-muted transition-colors"
+                >
+                  <span className="flex items-center gap-2"><Settings className="w-4 h-4" /> Settings</span>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </button>
+                <button
+                  onClick={() => { setOpen(false); navigate("/auth"); }}
+                  className="w-full flex items-center justify-between p-2.5 rounded-lg text-sm text-foreground hover:bg-muted transition-colors"
+                >
+                  <span className="flex items-center gap-2"><LogOut className="w-4 h-4" /> Sign In</span>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="p-3 border-b border-border flex items-center gap-2">
+                <button onClick={() => setView("main")} className="text-muted-foreground hover:text-foreground transition-colors">
+                  <ChevronRight className="w-4 h-4 rotate-180" />
+                </button>
+                <h3 className="text-sm font-semibold text-foreground">Settings</h3>
+              </div>
+              <div className="p-3">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Palette className="w-3.5 h-3.5" /> Theme
+                </p>
+                <div className="grid grid-cols-1 gap-1.5">
+                  {themes.map((t) => (
+                    <button
+                      key={t.name}
+                      onClick={() => setTheme(t.name)}
+                      className={`flex items-center gap-3 p-2.5 rounded-lg text-sm transition-all ${
+                        theme === t.name
+                          ? "bg-primary/15 text-primary ring-1 ring-primary/30"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      }`}
+                    >
+                      <span className="w-5 h-5 rounded-full flex-shrink-0 ring-1 ring-border" style={{ background: t.preview }} />
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )
         )}
       </PopoverContent>
     </Popover>
