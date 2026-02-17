@@ -5,6 +5,7 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Plus, Trash2, Edit3, Save, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
 
 interface Category {
   id: string;
@@ -91,11 +92,13 @@ const AdminCategories = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <input placeholder="Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
-              <input placeholder="Image URL" value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })}
-                className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
               <input placeholder="Sort order" type="number" value={form.sort_order} onChange={e => setForm({ ...form, sort_order: Number(e.target.value) })}
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
             </div>
+
+            {/* Image upload instead of URL-only */}
+            <ImageUploadPicker bucket="category-images" label="Category Image" value={form.image_url} onChange={url => setForm({ ...form, image_url: url })} />
+
             <label className="flex items-center gap-2 text-sm text-foreground">
               <input type="checkbox" checked={form.is_visible} onChange={e => setForm({ ...form, is_visible: e.target.checked })} /> Visible
             </label>

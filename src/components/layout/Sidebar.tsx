@@ -1,4 +1,4 @@
-import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3, List } from "lucide-react";
+import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3, List, Image, Gamepad2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +20,8 @@ const adminItems = [
   { icon: List, label: "Manage Playlists", path: "/admin/playlists" },
   { icon: Newspaper, label: "Manage Articles", path: "/admin/articles" },
   { icon: Grid3X3, label: "Manage Categories", path: "/admin/categories" },
+  { icon: Image, label: "Manage Banners", path: "/admin/banners" },
+  { icon: Gamepad2, label: "Manage Games", path: "/admin/games" },
 ];
 
 const Sidebar = () => {
