@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import heroBannerFallback from "@/assets/hero-banner.jpg";
 
 interface Banner {
@@ -13,6 +14,7 @@ interface Banner {
 const HeroBanner = () => {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [current, setCurrent] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     supabase.from("hero_banners").select("*").eq("is_active", true).order("sort_order")
@@ -30,6 +32,16 @@ const HeroBanner = () => {
   const imageUrl = banner?.image_url || heroBannerFallback;
   const title = banner?.title || "Praise Night Live 2026";
   const subtitle = banner?.subtitle || "Experience the glory of worship with the Loveworld Singers — streaming now.";
+  const linkUrl = banner?.link_url;
+
+  const handleCTA = () => {
+    if (linkUrl) {
+      if (linkUrl.startsWith("http")) window.open(linkUrl, "_blank");
+      else navigate(linkUrl);
+    } else {
+      navigate("/library");
+    }
+  };
 
   return (
     <section className="relative w-full h-64 md:h-80 lg:h-96 overflow-hidden rounded-2xl mx-4 mt-4 lg:mx-6 lg:mt-6 animate-scale-fade group" style={{ maxWidth: 'calc(100vw - 2rem)' }}>
@@ -51,7 +63,11 @@ const HeroBanner = () => {
         <p className="text-sm text-muted-foreground mb-4 max-w-md animate-fade-in-up" style={{ animationDelay: "0.45s" }}>
           {subtitle}
         </p>
-        <button className="gradient-gold text-primary-foreground px-6 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-all duration-300 hover:shadow-[0_0_24px_hsl(43_70%_53%/0.35)] animate-fade-in-up active:scale-95 touch-target" style={{ animationDelay: "0.55s" }}>
+        <button
+          onClick={handleCTA}
+          className="gradient-gold text-primary-foreground px-6 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-all duration-300 hover:shadow-[0_0_24px_hsl(43_70%_53%/0.35)] animate-fade-in-up active:scale-95 touch-target"
+          style={{ animationDelay: "0.55s" }}
+        >
           Listen Now
         </button>
       </div>

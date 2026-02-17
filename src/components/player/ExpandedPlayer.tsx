@@ -2,6 +2,9 @@ import { usePlayer, RepeatMode } from "@/contexts/PlayerContext";
 import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { useRef, useEffect, useState, useMemo } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const formatTime = (s: number) => {
   const m = Math.floor(s / 60);
@@ -54,6 +57,26 @@ const ExpandedPlayer = () => {
   const [showLyrics, setShowLyrics] = useState(true);
 
   const dominantColor = useDominantColor(currentSong?.coverUrl);
+  const { user } = useAuth();
+  const [isFav, setIsFav] = useState(false);
+
+  // Check if current song is favorited
+  useEffect(() => {
+    if (!user || !currentSong) { setIsFav(false); return; }
+    supabase.from("favorites").select("id").eq("user_id", user.id).eq("song_id", currentSong.id).maybeSingle()
+      .then(({ data }) => setIsFav(!!data));
+  }, [user, currentSong?.id]);
+
+  const toggleFavorite = async () => {
+    if (!user || !currentSong) { toast.error("Sign in to add favorites"); return; }
+    if (isFav) {
+      await supabase.from("favorites").delete().eq("user_id", user.id).eq("song_id", currentSong.id);
+      setIsFav(false);
+    } else {
+      await supabase.from("favorites").insert({ user_id: user.id, song_id: currentSong.id });
+      setIsFav(true);
+    }
+  };
 
   // Smooth scroll active lyric to center
   useEffect(() => {
@@ -105,8 +128,8 @@ const ExpandedPlayer = () => {
           <div className="text-center">
             <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-medium">Now Playing</p>
           </div>
-          <button className="text-muted-foreground hover:text-gold transition-colors p-1">
-            <Heart className="w-5 h-5" />
+          <button onClick={toggleFavorite} className={`transition-colors p-1 ${isFav ? "text-gold" : "text-muted-foreground hover:text-gold"}`}>
+            <Heart className="w-5 h-5" fill={isFav ? "currentColor" : "none"} />
           </button>
         </div>
 
