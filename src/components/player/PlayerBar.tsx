@@ -33,7 +33,7 @@ const PlayerBar = () => {
 
   return (
     <>
-      <div className="fixed bottom-12 lg:bottom-0 left-0 lg:left-64 right-0 z-30 glass border-t border-border gpu" style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom, 0px))' }}>
+      <div className="fixed left-0 right-0 z-30 glass border-t border-border gpu lg:left-64 lg:bottom-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))]">
         <div className="px-4 pt-2">
           <Slider value={[progress]} onValueChange={([v]) => seekTo(v)} max={100} step={1} className="w-full h-1" />
         </div>
