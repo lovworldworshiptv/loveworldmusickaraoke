@@ -1,7 +1,10 @@
 import { useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
-import { Search, BookOpen, Music2, Gamepad2 } from "lucide-react";
+import { Search, BookOpen, Music2, Gamepad2, Music } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 
 const tabs = [
   { id: "articles", label: "Articles", icon: BookOpen, path: "/articles" },
@@ -12,6 +15,36 @@ const tabs = [
 const Discover = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const { playSong } = usePlayer();
+
+  const { data: songResults = [] } = useQuery({
+    queryKey: ["discover-songs", search],
+    enabled: search.trim().length >= 2,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("songs")
+        .select("*")
+        .or(`title.ilike.%${search}%,artist.ilike.%${search}%`)
+        .limit(5);
+      return data || [];
+    },
+  });
+
+  const { data: articleResults = [] } = useQuery({
+    queryKey: ["discover-articles", search],
+    enabled: search.trim().length >= 2,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("articles")
+        .select("id, title, author, category")
+        .eq("is_published", true)
+        .or(`title.ilike.%${search}%,author.ilike.%${search}%`)
+        .limit(5);
+      return data || [];
+    },
+  });
+
+  const hasResults = search.trim().length >= 2 && (songResults.length > 0 || articleResults.length > 0);
 
   return (
     <AppLayout>
@@ -25,10 +58,69 @@ const Discover = () => {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search songs, articles, games..."
+            placeholder="Search songs, articles..."
             className="w-full pl-11 pr-4 py-3 rounded-xl bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
           />
         </div>
+
+        {/* Search Results */}
+        {hasResults && (
+          <div className="mb-6 space-y-4">
+            {songResults.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">Songs</h3>
+                <div className="space-y-1">
+                  {songResults.map((s: any) => (
+                    <button
+                      key={s.id}
+                      onClick={() => playSong({
+                        id: s.id, title: s.title, artist: s.artist, album: s.album || undefined,
+                        coverUrl: s.cover_url || undefined, audioUrl: s.audio_url || undefined,
+                        instrumentalUrl: s.instrumental_url || undefined, lyricsLrc: s.lyrics_lrc || undefined,
+                        durationSeconds: s.duration_seconds,
+                      })}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/40 transition-colors text-left"
+                    >
+                      <div className="w-10 h-10 rounded bg-primary/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {s.cover_url ? <img src={s.cover_url} alt="" className="w-full h-full object-cover" /> : <Music className="w-4 h-4 text-primary" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-foreground truncate">{s.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{s.artist}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {articleResults.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">Articles</h3>
+                <div className="space-y-1">
+                  {articleResults.map((a: any) => (
+                    <button
+                      key={a.id}
+                      onClick={() => navigate(`/articles?id=${a.id}`)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/40 transition-colors text-left"
+                    >
+                      <div className="w-10 h-10 rounded bg-gold/10 flex items-center justify-center flex-shrink-0">
+                        <BookOpen className="w-4 h-4 text-gold" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-foreground truncate">{a.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{a.author} • {a.category}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {search.trim().length >= 2 && !hasResults && (
+          <p className="text-sm text-muted-foreground text-center py-4 mb-4">No results found for "{search}"</p>
+        )}
 
         {/* Category Cards */}
         <div className="grid gap-4">

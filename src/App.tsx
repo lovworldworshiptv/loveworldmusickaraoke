@@ -25,6 +25,8 @@ import History from "./pages/History";
 import Playlists from "./pages/Playlists";
 import Feedback from "./pages/Feedback";
 import Albums from "./pages/Albums";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +52,8 @@ const App = () => (
                 <Route path="/playlists" element={<Playlists />} />
                 <Route path="/feedback" element={<Feedback />} />
                 <Route path="/albums" element={<Albums />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
                 <Route path="/admin/songs" element={<AdminSongs />} />
                 <Route path="/admin/albums" element={<AdminAlbums />} />
                 <Route path="/admin/articles" element={<AdminArticles />} />
