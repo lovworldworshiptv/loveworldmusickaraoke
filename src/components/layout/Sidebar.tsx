@@ -1,4 +1,4 @@
-import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3 } from "lucide-react";
+import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +17,7 @@ const navItems = [
 const adminItems = [
   { icon: Music2, label: "Manage Songs", path: "/admin/songs" },
   { icon: Disc3, label: "Manage Albums", path: "/admin/albums" },
+  { icon: List, label: "Manage Playlists", path: "/admin/playlists" },
   { icon: Newspaper, label: "Manage Articles", path: "/admin/articles" },
   { icon: Grid3X3, label: "Manage Categories", path: "/admin/categories" },
 ];

@@ -21,7 +21,7 @@ const AdminAlbums = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Album | null>(null);
-  const [form, setForm] = useState({ title: "", artist: "", is_top: false });
+  const [form, setForm] = useState({ title: "", artist: "Loveworld Singers", is_top: false });
 
   useEffect(() => { fetchAlbums(); }, []);
 
