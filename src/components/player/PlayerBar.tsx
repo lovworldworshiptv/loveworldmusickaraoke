@@ -20,7 +20,7 @@ const PlayerBar = () => {
 
   if (!currentSong) return null;
   if (hidden) return (
-    <button onClick={() => setHidden(false)} className="fixed bottom-14 lg:bottom-2 right-2 z-30 w-10 h-10 rounded-full gradient-gold flex items-center justify-center text-primary-foreground shadow-lg hover:opacity-90 transition-opacity">
+    <button onClick={() => setHidden(false)} className="fixed z-30 w-12 h-12 rounded-full gradient-gold flex items-center justify-center text-primary-foreground shadow-lg hover:opacity-90 transition-opacity touch-target active:scale-95 lg:bottom-2 right-3" style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
       <ChevronUp className="w-5 h-5" />
     </button>
   );
@@ -29,7 +29,7 @@ const PlayerBar = () => {
   const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
 
   return (
-    <div className="fixed bottom-12 lg:bottom-0 left-0 lg:left-64 right-0 z-30 glass border-t border-border">
+    <div className="fixed bottom-12 lg:bottom-0 left-0 lg:left-64 right-0 z-30 glass border-t border-border gpu" style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom, 0px))' }}>
       <div className="px-4 pt-2">
         <Slider value={[progress]} onValueChange={([v]) => seekTo(v)} max={100} step={1} className="w-full h-1" />
       </div>

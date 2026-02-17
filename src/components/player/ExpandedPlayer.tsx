@@ -98,7 +98,7 @@ const ExpandedPlayer = () => {
       {/* Content */}
       <div className="relative flex flex-col h-full">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 flex-shrink-0 safe-top">
           <button onClick={toggleExpanded} className="text-muted-foreground hover:text-foreground transition-colors p-1">
             <ChevronDown className="w-7 h-7" />
           </button>
@@ -201,7 +201,7 @@ const ExpandedPlayer = () => {
         )}
 
         {/* Bottom Controls */}
-        <div className="flex-shrink-0 px-6 pb-6 pt-2">
+        <div className="flex-shrink-0 px-6 pt-2 safe-bottom" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
           {/* Progress */}
           <div className="mb-4">
             <Slider value={[progress]} onValueChange={([v]) => seekTo(v)} max={100} step={0.5} className="w-full mb-1.5" />

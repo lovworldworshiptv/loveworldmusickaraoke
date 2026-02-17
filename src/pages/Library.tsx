@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, memo, useCallback } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Play, Heart, Plus, Music, ListMusic, Loader2, Trash2 } from "lucide-react";
+import { Search, Play, Heart, Plus, Music, ListMusic, Trash2 } from "lucide-react";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { SongRowSkeleton, EmptyState } from "@/components/ui/loading-skeleton";
 
 type SongRow = {
   id: string;
@@ -128,15 +129,15 @@ const Library = () => {
       s.artist.toLowerCase().includes(search.toLowerCase())
   );
 
-  const SongRow = ({ song, index }: { song: SongRow; index: number }) => (
+  const SongRowItem = memo(({ song, index }: { song: SongRow; index: number }) => (
     <button
       onClick={() => playSong(toPlayerSong(song))}
-      className={`flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-200 hover:bg-muted/60 ${
+      className={`flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-200 active:scale-[0.98] hover:bg-muted/60 touch-target ${
         currentSong?.id === song.id ? "bg-muted/80 ring-1 ring-primary" : ""
       }`}
     >
       {song.cover_url ? (
-        <img src={song.cover_url} alt={song.title} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+        <img src={song.cover_url} alt={song.title} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" loading="lazy" />
       ) : (
         <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
           <Music className="w-5 h-5 text-primary" />
@@ -150,7 +151,7 @@ const Library = () => {
         {user && (
           <button
             onClick={(e) => { e.stopPropagation(); toggleFav.mutate(song.id); }}
-            className="p-1"
+            className="p-2 touch-target"
           >
             <Heart className={`w-4 h-4 transition-colors ${isFavorited(song.id) ? "fill-red-500 text-red-500" : "text-muted-foreground"}`} />
           </button>
@@ -166,7 +167,7 @@ const Library = () => {
         )}
       </div>
     </button>
-  );
+  ));
 
   return (
     <AppLayout>
@@ -192,34 +193,25 @@ const Library = () => {
           {/* All Songs */}
           <TabsContent value="all">
             {loadingSongs ? (
-              <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+              <div className="space-y-1">{Array.from({ length: 6 }).map((_, i) => <SongRowSkeleton key={i} />)}</div>
             ) : filtered.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Music className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                <p className="text-sm">No songs found</p>
-              </div>
+              <EmptyState icon={Music} title="No songs found" description="Try a different search term" />
             ) : (
-              <div className="space-y-1">{filtered.map((song, i) => <SongRow key={song.id} song={song} index={i} />)}</div>
+              <div className="space-y-1">{filtered.map((song, i) => <SongRowItem key={song.id} song={song} index={i} />)}</div>
             )}
           </TabsContent>
 
           {/* Favorites */}
           <TabsContent value="favorites">
             {!user ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Heart className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                <p className="text-sm">Sign in to see your favorites</p>
-              </div>
+              <EmptyState icon={Heart} title="Sign in to see your favorites" description="Create an account to save your favorite songs" />
             ) : loadingFavs ? (
-              <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+              <div className="space-y-1">{Array.from({ length: 4 }).map((_, i) => <SongRowSkeleton key={i} />)}</div>
             ) : favorites.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Heart className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                <p className="text-sm">No favorites yet. Tap the heart on any song!</p>
-              </div>
+              <EmptyState icon={Heart} title="No favorites yet" description="Tap the heart on any song to save it here" />
             ) : (
               <div className="space-y-1">
-                {favorites.map((fav: any, i: number) => fav.songs && <SongRow key={fav.id} song={fav.songs} index={i} />)}
+                {favorites.map((fav: any, i: number) => fav.songs && <SongRowItem key={fav.id} song={fav.songs} index={i} />)}
               </div>
             )}
           </TabsContent>
@@ -227,15 +219,12 @@ const Library = () => {
           {/* Playlists */}
           <TabsContent value="playlists">
             {!user ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <ListMusic className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                <p className="text-sm">Sign in to create playlists</p>
-              </div>
+              <EmptyState icon={ListMusic} title="Sign in to create playlists" description="Create an account to organize your music" />
             ) : (
               <div>
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="mb-4 w-full gap-2">
+                    <Button variant="outline" className="mb-4 w-full gap-2 touch-target">
                       <Plus className="w-4 h-4" /> New Playlist
                     </Button>
                   </DialogTrigger>
@@ -249,12 +238,9 @@ const Library = () => {
                 </Dialog>
 
                 {loadingPlaylists ? (
-                  <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+                  <div className="space-y-1">{Array.from({ length: 3 }).map((_, i) => <SongRowSkeleton key={i} />)}</div>
                 ) : playlists.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <ListMusic className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                    <p className="text-sm">No playlists yet</p>
-                  </div>
+                  <EmptyState icon={ListMusic} title="No playlists yet" description="Create your first playlist above" />
                 ) : (
                   <div className="space-y-4">
                     {playlists.map((pl: any) => (
@@ -265,13 +251,13 @@ const Library = () => {
                             <h3 className="font-semibold text-foreground">{pl.name}</h3>
                             <span className="text-xs text-muted-foreground">({pl.playlist_songs?.length ?? 0} songs)</span>
                           </div>
-                          <button onClick={() => deletePlaylist.mutate(pl.id)} className="p-1 text-muted-foreground hover:text-destructive transition-colors">
+                          <button onClick={() => deletePlaylist.mutate(pl.id)} className="p-2 text-muted-foreground hover:text-destructive transition-colors touch-target">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                         {pl.playlist_songs?.length > 0 ? (
                           <div className="space-y-1">
-                            {pl.playlist_songs.map((ps: any, i: number) => ps.songs && <SongRow key={ps.id} song={ps.songs} index={i} />)}
+                            {pl.playlist_songs.map((ps: any, i: number) => ps.songs && <SongRowItem key={ps.id} song={ps.songs} index={i} />)}
                           </div>
                         ) : (
                           <p className="text-xs text-muted-foreground">No songs in this playlist</p>
