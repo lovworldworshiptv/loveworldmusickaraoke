@@ -22,6 +22,7 @@ const adminItems = [
   { icon: Grid3X3, label: "Manage Categories", path: "/admin/categories" },
   { icon: Image, label: "Manage Banners", path: "/admin/banners" },
   { icon: Gamepad2, label: "Manage Games", path: "/admin/games" },
+  { icon: MessageSquare, label: "Manage Feedback", path: "/admin/feedback" },
 ];
 
 const Sidebar = () => {

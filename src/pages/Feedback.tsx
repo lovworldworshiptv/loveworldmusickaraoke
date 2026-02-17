@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { MessageSquare, Send } from "lucide-react";
+import { MessageSquare, Send, Reply } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/loading-skeleton";
 import { toast } from "sonner";
@@ -12,6 +12,18 @@ const Feedback = () => {
   const { user } = useAuth();
   const [message, setMessage] = useState("");
   const queryClient = useQueryClient();
+
+  // Realtime subscription for replies
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("user-feedback")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "feedback", filter: `user_id=eq.${user.id}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ["feedback", user.id] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, queryClient]);
 
   const { data: feedbacks = [], isLoading } = useQuery({
     queryKey: ["feedback", user?.id],
@@ -66,9 +78,18 @@ const Feedback = () => {
               <div className="space-y-3">
                 <h3 className="text-sm font-medium text-muted-foreground">Your previous feedback</h3>
                 {feedbacks.map((fb: any) => (
-                  <div key={fb.id} className="p-4 rounded-xl border border-border bg-muted/30">
+                  <div key={fb.id} className="p-4 rounded-xl border border-border bg-muted/30 space-y-2">
                     <p className="text-sm text-foreground">{fb.message}</p>
-                    <p className="text-xs text-muted-foreground mt-2">{new Date(fb.created_at).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(fb.created_at).toLocaleDateString()}</p>
+                    {fb.admin_reply && (
+                      <div className="mt-2 p-3 rounded-lg bg-primary/10 border border-primary/20">
+                        <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1">
+                          <Reply className="w-3 h-3" /> Admin Reply
+                        </p>
+                        <p className="text-sm text-foreground">{fb.admin_reply}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{new Date(fb.replied_at).toLocaleString()}</p>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
