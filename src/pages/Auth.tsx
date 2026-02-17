@@ -2,7 +2,11 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, MessageCircle } from "lucide-react";
+import kingsChatWebSdk from "kingschat-web-sdk";
+import { supabase } from "@/integrations/supabase/client";
+
+const KINGSCHAT_CLIENT_ID = "5d4c8670-fd28-4be8-8484-55302b8c3bb6";
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -13,6 +17,7 @@ const Auth = () => {
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [kcLoading, setKcLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +34,48 @@ const Auth = () => {
     setLoading(false);
   };
 
+  const handleKingsChatLogin = async () => {
+    setKcLoading(true);
+    try {
+      const authResponse = await (kingsChatWebSdk as any).login({
+        clientId: KINGSCHAT_CLIENT_ID,
+        scopes: ["user"],
+      });
+
+      toast.info("Authenticating with KingsChat...");
+
+      // Call edge function to verify and create/sign-in user
+      const { data, error } = await supabase.functions.invoke("kingschat-auth", {
+        body: { accessToken: authResponse.accessToken },
+      });
+
+      if (error) {
+        console.error("KingsChat auth error:", error);
+        toast.error("KingsChat authentication failed");
+        setKcLoading(false);
+        return;
+      }
+
+      if (data?.session) {
+        // Set the session in Supabase client
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+        toast.success(`Welcome, ${data.kingschat_profile?.username || "User"}!`);
+        navigate("/");
+      } else {
+        toast.error(data?.error || "Authentication failed");
+      }
+    } catch (err: any) {
+      console.error("KingsChat login error:", err);
+      if (err.message !== "error") {
+        toast.error(err.message || "KingsChat login was cancelled or failed");
+      }
+    }
+    setKcLoading(false);
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <button onClick={() => navigate(-1)} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
@@ -37,6 +84,22 @@ const Auth = () => {
       <div className="w-full max-w-md glass-card p-8">
         <h1 className="text-2xl font-serif gradient-gold-text font-bold text-center mb-2">Loveworld Music</h1>
         <p className="text-sm text-muted-foreground text-center mb-8">Karaoke & Study+</p>
+
+        {/* KingsChat Login Button */}
+        <button
+          onClick={handleKingsChatLogin}
+          disabled={kcLoading}
+          className="w-full py-3 rounded-lg bg-[#0075FF] text-white font-semibold hover:bg-[#0060DD] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mb-6"
+        >
+          <MessageCircle className="w-5 h-5" />
+          {kcLoading ? "Connecting..." : "Sign in with KingsChat"}
+        </button>
+
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-xs text-muted-foreground uppercase">or</span>
+          <div className="flex-1 h-px bg-border" />
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {isSignUp && (

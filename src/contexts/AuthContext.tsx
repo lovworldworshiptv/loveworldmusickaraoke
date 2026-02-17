@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   username: string;
+  avatarUrl: string | null;
   loading: boolean;
   signUp: (email: string, password: string, username: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
@@ -24,20 +25,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [username, setUsername] = useState("Guest");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const fetchProfile = (userId: string) => {
+    supabase.from("profiles").select("username, avatar_url").eq("user_id", userId).single()
+      .then(({ data }) => {
+        if (data) {
+          setUsername(data.username);
+          setAvatarUrl(data.avatar_url);
+        }
+      });
+  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        // Defer profile fetch to avoid deadlock
-        setTimeout(() => {
-          supabase.from("profiles").select("username").eq("user_id", session.user.id).single()
-            .then(({ data }) => { if (data) setUsername(data.username); });
-        }, 0);
+        setTimeout(() => fetchProfile(session.user.id), 0);
       } else {
         setUsername("Guest");
+        setAvatarUrl(null);
       }
     });
 
@@ -45,8 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        supabase.from("profiles").select("username").eq("user_id", session.user.id).single()
-          .then(({ data }) => { if (data) setUsername(data.username); });
+        fetchProfile(session.user.id);
       }
       setLoading(false);
     });
@@ -72,7 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, username, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, username, avatarUrl, loading, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
