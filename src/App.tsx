@@ -15,6 +15,7 @@ import AdminSongs from "./pages/AdminSongs";
 import AdminAlbums from "./pages/AdminAlbums";
 import AdminArticles from "./pages/AdminArticles";
 import AdminCategories from "./pages/AdminCategories";
+import AdminPlaylists from "./pages/AdminPlaylists";
 import Profile from "./pages/Profile";
 import Discover from "./pages/Discover";
 import History from "./pages/History";
@@ -50,6 +51,7 @@ const App = () => (
                 <Route path="/admin/albums" element={<AdminAlbums />} />
                 <Route path="/admin/articles" element={<AdminArticles />} />
                 <Route path="/admin/categories" element={<AdminCategories />} />
+                <Route path="/admin/playlists" element={<AdminPlaylists />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </PlayerProvider>

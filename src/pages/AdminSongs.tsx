@@ -123,7 +123,7 @@ const AdminSongs = () => {
   const [lrcText, setLrcText] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
-    title: "", artist: "", album: "", album_id: "", duration_seconds: 240,
+    title: "", artist: "Loveworld Singers", album: "", album_id: "", duration_seconds: 240,
     is_featured: false, is_top: false, audio_url: "", instrumental_url: "", lyrics_raw: "",
   });
   const [editForm, setEditForm] = useState({

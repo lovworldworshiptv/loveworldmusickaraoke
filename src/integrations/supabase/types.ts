@@ -371,7 +371,7 @@ export type Database = {
         Insert: {
           album?: string | null
           album_id?: string | null
-          artist: string
+          artist?: string
           audio_url?: string | null
           category_id?: string | null
           cover_url?: string | null
