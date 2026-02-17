@@ -44,9 +44,15 @@ const Auth = () => {
 
       toast.info("Authenticating with KingsChat...");
 
-      // Call edge function to verify and create/sign-in user
+      // Log the full response to discover available fields
+      console.log("KingsChat full auth response:", JSON.stringify(authResponse));
+
+      // Call edge function with the full auth response
       const { data, error } = await supabase.functions.invoke("kingschat-auth", {
-        body: { accessToken: authResponse.accessToken },
+        body: { 
+          accessToken: authResponse.accessToken,
+          fullResponse: authResponse,
+        },
       });
 
       if (error) {
