@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { User, Settings, ChevronRight, LogOut, Crown, Shield, Palette } from "lucide-react";
+import { User, Settings, ChevronRight, LogOut, Crown, Shield, Palette, AtSign } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTheme, ThemeName } from "@/contexts/ThemeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 
 const ProfileMenu = () => {
-  const { user, username, avatarUrl, signOut } = useAuth();
+  const { user, username, avatarUrl, kingschatHandle, signOut } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"main" | "settings">("main");
@@ -50,7 +50,11 @@ const ProfileMenu = () => {
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-foreground">Welcome Esteemed</p>
                     <p className="text-sm gradient-gold-text font-bold truncate">{username}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                    {kingschatHandle ? (
+                      <p className="text-xs text-muted-foreground truncate flex items-center gap-0.5"><AtSign className="w-3 h-3" />{kingschatHandle}</p>
+                    ) : user.email && !user.email.includes("@kingschat.local") ? (
+                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                    ) : null}
                   </div>
                 </div>
                 <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-xs font-semibold text-primary">
