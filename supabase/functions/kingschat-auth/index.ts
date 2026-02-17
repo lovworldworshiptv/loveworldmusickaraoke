@@ -135,8 +135,9 @@ Deno.serve(async (req) => {
 
     const kcUsername = profile?.displayName || profile?.username || `KingsChat_${kcUserId.substring(0, 8)}`;
     const kcAvatar = profile?.avatarUrl || null;
+    const kcHandle = profile?.username || null;
 
-    console.log(`Final profile - username: ${kcUsername}, avatar: ${kcAvatar}`);
+    console.log(`Final profile - username: ${kcUsername}, handle: ${kcHandle}, avatar: ${kcAvatar}`);
 
     // Use Supabase service role
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -158,10 +159,11 @@ Deno.serve(async (req) => {
         password,
         email_confirm: true,
         user_metadata: {
-          username: kcUsername,
-          avatar_url: kcAvatar,
-          provider: "kingschat",
-          kingschat_id: kcUserId,
+        username: kcUsername,
+        avatar_url: kcAvatar,
+        provider: "kingschat",
+        kingschat_id: kcUserId,
+        kingschat_handle: kcHandle,
         },
       });
 
@@ -194,6 +196,7 @@ Deno.serve(async (req) => {
         avatar_url: kcAvatar,
         provider: "kingschat",
         kingschat_id: kcUserId,
+        kingschat_handle: kcHandle,
       },
     });
 
@@ -203,6 +206,7 @@ Deno.serve(async (req) => {
       .update({
         username: kcUsername,
         avatar_url: kcAvatar,
+        kingschat_handle: kcHandle,
         updated_at: new Date().toISOString(),
       })
       .eq("user_id", userId);
@@ -211,7 +215,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         session: signInData.session,
         user: signInData.user,
-        kingschat_profile: { username: kcUsername, avatar_url: kcAvatar },
+        kingschat_profile: { username: kcUsername, avatar_url: kcAvatar, handle: kcHandle },
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

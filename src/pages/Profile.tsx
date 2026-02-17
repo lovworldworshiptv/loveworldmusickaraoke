@@ -3,10 +3,10 @@ import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Crown, Shield, LogOut, Settings, ChevronRight } from "lucide-react";
+import { User, Crown, Shield, LogOut, Settings, ChevronRight, AtSign } from "lucide-react";
 
 const Profile = () => {
-  const { user, username, signOut, loading } = useAuth();
+  const { user, username, avatarUrl, kingschatHandle, signOut, loading } = useAuth();
   const navigate = useNavigate();
   const [role, setRole] = useState<string>("free");
 
@@ -58,12 +58,21 @@ const Profile = () => {
       <div className="px-4 lg:px-6 pt-4 lg:pt-6 max-w-md mx-auto">
         {/* Avatar & Info */}
         <div className="glass-card p-6 text-center mb-6">
-          <div className="w-20 h-20 rounded-full gradient-gold flex items-center justify-center mx-auto mb-4 text-primary-foreground text-2xl font-serif font-bold">
-            {username.charAt(0).toUpperCase()}
-          </div>
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={username} className="w-20 h-20 rounded-full mx-auto mb-4 object-cover border-2 border-primary" />
+          ) : (
+            <div className="w-20 h-20 rounded-full gradient-gold flex items-center justify-center mx-auto mb-4 text-primary-foreground text-2xl font-serif font-bold">
+              {username.charAt(0).toUpperCase()}
+            </div>
+          )}
           <h2 className="text-xl font-serif font-bold text-foreground">Welcome Esteemed</h2>
           <p className="text-lg gradient-gold-text font-bold">{username}</p>
-          <p className="text-xs text-muted-foreground mt-1">{user.email}</p>
+          {kingschatHandle && (
+            <p className="flex items-center justify-center gap-1 text-sm text-muted-foreground mt-1">
+              <AtSign className="w-3.5 h-3.5" />{kingschatHandle}
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground mt-1">{user.email?.includes("@kingschat.local") ? "" : user.email}</p>
           <div className={`inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full bg-muted text-xs font-semibold ${roleColor}`}>
             {role === "admin" && <Shield className="w-3.5 h-3.5" />}
             {role === "premium" && <Crown className="w-3.5 h-3.5" />}
