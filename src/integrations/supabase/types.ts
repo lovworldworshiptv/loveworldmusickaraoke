@@ -294,6 +294,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           id: string
+          kingschat_handle: string | null
           updated_at: string
           user_id: string
           username: string
@@ -302,6 +303,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           id?: string
+          kingschat_handle?: string | null
           updated_at?: string
           user_id: string
           username: string
@@ -310,6 +312,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           id?: string
+          kingschat_handle?: string | null
           updated_at?: string
           user_id?: string
           username?: string

@@ -7,6 +7,7 @@ interface AuthContextType {
   session: Session | null;
   username: string;
   avatarUrl: string | null;
+  kingschatHandle: string | null;
   loading: boolean;
   signUp: (email: string, password: string, username: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
@@ -26,14 +27,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [username, setUsername] = useState("Guest");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [kingschatHandle, setKingschatHandle] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = (userId: string) => {
-    supabase.from("profiles").select("username, avatar_url").eq("user_id", userId).single()
+    supabase.from("profiles").select("username, avatar_url, kingschat_handle").eq("user_id", userId).single()
       .then(({ data }) => {
         if (data) {
           setUsername(data.username);
           setAvatarUrl(data.avatar_url);
+          setKingschatHandle((data as any).kingschat_handle ?? null);
         }
       });
   };
@@ -47,6 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setUsername("Guest");
         setAvatarUrl(null);
+        setKingschatHandle(null);
       }
     });
 
@@ -80,7 +84,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, username, avatarUrl, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, username, avatarUrl, kingschatHandle, loading, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

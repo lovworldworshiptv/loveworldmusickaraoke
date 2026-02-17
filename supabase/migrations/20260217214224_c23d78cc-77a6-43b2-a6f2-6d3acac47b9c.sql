@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN kingschat_handle text;
