@@ -34,6 +34,7 @@ interface PlayerContextType {
   shuffleOn: boolean;
   queue: PlayerSong[];
   queueIndex: number;
+  volume: number;
   playSong: (song: PlayerSong) => void;
   playQueue: (songs: PlayerSong[], startIndex?: number) => void;
   togglePlay: () => void;
@@ -44,6 +45,7 @@ interface PlayerContextType {
   skipPrev: () => void;
   cycleRepeat: () => void;
   toggleShuffle: () => void;
+  setVolume: (v: number) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
@@ -102,6 +104,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [queueIndex, setQueueIndex] = useState(-1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<number | null>(null);
+  const [volume, setVolumeState] = useState(0.7);
 
   const stopInterval = useCallback(() => {
     if (intervalRef.current) {
@@ -152,9 +155,9 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     const url = toDirectUrl(useKaraoke ? song.instrumentalUrl : song.audioUrl);
     if (url) {
       const audio = new Audio(url);
+      audio.volume = volume;
       audioRef.current = audio;
       audio.addEventListener("loadedmetadata", () => setDuration(audio.duration));
-      // onEnded handled separately so repeat/shuffle logic works
       audio.play().then(() => { setIsPlaying(true); startInterval(); }).catch(() => {});
     } else {
       setDuration(song.durationSeconds || 240);
@@ -323,13 +326,18 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     setShuffleOn((s) => !s);
   }, []);
 
+  const setVolume = useCallback((v: number) => {
+    setVolumeState(v);
+    if (audioRef.current) audioRef.current.volume = v;
+  }, []);
+
   return (
     <PlayerContext.Provider value={{
       currentSong, isPlaying, isKaraoke, isExpanded, progress, duration,
       currentTime, lrcLines, activeLrcIndex, repeatMode, shuffleOn,
-      queue, queueIndex, playSong, playQueue, togglePlay,
+      queue, queueIndex, volume, playSong, playQueue, togglePlay,
       toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev,
-      cycleRepeat, toggleShuffle,
+      cycleRepeat, toggleShuffle, setVolume,
     }}>
       {children}
     </PlayerContext.Provider>
