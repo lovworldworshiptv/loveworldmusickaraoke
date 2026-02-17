@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useQuery } from "@tanstack/react-query";
 import { Disc3, Play, Shuffle, ChevronLeft, Music, Search } from "lucide-react";
 import { SongRowSkeleton, EmptyState } from "@/components/ui/loading-skeleton";
+import { useSearchParams } from "react-router-dom";
 
 const Albums = () => {
   const { playSong, playQueue, currentSong, isPlaying } = usePlayer();
-  const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(searchParams.get("id"));
   const [search, setSearch] = useState("");
 
   const { data: albums = [], isLoading } = useQuery({
@@ -44,6 +46,12 @@ const Albums = () => {
   const formatDuration = (sec: number) => `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, "0")}`;
 
   const selectedAlbum = albums.find(a => a.id === selectedAlbumId);
+
+  // Sync URL param with state
+  useEffect(() => {
+    const urlId = searchParams.get("id");
+    if (urlId && urlId !== selectedAlbumId) setSelectedAlbumId(urlId);
+  }, [searchParams]);
   const playerSongs = albumSongs.map(toPlayerSong);
 
   const filteredAlbums = albums.filter(a =>
@@ -56,7 +64,7 @@ const Albums = () => {
     return (
       <AppLayout>
         <div className="px-4 lg:px-6 pt-4 lg:pt-6">
-          <button onClick={() => setSelectedAlbumId(null)} className="flex items-center gap-1 text-sm text-gold mb-4 hover:underline">
+          <button onClick={() => { setSelectedAlbumId(null); setSearchParams({}); }} className="flex items-center gap-1 text-sm text-gold mb-4 hover:underline">
             <ChevronLeft className="w-4 h-4" /> All Albums
           </button>
           <div className="flex items-end gap-4 mb-6">
@@ -150,7 +158,7 @@ const Albums = () => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {filteredAlbums.map((album) => (
-              <button key={album.id} onClick={() => setSelectedAlbumId(album.id)}
+              <button key={album.id} onClick={() => { setSelectedAlbumId(album.id); setSearchParams({ id: album.id }); }}
                 className="group text-left animate-fade-in-up">
                 <div className="relative aspect-square rounded-xl overflow-hidden mb-2 glass-card transition-all duration-300 group-hover:shadow-[0_8px_32px_hsl(43_70%_53%/0.12)]">
                   {album.cover_url ? (
