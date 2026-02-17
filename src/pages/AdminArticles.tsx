@@ -5,6 +5,7 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Plus, Trash2, Edit3, X, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
 
 interface Article {
   id: string;
@@ -114,13 +115,18 @@ const AdminArticles = () => {
               </select>
               <input placeholder="Excerpt" value={form.excerpt} onChange={e => setForm({ ...form, excerpt: e.target.value })}
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
-              <input placeholder="Image URL" value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })}
-                className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
+            </div>
+
+            {/* Image upload instead of URL-only */}
+            <ImageUploadPicker bucket="article-images" label="Article Image" value={form.image_url} onChange={url => setForm({ ...form, image_url: url })} />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <input placeholder="Video URL" value={form.video_url} onChange={e => setForm({ ...form, video_url: e.target.value })}
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
               <input placeholder="Audio URL" value={form.audio_url} onChange={e => setForm({ ...form, audio_url: e.target.value })}
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
             </div>
+
             <textarea placeholder="Article content..." value={form.content} onChange={e => setForm({ ...form, content: e.target.value })}
               className="w-full min-h-[150px] px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm resize-y" />
             <div className="flex gap-4">
@@ -145,6 +151,11 @@ const AdminArticles = () => {
           <div className="space-y-2">
             {articles.map(article => (
               <div key={article.id} className="glass-card p-4 flex items-center gap-4">
+                {article.image_url && (
+                  <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
+                    <img src={article.image_url} alt="" className="w-full h-full object-cover" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{article.title}</p>
                   <p className="text-xs text-muted-foreground truncate">{article.author} • {article.category}</p>
