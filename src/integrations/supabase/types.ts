@@ -150,21 +150,27 @@ export type Database = {
       }
       feedback: {
         Row: {
+          admin_reply: string | null
           created_at: string
           id: string
           message: string
+          replied_at: string | null
           user_id: string
         }
         Insert: {
+          admin_reply?: string | null
           created_at?: string
           id?: string
           message: string
+          replied_at?: string | null
           user_id: string
         }
         Update: {
+          admin_reply?: string | null
           created_at?: string
           id?: string
           message?: string
+          replied_at?: string | null
           user_id?: string
         }
         Relationships: []
