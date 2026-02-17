@@ -8,6 +8,58 @@ const corsHeaders = {
 
 const KC_API = "https://connect.kingsch.at";
 
+function decodeJwtPayload(token: string) {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchKcProfile(accessToken: string, userId: string) {
+  // Try multiple possible endpoints
+  const endpoints = [
+    `${KC_API}/api/users/${userId}`,
+    `${KC_API}/api/user/${userId}`,
+    `${KC_API}/api/v1/users/${userId}`,
+    `${KC_API}/api/v1/me`,
+    `${KC_API}/api/me`,
+    `${KC_API}/api/user`,
+    `${KC_API}/api/profile`,
+  ];
+
+  for (const url of endpoints) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+        },
+      });
+      if (res.ok) {
+        const text = await res.text();
+        console.log(`KingsChat endpoint ${url} raw (${res.status}): ${text.substring(0, 500)}`);
+        try {
+          const data = JSON.parse(text);
+          console.log(`KingsChat profile found at ${url}`);
+          return data;
+        } catch {
+          console.log(`KingsChat endpoint ${url} returned non-JSON response`);
+        }
+      } else {
+        const text = await res.text();
+        console.log(`KingsChat endpoint ${url} returned ${res.status}: ${text.substring(0, 200)}`);
+      }
+    } catch (e) {
+      console.log(`KingsChat endpoint ${url} error: ${e.message}`);
+    }
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -22,65 +74,52 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch user profile from KingsChat API
-    const profileRes = await fetch(`${KC_API}/api/me`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        Accept: "application/json",
-      },
-    });
+    // Decode JWT to extract user info
+    const jwtPayload = decodeJwtPayload(accessToken);
+    console.log("KingsChat JWT payload:", JSON.stringify(jwtPayload));
 
-    if (!profileRes.ok) {
-      // Try alternative endpoint
-      const altRes = await fetch(`${KC_API}/api/users/me`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/json",
-        },
-      });
+    const kcUserId = jwtPayload?.sub || "";
+    const kcClientId = jwtPayload?.cid || "";
 
-      if (!altRes.ok) {
-        const errText = await altRes.text();
-        console.error("KingsChat profile fetch failed:", altRes.status, errText);
-        return new Response(
-          JSON.stringify({ error: "Failed to fetch KingsChat profile", details: errText }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      var kcProfile = await altRes.json();
-    } else {
-      var kcProfile = await profileRes.json();
-    }
-
-    console.log("KingsChat profile response:", JSON.stringify(kcProfile));
-
-    // Extract user data - try multiple possible field names
-    const kcData = kcProfile.data || kcProfile.user || kcProfile;
-    const kcUsername =
-      kcData.username || kcData.display_name || kcData.displayName || kcData.name || kcData.full_name || kcData.fullName || "KingsChat User";
-    const kcAvatar =
-      kcData.avatar || kcData.avatar_url || kcData.avatarUrl || kcData.profile_image || kcData.profileImage || kcData.photo || kcData.image || null;
-    const kcEmail = kcData.email || null;
-    const kcId = String(kcData.id || kcData.user_id || kcData.userId || "");
-
-    if (!kcId) {
+    if (!kcUserId) {
       return new Response(
-        JSON.stringify({ error: "Could not determine KingsChat user ID", profile: kcData }),
+        JSON.stringify({ error: "Invalid KingsChat token - no sub claim" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Use Supabase service role to manage auth
+    // Try to fetch profile from KingsChat API
+    const kcProfileData = await fetchKcProfile(accessToken, kcUserId);
+
+    // Extract user data from API response or fall back to JWT
+    let kcUsername = "KingsChat User";
+    let kcAvatar: string | null = null;
+
+    if (kcProfileData) {
+      const d = kcProfileData.data || kcProfileData.user || kcProfileData;
+      kcUsername = d.username || d.display_name || d.displayName || d.name || d.full_name || d.fullName || d.firstName || kcUsername;
+      kcAvatar = d.avatar || d.avatar_url || d.avatarUrl || d.profile_image || d.profileImage || d.photo || d.image || d.picture || null;
+      
+      // If name parts exist, combine them
+      if (!d.username && !d.display_name && !d.name && d.firstName) {
+        kcUsername = [d.firstName, d.lastName].filter(Boolean).join(" ");
+      }
+    } else {
+      console.log("Could not fetch KingsChat profile from API, using JWT claims only");
+      // Use whatever we can from the JWT
+      kcUsername = jwtPayload?.name || jwtPayload?.username || `KingsChat_${kcUserId.substring(0, 8)}`;
+    }
+
+    // Use Supabase service role
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Generate a deterministic email for KingsChat users
-    const fakeEmail = `kc_${kcId}@kingschat.local`;
-    const password = `kc_auth_${kcId}_${serviceKey.slice(-8)}`;
+    // Deterministic credentials for KingsChat users
+    const fakeEmail = `kc_${kcUserId}@kingschat.local`;
+    const password = `kc_auth_${kcUserId}_${serviceKey.slice(-8)}`;
 
     // Try sign in first
     let { data: signInData, error: signInError } =
@@ -96,7 +135,7 @@ Deno.serve(async (req) => {
           username: kcUsername,
           avatar_url: kcAvatar,
           provider: "kingschat",
-          kingschat_id: kcId,
+          kingschat_id: kcUserId,
         },
       });
 

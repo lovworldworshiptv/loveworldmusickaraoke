@@ -39,7 +39,7 @@ const Auth = () => {
     try {
       const authResponse = await (kingsChatWebSdk as any).login({
         clientId: KINGSCHAT_CLIENT_ID,
-        scopes: ["user"],
+        scopes: ["user", "send_chat_message"],
       });
 
       toast.info("Authenticating with KingsChat...");
