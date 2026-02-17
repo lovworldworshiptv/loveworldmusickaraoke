@@ -8,6 +8,7 @@ const navItems = [
   { icon: Home, label: "Home", path: "/" },
   { icon: BookOpen, label: "Articles", path: "/articles" },
   { icon: Library, label: "My Library", path: "/library" },
+  { icon: Disc3, label: "Albums", path: "/albums" },
   { icon: Clock, label: "History", path: "/history" },
   { icon: ListMusic, label: "Playlist", path: "/playlists" },
   { icon: MessageSquare, label: "Feedback", path: "/feedback" },
@@ -33,7 +34,7 @@ const Sidebar = () => {
         <p className="text-xs text-muted-foreground mt-1">Karaoke & Study+</p>
       </div>
 
-      <nav className="flex-1 px-3 space-y-1">
+      <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
         {navItems.map((item) => (
           <button
             key={item.label}

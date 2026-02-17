@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useRef, useCallback, ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface PlayerSong {
   id: string;
@@ -210,15 +211,24 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     audio.addEventListener("ended", handleEnded);
   }, [handleEnded]);
 
+  const recordPlay = useCallback(async (songId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await supabase.from("recently_played").insert({ user_id: session.user.id, song_id: songId });
+      }
+    } catch {}
+  }, []);
+
   const playSong = useCallback((song: PlayerSong) => {
     setQueue([song]);
     setQueueIndex(0);
     loadAndPlay(song);
-    // Attach ended
+    recordPlay(song.id);
     setTimeout(() => {
       if (audioRef.current) attachEndedListener(audioRef.current);
     }, 0);
-  }, [loadAndPlay, attachEndedListener]);
+  }, [loadAndPlay, attachEndedListener, recordPlay]);
 
   const playQueue = useCallback((songs: PlayerSong[], startIndex = 0) => {
     const q = shuffleOnRef.current ? shuffleArray(songs) : songs;
@@ -226,11 +236,12 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     setQueueIndex(startIndex);
     if (q[startIndex]) {
       loadAndPlay(q[startIndex]);
+      recordPlay(q[startIndex].id);
       setTimeout(() => {
         if (audioRef.current) attachEndedListener(audioRef.current);
       }, 0);
     }
-  }, [loadAndPlay, attachEndedListener]);
+  }, [loadAndPlay, attachEndedListener, recordPlay]);
 
   const skipNext = useCallback(() => {
     if (queue.length === 0) return;

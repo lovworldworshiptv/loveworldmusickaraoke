@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { Play, Pause, Disc3, ChevronLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface Album {
   id: string;
@@ -15,6 +16,7 @@ const AlbumSection = () => {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
   const { playSong, playQueue, currentSong, isPlaying } = usePlayer();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchAlbums = async () => {
@@ -124,7 +126,7 @@ const AlbumSection = () => {
     <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-serif font-bold text-foreground">Top Albums</h3>
-        <button className="text-xs text-gold hover:text-gold-light font-medium transition-colors duration-200">See All</button>
+        <button onClick={() => navigate("/albums")} className="text-xs text-gold hover:text-gold-light font-medium transition-colors duration-200">See All</button>
       </div>
       <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1">
         {albums.map((album, i) => (

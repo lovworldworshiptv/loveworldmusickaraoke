@@ -17,6 +17,10 @@ import AdminArticles from "./pages/AdminArticles";
 import AdminCategories from "./pages/AdminCategories";
 import Profile from "./pages/Profile";
 import Discover from "./pages/Discover";
+import History from "./pages/History";
+import Playlists from "./pages/Playlists";
+import Feedback from "./pages/Feedback";
+import Albums from "./pages/Albums";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +42,10 @@ const App = () => (
                 <Route path="/articles" element={<Articles />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/discover" element={<Discover />} />
+                <Route path="/history" element={<History />} />
+                <Route path="/playlists" element={<Playlists />} />
+                <Route path="/feedback" element={<Feedback />} />
+                <Route path="/albums" element={<Albums />} />
                 <Route path="/admin/songs" element={<AdminSongs />} />
                 <Route path="/admin/albums" element={<AdminAlbums />} />
                 <Route path="/admin/articles" element={<AdminArticles />} />
