@@ -1,5 +1,6 @@
 import { Play, Pause, Music } from "lucide-react";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
+import { memo } from "react";
 
 interface SongCardProps {
   song: PlayerSong;
@@ -7,7 +8,7 @@ interface SongCardProps {
   allSongs?: PlayerSong[];
 }
 
-const SongCard = ({ song, index, allSongs }: SongCardProps) => {
+const SongCard = memo(({ song, index, allSongs }: SongCardProps) => {
   const { playSong, playQueue, currentSong, isPlaying } = usePlayer();
   const isActive = currentSong?.id === song.id;
 
@@ -21,12 +22,12 @@ const SongCard = ({ song, index, allSongs }: SongCardProps) => {
 
   return (
     <div
-      className="group flex-shrink-0 w-40 md:w-44 animate-fade-in-up"
+      className="group flex-shrink-0 w-40 md:w-44 animate-fade-in-up gpu"
       style={{ animationDelay: `${index * 0.07}s` }}
     >
-      <div className={`relative aspect-square rounded-xl overflow-hidden mb-3 glass-card transition-all duration-300 group-hover:shadow-[0_8px_32px_hsl(43_70%_53%/0.12)] ${isActive ? "ring-2 ring-primary glow-gold" : ""}`}>
+      <div className={`relative aspect-square rounded-xl overflow-hidden mb-3 glass-card transition-all duration-300 group-hover:shadow-[0_8px_32px_hsl(43_70%_53%/0.12)] active:scale-95 ${isActive ? "ring-2 ring-primary glow-gold" : ""}`}>
         {song.coverUrl ? (
-          <img src={song.coverUrl} alt={song.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+          <img src={song.coverUrl} alt={song.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 will-change-transform" loading="lazy" decoding="async" />
         ) : (
           <div className="w-full h-full gradient-purple flex items-center justify-center">
             <Music className="w-8 h-8 text-gold/30" />
@@ -34,7 +35,7 @@ const SongCard = ({ song, index, allSongs }: SongCardProps) => {
         )}
         <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-all duration-300 flex items-center justify-center">
           <button onClick={handlePlay}
-            className="w-12 h-12 rounded-full gradient-gold flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 scale-75 group-hover:scale-100 shadow-lg">
+            className="w-12 h-12 rounded-full gradient-gold flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 scale-75 group-hover:scale-100 shadow-lg touch-target active:scale-90">
             {isActive && isPlaying ? <Pause className="w-5 h-5 text-primary-foreground" /> : <Play className="w-5 h-5 text-primary-foreground ml-0.5" />}
           </button>
         </div>
@@ -43,6 +44,7 @@ const SongCard = ({ song, index, allSongs }: SongCardProps) => {
       <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
     </div>
   );
-};
+});
 
+SongCard.displayName = "SongCard";
 export default SongCard;

@@ -2,7 +2,7 @@ import heroBanner from "@/assets/hero-banner.jpg";
 
 const HeroBanner = () => {
   return (
-    <section className="relative w-full h-64 md:h-80 lg:h-96 overflow-hidden rounded-2xl mx-4 mt-4 lg:mx-6 lg:mt-6 animate-scale-fade group">
+    <section className="relative w-full h-64 md:h-80 lg:h-96 overflow-hidden rounded-2xl mx-4 mt-4 lg:mx-6 lg:mt-6 animate-scale-fade group" style={{ maxWidth: 'calc(100vw - 2rem)' }}>
       <img
         src={heroBanner}
         alt="Loveworld Music worship banner"
@@ -21,7 +21,7 @@ const HeroBanner = () => {
         <p className="text-sm text-muted-foreground mb-4 max-w-md animate-fade-in-up" style={{ animationDelay: "0.45s" }}>
           Experience the glory of worship with the Loveworld Singers — streaming now.
         </p>
-        <button className="gradient-gold text-primary-foreground px-6 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-all duration-300 hover:shadow-[0_0_24px_hsl(43_70%_53%/0.35)] animate-fade-in-up" style={{ animationDelay: "0.55s" }}>
+        <button className="gradient-gold text-primary-foreground px-6 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-all duration-300 hover:shadow-[0_0_24px_hsl(43_70%_53%/0.35)] animate-fade-in-up active:scale-95 touch-target" style={{ animationDelay: "0.55s" }}>
           Listen Now
         </button>
       </div>
