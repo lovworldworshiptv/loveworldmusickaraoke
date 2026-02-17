@@ -20,43 +20,83 @@ function decodeJwtPayload(token: string) {
 }
 
 async function fetchKcProfile(accessToken: string, userId: string) {
-  // Try multiple possible endpoints
-  const endpoints = [
-    `${KC_API}/api/users/${userId}`,
-    `${KC_API}/api/user/${userId}`,
-    `${KC_API}/api/v1/users/${userId}`,
-    `${KC_API}/api/v1/me`,
-    `${KC_API}/api/me`,
-    `${KC_API}/api/user`,
-    `${KC_API}/api/profile`,
+  // Try multiple endpoints with various Accept headers
+  const attempts = [
+    { url: `${KC_API}/api/users/${userId}`, accept: "application/json" },
+    { url: `${KC_API}/api/users/${userId}`, accept: "*/*" },
+    { url: `${KC_API}/api/users/${userId}/profile`, accept: "application/json" },
+    { url: `${KC_API}/api/v1/users/${userId}`, accept: "application/json" },
+    { url: `${KC_API}/api/me`, accept: "application/json" },
+    { url: `${KC_API}/api/profile`, accept: "application/json" },
+    { url: `${KC_API}/api/v1/me`, accept: "application/json" },
+    { url: `${KC_API}/api/user`, accept: "application/json" },
+    { url: `${KC_API}/oauth2/userinfo`, accept: "application/json" },
+    { url: `${KC_API}/userinfo`, accept: "application/json" },
+    { url: `https://accounts.kingsch.at/api/me`, accept: "application/json" },
+    { url: `https://accounts.kingsch.at/api/users/${userId}`, accept: "application/json" },
+    { url: `https://accounts.kingsch.at/oauth2/userinfo`, accept: "application/json" },
   ];
 
-  for (const url of endpoints) {
+  for (const { url, accept } of attempts) {
     try {
       const res = await fetch(url, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          Accept: "application/json",
+          Accept: accept,
+          "Content-Type": "application/json",
         },
       });
+
+      const contentType = res.headers.get("content-type") || "";
+      console.log(`KC endpoint ${url} -> ${res.status} (${contentType})`);
+
       if (res.ok) {
-        const text = await res.text();
-        console.log(`KingsChat endpoint ${url} raw (${res.status}): ${text.substring(0, 500)}`);
-        try {
-          const data = JSON.parse(text);
-          console.log(`KingsChat profile found at ${url}`);
+        if (contentType.includes("json")) {
+          const data = await res.json();
+          console.log(`KC profile found at ${url}:`, JSON.stringify(data).substring(0, 500));
           return data;
-        } catch {
-          console.log(`KingsChat endpoint ${url} returned non-JSON response`);
+        } else {
+          // Try parsing as text, might be JSON without proper content-type
+          const text = await res.text();
+          console.log(`KC ${url} raw text (first 300): ${text.substring(0, 300)}`);
+          try {
+            return JSON.parse(text);
+          } catch {
+            console.log(`KC ${url} not parseable as JSON`);
+          }
         }
       } else {
         const text = await res.text();
-        console.log(`KingsChat endpoint ${url} returned ${res.status}: ${text.substring(0, 200)}`);
+        console.log(`KC ${url} error: ${text.substring(0, 200)}`);
       }
     } catch (e) {
-      console.log(`KingsChat endpoint ${url} error: ${e.message}`);
+      console.log(`KC ${url} fetch error: ${e.message}`);
     }
   }
+  return null;
+}
+
+function extractProfileFromResponse(fullResponse: any) {
+  // The KingsChat popup might return user data alongside tokens
+  if (!fullResponse) return null;
+  
+  const possibleFields = [
+    "user", "profile", "userInfo", "user_info", "userData", "user_data",
+    "account", "me", "identity",
+  ];
+  
+  for (const field of possibleFields) {
+    if (fullResponse[field] && typeof fullResponse[field] === "object") {
+      return fullResponse[field];
+    }
+  }
+  
+  // Check if profile fields are directly on the response
+  if (fullResponse.username || fullResponse.displayName || fullResponse.name || 
+      fullResponse.avatar || fullResponse.photo || fullResponse.image) {
+    return fullResponse;
+  }
+  
   return null;
 }
 
@@ -66,7 +106,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { accessToken } = await req.json();
+    const body = await req.json();
+    const { accessToken, fullResponse } = body;
+    
     if (!accessToken) {
       return new Response(JSON.stringify({ error: "Missing accessToken" }), {
         status: 400,
@@ -74,13 +116,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Log full response from client to discover available fields
+    console.log("Full KingsChat auth response from client:", JSON.stringify(fullResponse || {}).substring(0, 1000));
+
     // Decode JWT to extract user info
     const jwtPayload = decodeJwtPayload(accessToken);
     console.log("KingsChat JWT payload:", JSON.stringify(jwtPayload));
 
     const kcUserId = jwtPayload?.sub || "";
-    const kcClientId = jwtPayload?.cid || "";
-
     if (!kcUserId) {
       return new Response(
         JSON.stringify({ error: "Invalid KingsChat token - no sub claim" }),
@@ -88,27 +131,49 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Try to fetch profile from KingsChat API
-    const kcProfileData = await fetchKcProfile(accessToken, kcUserId);
+    // Try extracting profile from the login response first
+    const clientProfile = extractProfileFromResponse(fullResponse);
+    console.log("Profile from client response:", JSON.stringify(clientProfile));
 
-    // Extract user data from API response or fall back to JWT
+    // Try to fetch profile from KingsChat API
+    const apiProfile = await fetchKcProfile(accessToken, kcUserId);
+
+    // Determine username and avatar from all available sources
     let kcUsername = "KingsChat User";
     let kcAvatar: string | null = null;
 
-    if (kcProfileData) {
-      const d = kcProfileData.data || kcProfileData.user || kcProfileData;
-      kcUsername = d.username || d.display_name || d.displayName || d.name || d.full_name || d.fullName || d.firstName || kcUsername;
-      kcAvatar = d.avatar || d.avatar_url || d.avatarUrl || d.profile_image || d.profileImage || d.photo || d.image || d.picture || null;
+    // Priority: API profile > client response > JWT claims
+    const sources = [apiProfile, clientProfile, fullResponse, jwtPayload].filter(Boolean);
+    
+    for (const source of sources) {
+      const s = source?.data || source?.user || source;
+      if (!s) continue;
       
-      // If name parts exist, combine them
-      if (!d.username && !d.display_name && !d.name && d.firstName) {
-        kcUsername = [d.firstName, d.lastName].filter(Boolean).join(" ");
+      if (kcUsername === "KingsChat User") {
+        kcUsername = s.username || s.display_name || s.displayName || s.name || 
+                     s.full_name || s.fullName || s.firstName || s.first_name || kcUsername;
+        
+        if (s.firstName || s.first_name) {
+          const first = s.firstName || s.first_name || "";
+          const last = s.lastName || s.last_name || "";
+          if (first) kcUsername = [first, last].filter(Boolean).join(" ");
+        }
       }
-    } else {
-      console.log("Could not fetch KingsChat profile from API, using JWT claims only");
-      // Use whatever we can from the JWT
-      kcUsername = jwtPayload?.name || jwtPayload?.username || `KingsChat_${kcUserId.substring(0, 8)}`;
+      
+      if (!kcAvatar) {
+        kcAvatar = s.avatar || s.avatar_url || s.avatarUrl || s.profile_image || 
+                   s.profileImage || s.photo || s.image || s.picture || s.photo_url || null;
+      }
+      
+      if (kcUsername !== "KingsChat User" && kcAvatar) break;
     }
+
+    // Final fallback for username
+    if (kcUsername === "KingsChat User") {
+      kcUsername = `KingsChat_${kcUserId.substring(0, 8)}`;
+    }
+
+    console.log(`Final profile - username: ${kcUsername}, avatar: ${kcAvatar}`);
 
     // Use Supabase service role
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -117,7 +182,6 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Deterministic credentials for KingsChat users
     const fakeEmail = `kc_${kcUserId}@kingschat.local`;
     const password = `kc_auth_${kcUserId}_${serviceKey.slice(-8)}`;
 
@@ -126,7 +190,6 @@ Deno.serve(async (req) => {
       await supabase.auth.signInWithPassword({ email: fakeEmail, password });
 
     if (signInError) {
-      // User doesn't exist, create them
       const { data: signUpData, error: signUpError } = await supabase.auth.admin.createUser({
         email: fakeEmail,
         password,
@@ -147,23 +210,21 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Sign in the newly created user
       const { data: newSignIn, error: newSignInError } =
         await supabase.auth.signInWithPassword({ email: fakeEmail, password });
 
       if (newSignInError) {
         return new Response(
-          JSON.stringify({ error: "Failed to sign in new user", details: newSignInError.message }),
+          JSON.stringify({ error: "Failed to sign in", details: newSignInError.message }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-
       signInData = newSignIn;
     }
 
     const userId = signInData.user!.id;
 
-    // Update profile with KingsChat data
+    // Update profile with latest KingsChat data
     await supabase
       .from("profiles")
       .update({
@@ -177,10 +238,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         session: signInData.session,
         user: signInData.user,
-        kingschat_profile: {
-          username: kcUsername,
-          avatar_url: kcAvatar,
-        },
+        kingschat_profile: { username: kcUsername, avatar_url: kcAvatar },
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
