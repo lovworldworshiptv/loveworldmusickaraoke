@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 
 const ProfileMenu = () => {
-  const { user, username, signOut } = useAuth();
+  const { user, username, avatarUrl, signOut } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"main" | "settings">("main");
@@ -33,8 +33,8 @@ const ProfileMenu = () => {
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <button className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold font-serif transition-opacity ${user ? "gradient-gold text-primary-foreground hover:opacity-90" : "bg-muted text-muted-foreground hover:text-foreground"}`}>
-          {user ? username.charAt(0).toUpperCase() : <User className="w-5 h-5" />}
+        <button className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold font-serif transition-opacity overflow-hidden ${user ? "gradient-gold text-primary-foreground hover:opacity-90" : "bg-muted text-muted-foreground hover:text-foreground"}`}>
+          {user ? (avatarUrl ? <img src={avatarUrl} alt={username} className="w-full h-full object-cover" /> : username.charAt(0).toUpperCase()) : <User className="w-5 h-5" />}
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 p-0 bg-card border-border overflow-hidden">
@@ -44,8 +44,8 @@ const ProfileMenu = () => {
               {/* User Info */}
               <div className="p-4 border-b border-border">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full gradient-gold flex items-center justify-center text-primary-foreground text-lg font-bold font-serif">
-                    {username.charAt(0).toUpperCase()}
+                  <div className="w-12 h-12 rounded-full gradient-gold flex items-center justify-center text-primary-foreground text-lg font-bold font-serif overflow-hidden">
+                    {avatarUrl ? <img src={avatarUrl} alt={username} className="w-full h-full object-cover" /> : username.charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-foreground">Welcome Esteemed</p>
