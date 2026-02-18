@@ -136,6 +136,13 @@ const Articles = () => {
             </span>
           </div>
 
+          {/* Hero image */}
+          {selectedArticle.image_url && (
+            <div className="w-full h-48 rounded-xl overflow-hidden mb-6">
+              <img src={selectedArticle.image_url} alt={selectedArticle.title} className="w-full h-full object-cover" />
+            </div>
+          )}
+
           {/* Title */}
           <h1 className="text-3xl font-serif font-bold text-foreground mb-2 leading-tight">
             {selectedArticle.title}
@@ -237,23 +244,30 @@ const Articles = () => {
               <button
                 key={article.id}
                 onClick={() => { setSelectedArticle(article); setContentMode("text"); }}
-                className="glass-card p-5 w-full text-left hover:glow-gold transition-all duration-300 group"
+                className="glass-card w-full text-left hover:glow-gold transition-all duration-300 group overflow-hidden"
               >
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-gold bg-gold/10 px-2 py-0.5 rounded-full">
-                    {article.category}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    {article.published_at ? new Date(article.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
-                  </span>
-                  {article.video_url && <Video className="w-3 h-3 text-muted-foreground" />}
-                  {article.audio_url && <Headphones className="w-3 h-3 text-muted-foreground" />}
+                {article.image_url && (
+                  <div className="w-full h-40 overflow-hidden">
+                    <img src={article.image_url} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                  </div>
+                )}
+                <div className="p-5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-gold bg-gold/10 px-2 py-0.5 rounded-full">
+                      {article.category}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {article.published_at ? new Date(article.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
+                    </span>
+                    {article.video_url && <Video className="w-3 h-3 text-muted-foreground" />}
+                    {article.audio_url && <Headphones className="w-3 h-3 text-muted-foreground" />}
+                  </div>
+                  <h3 className="text-base font-serif font-semibold text-foreground mb-1.5 group-hover:text-gold transition-colors line-clamp-2">
+                    {article.title}
+                  </h3>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{article.excerpt || article.content.slice(0, 120)}</p>
+                  <p className="text-xs text-muted-foreground">By {article.author}</p>
                 </div>
-                <h3 className="text-base font-serif font-semibold text-foreground mb-1.5 group-hover:text-gold transition-colors line-clamp-2">
-                  {article.title}
-                </h3>
-                <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{article.excerpt || article.content.slice(0, 120)}</p>
-                <p className="text-xs text-muted-foreground">By {article.author}</p>
               </button>
             ))}
           </div>
