@@ -109,10 +109,10 @@ const Playlists = () => {
                     <div className="flex gap-2">
                       {songs.length > 0 && (
                         <>
-                          <button onClick={() => playQueue(songs)} className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
-                            <Play className="w-4 h-4" />
+                          <button onClick={() => playQueue(songs)} className="w-8 h-8 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_2px_12px_hsl(43_70%_53%/0.4)] ring-1 ring-white/20 hover:scale-110 transition-transform">
+                            <Play className="w-3.5 h-3.5 text-white ml-0.5 drop-shadow-sm" fill="currentColor" />
                           </button>
-                          <button onClick={() => { const shuffled = [...songs].sort(() => Math.random() - 0.5); playQueue(shuffled); }} className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                          <button onClick={() => { const shuffled = [...songs].sort(() => Math.random() - 0.5); playQueue(shuffled); }} className="p-2 text-gold hover:bg-gold/10 rounded-lg transition-colors">
                             <Shuffle className="w-4 h-4" />
                           </button>
                         </>

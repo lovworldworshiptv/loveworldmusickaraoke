@@ -79,8 +79,8 @@ const Albums = () => {
               <h2 className="text-xl font-serif font-bold text-foreground">{selectedAlbum.title}</h2>
               <p className="text-sm text-muted-foreground">{selectedAlbum.artist} • {albumSongs.length} songs</p>
               <div className="flex gap-2 mt-3">
-                <button onClick={() => playQueue(playerSongs)} className="px-4 py-2 rounded-full gradient-gold text-primary-foreground text-xs font-semibold flex items-center gap-1.5">
-                  <Play className="w-3.5 h-3.5" /> Play All
+                <button onClick={() => playQueue(playerSongs)} className="px-4 py-2 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold text-white text-xs font-semibold flex items-center gap-1.5 shadow-[0_2px_12px_hsl(43_70%_53%/0.4)] hover:shadow-[0_4px_20px_hsl(43_70%_53%/0.5)] transition-shadow">
+                  <Play className="w-3.5 h-3.5 drop-shadow-sm" fill="currentColor" /> Play All
                 </button>
                 <button onClick={() => { const shuffled = [...playerSongs].sort(() => Math.random() - 0.5); playQueue(shuffled); }}
                   className="px-4 py-2 rounded-full border border-border text-foreground text-xs font-semibold flex items-center gap-1.5 hover:bg-muted transition-colors">
@@ -166,9 +166,9 @@ const Albums = () => {
                   ) : (
                     <div className="w-full h-full gradient-purple flex items-center justify-center"><Disc3 className="w-10 h-10 text-gold/30" /></div>
                   )}
-                  <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-10 h-10 rounded-full gradient-gold flex items-center justify-center shadow-lg">
-                      <Play className="w-4 h-4 text-primary-foreground ml-0.5" />
+                  <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_4px_20px_hsl(43_70%_53%/0.5)] ring-2 ring-white/20 hover:scale-110 transition-transform duration-200">
+                      <Play className="w-4 h-4 text-white ml-0.5 drop-shadow-sm" fill="currentColor" />
                     </div>
                   </div>
                 </div>
