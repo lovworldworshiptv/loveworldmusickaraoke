@@ -119,6 +119,7 @@ const PlayerBar = () => {
                   <p className="truncate text-sm">{song.title}</p>
                   <p className="truncate text-xs text-muted-foreground">{song.artist}</p>
                 </div>
+                <span className="text-xs text-muted-foreground tabular-nums">{formatTime(song.durationSeconds || 0)}</span>
               </div>
             ))}
             {queue.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">Queue is empty</p>}
