@@ -34,8 +34,16 @@ const PlayerBar = () => {
   return (
     <>
       <div className="fixed left-0 right-0 z-30 glass border-t border-border gpu lg:left-64 lg:bottom-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))]">
-        <div className="px-4 pt-2">
-          <Slider value={[progress]} onValueChange={([v]) => seekTo(v)} max={100} step={1} className="w-full h-1" />
+        <div className="px-5 pt-2">
+          <div className="relative w-[80%] mx-auto group/progress">
+            <Slider
+              value={[progress]}
+              onValueChange={([v]) => seekTo(v)}
+              max={100}
+              step={0.5}
+              className="w-full [&_[data-slot=slider-track]]:h-[3px] [&_[data-slot=slider-track]]:bg-muted-foreground/20 [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-gold [&_[data-slot=slider-range]]:via-gold-light [&_[data-slot=slider-range]]:to-gold [&_[data-slot=slider-thumb]]:w-3 [&_[data-slot=slider-thumb]]:h-3 [&_[data-slot=slider-thumb]]:bg-gold [&_[data-slot=slider-thumb]]:border-0 [&_[data-slot=slider-thumb]]:shadow-[0_0_8px_hsl(43_70%_53%/0.6)] [&_[data-slot=slider-thumb]]:opacity-0 [&_[data-slot=slider-thumb]]:group-hover/progress:opacity-100 [&_[data-slot=slider-thumb]]:transition-opacity [&_.relative]:h-[3px] [&_[class*=Range]]:bg-gradient-to-r [&_[class*=Range]]:from-gold [&_[class*=Range]]:via-gold-light [&_[class*=Range]]:to-gold [&_[class*=Track]]:h-[3px] [&_[class*=Track]]:bg-muted-foreground/20 [&_[class*=Thumb]]:w-3 [&_[class*=Thumb]]:h-3 [&_[class*=Thumb]]:bg-gold [&_[class*=Thumb]]:border-0 [&_[class*=Thumb]]:shadow-[0_0_8px_hsl(43_70%_53%/0.6)] [&_[class*=Thumb]]:opacity-0 [&_[class*=Thumb]]:group-hover/progress:opacity-100 [&_[class*=Thumb]]:transition-opacity"
+            />
+          </div>
         </div>
 
         <div className="flex items-center justify-between px-4 py-3">
