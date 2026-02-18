@@ -1,7 +1,7 @@
 import { useState, memo, useCallback } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Play, Heart, Plus, Music, ListMusic, Trash2 } from "lucide-react";
+import { Search, Play, Heart, Plus, Music, ListMusic, Trash2, Shuffle } from "lucide-react";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +28,7 @@ const Library = () => {
   const [search, setSearch] = useState("");
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { playSong, currentSong, isPlaying } = usePlayer();
+  const { playSong, playQueue, currentSong, isPlaying } = usePlayer();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -199,7 +199,21 @@ const Library = () => {
             ) : filtered.length === 0 ? (
               <EmptyState icon={Music} title="No songs found" description="Try a different search term" />
             ) : (
-              <div className="space-y-1">{filtered.map((song, i) => <SongRowItem key={song.id} song={song} index={i} />)}</div>
+              <>
+                {songs.length > 1 && (
+                  <Button
+                    variant="outline"
+                    className="mb-4 w-full gap-2 touch-target border-gold/30 text-gold hover:bg-gold/10"
+                    onClick={() => {
+                      const shuffled = [...songs].sort(() => Math.random() - 0.5);
+                      playQueue(shuffled.map(toPlayerSong));
+                    }}
+                  >
+                    <Shuffle className="w-4 h-4" /> Shuffle All ({songs.length} songs)
+                  </Button>
+                )}
+                <div className="space-y-1">{filtered.map((song, i) => <SongRowItem key={song.id} song={song} index={i} />)}</div>
+              </>
             )}
           </TabsContent>
 
