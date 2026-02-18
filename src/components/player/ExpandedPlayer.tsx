@@ -226,8 +226,10 @@ const ExpandedPlayer = () => {
         {/* Bottom Controls */}
         <div className="flex-shrink-0 px-6 pt-2 safe-bottom" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
           {/* Progress */}
-          <div className="mb-4">
-            <Slider value={[progress]} onValueChange={([v]) => seekTo(v)} max={100} step={0.5} className="w-full mb-1.5" />
+          <div className="mb-4 group/progress">
+            <Slider value={[progress]} onValueChange={([v]) => seekTo(v)} max={100} step={0.5}
+              className="w-full mb-1.5 [&_[class*=Track]]:h-1 [&_[class*=Track]]:bg-muted-foreground/20 [&_[class*=Range]]:bg-gradient-to-r [&_[class*=Range]]:from-gold [&_[class*=Range]]:via-gold-light [&_[class*=Range]]:to-gold [&_[class*=Thumb]]:w-3 [&_[class*=Thumb]]:h-3 [&_[class*=Thumb]]:bg-gold [&_[class*=Thumb]]:border-0 [&_[class*=Thumb]]:shadow-[0_0_10px_hsl(43_70%_53%/0.6)]"
+            />
             <div className="flex justify-between text-[11px] text-muted-foreground font-medium">
               <span>{formatTime(currentTime)}</span>
               <span>-{formatTime(Math.max(0, duration - currentTime))}</span>
@@ -236,26 +238,25 @@ const ExpandedPlayer = () => {
 
           {/* Playback Controls */}
           <div className="flex items-center justify-center gap-8">
-            <button onClick={toggleShuffle} className={`transition-colors ${shuffleOn ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
+            <button onClick={toggleShuffle} className={`transition-all duration-200 hover:scale-110 ${shuffleOn ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               <Shuffle className="w-5 h-5" />
             </button>
-            <button onClick={skipPrev} className="text-foreground hover:text-gold transition-colors">
-              <SkipBack className="w-7 h-7" />
+            <button onClick={skipPrev} className="text-foreground hover:text-gold hover:scale-110 transition-all duration-200 active:scale-95">
+              <SkipBack className="w-7 h-7" fill="currentColor" />
             </button>
             <button
               onClick={togglePlay}
-              className="w-18 h-18 rounded-full gradient-gold flex items-center justify-center text-primary-foreground hover:opacity-90 transition-all shadow-lg glow-gold"
-              style={{ width: 72, height: 72 }}
+              className="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_6px_30px_hsl(43_70%_53%/0.6)] ring-2 ring-white/20 hover:scale-105 active:scale-95 transition-all duration-200"
             >
-              {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8 ml-1" />}
+              {isPlaying ? <Pause className="w-8 h-8 text-white drop-shadow-sm" fill="currentColor" /> : <Play className="w-8 h-8 text-white ml-1 drop-shadow-sm" fill="currentColor" />}
             </button>
-            <button onClick={skipNext} className="text-foreground hover:text-gold transition-colors">
-              <SkipForward className="w-7 h-7" />
+            <button onClick={skipNext} className="text-foreground hover:text-gold hover:scale-110 transition-all duration-200 active:scale-95">
+              <SkipForward className="w-7 h-7" fill="currentColor" />
             </button>
-            <button onClick={cycleRepeat} className={`relative transition-colors ${repeatMode !== "off" ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
+            <button onClick={cycleRepeat} className={`relative transition-all duration-200 hover:scale-110 ${repeatMode !== "off" ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               <RepeatIcon className="w-5 h-5" />
               {repeatMode === "one" && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-gold" />
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-gold shadow-[0_0_6px_hsl(43_70%_53%/0.8)]" />
               )}
             </button>
           </div>
