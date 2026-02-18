@@ -19,6 +19,7 @@ import AdminPlaylists from "./pages/AdminPlaylists";
 import AdminBanners from "./pages/AdminBanners";
 import AdminGames from "./pages/AdminGames";
 import AdminFeedback from "./pages/AdminFeedback";
+import AdminOnboarding from "./pages/AdminOnboarding";
 import Profile from "./pages/Profile";
 import Discover from "./pages/Discover";
 import History from "./pages/History";
@@ -64,6 +65,7 @@ const App = () => (
                 <Route path="/admin/banners" element={<AdminBanners />} />
                 <Route path="/admin/games" element={<AdminGames />} />
                 <Route path="/admin/feedback" element={<AdminFeedback />} />
+                <Route path="/admin/onboarding" element={<AdminOnboarding />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </PlayerProvider>
