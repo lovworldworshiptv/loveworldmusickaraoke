@@ -3,7 +3,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
-import { Music, ArrowLeft, Play, Pause, Shuffle, ListMusic } from "lucide-react";
+import { Music, Play, Pause, Shuffle, ListMusic } from "lucide-react";
 import { useMemo } from "react";
 
 const CategorySongs = () => {
@@ -67,11 +67,6 @@ const CategorySongs = () => {
   return (
     <AppLayout>
       <div className="px-4 lg:px-6 pt-4 lg:pt-6 max-w-2xl mx-auto pb-8">
-        {/* Back button */}
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-5 transition-colors group">
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-          <span className="text-sm font-medium">Back</span>
-        </button>
 
         {/* Hero header */}
         {category && (
