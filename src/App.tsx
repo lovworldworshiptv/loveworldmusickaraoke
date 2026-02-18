@@ -27,6 +27,7 @@ import Feedback from "./pages/Feedback";
 import Albums from "./pages/Albums";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import CategorySongs from "./pages/CategorySongs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
                 <Route path="/albums" element={<Albums />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
+                <Route path="/category/:id" element={<CategorySongs />} />
                 <Route path="/admin/songs" element={<AdminSongs />} />
                 <Route path="/admin/albums" element={<AdminAlbums />} />
                 <Route path="/admin/articles" element={<AdminArticles />} />

@@ -123,14 +123,15 @@ const AdminSongs = () => {
   const [lrcText, setLrcText] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
-    title: "", artist: "Loveworld Singers", album: "", album_id: "", duration_seconds: 240,
+    title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", duration_seconds: 240,
     is_featured: false, is_top: false, audio_url: "", instrumental_url: "", lyrics_raw: "",
   });
   const [editForm, setEditForm] = useState({
-    title: "", artist: "", album: "", album_id: "", duration_seconds: 240,
+    title: "", artist: "", album: "", album_id: "", category_id: "", duration_seconds: 240,
     is_featured: false, is_top: false, audio_url: "", instrumental_url: "",
   });
   const [albumOptions, setAlbumOptions] = useState<AlbumOption[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<{ id: string; name: string }[]>([]);
 
   // Sync state
   const [syncLines, setSyncLines] = useState<string[]>([]);
@@ -140,11 +141,16 @@ const AdminSongs = () => {
   const syncAudioRef = useRef<HTMLAudioElement | null>(null);
   const [syncTime, setSyncTime] = useState(0);
 
-  useEffect(() => { fetchSongs(); fetchAlbumOptions(); }, []);
+  useEffect(() => { fetchSongs(); fetchAlbumOptions(); fetchCategoryOptions(); }, []);
 
   const fetchAlbumOptions = async () => {
     const { data } = await supabase.from("albums").select("id, title").order("title");
     if (data) setAlbumOptions(data);
+  };
+
+  const fetchCategoryOptions = async () => {
+    const { data } = await supabase.from("categories").select("id, name").order("name");
+    if (data) setCategoryOptions(data);
   };
 
   const fetchSongs = async () => {
@@ -176,7 +182,7 @@ const AdminSongs = () => {
   const handleCreateSong = async () => {
     const { error } = await supabase.from("songs").insert({
       title: form.title, artist: form.artist, album: form.album || null,
-      album_id: form.album_id || null,
+      album_id: form.album_id || null, category_id: form.category_id || null,
       duration_seconds: form.duration_seconds, is_featured: form.is_featured,
       is_top: form.is_top, audio_url: form.audio_url || null,
       instrumental_url: form.instrumental_url || null,
@@ -185,7 +191,7 @@ const AdminSongs = () => {
     if (error) { toast.error("Failed: " + error.message); return; }
     toast.success("Song created!");
     setShowForm(false);
-    setForm({ title: "", artist: "", album: "", album_id: "", duration_seconds: 240, is_featured: false, is_top: false, audio_url: "", instrumental_url: "", lyrics_raw: "" });
+    setForm({ title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", duration_seconds: 240, is_featured: false, is_top: false, audio_url: "", instrumental_url: "", lyrics_raw: "" });
     fetchSongs();
   };
 
@@ -200,7 +206,7 @@ const AdminSongs = () => {
     if (!editingSong) return;
     const { error } = await supabase.from("songs").update({
       title: editForm.title, artist: editForm.artist, album: editForm.album || null,
-      album_id: editForm.album_id || null,
+      album_id: editForm.album_id || null, category_id: editForm.category_id || null,
       duration_seconds: editForm.duration_seconds, is_featured: editForm.is_featured,
       is_top: editForm.is_top, audio_url: editForm.audio_url || null,
       instrumental_url: editForm.instrumental_url || null,
@@ -273,7 +279,7 @@ const AdminSongs = () => {
     } else {
       setEditForm({
         title: song.title, artist: song.artist, album: song.album || "",
-        album_id: song.album_id || "",
+        album_id: song.album_id || "", category_id: song.category_id || "",
         duration_seconds: song.duration_seconds, is_featured: song.is_featured,
         is_top: song.is_top, audio_url: song.audio_url || "", instrumental_url: song.instrumental_url || "",
       });
@@ -315,6 +321,11 @@ const AdminSongs = () => {
               }} className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm">
                 <option value="">No Album</option>
                 {albumOptions.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
+              </select>
+              <select value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })}
+                className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm">
+                <option value="">No Category</option>
+                {categoryOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               <input placeholder="Duration (seconds)" type="number" value={form.duration_seconds}
                 onChange={e => setForm({ ...form, duration_seconds: Number(e.target.value) })}
@@ -379,6 +390,11 @@ const AdminSongs = () => {
                     }} className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm">
                       <option value="">No Album</option>
                       {albumOptions.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
+                    </select>
+                    <select value={editForm.category_id} onChange={e => setEditForm({ ...editForm, category_id: e.target.value })}
+                      className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm">
+                      <option value="">No Category</option>
+                      {categoryOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                     <input placeholder="Duration (seconds)" type="number" value={editForm.duration_seconds}
                       onChange={e => setEditForm({ ...editForm, duration_seconds: Number(e.target.value) })}
