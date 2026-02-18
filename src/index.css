@@ -186,3 +186,33 @@
     animation: fade-in-up 0.3s ease-out both;
   }
 }
+
+/* Music background animations */
+@keyframes float1 {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+}
+@keyframes float2 {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-30px) rotate(-5deg); }
+}
+@keyframes float3 {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-15px) rotate(8deg); }
+}
+@keyframes wave1 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes wave2 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(8px); }
+}
+@keyframes ring1 {
+  0%, 100% { transform: scale(1); opacity: 0.04; }
+  50% { transform: scale(1.2); opacity: 0.08; }
+}
+@keyframes ring2 {
+  0%, 100% { transform: scale(1); opacity: 0.04; }
+  50% { transform: scale(1.15); opacity: 0.07; }
+}

@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Eye, EyeOff, MessageCircle } from "lucide-react";
+import MusicBackground from "@/components/auth/MusicBackground";
 import kingsChatWebSdk from "kingschat-web-sdk";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -83,7 +84,8 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
+      <MusicBackground />
       <button onClick={() => navigate(-1)} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
         <ArrowLeft className="w-5 h-5" />
       </button>
