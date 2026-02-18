@@ -63,8 +63,8 @@ const PlayerBar = () => {
               <SkipBack className="w-5 h-5" />
             </button>
             <button onClick={togglePlay}
-              className="w-10 h-10 rounded-full gradient-gold flex items-center justify-center text-primary-foreground hover:opacity-90 transition-opacity">
-              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+              className="w-11 h-11 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center text-primary-foreground shadow-[0_4px_20px_hsl(43_70%_53%/0.5)] ring-2 ring-white/20 hover:scale-105 active:scale-95 transition-all duration-200">
+              {isPlaying ? <Pause className="w-5 h-5 drop-shadow-sm" fill="currentColor" /> : <Play className="w-5 h-5 ml-0.5 drop-shadow-sm" fill="currentColor" />}
             </button>
             <button onClick={skipNext} className="text-muted-foreground hover:text-foreground transition-colors">
               <SkipForward className="w-5 h-5" />
