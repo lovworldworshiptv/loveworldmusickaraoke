@@ -94,21 +94,24 @@ function generateQuestionsFromSongs(
 
   const questions: GeneratedQuestion[] = [];
   const usedLines = new Set<string>();
+  const MAX_PER_SONG = 5;
 
   for (const song of shuffled) {
     if (questions.length >= count) break;
     const lines = parseLrcLines(song.lyrics_lrc);
-    // Shuffle lines
     const shuffledLines = [...lines].sort(() => Math.random() - 0.5);
+    let songCount = 0;
 
     for (const line of shuffledLines) {
       if (questions.length >= count) break;
+      if (songCount >= MAX_PER_SONG) break;
       if (usedLines.has(line.toLowerCase())) continue;
 
       const missingWord = pickMissingWord(line);
       if (!missingWord) continue;
 
       usedLines.add(line.toLowerCase());
+      songCount++;
 
       const displayLine = line.replace(
         new RegExp(`\\b${missingWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i"),
