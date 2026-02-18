@@ -5,6 +5,7 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer, FileAudio, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
 
 interface Song {
   id: string;
@@ -124,11 +125,11 @@ const AdminSongs = () => {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", duration_seconds: 240,
-    is_featured: false, is_top: false, audio_url: "", instrumental_url: "", lyrics_raw: "",
+    is_featured: false, is_top: false, audio_url: "", instrumental_url: "", lyrics_raw: "", cover_url: "",
   });
   const [editForm, setEditForm] = useState({
     title: "", artist: "", album: "", album_id: "", category_id: "", duration_seconds: 240,
-    is_featured: false, is_top: false, audio_url: "", instrumental_url: "",
+    is_featured: false, is_top: false, audio_url: "", instrumental_url: "", cover_url: "",
   });
   const [albumOptions, setAlbumOptions] = useState<AlbumOption[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<{ id: string; name: string }[]>([]);
@@ -186,12 +187,12 @@ const AdminSongs = () => {
       duration_seconds: form.duration_seconds, is_featured: form.is_featured,
       is_top: form.is_top, audio_url: form.audio_url || null,
       instrumental_url: form.instrumental_url || null,
-      lyrics_lrc: form.lyrics_raw || null,
+      lyrics_lrc: form.lyrics_raw || null, cover_url: form.cover_url || null,
     });
     if (error) { toast.error("Failed: " + error.message); return; }
     toast.success("Song created!");
     setShowForm(false);
-    setForm({ title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", duration_seconds: 240, is_featured: false, is_top: false, audio_url: "", instrumental_url: "", lyrics_raw: "" });
+    setForm({ title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", duration_seconds: 240, is_featured: false, is_top: false, audio_url: "", instrumental_url: "", lyrics_raw: "", cover_url: "" });
     fetchSongs();
   };
 
@@ -209,7 +210,7 @@ const AdminSongs = () => {
       album_id: editForm.album_id || null, category_id: editForm.category_id || null,
       duration_seconds: editForm.duration_seconds, is_featured: editForm.is_featured,
       is_top: editForm.is_top, audio_url: editForm.audio_url || null,
-      instrumental_url: editForm.instrumental_url || null,
+      instrumental_url: editForm.instrumental_url || null, cover_url: editForm.cover_url || null,
     }).eq("id", editingSong.id);
     if (error) { toast.error("Failed: " + error.message); return; }
     toast.success("Song updated!");
@@ -282,6 +283,7 @@ const AdminSongs = () => {
         album_id: song.album_id || "", category_id: song.category_id || "",
         duration_seconds: song.duration_seconds, is_featured: song.is_featured,
         is_top: song.is_top, audio_url: song.audio_url || "", instrumental_url: song.instrumental_url || "",
+        cover_url: song.cover_url || "",
       });
     }
   };
@@ -332,6 +334,7 @@ const AdminSongs = () => {
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
             </div>
 
+            <ImageUploadPicker bucket="song-covers" label="Cover Image" value={form.cover_url} onChange={url => setForm({ ...form, cover_url: url })} />
             <AudioPicker bucket="song-audio" label="Audio File" value={form.audio_url} onChange={url => setForm({ ...form, audio_url: url })} />
             <AudioPicker bucket="song-instrumentals" label="Instrumental File" value={form.instrumental_url} onChange={url => setForm({ ...form, instrumental_url: url })} />
 
@@ -401,6 +404,7 @@ const AdminSongs = () => {
                       className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
                   </div>
 
+                  <ImageUploadPicker bucket="song-covers" label="Cover Image" value={editForm.cover_url} onChange={url => setEditForm({ ...editForm, cover_url: url })} />
                   <AudioPicker bucket="song-audio" label="Audio File" value={editForm.audio_url} onChange={url => setEditForm({ ...editForm, audio_url: url })} />
                   <AudioPicker bucket="song-instrumentals" label="Instrumental File" value={editForm.instrumental_url} onChange={url => setEditForm({ ...editForm, instrumental_url: url })} />
 

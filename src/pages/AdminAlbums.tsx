@@ -5,6 +5,7 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Disc3, Plus, Trash2, Edit3, X, Save, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
 
 interface Album {
   id: string;
@@ -21,7 +22,7 @@ const AdminAlbums = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Album | null>(null);
-  const [form, setForm] = useState({ title: "", artist: "Loveworld Singers", is_top: false });
+  const [form, setForm] = useState({ title: "", artist: "Loveworld Singers", is_top: false, cover_url: "" });
 
   useEffect(() => { fetchAlbums(); }, []);
 
@@ -33,17 +34,17 @@ const AdminAlbums = () => {
 
   const handleCreate = async () => {
     if (!form.title) { toast.error("Title required"); return; }
-    const { error } = await supabase.from("albums").insert({ title: form.title, artist: form.artist, is_top: form.is_top });
+    const { error } = await supabase.from("albums").insert({ title: form.title, artist: form.artist, is_top: form.is_top, cover_url: form.cover_url || null });
     if (error) { toast.error(error.message); return; }
     toast.success("Album created!");
     setShowForm(false);
-    setForm({ title: "", artist: "", is_top: false });
+    setForm({ title: "", artist: "", is_top: false, cover_url: "" });
     fetchAlbums();
   };
 
   const handleUpdate = async () => {
     if (!editing) return;
-    const { error } = await supabase.from("albums").update({ title: form.title, artist: form.artist, is_top: form.is_top }).eq("id", editing.id);
+    const { error } = await supabase.from("albums").update({ title: form.title, artist: form.artist, is_top: form.is_top, cover_url: form.cover_url || null }).eq("id", editing.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Album updated!");
     setEditing(null);
@@ -70,7 +71,7 @@ const AdminAlbums = () => {
 
   const openEdit = (album: Album) => {
     setEditing(album);
-    setForm({ title: album.title, artist: album.artist, is_top: album.is_top });
+    setForm({ title: album.title, artist: album.artist, is_top: album.is_top, cover_url: album.cover_url || "" });
   };
 
   if (adminLoading) return <AppLayout><div className="p-6 text-center text-muted-foreground">Loading...</div></AppLayout>;
@@ -101,6 +102,7 @@ const AdminAlbums = () => {
               <input placeholder="Artist" value={form.artist} onChange={e => setForm({ ...form, artist: e.target.value })}
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
             </div>
+            <ImageUploadPicker bucket="album-covers" label="Album Cover" value={form.cover_url} onChange={url => setForm({ ...form, cover_url: url })} />
             <label className="flex items-center gap-2 text-sm text-foreground">
               <input type="checkbox" checked={form.is_top} onChange={e => setForm({ ...form, is_top: e.target.checked })} />
               Top Album (displayed on homepage)
