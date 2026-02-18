@@ -99,12 +99,14 @@ const CategorySongs = () => {
                 </div>
                 {currentSong?.id === song.id && isPlaying ? (
                   <div className="flex gap-0.5 items-end h-4">
-                    <div className="w-0.5 h-2 bg-primary rounded-full animate-pulse" />
-                    <div className="w-0.5 h-3 bg-primary rounded-full animate-pulse" style={{ animationDelay: "0.15s" }} />
-                    <div className="w-0.5 h-4 bg-primary rounded-full animate-pulse" style={{ animationDelay: "0.3s" }} />
+                    <div className="w-0.5 h-2 bg-gold rounded-full animate-pulse" />
+                    <div className="w-0.5 h-3 bg-gold rounded-full animate-pulse" style={{ animationDelay: "0.15s" }} />
+                    <div className="w-0.5 h-4 bg-gold rounded-full animate-pulse" style={{ animationDelay: "0.3s" }} />
                   </div>
                 ) : (
-                  <Play className="w-4 h-4 text-primary" />
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_2px_12px_hsl(43_70%_53%/0.4)] ring-1 ring-white/20">
+                    <Play className="w-3.5 h-3.5 text-primary-foreground ml-0.5 drop-shadow-sm" fill="currentColor" />
+                  </div>
                 )}
               </button>
             ))}
