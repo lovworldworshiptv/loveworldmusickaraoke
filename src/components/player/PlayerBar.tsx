@@ -72,7 +72,7 @@ const PlayerBar = () => {
             </button>
             <button onClick={togglePlay}
               className="w-11 h-11 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center text-primary-foreground shadow-[0_4px_20px_hsl(43_70%_53%/0.5)] ring-2 ring-white/20 hover:scale-105 active:scale-95 transition-all duration-200">
-              {isPlaying ? <Pause className="w-5 h-5 drop-shadow-sm" fill="currentColor" /> : <Play className="w-5 h-5 ml-0.5 drop-shadow-sm" fill="currentColor" />}
+              {isPlaying ? <Pause className="w-5 h-5 text-white drop-shadow-sm" fill="currentColor" /> : <Play className="w-5 h-5 text-white ml-0.5 drop-shadow-sm" fill="currentColor" />}
             </button>
             <button onClick={skipNext} className="text-muted-foreground hover:text-foreground transition-colors">
               <SkipForward className="w-5 h-5" />
