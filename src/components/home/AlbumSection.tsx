@@ -70,9 +70,9 @@ const AlbumSection = () => {
                   <Disc3 className="w-10 h-10 text-gold/30" />
                 </div>
               )}
-              <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="w-10 h-10 rounded-full gradient-gold flex items-center justify-center shadow-lg">
-                  <Play className="w-4 h-4 text-primary-foreground ml-0.5" />
+              <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_4px_20px_hsl(43_70%_53%/0.5)] backdrop-blur-sm ring-2 ring-white/20 hover:scale-110 transition-transform duration-200">
+                  <Play className="w-4.5 h-4.5 text-primary-foreground ml-0.5 drop-shadow-sm" fill="currentColor" />
                 </div>
               </div>
             </div>
