@@ -41,7 +41,7 @@ const PlayerBar = () => {
               onValueChange={([v]) => seekTo(v)}
               max={100}
               step={0.5}
-              className="w-full [&_.relative]:h-1 [&_[class*=Range]]:bg-gradient-to-r [&_[class*=Range]]:from-gold [&_[class*=Range]]:via-gold-light [&_[class*=Range]]:to-gold [&_[class*=Track]]:h-1 [&_[class*=Track]]:bg-muted-foreground/20 [&_[class*=Thumb]]:w-2.5 [&_[class*=Thumb]]:h-2.5 [&_[class*=Thumb]]:bg-gold [&_[class*=Thumb]]:border-0 [&_[class*=Thumb]]:shadow-[0_0_8px_hsl(43_70%_53%/0.6)] [&_[class*=Thumb]]:opacity-0 [&_[class*=Thumb]]:group-hover/progress:opacity-100 [&_[class*=Thumb]]:transition-opacity"
+              className="w-full [&_.relative]:h-1 [&_[class*=Range]]:bg-gradient-to-r [&_[class*=Range]]:from-gold [&_[class*=Range]]:via-gold-light [&_[class*=Range]]:to-gold [&_[class*=Track]]:h-1 [&_[class*=Track]]:bg-muted-foreground/20 [&_[class*=Thumb]]:w-[7px] [&_[class*=Thumb]]:h-[7px] [&_[class*=Thumb]]:bg-gold [&_[class*=Thumb]]:border-0 [&_[class*=Thumb]]:shadow-[0_0_8px_hsl(43_70%_53%/0.6)] [&_[class*=Thumb]]:opacity-0 [&_[class*=Thumb]]:group-hover/progress:opacity-100 [&_[class*=Thumb]]:transition-opacity"
             />
           </div>
         </div>
