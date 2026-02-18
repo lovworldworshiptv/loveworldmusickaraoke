@@ -2,11 +2,10 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, Type, Video, Headphones, FileText, Music, X, ChevronRight, Minus, Plus } from "lucide-react";
+import { BookOpen, Type, Video, Headphones, FileText, Music, X, ChevronRight, Minus, Plus, Search, Play } from "lucide-react";
 import ShareInviteButton from "@/components/articles/ShareInviteButton";
 
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
-import { useNavigate } from "react-router-dom";
 
 interface Article {
   id: string;
@@ -32,8 +31,10 @@ const Articles = () => {
   const [contentMode, setContentMode] = useState<ContentMode>("text");
   const [showSongSuggestion, setShowSongSuggestion] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showSongPicker, setShowSongPicker] = useState(false);
+  const [allSongs, setAllSongs] = useState<any[]>([]);
+  const [songSearch, setSongSearch] = useState("");
   const { playSong } = usePlayer();
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchArticles();
@@ -63,9 +64,24 @@ const Articles = () => {
     setLoading(false);
   };
 
-  const handleBrowseSongs = () => {
+  const handleBrowseSongs = async () => {
     setShowSongSuggestion(false);
-    navigate("/library");
+    // Fetch songs for the picker
+    if (allSongs.length === 0) {
+      const { data } = await supabase.from("songs").select("id, title, artist, cover_url, audio_url, duration_seconds").not("audio_url", "is", null).order("title");
+      if (data) setAllSongs(data);
+    }
+    setShowSongPicker(true);
+  };
+
+  const handlePickSong = (song: any) => {
+    const ps: PlayerSong = {
+      id: song.id, title: song.title, artist: song.artist,
+      coverUrl: song.cover_url || undefined, audioUrl: song.audio_url || undefined,
+      durationSeconds: song.duration_seconds,
+    };
+    playSong(ps);
+    setShowSongPicker(false);
   };
 
   const handleRandomFeatured = async () => {
@@ -216,6 +232,57 @@ const Articles = () => {
                 <button onClick={() => setShowSongSuggestion(false)} className="text-muted-foreground hover:text-foreground">
                   <X className="w-4 h-4" />
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* Song Picker Modal */}
+          {showSongPicker && (
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setShowSongPicker(false)} />
+              <div className="relative w-full max-w-md max-h-[70vh] glass-card rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-4">
+                <div className="flex items-center justify-between p-4 border-b border-border">
+                  <h3 className="text-base font-serif font-bold text-foreground">Pick a Song</h3>
+                  <button onClick={() => setShowSongPicker(false)} className="p-1 text-muted-foreground hover:text-foreground">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="px-4 py-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="text" placeholder="Search songs..."
+                      value={songSearch} onChange={e => setSongSearch(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5">
+                  {allSongs
+                    .filter(s => s.title.toLowerCase().includes(songSearch.toLowerCase()) || s.artist.toLowerCase().includes(songSearch.toLowerCase()))
+                    .map(song => (
+                      <button key={song.id} onClick={() => handlePickSong(song)}
+                        className="flex items-center gap-3 w-full p-2.5 rounded-xl hover:bg-muted/60 transition-colors text-left">
+                        {song.cover_url ? (
+                          <img src={song.cover_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                            <Music className="w-4 h-4 text-primary" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{song.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+                        </div>
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center flex-shrink-0 shadow-[0_2px_8px_hsl(43_70%_53%/0.4)]">
+                          <Play className="w-3 h-3 text-white ml-0.5" fill="currentColor" />
+                        </div>
+                      </button>
+                    ))}
+                  {allSongs.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-8">No songs available</p>
+                  )}
+                </div>
               </div>
             </div>
           )}
