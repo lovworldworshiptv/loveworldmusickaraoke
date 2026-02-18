@@ -35,7 +35,7 @@ const CategorySection = () => {
         {categories.map((cat, i) => (
           <button
             key={cat.id}
-            onClick={() => navigate(`/library?category=${encodeURIComponent(cat.name)}`)}
+            onClick={() => navigate(`/category/${cat.id}`)}
             className="flex-shrink-0 flex flex-col items-center gap-2 w-20 group cursor-pointer animate-fade-in-up"
             style={{ animationDelay: `${i * 0.08}s` }}
           >
