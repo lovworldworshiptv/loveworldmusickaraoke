@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PlayerProvider } from "@/contexts/PlayerContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import AuthGate from "@/components/auth/AuthGate";
 import Index from "./pages/Index";
 import Library from "./pages/Library";
 import Games from "./pages/Games";
@@ -43,29 +44,32 @@ const App = () => (
           <AuthProvider>
             <PlayerProvider>
               <Routes>
+                {/* Public routes */}
                 <Route path="/" element={<Index />} />
-                <Route path="/library" element={<Library />} />
-                <Route path="/games" element={<Games />} />
                 <Route path="/auth" element={<Auth />} />
-                <Route path="/articles" element={<Articles />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/discover" element={<Discover />} />
-                <Route path="/history" element={<History />} />
-                <Route path="/playlists" element={<Playlists />} />
-                <Route path="/feedback" element={<Feedback />} />
-                <Route path="/albums" element={<Albums />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
-                <Route path="/category/:id" element={<CategorySongs />} />
-                <Route path="/admin/songs" element={<AdminSongs />} />
-                <Route path="/admin/albums" element={<AdminAlbums />} />
-                <Route path="/admin/articles" element={<AdminArticles />} />
-                <Route path="/admin/categories" element={<AdminCategories />} />
-                <Route path="/admin/playlists" element={<AdminPlaylists />} />
-                <Route path="/admin/banners" element={<AdminBanners />} />
-                <Route path="/admin/games" element={<AdminGames />} />
-                <Route path="/admin/feedback" element={<AdminFeedback />} />
-                <Route path="/admin/onboarding" element={<AdminOnboarding />} />
+
+                {/* Protected routes */}
+                <Route path="/library" element={<AuthGate><Library /></AuthGate>} />
+                <Route path="/games" element={<AuthGate><Games /></AuthGate>} />
+                <Route path="/articles" element={<AuthGate><Articles /></AuthGate>} />
+                <Route path="/profile" element={<AuthGate><Profile /></AuthGate>} />
+                <Route path="/discover" element={<AuthGate><Discover /></AuthGate>} />
+                <Route path="/history" element={<AuthGate><History /></AuthGate>} />
+                <Route path="/playlists" element={<AuthGate><Playlists /></AuthGate>} />
+                <Route path="/feedback" element={<AuthGate><Feedback /></AuthGate>} />
+                <Route path="/albums" element={<AuthGate><Albums /></AuthGate>} />
+                <Route path="/category/:id" element={<AuthGate><CategorySongs /></AuthGate>} />
+                <Route path="/admin/songs" element={<AuthGate><AdminSongs /></AuthGate>} />
+                <Route path="/admin/albums" element={<AuthGate><AdminAlbums /></AuthGate>} />
+                <Route path="/admin/articles" element={<AuthGate><AdminArticles /></AuthGate>} />
+                <Route path="/admin/categories" element={<AuthGate><AdminCategories /></AuthGate>} />
+                <Route path="/admin/playlists" element={<AuthGate><AdminPlaylists /></AuthGate>} />
+                <Route path="/admin/banners" element={<AuthGate><AdminBanners /></AuthGate>} />
+                <Route path="/admin/games" element={<AuthGate><AdminGames /></AuthGate>} />
+                <Route path="/admin/feedback" element={<AuthGate><AdminFeedback /></AuthGate>} />
+                <Route path="/admin/onboarding" element={<AuthGate><AdminOnboarding /></AuthGate>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </PlayerProvider>
