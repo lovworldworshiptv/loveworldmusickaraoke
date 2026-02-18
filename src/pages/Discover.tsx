@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import AppLayout from "@/components/layout/AppLayout";
-import { Search, BookOpen, Music2, Gamepad2, Music } from "lucide-react";
+import { Search, BookOpen, Music2, Gamepad2, Music, ArrowDownAZ, ArrowUpZA } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -15,6 +15,7 @@ const tabs = [
 const Discover = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [sortAZ, setSortAZ] = useState(false);
   const { playSong } = usePlayer();
 
   const { data: songResults = [] } = useQuery({
@@ -24,11 +25,16 @@ const Discover = () => {
       const { data } = await supabase
         .from("songs")
         .select("*")
-        .or(`title.ilike.%${search}%,artist.ilike.%${search}%`)
-        .limit(5);
+        .or(`title.ilike.%${search}%,artist.ilike.%${search}%,lyrics_lrc.ilike.%${search}%`)
+        .limit(20);
       return data || [];
     },
   });
+
+  const sortedSongs = useMemo(() => {
+    if (!sortAZ) return songResults;
+    return [...songResults].sort((a: any, b: any) => (a.title || "").localeCompare(b.title || ""));
+  }, [songResults, sortAZ]);
 
   const { data: articleResults = [] } = useQuery({
     queryKey: ["discover-articles", search],
@@ -58,7 +64,7 @@ const Discover = () => {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search songs, articles..."
+            placeholder="Search songs, lyrics, articles..."
             className="w-full pl-11 pr-4 py-3 rounded-xl bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
           />
         </div>
@@ -66,30 +72,49 @@ const Discover = () => {
         {/* Search Results */}
         {hasResults && (
           <div className="mb-6 space-y-4">
-            {songResults.length > 0 && (
+            {sortedSongs.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Songs</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-muted-foreground">Songs</h3>
+                  <button
+                    onClick={() => setSortAZ((v) => !v)}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    title={sortAZ ? "Sort by relevance" : "Sort A-Z"}
+                  >
+                    {sortAZ ? <ArrowUpZA className="w-3.5 h-3.5" /> : <ArrowDownAZ className="w-3.5 h-3.5" />}
+                    {sortAZ ? "A-Z" : "Sort"}
+                  </button>
+                </div>
                 <div className="space-y-1">
-                  {songResults.map((s: any) => (
-                    <button
-                      key={s.id}
-                      onClick={() => playSong({
-                        id: s.id, title: s.title, artist: s.artist, album: s.album || undefined,
-                        coverUrl: s.cover_url || undefined, audioUrl: s.audio_url || undefined,
-                        instrumentalUrl: s.instrumental_url || undefined, lyricsLrc: s.lyrics_lrc || undefined,
-                        durationSeconds: s.duration_seconds,
-                      })}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/40 transition-colors text-left"
-                    >
-                      <div className="w-10 h-10 rounded bg-primary/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        {s.cover_url ? <img src={s.cover_url} alt="" className="w-full h-full object-cover" /> : <Music className="w-4 h-4 text-primary" />}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm text-foreground truncate">{s.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">{s.artist}</p>
-                      </div>
-                    </button>
-                  ))}
+                  {sortedSongs.map((s: any) => {
+                    const lyricsMatch = s.lyrics_lrc && search.trim().length >= 2 &&
+                      s.lyrics_lrc.toLowerCase().includes(search.toLowerCase()) &&
+                      !s.title.toLowerCase().includes(search.toLowerCase()) &&
+                      !s.artist.toLowerCase().includes(search.toLowerCase());
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => playSong({
+                          id: s.id, title: s.title, artist: s.artist, album: s.album || undefined,
+                          coverUrl: s.cover_url || undefined, audioUrl: s.audio_url || undefined,
+                          instrumentalUrl: s.instrumental_url || undefined, lyricsLrc: s.lyrics_lrc || undefined,
+                          durationSeconds: s.duration_seconds,
+                        })}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/40 transition-colors text-left"
+                      >
+                        <div className="w-10 h-10 rounded bg-primary/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {s.cover_url ? <img src={s.cover_url} alt="" className="w-full h-full object-cover" /> : <Music className="w-4 h-4 text-primary" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-foreground truncate">{s.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {s.artist}
+                            {lyricsMatch && <span className="ml-1 text-primary">• lyrics match</span>}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
