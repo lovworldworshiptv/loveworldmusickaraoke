@@ -2,6 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Lock, Music, Sparkles, LogIn, UserPlus } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
+import MusicBackground from "@/components/auth/MusicBackground";
 
 interface AuthGateProps {
   children: React.ReactNode;
@@ -24,8 +25,9 @@ const AuthGate = ({ children }: AuthGateProps) => {
   if (!user) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center min-h-[70vh] px-4">
-          <div className="w-full max-w-sm text-center">
+        <div className="relative flex items-center justify-center min-h-[70vh] px-4">
+          <MusicBackground />
+          <div className="relative z-10 w-full max-w-sm text-center">
             {/* Animated icon cluster */}
             <div className="relative w-28 h-28 mx-auto mb-8">
               <div className="absolute inset-0 rounded-full bg-gradient-to-br from-gold/20 via-gold-light/10 to-transparent animate-pulse" />
