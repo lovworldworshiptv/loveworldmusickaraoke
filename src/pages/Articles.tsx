@@ -4,7 +4,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { BookOpen, Type, Video, Headphones, FileText, Music, X, ChevronRight, Minus, Plus } from "lucide-react";
 import ShareInviteButton from "@/components/articles/ShareInviteButton";
-import { articles as mockArticles } from "@/data/mockData";
+
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useNavigate } from "react-router-dom";
 
@@ -57,16 +57,8 @@ const Articles = () => {
 
   const fetchArticles = async () => {
     const { data } = await supabase.from("articles").select("*").eq("is_published", true).order("published_at", { ascending: false });
-    if (data && data.length > 0) {
+    if (data) {
       setArticles(data);
-    } else {
-      // Fall back to mock data if no published articles
-      setArticles(mockArticles.map(a => ({
-        id: a.id, title: a.title, content: a.excerpt + "\n\n" + "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\n\nDuis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\nPraise the Lord for His goodness and mercy that endures forever. Let everything that has breath praise the Lord. Hallelujah!",
-        excerpt: a.excerpt, author: a.author, category: a.category,
-        image_url: a.imageUrl || null, video_url: null, audio_url: null,
-        published_at: a.date, created_at: a.date,
-      })));
     }
     setLoading(false);
   };
