@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { User, Settings, ChevronRight, LogOut, Crown, Shield } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { User, Settings, ChevronRight, ChevronLeft, LogOut, Crown, Shield } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTheme, ThemeName } from "@/contexts/ThemeContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,8 @@ import { useEffect } from "react";
 const TopNavbar = () => {
   const { user, username, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isHome = location.pathname === "/";
   const [showSettings, setShowSettings] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const { theme, setTheme, themes } = useTheme();
@@ -27,7 +29,17 @@ const TopNavbar = () => {
 
   return (
     <header className="sticky top-0 z-40 glass border-b border-border px-4 py-3 flex items-center justify-between lg:ml-64">
-      <h1 className="text-lg font-serif gradient-gold-text font-bold lg:hidden">Loveworld Music</h1>
+      <div className="flex items-center gap-2">
+        {!isHome && (
+          <button
+            onClick={() => navigate(-1)}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors active:scale-95"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+        )}
+        <h1 className="text-lg font-serif gradient-gold-text font-bold lg:hidden">Loveworld Music</h1>
+      </div>
       <div className="hidden lg:block" />
 
       <div className="flex items-center gap-2">
