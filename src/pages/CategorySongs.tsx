@@ -113,9 +113,9 @@ const CategorySongs = () => {
           <div className="flex items-center gap-3 mb-5 animate-fade-in" style={{ animationDelay: "0.1s" }}>
             <button
               onClick={handlePlayAll}
-              className="flex-1 flex items-center justify-center gap-2 h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold text-sm shadow-[0_4px_20px_hsl(43_70%_53%/0.35)] hover:shadow-[0_6px_28px_hsl(43_70%_53%/0.5)] active:scale-[0.98] transition-all duration-200"
+              className="flex-1 flex items-center justify-center gap-2 h-12 rounded-xl bg-gradient-to-br from-gold via-gold-light to-gold text-white font-semibold text-sm shadow-[0_4px_24px_hsl(43_70%_53%/0.55)] hover:shadow-[0_6px_32px_hsl(43_70%_53%/0.7)] ring-2 ring-white/20 active:scale-[0.98] transition-all duration-200"
             >
-              <Play className="w-5 h-5" fill="currentColor" />
+              <Play className="w-5 h-5 drop-shadow-sm" fill="currentColor" />
               Play All
             </button>
             <button
