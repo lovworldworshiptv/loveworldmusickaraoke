@@ -1,4 +1,4 @@
-import { Home, Compass, Library, Gamepad2 } from "lucide-react";
+import { Home, Compass, Library, Gamepad2, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
 import { memo } from "react";
@@ -6,7 +6,8 @@ import { memo } from "react";
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
   { icon: Compass, label: "Discover", path: "/discover" },
-  { icon: Library, label: "My Library", path: "/library" },
+  { icon: BookOpen, label: "Articles", path: "/articles" },
+  { icon: Library, label: "Library", path: "/library" },
   { icon: Gamepad2, label: "Trivial", path: "/games" },
 ];
 

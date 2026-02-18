@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { Plus, Trash2, Edit3, X, Save } from "lucide-react";
+import { Plus, Trash2, Edit3, X, Save, Video, Headphones, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
+import FileUploadPicker from "@/components/admin/FileUploadPicker";
 
 interface Article {
   id: string;
@@ -117,15 +118,18 @@ const AdminArticles = () => {
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
             </div>
 
-            {/* Image upload instead of URL-only */}
-            <ImageUploadPicker bucket="article-images" label="Article Image" value={form.image_url} onChange={url => setForm({ ...form, image_url: url })} />
+            {/* Image upload */}
+            <ImageUploadPicker bucket="article-images" label="Article Thumbnail Image" value={form.image_url} onChange={url => setForm({ ...form, image_url: url })} />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <input placeholder="Video URL" value={form.video_url} onChange={e => setForm({ ...form, video_url: e.target.value })}
-                className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
-              <input placeholder="Audio URL" value={form.audio_url} onChange={e => setForm({ ...form, audio_url: e.target.value })}
-                className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
+            {/* Video URL */}
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground font-medium">Video URL (YouTube/Vimeo embed link)</label>
+              <input placeholder="https://www.youtube.com/embed/..." value={form.video_url} onChange={e => setForm({ ...form, video_url: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
             </div>
+
+            {/* Audio upload */}
+            <FileUploadPicker bucket="article-audio" label="Article Audio" value={form.audio_url} onChange={url => setForm({ ...form, audio_url: url })} accept="audio/*" type="audio" />
 
             <textarea placeholder="Article content..." value={form.content} onChange={e => setForm({ ...form, content: e.target.value })}
               className="w-full min-h-[150px] px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm resize-y" />
@@ -150,21 +154,28 @@ const AdminArticles = () => {
         ) : (
           <div className="space-y-2">
             {articles.map(article => (
-              <div key={article.id} className="glass-card p-4 flex items-center gap-4">
-                {article.image_url && (
-                  <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
+              <div key={article.id} className="glass-card p-4 flex items-start gap-4">
+                {article.image_url ? (
+                  <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
                     <img src={article.image_url} alt="" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                    <Image className="w-6 h-6 text-muted-foreground" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{article.title}</p>
                   <p className="text-xs text-muted-foreground truncate">{article.author} • {article.category}</p>
-                  <div className="flex gap-2 mt-1">
+                  <div className="flex gap-2 mt-1 flex-wrap">
                     {article.is_published && <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">Published</span>}
                     {article.is_featured && <span className="text-[10px] bg-gold/20 text-gold px-1.5 py-0.5 rounded">Featured</span>}
+                    {article.image_url && <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded flex items-center gap-0.5"><Image className="w-2.5 h-2.5" /> Image</span>}
+                    {article.video_url && <span className="text-[10px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded flex items-center gap-0.5"><Video className="w-2.5 h-2.5" /> Video</span>}
+                    {article.audio_url && <span className="text-[10px] bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded flex items-center gap-0.5"><Headphones className="w-2.5 h-2.5" /> Audio</span>}
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-shrink-0">
                   <button onClick={() => handleEdit(article)}
                     className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors">
                     <Edit3 className="w-4 h-4" />
