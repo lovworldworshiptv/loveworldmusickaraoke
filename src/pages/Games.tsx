@@ -128,7 +128,8 @@ function generateQuestionsFromSongs(
     }
   }
 
-  return questions;
+  // Shuffle so questions from the same song aren't grouped together
+  return questions.sort(() => Math.random() - 0.5);
 }
 
 const QUESTIONS_PER_LEVEL = 10;
