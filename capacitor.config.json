@@ -1,9 +1,0 @@
-{
-  "appId": "app.lovable.b3098a950e2c4b02b4619fc1132bfe7e",
-  "appName": "loveworldmusickaraoke",
-  "webDir": "dist",
-  "server": {
-    "url": "https://b3098a95-0e2c-4b02-b461-9fc1132bfe7e.lovableproject.com?forceHideBadge=true",
-    "cleartext": true
-  }
-}
