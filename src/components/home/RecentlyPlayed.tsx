@@ -1,4 +1,4 @@
-import { Clock, Play, Music } from "lucide-react";
+import { Clock, Play, Pause, Music } from "lucide-react";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,13 +75,15 @@ const RecentlyPlayed = () => {
                 ) : (
                   <Music className="w-8 h-8 text-gold/40" />
                 )}
-                {isActive && isPlaying && (
-                  <div className="absolute bottom-2 right-2 flex gap-0.5 items-end h-4">
-                    <div className="w-0.5 h-2 bg-gold rounded-full animate-pulse" />
-                    <div className="w-0.5 h-3 bg-gold rounded-full animate-pulse" style={{ animationDelay: "0.15s" }} />
-                    <div className="w-0.5 h-4 bg-gold rounded-full animate-pulse" style={{ animationDelay: "0.3s" }} />
+                <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-all duration-300 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 scale-75 group-hover:scale-100 shadow-[0_4px_20px_hsl(43_70%_53%/0.5)] ring-2 ring-white/20">
+                    {isActive && isPlaying ? (
+                      <Pause className="w-4 h-4 text-white drop-shadow-sm" fill="currentColor" />
+                    ) : (
+                      <Play className="w-4 h-4 text-white ml-0.5 drop-shadow-sm" fill="currentColor" />
+                    )}
                   </div>
-                )}
+                </div>
               </div>
               <p className="text-xs font-medium text-foreground truncate group-hover:text-gold transition-colors duration-200">{song.title}</p>
               <p className="text-[10px] text-muted-foreground truncate">{song.artist}</p>
