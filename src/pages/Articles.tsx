@@ -6,7 +6,7 @@ import { BookOpen, Type, Video, Headphones, FileText, Music, X, ChevronRight, Mi
 import ShareInviteButton from "@/components/articles/ShareInviteButton";
 import { articles as mockArticles } from "@/data/mockData";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
-import { topSongs } from "@/data/mockData";
+import { useNavigate } from "react-router-dom";
 
 interface Article {
   id: string;
@@ -33,6 +33,7 @@ const Articles = () => {
   const [showSongSuggestion, setShowSongSuggestion] = useState(false);
   const [loading, setLoading] = useState(true);
   const { playSong } = usePlayer();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchArticles();
@@ -70,13 +71,26 @@ const Articles = () => {
     setLoading(false);
   };
 
-  const handlePlaySuggestion = () => {
-    const randomSong = topSongs[Math.floor(Math.random() * topSongs.length)];
-    const ps: PlayerSong = {
-      id: randomSong.id, title: randomSong.title, artist: randomSong.artist,
-      coverUrl: randomSong.coverUrl, durationSeconds: 240,
-    };
-    playSong(ps);
+  const handleBrowseSongs = () => {
+    setShowSongSuggestion(false);
+    navigate("/library");
+  };
+
+  const handleRandomFeatured = async () => {
+    const { data } = await supabase
+      .from("songs")
+      .select("*")
+      .eq("is_featured", true)
+      .not("audio_url", "is", null);
+    if (data && data.length > 0) {
+      const randomSong = data[Math.floor(Math.random() * data.length)];
+      const ps: PlayerSong = {
+        id: randomSong.id, title: randomSong.title, artist: randomSong.artist,
+        coverUrl: randomSong.cover_url || undefined, audioUrl: randomSong.audio_url || undefined,
+        durationSeconds: randomSong.duration_seconds,
+      };
+      playSong(ps);
+    }
     setShowSongSuggestion(false);
   };
 
@@ -189,10 +203,16 @@ const Articles = () => {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground">Enhance your reading</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Play a worship song while you read?</p>
-                  <button onClick={handlePlaySuggestion}
-                    className="mt-2 text-xs font-semibold text-gold flex items-center gap-1 hover:underline">
-                    Play a Song <ChevronRight className="w-3 h-3" />
-                  </button>
+                  <div className="flex items-center gap-3 mt-2">
+                    <button onClick={handleBrowseSongs}
+                      className="text-xs font-semibold text-gold flex items-center gap-1 hover:underline">
+                      Browse Songs <ChevronRight className="w-3 h-3" />
+                    </button>
+                    <button onClick={handleRandomFeatured}
+                      className="text-xs font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1 hover:underline">
+                      Surprise Me <Music className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
                 <button onClick={() => setShowSongSuggestion(false)} className="text-muted-foreground hover:text-foreground">
                   <X className="w-4 h-4" />
