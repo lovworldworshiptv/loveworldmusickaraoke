@@ -164,7 +164,7 @@ const Library = () => {
           </div>
         ) : (
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_2px_12px_hsl(43_70%_53%/0.4)] ring-1 ring-white/20">
-            <Play className="w-3.5 h-3.5 text-primary-foreground ml-0.5 drop-shadow-sm" fill="currentColor" />
+            <Play className="w-3.5 h-3.5 text-white ml-0.5 drop-shadow-sm" fill="currentColor" />
           </div>
         )}
       </div>
