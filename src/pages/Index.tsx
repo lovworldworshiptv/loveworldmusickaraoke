@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import HeroBanner from "@/components/home/HeroBanner";
 import SongSection from "@/components/home/SongSection";
@@ -7,11 +8,27 @@ import ArticleSection from "@/components/home/ArticleSection";
 import GameSection from "@/components/home/GameSection";
 import SecondaryBanner from "@/components/home/SecondaryBanner";
 import RecentlyPlayed from "@/components/home/RecentlyPlayed";
+import OnboardingSplash from "@/components/onboarding/OnboardingSplash";
 import { useAuth } from "@/contexts/AuthContext";
 import ProfileMenu from "@/components/layout/ProfileMenu";
 
 const Index = () => {
   const { username } = useAuth();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    const seen = localStorage.getItem("onboarding_completed");
+    if (!seen) setShowOnboarding(true);
+  }, []);
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem("onboarding_completed", "true");
+    setShowOnboarding(false);
+  };
+
+  if (showOnboarding) {
+    return <OnboardingSplash onComplete={handleOnboardingComplete} />;
+  }
 
   return (
     <AppLayout>
