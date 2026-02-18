@@ -129,9 +129,9 @@ const Library = () => {
       s.artist.toLowerCase().includes(search.toLowerCase())
   );
 
-  const SongRowItem = memo(({ song, index }: { song: SongRow; index: number }) => (
+  const SongRowItem = memo(({ song, index, songList }: { song: SongRow; index: number; songList: PlayerSong[] }) => (
     <button
-      onClick={() => playSong(toPlayerSong(song))}
+      onClick={() => playQueue(songList, index)}
       className={`flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-200 active:scale-[0.98] hover:bg-muted/60 touch-target ${
         currentSong?.id === song.id ? "bg-muted/80 ring-1 ring-primary" : ""
       }`}
@@ -212,7 +212,7 @@ const Library = () => {
                     <Shuffle className="w-4 h-4" /> Shuffle All ({songs.length} songs)
                   </Button>
                 )}
-                <div className="space-y-1">{filtered.map((song, i) => <SongRowItem key={song.id} song={song} index={i} />)}</div>
+                <div className="space-y-1">{filtered.map((song, i) => <SongRowItem key={song.id} song={song} index={i} songList={filtered.map(toPlayerSong)} />)}</div>
               </>
             )}
           </TabsContent>
@@ -227,7 +227,7 @@ const Library = () => {
               <EmptyState icon={Heart} title="No favorites yet" description="Tap the heart on any song to save it here" />
             ) : (
               <div className="space-y-1">
-                {favorites.map((fav: any, i: number) => fav.songs && <SongRowItem key={fav.id} song={fav.songs} index={i} />)}
+                {(() => { const favSongList = favorites.filter((f: any) => f.songs).map((f: any) => toPlayerSong(f.songs)); return favorites.map((fav: any, i: number) => fav.songs && <SongRowItem key={fav.id} song={fav.songs} index={i} songList={favSongList} />); })()}
               </div>
             )}
           </TabsContent>
@@ -273,7 +273,7 @@ const Library = () => {
                         </div>
                         {pl.playlist_songs?.length > 0 ? (
                           <div className="space-y-1">
-                            {pl.playlist_songs.map((ps: any, i: number) => ps.songs && <SongRowItem key={ps.id} song={ps.songs} index={i} />)}
+                            {(() => { const plSongs = (pl.playlist_songs || []).filter((ps: any) => ps.songs).map((ps: any) => toPlayerSong(ps.songs)); return pl.playlist_songs.map((ps: any, i: number) => ps.songs && <SongRowItem key={ps.id} song={ps.songs} index={i} songList={plSongs} />); })()}
                           </div>
                         ) : (
                           <p className="text-xs text-muted-foreground">No songs in this playlist</p>

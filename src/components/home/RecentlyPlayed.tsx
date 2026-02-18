@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
 const RecentlyPlayed = () => {
-  const { currentSong, isPlaying, playSong } = usePlayer();
+  const { currentSong, isPlaying, playQueue } = usePlayer();
   const { user } = useAuth();
 
   const { data: recentSongs = [] } = useQuery({
@@ -52,6 +52,7 @@ const RecentlyPlayed = () => {
   }
 
   const items = recentSongs.length > 0 ? recentSongs : (currentSong ? [{ id: "current", songs: { ...currentSong, cover_url: currentSong.coverUrl, audio_url: currentSong.audioUrl, instrumental_url: currentSong.instrumentalUrl, lyrics_lrc: currentSong.lyricsLrc, duration_seconds: currentSong.durationSeconds } }] : []);
+  const allPlayerSongs = items.map((item: any) => toPlayerSong(item.songs)).filter(Boolean);
 
   return (
     <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
@@ -59,14 +60,14 @@ const RecentlyPlayed = () => {
         <h3 className="text-xl font-serif font-bold text-foreground">Recently Played</h3>
       </div>
       <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
-        {items.map((item: any) => {
+        {items.map((item: any, idx: number) => {
           const song = item.songs;
           if (!song) return null;
           const isActive = currentSong?.id === song.id;
           return (
             <button
               key={item.id}
-              onClick={() => playSong(toPlayerSong(song))}
+              onClick={() => playQueue(allPlayerSongs, idx)}
               className="flex-shrink-0 w-40 glass-card p-3 hover:glow-gold transition-all duration-300 text-left group hover:-translate-y-1"
             >
               <div className="w-full aspect-square rounded-xl gradient-purple flex items-center justify-center mb-3 relative overflow-hidden">
