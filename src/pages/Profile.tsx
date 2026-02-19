@@ -3,12 +3,37 @@ import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Crown, Shield, LogOut, Settings, ChevronRight, AtSign } from "lucide-react";
+import { User, Crown, Shield, LogOut, ChevronRight, AtSign, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { toast } from "@/components/ui/sonner";
 
 const Profile = () => {
   const { user, username, avatarUrl, kingschatHandle, signOut, loading } = useAuth();
   const navigate = useNavigate();
   const [role, setRole] = useState<string>("free");
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const res = await supabase.functions.invoke("delete-account", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (res.error) throw res.error;
+
+      toast.success("Account deleted successfully");
+      await signOut();
+      navigate("/");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete account");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -102,6 +127,33 @@ const Profile = () => {
         >
           <LogOut className="w-4 h-4" /> Sign Out
         </button>
+
+        {/* Delete Account */}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border border-destructive/50 text-destructive hover:bg-destructive/10 transition-colors text-sm font-medium mt-3">
+              <Trash2 className="w-4 h-4" /> Delete Account
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action is <strong>permanent and irreversible</strong>. All your data — including favorites, playlists, game progress, and profile — will be permanently deleted. You will not be able to recover your account.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? "Deleting..." : "Yes, delete my account"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
       <div className="h-8" />
     </AppLayout>
