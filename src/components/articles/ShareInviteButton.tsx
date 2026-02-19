@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Share2, Mail, Copy, Check } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { toast } from "sonner";
+import { nativeShare, openExternal, isMedianApp } from "@/lib/median";
 
 interface ShareInviteButtonProps {
   article: { id: string; title: string; excerpt: string | null };
@@ -23,19 +24,27 @@ const ShareInviteButton = ({ article }: ShareInviteButtonProps) => {
   };
 
   const handleEmailInvite = () => {
-    window.open(`mailto:?subject=${emailSubject}&body=${emailBody}`, "_blank");
+    openExternal(`mailto:?subject=${emailSubject}&body=${emailBody}`);
   };
 
   const handleWhatsApp = () => {
-    window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`, "_blank");
+    openExternal(`https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`);
   };
 
   const handleTwitter = () => {
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, "_blank");
+    openExternal(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`);
   };
 
   const handleFacebook = () => {
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, "_blank");
+    openExternal(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`);
+  };
+
+  const handleNativeShare = () => {
+    if (nativeShare(shareUrl, shareText)) return;
+    // Fallback to Web Share API
+    if (navigator.share) {
+      navigator.share({ title: article.title, text: shareText, url: shareUrl }).catch(() => {});
+    }
   };
 
   return (

@@ -71,18 +71,20 @@
 
   html {
     overflow-x: hidden;
-    overscroll-behavior-x: none;
+    overscroll-behavior: none;
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', sans-serif;
     overflow-x: hidden;
-    overscroll-behavior-x: none;
+    overscroll-behavior: none;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-size-adjust: 100%;
     -webkit-text-size-adjust: 100%;
+    /* Prevent text selection in native wrapper for app-like feel */
+    -webkit-touch-callout: none;
   }
 
   h1, h2, h3, h4 {
