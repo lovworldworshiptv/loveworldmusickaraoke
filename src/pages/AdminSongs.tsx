@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer, FileAudio, ChevronDown, Rewind, FastForward } from "lucide-react";
+import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer, FileAudio, ChevronDown, Rewind, FastForward, Pencil, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
@@ -142,6 +142,8 @@ const AdminSongs = () => {
   const syncAudioRef = useRef<HTMLAudioElement | null>(null);
   const [syncTime, setSyncTime] = useState(0);
   const [syncDuration, setSyncDuration] = useState(0);
+  const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
+  const [editingLineText, setEditingLineText] = useState("");
 
   useEffect(() => { fetchSongs(); fetchAlbumOptions(); fetchCategoryOptions(); }, []);
 
@@ -553,26 +555,63 @@ const AdminSongs = () => {
                       const isActive = i === syncCurrentLine;
                       const stamps = syncTimestamps[i] || [];
                       const isSynced = stamps.length > 0;
+                      const isEditing = editingLineIndex === i;
                       return (
                         <div key={i} className="flex flex-col">
-                          <button
-                            onClick={() => handleSyncClick(i)}
-                            className={`w-full text-left px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all ${
-                              isActive
-                                ? "bg-gold/20 border border-gold/40 text-gold"
-                                : isSynced
-                                ? "bg-muted/40 text-foreground"
-                                : "text-muted-foreground hover:bg-muted/30"
-                            }`}
-                          >
+                          <div className={`w-full px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all ${
+                            isActive
+                              ? "bg-gold/20 border border-gold/40 text-gold"
+                              : isSynced
+                              ? "bg-muted/40 text-foreground"
+                              : "text-muted-foreground hover:bg-muted/30"
+                          }`}>
                             <span className="text-[10px] font-mono w-16 text-right flex-shrink-0">
                               {isSynced ? stamps.map(t => formatSyncTime(t)).join(", ") : "—"}
                             </span>
-                            <span className="text-sm flex-1">{line}</span>
+                            {isEditing ? (
+                              <input
+                                autoFocus
+                                value={editingLineText}
+                                onChange={e => setEditingLineText(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === "Enter") {
+                                    setSyncLines(prev => { const n = [...prev]; n[i] = editingLineText; return n; });
+                                    setEditingLineIndex(null);
+                                  } else if (e.key === "Escape") {
+                                    setEditingLineIndex(null);
+                                  }
+                                }}
+                                className="flex-1 text-sm bg-background border border-border rounded px-2 py-0.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              />
+                            ) : (
+                              <button
+                                onClick={() => handleSyncClick(i)}
+                                className="text-sm flex-1 text-left"
+                              >
+                                {line}
+                              </button>
+                            )}
                             {stamps.length > 1 && (
                               <span className="text-[9px] bg-gold/20 text-gold px-1.5 py-0.5 rounded-full">{stamps.length}×</span>
                             )}
-                          </button>
+                            {isEditing ? (
+                              <button
+                                onClick={() => { setSyncLines(prev => { const n = [...prev]; n[i] = editingLineText; return n; }); setEditingLineIndex(null); }}
+                                className="p-1 rounded text-primary hover:bg-primary/10"
+                                title="Confirm edit"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setEditingLineIndex(i); setEditingLineText(line); }}
+                                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                title="Edit line"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
                           {stamps.length > 0 && (
                             <div className="flex flex-wrap gap-1 ml-20 mt-1 mb-1">
                               {stamps.map((t, ti) => (
