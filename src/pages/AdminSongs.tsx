@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer, FileAudio, ChevronDown } from "lucide-react";
+import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer, FileAudio, ChevronDown, Rewind, FastForward } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
@@ -141,6 +141,7 @@ const AdminSongs = () => {
   const [syncPlaying, setSyncPlaying] = useState(false);
   const syncAudioRef = useRef<HTMLAudioElement | null>(null);
   const [syncTime, setSyncTime] = useState(0);
+  const [syncDuration, setSyncDuration] = useState(0);
 
   useEffect(() => { fetchSongs(); fetchAlbumOptions(); fetchCategoryOptions(); }, []);
 
@@ -249,6 +250,7 @@ const AdminSongs = () => {
     if (url) {
       const audio = new Audio(url);
       syncAudioRef.current = audio;
+      audio.addEventListener("loadedmetadata", () => setSyncDuration(audio.duration || 0));
       audio.play();
       setSyncPlaying(true);
       const interval = setInterval(() => {
@@ -498,23 +500,53 @@ const AdminSongs = () => {
               {/* Sync mode */}
               {editMode === "sync" && (
                 <div className="flex-1 flex flex-col min-h-0">
-                  <div className="flex items-center gap-3 mb-4 glass-card px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      {syncPlaying ? (
-                        <button onClick={stopSync} className="p-1.5 rounded-lg bg-destructive/20 text-destructive">
+                  <div className="flex flex-col gap-2 mb-4 glass-card px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => { if (syncAudioRef.current) { syncAudioRef.current.currentTime = Math.max(0, syncAudioRef.current.currentTime - 5); setSyncTime(syncAudioRef.current.currentTime); } }}
+                          className="p-1.5 rounded-lg bg-muted text-muted-foreground hover:text-foreground" title="Rewind 5s">
+                          <Rewind className="w-4 h-4" />
+                        </button>
+                        {syncPlaying ? (
+                          <button onClick={() => { syncAudioRef.current?.pause(); setSyncPlaying(false); }} className="p-1.5 rounded-lg bg-gold/20 text-gold" title="Pause">
+                            <Pause className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button onClick={() => { if (syncAudioRef.current) { syncAudioRef.current.play(); setSyncPlaying(true); const interval = setInterval(() => { if (!syncAudioRef.current || syncAudioRef.current.paused || syncAudioRef.current.ended) { clearInterval(interval); setSyncPlaying(false); return; } setSyncTime(syncAudioRef.current.currentTime); }, 100); } else { startSync(); } }} className="p-1.5 rounded-lg bg-gold/20 text-gold" title="Play">
+                            <Play className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button onClick={stopSync} className="p-1.5 rounded-lg bg-destructive/20 text-destructive" title="Stop">
                           <Square className="w-4 h-4" />
                         </button>
-                      ) : (
-                        <button onClick={startSync} className="p-1.5 rounded-lg bg-gold/20 text-gold">
-                          <Play className="w-4 h-4" />
+                        <button onClick={() => { if (syncAudioRef.current) { syncAudioRef.current.currentTime = Math.min(syncDuration, syncAudioRef.current.currentTime + 5); setSyncTime(syncAudioRef.current.currentTime); } }}
+                          className="p-1.5 rounded-lg bg-muted text-muted-foreground hover:text-foreground" title="Forward 5s">
+                          <FastForward className="w-4 h-4" />
                         </button>
-                      )}
+                      </div>
+                      <span className="text-sm text-foreground font-mono">{formatSyncTime(syncTime)}</span>
+                      <span className="text-[10px] text-muted-foreground font-mono">/ {formatSyncTime(syncDuration)}</span>
+                      <span className="text-xs text-muted-foreground flex-1">Click a line to stamp — click again for multiples</span>
+                      <Button onClick={saveSyncedLyrics} size="sm" className="gradient-gold text-primary-foreground gap-1">
+                        <Save className="w-3.5 h-3.5" /> Save
+                      </Button>
                     </div>
-                    <span className="text-sm text-foreground font-mono">{formatSyncTime(syncTime)}</span>
-                    <span className="text-xs text-muted-foreground flex-1">Click a line to add a timestamp — click again for multiple timestamps</span>
-                    <Button onClick={saveSyncedLyrics} size="sm" className="gradient-gold text-primary-foreground gap-1">
-                      <Save className="w-3.5 h-3.5" /> Save
-                    </Button>
+                    {/* Seekable timeline */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="range"
+                        min={0}
+                        max={syncDuration || 1}
+                        step={0.1}
+                        value={syncTime}
+                        onChange={e => {
+                          const t = parseFloat(e.target.value);
+                          if (syncAudioRef.current) syncAudioRef.current.currentTime = t;
+                          setSyncTime(t);
+                        }}
+                        className="flex-1 h-2 accent-gold cursor-pointer"
+                      />
+                    </div>
                   </div>
                   <div className="flex-1 overflow-y-auto space-y-1">
                     {syncLines.map((line, i) => {
