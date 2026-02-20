@@ -134,9 +134,9 @@ const AdminSongs = () => {
   const [albumOptions, setAlbumOptions] = useState<AlbumOption[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<{ id: string; name: string }[]>([]);
 
-  // Sync state
+  // Sync state — each line can have multiple timestamps
   const [syncLines, setSyncLines] = useState<string[]>([]);
-  const [syncTimestamps, setSyncTimestamps] = useState<number[]>([]);
+  const [syncTimestamps, setSyncTimestamps] = useState<number[][]>([]);
   const [syncCurrentLine, setSyncCurrentLine] = useState(0);
   const [syncPlaying, setSyncPlaying] = useState(false);
   const syncAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -221,9 +221,27 @@ const AdminSongs = () => {
   // --- Sync lyrics ---
   const startSync = () => {
     const rawLrc = lrcText || "";
-    const lines = rawLrc.split("\n").map(l => l.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, "").trim()).filter(Boolean);
-    setSyncLines(lines);
-    setSyncTimestamps(new Array(lines.length).fill(-1));
+    const rawLines = rawLrc.split("\n").filter(l => l.trim());
+    // Group timestamps by lyric text to support multi-timestamp lines
+    const lineMap = new Map<string, number[]>();
+    const orderedLines: string[] = [];
+    for (const raw of rawLines) {
+      const timestamps = [...raw.matchAll(/\[(\d{2}):(\d{2})\.(\d{2,3})\]/g)];
+      const text = raw.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, "").trim();
+      if (!text) continue;
+      if (!lineMap.has(text)) {
+        lineMap.set(text, []);
+        orderedLines.push(text);
+      }
+      for (const m of timestamps) {
+        const t = parseInt(m[1]) * 60 + parseFloat(`${m[2]}.${m[3]}`);
+        lineMap.get(text)!.push(t);
+      }
+    }
+    // Deduplicate lines, keep unique text order
+    const uniqueLines = orderedLines.length > 0 ? orderedLines : rawLrc.split("\n").map(l => l.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, "").trim()).filter(Boolean);
+    setSyncLines(uniqueLines);
+    setSyncTimestamps(uniqueLines.map(l => (lineMap.get(l) || []).sort((a, b) => a - b)));
     setSyncCurrentLine(0);
     setEditMode("sync");
 
@@ -243,8 +261,23 @@ const AdminSongs = () => {
   const handleSyncClick = (lineIndex: number) => {
     if (!syncAudioRef.current) return;
     const time = syncAudioRef.current.currentTime;
-    setSyncTimestamps(prev => { const n = [...prev]; n[lineIndex] = time; return n; });
-    setSyncCurrentLine(lineIndex + 1);
+    setSyncTimestamps(prev => {
+      const n = prev.map(arr => [...arr]);
+      n[lineIndex] = [...n[lineIndex], time].sort((a, b) => a - b);
+      return n;
+    });
+    // Only auto-advance if line had no timestamps yet
+    if (syncTimestamps[lineIndex]?.length === 0) {
+      setSyncCurrentLine(lineIndex + 1);
+    }
+  };
+
+  const handleRemoveTimestamp = (lineIndex: number, tsIndex: number) => {
+    setSyncTimestamps(prev => {
+      const n = prev.map(arr => [...arr]);
+      n[lineIndex] = n[lineIndex].filter((_, i) => i !== tsIndex);
+      return n;
+    });
   };
 
   const stopSync = () => {
@@ -252,15 +285,32 @@ const AdminSongs = () => {
     setSyncPlaying(false);
   };
 
+  const formatTimestamp = (t: number) => {
+    const min = Math.floor(t / 60).toString().padStart(2, "0");
+    const sec = Math.floor(t % 60).toString().padStart(2, "0");
+    const ms = Math.round((t % 1) * 100).toString().padStart(2, "0");
+    return `[${min}:${sec}.${ms}]`;
+  };
+
   const saveSyncedLyrics = async () => {
     stopSync();
-    const lrc = syncLines.map((line, i) => {
-      const t = syncTimestamps[i];
-      if (t < 0) return `[00:00.00]${line}`;
-      const min = Math.floor(t / 60).toString().padStart(2, "0");
-      const sec = Math.floor(t % 60).toString().padStart(2, "0");
-      const ms = Math.round((t % 1) * 100).toString().padStart(2, "0");
-      return `[${min}:${sec}.${ms}]${line}`;
+    const lrcLines: string[] = [];
+    syncLines.forEach((line, i) => {
+      const stamps = syncTimestamps[i];
+      if (!stamps || stamps.length === 0) {
+        lrcLines.push(`[00:00.00]${line}`);
+      } else {
+        // Each timestamp gets its own LRC line with the same text
+        stamps.forEach(t => {
+          lrcLines.push(`${formatTimestamp(t)}${line}`);
+        });
+      }
+    });
+    // Sort all lines by timestamp for proper LRC playback
+    const lrc = lrcLines.sort((a, b) => {
+      const timeA = parseFloat(a.match(/\[(\d+):(\d+\.\d+)\]/)?.slice(1).reduce((acc, v, i) => i === 0 ? parseFloat(v) * 60 : acc + parseFloat(v), 0) + "" || "0");
+      const timeB = parseFloat(b.match(/\[(\d+):(\d+\.\d+)\]/)?.slice(1).reduce((acc, v, i) => i === 0 ? parseFloat(v) * 60 : acc + parseFloat(v), 0) + "" || "0");
+      return timeA - timeB;
     }).join("\n");
     setLrcText(lrc);
     if (editingSong) {
@@ -461,7 +511,7 @@ const AdminSongs = () => {
                       )}
                     </div>
                     <span className="text-sm text-foreground font-mono">{formatSyncTime(syncTime)}</span>
-                    <span className="text-xs text-muted-foreground flex-1">Click each line as the audio plays to sync it</span>
+                    <span className="text-xs text-muted-foreground flex-1">Click a line to add a timestamp — click again for multiple timestamps</span>
                     <Button onClick={saveSyncedLyrics} size="sm" className="gradient-gold text-primary-foreground gap-1">
                       <Save className="w-3.5 h-3.5" /> Save
                     </Button>
@@ -469,24 +519,47 @@ const AdminSongs = () => {
                   <div className="flex-1 overflow-y-auto space-y-1">
                     {syncLines.map((line, i) => {
                       const isActive = i === syncCurrentLine;
-                      const isSynced = syncTimestamps[i] >= 0;
+                      const stamps = syncTimestamps[i] || [];
+                      const isSynced = stamps.length > 0;
                       return (
-                        <button
-                          key={i}
-                          onClick={() => handleSyncClick(i)}
-                          className={`w-full text-left px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all ${
-                            isActive
-                              ? "bg-gold/20 border border-gold/40 text-gold"
-                              : isSynced
-                              ? "bg-muted/40 text-foreground"
-                              : "text-muted-foreground hover:bg-muted/30"
-                          }`}
-                        >
-                          <span className="text-[10px] font-mono w-10 text-right flex-shrink-0">
-                            {isSynced ? formatSyncTime(syncTimestamps[i]) : "—"}
-                          </span>
-                          <span className="text-sm">{line}</span>
-                        </button>
+                        <div key={i} className="flex flex-col">
+                          <button
+                            onClick={() => handleSyncClick(i)}
+                            className={`w-full text-left px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all ${
+                              isActive
+                                ? "bg-gold/20 border border-gold/40 text-gold"
+                                : isSynced
+                                ? "bg-muted/40 text-foreground"
+                                : "text-muted-foreground hover:bg-muted/30"
+                            }`}
+                          >
+                            <span className="text-[10px] font-mono w-16 text-right flex-shrink-0">
+                              {isSynced ? stamps.map(t => formatSyncTime(t)).join(", ") : "—"}
+                            </span>
+                            <span className="text-sm flex-1">{line}</span>
+                            {stamps.length > 1 && (
+                              <span className="text-[9px] bg-gold/20 text-gold px-1.5 py-0.5 rounded-full">{stamps.length}×</span>
+                            )}
+                          </button>
+                          {stamps.length > 0 && (
+                            <div className="flex flex-wrap gap-1 ml-20 mt-1 mb-1">
+                              {stamps.map((t, ti) => (
+                                <span
+                                  key={ti}
+                                  className="inline-flex items-center gap-1 text-[9px] font-mono bg-muted/60 text-muted-foreground px-1.5 py-0.5 rounded"
+                                >
+                                  {formatSyncTime(t)}
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleRemoveTimestamp(i, ti); }}
+                                    className="text-destructive/60 hover:text-destructive"
+                                  >
+                                    <X className="w-2.5 h-2.5" />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
