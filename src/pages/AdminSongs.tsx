@@ -144,6 +144,8 @@ const AdminSongs = () => {
   const [syncDuration, setSyncDuration] = useState(0);
   const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
   const [editingLineText, setEditingLineText] = useState("");
+  const [bulkEditingLyrics, setBulkEditingLyrics] = useState(false);
+  const [bulkLyricsText, setBulkLyricsText] = useState("");
 
   useEffect(() => { fetchSongs(); fetchAlbumOptions(); fetchCategoryOptions(); }, []);
 
@@ -529,6 +531,9 @@ const AdminSongs = () => {
                       <span className="text-sm text-foreground font-mono">{formatSyncTime(syncTime)}</span>
                       <span className="text-[10px] text-muted-foreground font-mono">/ {formatSyncTime(syncDuration)}</span>
                       <span className="text-xs text-muted-foreground flex-1">Click a line to stamp — click again for multiples</span>
+                      <Button onClick={() => { setBulkLyricsText(syncLines.join("\n")); setBulkEditingLyrics(true); }} size="sm" variant="outline" className="gap-1 text-xs border-border">
+                        <Edit3 className="w-3 h-3" /> Edit All
+                      </Button>
                       <Button onClick={saveSyncedLyrics} size="sm" className="gradient-gold text-primary-foreground gap-1">
                         <Save className="w-3.5 h-3.5" /> Save
                       </Button>
@@ -550,6 +555,36 @@ const AdminSongs = () => {
                       />
                     </div>
                   </div>
+                  {bulkEditingLyrics && (
+                    <div className="mb-3 glass-card p-4 space-y-3">
+                      <p className="text-xs text-muted-foreground">Edit all lyrics below — one line per row. Add or remove lines as needed. Timestamps for unchanged lines will be preserved.</p>
+                      <textarea
+                        value={bulkLyricsText}
+                        onChange={e => setBulkLyricsText(e.target.value)}
+                        className="w-full min-h-[200px] px-3 py-2 rounded-lg bg-muted border border-border text-foreground font-mono text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary"
+                        autoFocus
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <Button size="sm" variant="outline" onClick={() => setBulkEditingLyrics(false)}>Cancel</Button>
+                        <Button size="sm" className="gradient-gold text-primary-foreground" onClick={() => {
+                          const newLines = bulkLyricsText.split("\n").filter(l => l.trim());
+                          // Build a map of old line text -> timestamps for preservation
+                          const oldMap = new Map<string, number[]>();
+                          syncLines.forEach((l, i) => {
+                            if (!oldMap.has(l) && syncTimestamps[i]?.length > 0) {
+                              oldMap.set(l, syncTimestamps[i]);
+                            }
+                          });
+                          const newTimestamps = newLines.map(l => oldMap.get(l) || []);
+                          setSyncLines(newLines);
+                          setSyncTimestamps(newTimestamps);
+                          setSyncCurrentLine(0);
+                          setBulkEditingLyrics(false);
+                          toast.success("Lyrics updated");
+                        }}>Apply Changes</Button>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex-1 overflow-y-auto space-y-1">
                     {syncLines.map((line, i) => {
                       const isActive = i === syncCurrentLine;
