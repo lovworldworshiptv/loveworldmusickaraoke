@@ -1,4 +1,5 @@
 import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3, List, Image, Gamepad2, Sparkles } from "lucide-react";
+import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,7 +36,7 @@ const Sidebar = () => {
   return (
     <aside className="hidden lg:flex flex-col w-64 h-screen bg-sidebar border-r border-sidebar-border fixed left-0 top-0 z-30">
       <div className="p-6">
-        <h1 className="text-xl font-serif gradient-gold-text font-bold">Loveworld Music Karaoke+</h1>
+        <img src={logo} alt="Loveworld Music Karaoke+" className="h-10 w-auto" />
       </div>
 
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
