@@ -69,7 +69,7 @@ const GameSection = () => {
   return (
     <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-serif font-bold text-foreground">Loveworld Music Games</h3>
+        <h3 className="text-xl font-serif font-bold text-foreground">Music Games</h3>
         <button onClick={() => navigate("/games")} className="text-xs text-gold hover:text-gold-light font-medium transition-colors duration-200">Play Now</button>
       </div>
       <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">

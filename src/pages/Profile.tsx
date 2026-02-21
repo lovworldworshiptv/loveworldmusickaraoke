@@ -54,7 +54,7 @@ const Profile = () => {
             <div className="w-20 h-20 rounded-full gradient-purple flex items-center justify-center mx-auto mb-4">
               <User className="w-10 h-10 text-gold/40" />
             </div>
-            <h2 className="text-xl font-serif font-bold text-foreground mb-2">Welcome to Loveworld Music</h2>
+            <h2 className="text-xl font-serif font-bold text-foreground mb-2">Welcome to Loveworld Music Karaoke+</h2>
             <p className="text-sm text-muted-foreground mb-6">Sign in to access your profile, favorites, and playlists.</p>
             <button
               onClick={() => navigate("/auth")}

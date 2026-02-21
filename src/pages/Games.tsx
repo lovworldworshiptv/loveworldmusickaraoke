@@ -360,7 +360,7 @@ const Games = () => {
   return (
     <AppLayout>
       <div className="px-4 lg:px-6 pt-4 lg:pt-6">
-        <h2 className="text-2xl font-serif font-bold text-foreground mb-2">Loveworld Music Games</h2>
+        <h2 className="text-2xl font-serif font-bold text-foreground mb-2">Music Games</h2>
         <p className="text-sm text-muted-foreground mb-1">Complete the lyrics challenge!</p>
         <p className="text-xs text-muted-foreground/60 mb-6">
           <Music className="w-3 h-3 inline mr-1" />

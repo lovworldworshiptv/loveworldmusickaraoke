@@ -35,8 +35,7 @@ const Sidebar = () => {
   return (
     <aside className="hidden lg:flex flex-col w-64 h-screen bg-sidebar border-r border-sidebar-border fixed left-0 top-0 z-30">
       <div className="p-6">
-        <h1 className="text-xl font-serif gradient-gold-text font-bold">Loveworld Music</h1>
-        <p className="text-xs text-muted-foreground mt-1">Karaoke & Study+</p>
+        <h1 className="text-xl font-serif gradient-gold-text font-bold">Loveworld Music Karaoke+</h1>
       </div>
 
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">

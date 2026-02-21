@@ -7,7 +7,7 @@ const Terms = () => (
       <div className="prose prose-sm text-muted-foreground space-y-4">
         <p>Last updated: February 2026</p>
         <h2 className="text-lg font-semibold text-foreground">1. Acceptance of Terms</h2>
-        <p>By accessing and using Loveworld Music Karaoke & Study+, you agree to be bound by these Terms of Use. If you do not agree, please do not use the service.</p>
+        <p>By accessing and using Loveworld Music Karaoke+, you agree to be bound by these Terms of Use. If you do not agree, please do not use the service.</p>
         <h2 className="text-lg font-semibold text-foreground">2. Use of Service</h2>
         <p>You may use the service for personal, non-commercial purposes only. You agree not to reproduce, distribute, or create derivative works from any content provided through the service without permission.</p>
         <h2 className="text-lg font-semibold text-foreground">3. User Accounts</h2>
