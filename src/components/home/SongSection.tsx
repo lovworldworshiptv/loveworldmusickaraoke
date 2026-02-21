@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import SongCard from "./SongCard";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useNavigate } from "react-router-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface SongSectionProps {
   title: string;
@@ -11,6 +12,7 @@ interface SongSectionProps {
 const SongSection = ({ title }: SongSectionProps) => {
   const [songs, setSongs] = useState<PlayerSong[]>([]);
   const navigate = useNavigate();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     supabase.from("songs").select("*").eq("is_featured", true).order("play_count", { ascending: false }).limit(10)
@@ -26,15 +28,29 @@ const SongSection = ({ title }: SongSectionProps) => {
       });
   }, []);
 
+  const scroll = (dir: "left" | "right") => {
+    if (!scrollRef.current) return;
+    const amount = scrollRef.current.clientWidth * 0.6;
+    scrollRef.current.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
+  };
+
   if (songs.length === 0) return null;
 
   return (
     <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-serif font-bold text-foreground">{title}</h3>
-        <button onClick={() => navigate("/library")} className="text-xs text-gold hover:text-gold-light font-medium transition-colors duration-200">See All</button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => scroll("left")} className="hidden lg:flex w-8 h-8 rounded-full items-center justify-center bg-muted hover:bg-muted-foreground/20 text-foreground transition-colors">
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button onClick={() => scroll("right")} className="hidden lg:flex w-8 h-8 rounded-full items-center justify-center bg-muted hover:bg-muted-foreground/20 text-foreground transition-colors">
+            <ChevronRight className="w-4 h-4" />
+          </button>
+          <button onClick={() => navigate("/library")} className="text-xs text-gold hover:text-gold-light font-medium transition-colors duration-200">See All</button>
+        </div>
       </div>
-      <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1">
+      <div ref={scrollRef} className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1">
         {songs.map((song, i) => (
           <SongCard key={song.id} song={song} index={i} allSongs={songs} />
         ))}
