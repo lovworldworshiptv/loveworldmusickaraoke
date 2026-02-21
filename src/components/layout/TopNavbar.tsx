@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 const TopNavbar = () => {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ const TopNavbar = () => {
             <ChevronLeft className="w-5 h-5" />
           </button>
         )}
-        <h1 className="text-lg font-serif gradient-gold-text font-bold lg:hidden">Loveworld Music Karaoke+</h1>
+        <img src={logo} alt="Loveworld Music Karaoke+" className="h-9 w-auto lg:hidden" />
       </div>
     </header>
   );
