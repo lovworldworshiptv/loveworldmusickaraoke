@@ -17,7 +17,7 @@ const TopNavbar = () => {
             <ChevronLeft className="w-5 h-5" />
           </button>
         )}
-        <h1 className="text-lg font-serif gradient-gold-text font-bold lg:hidden">Loveworld Music</h1>
+        <h1 className="text-lg font-serif gradient-gold-text font-bold lg:hidden">Loveworld Music Karaoke+</h1>
       </div>
     </header>
   );

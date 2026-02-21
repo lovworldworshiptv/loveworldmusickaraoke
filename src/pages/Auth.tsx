@@ -90,8 +90,7 @@ const Auth = () => {
         <ArrowLeft className="w-5 h-5" />
       </button>
       <div className="w-full max-w-md glass-card p-8">
-        <h1 className="text-2xl font-serif gradient-gold-text font-bold text-center mb-2">Loveworld Music</h1>
-        <p className="text-sm text-muted-foreground text-center mb-8">Karaoke & Study+</p>
+        <h1 className="text-2xl font-serif gradient-gold-text font-bold text-center mb-2">Loveworld Music Karaoke+</h1>
 
         {/* KingsChat Login Button */}
         <button

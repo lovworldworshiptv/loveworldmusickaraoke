@@ -119,7 +119,7 @@ const OnboardingSplash = ({ onComplete }: OnboardingSplashProps) => {
           <div className="w-8 h-8 rounded-lg gradient-gold flex items-center justify-center">
             <Music2 className="w-4 h-4 text-primary-foreground" />
           </div>
-          <span className="text-sm font-serif font-bold text-foreground/80">Loveworld Music</span>
+          <span className="text-sm font-serif font-bold text-foreground/80">Loveworld Music Karaoke+</span>
         </div>
 
         {/* Text content */}
