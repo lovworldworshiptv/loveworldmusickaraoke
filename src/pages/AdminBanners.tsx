@@ -11,8 +11,11 @@ interface HeroBanner {
   id: string;
   title: string;
   subtitle: string | null;
+  description: string | null;
   image_url: string | null;
   link_url: string | null;
+  cta_text: string | null;
+  show_cta: boolean;
   is_active: boolean;
   sort_order: number;
 }
@@ -23,7 +26,10 @@ const AdminBanners = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<HeroBanner | null>(null);
-  const [form, setForm] = useState({ title: "", subtitle: "", image_url: "", link_url: "", is_active: true, sort_order: 0 });
+  const [form, setForm] = useState({
+    title: "", subtitle: "", description: "", image_url: "", link_url: "",
+    cta_text: "Listen Now", show_cta: true, is_active: true, sort_order: 0,
+  });
 
   useEffect(() => { fetchBanners(); }, []);
 
@@ -34,16 +40,22 @@ const AdminBanners = () => {
   };
 
   const resetForm = () => {
-    setForm({ title: "", subtitle: "", image_url: "", link_url: "", is_active: true, sort_order: 0 });
+    setForm({ title: "", subtitle: "", description: "", image_url: "", link_url: "", cta_text: "Listen Now", show_cta: true, is_active: true, sort_order: 0 });
     setEditing(null);
     setShowForm(false);
   };
 
   const handleSave = async () => {
     const payload = {
-      title: form.title, subtitle: form.subtitle || null,
-      image_url: form.image_url || null, link_url: form.link_url || null,
-      is_active: form.is_active, sort_order: form.sort_order,
+      title: form.title,
+      subtitle: form.subtitle || null,
+      description: form.description || null,
+      image_url: form.image_url || null,
+      link_url: form.link_url || null,
+      cta_text: form.cta_text || null,
+      show_cta: form.show_cta,
+      is_active: form.is_active,
+      sort_order: form.sort_order,
     };
     if (editing) {
       const { error } = await supabase.from("hero_banners").update(payload).eq("id", editing.id);
@@ -61,7 +73,9 @@ const AdminBanners = () => {
   const handleEdit = (banner: HeroBanner) => {
     setForm({
       title: banner.title, subtitle: banner.subtitle || "",
+      description: banner.description || "",
       image_url: banner.image_url || "", link_url: banner.link_url || "",
+      cta_text: banner.cta_text || "", show_cta: banner.show_cta,
       is_active: banner.is_active, sort_order: banner.sort_order,
     });
     setEditing(banner);
@@ -101,6 +115,10 @@ const AdminBanners = () => {
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
               <input placeholder="Subtitle" value={form.subtitle} onChange={e => setForm({ ...form, subtitle: e.target.value })}
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
+              <textarea placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+                className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm md:col-span-2" rows={2} />
+              <input placeholder="CTA Button Text (e.g. Listen Now)" value={form.cta_text} onChange={e => setForm({ ...form, cta_text: e.target.value })}
+                className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
               <input placeholder="Link URL (optional)" value={form.link_url} onChange={e => setForm({ ...form, link_url: e.target.value })}
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
               <input placeholder="Sort order" type="number" value={form.sort_order} onChange={e => setForm({ ...form, sort_order: Number(e.target.value) })}
@@ -109,9 +127,14 @@ const AdminBanners = () => {
 
             <ImageUploadPicker bucket="hero-banners" label="Banner Image" value={form.image_url} onChange={url => setForm({ ...form, image_url: url })} />
 
-            <label className="flex items-center gap-2 text-sm text-foreground">
-              <input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} /> Active
-            </label>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm text-foreground">
+                <input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} /> Active
+              </label>
+              <label className="flex items-center gap-2 text-sm text-foreground">
+                <input type="checkbox" checked={form.show_cta} onChange={e => setForm({ ...form, show_cta: e.target.checked })} /> Show CTA Button
+              </label>
+            </div>
             <Button onClick={handleSave} className="gradient-gold text-primary-foreground gap-2">
               <Save className="w-4 h-4" /> {editing ? "Update" : "Create"}
             </Button>
@@ -141,6 +164,9 @@ const AdminBanners = () => {
                       <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">Active</span>
                     ) : (
                       <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">Inactive</span>
+                    )}
+                    {banner.show_cta && banner.cta_text && (
+                      <span className="text-[10px] bg-gold/20 text-gold px-1.5 py-0.5 rounded">CTA: {banner.cta_text}</span>
                     )}
                   </div>
                 </div>
