@@ -17,7 +17,7 @@ const RecentlyPlayed = () => {
         .select("id, played_at, song_id, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album)")
         .eq("user_id", user!.id)
         .order("played_at", { ascending: false })
-        .limit(10);
+        .limit(5);
       if (error) throw error;
       // Deduplicate by song_id, keep most recent
       const seen = new Set<string>();

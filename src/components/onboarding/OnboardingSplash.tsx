@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronRight, Music2 } from "lucide-react";
+import { ChevronRight } from "lucide-react";
+import logoFull from "@/assets/logo-full.png";
 import fallback1 from "@/assets/onboarding-1.jpg";
 import fallback2 from "@/assets/onboarding-2.jpg";
 import fallback3 from "@/assets/onboarding-3.jpg";
@@ -115,11 +116,8 @@ const OnboardingSplash = ({ onComplete }: OnboardingSplashProps) => {
         </button>
 
         {/* Logo */}
-        <div className="absolute top-12 left-6 flex items-center gap-2 z-10">
-          <div className="w-8 h-8 rounded-lg gradient-gold flex items-center justify-center">
-            <Music2 className="w-4 h-4 text-primary-foreground" />
-          </div>
-          <span className="text-sm font-serif font-bold text-foreground/80">Loveworld Music Karaoke+</span>
+        <div className="absolute top-10 left-6 z-10">
+          <img src={logoFull} alt="Loveworld Music Karaoke+" className="h-16 w-auto" />
         </div>
 
         {/* Text content */}
