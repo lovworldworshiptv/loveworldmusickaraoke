@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useIsEditor } from "@/hooks/useIsEditor";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
@@ -32,6 +33,7 @@ const Sidebar = () => {
   const location = useLocation();
   const { signOut, user } = useAuth();
   const { isAdmin } = useIsAdmin();
+  const { isEditor } = useIsEditor();
 
   return (
     <aside className="hidden lg:flex flex-col w-64 h-screen bg-sidebar border-r border-sidebar-border fixed left-0 top-0 z-30">
@@ -56,12 +58,14 @@ const Sidebar = () => {
           </button>
         ))}
 
-        {isAdmin && (
+        {(isAdmin || isEditor) && (
           <>
             <div className="pt-4 pb-1 px-3">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Admin</p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                {isAdmin ? "Admin" : "Editor"}
+              </p>
             </div>
-            {adminItems.map((item) => (
+            {(isAdmin ? adminItems : [{ icon: Music2, label: "Manage Songs", path: "/admin/songs" }]).map((item) => (
               <button
                 key={item.label}
                 onClick={() => navigate(item.path)}
