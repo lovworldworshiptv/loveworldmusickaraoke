@@ -13,10 +13,10 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
   const { currentSong } = usePlayer();
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden safe-top">
+    <div className="h-[100dvh] bg-background overflow-hidden safe-top flex flex-col">
       <Sidebar />
       <TopNavbar />
-      <main className={`lg:ml-64 overflow-x-hidden overflow-y-auto pull-to-refresh ${currentSong ? "pb-44 lg:pb-28" : "pb-20 lg:pb-6"}`}>
+      <main className={`lg:ml-64 flex-1 overflow-x-hidden overflow-y-auto pull-to-refresh ${currentSong ? "pb-44 lg:pb-28" : "pb-20 lg:pb-6"}`}>
         {children}
       </main>
       <PlayerBar />
