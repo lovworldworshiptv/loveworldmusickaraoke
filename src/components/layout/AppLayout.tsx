@@ -16,7 +16,7 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
     <div className="min-h-screen bg-background overflow-x-hidden safe-top">
       <Sidebar />
       <TopNavbar />
-      <main className={`lg:ml-64 overflow-x-hidden pull-to-refresh ${currentSong ? "pb-44 lg:pb-28" : "pb-20 lg:pb-6"}`}>
+      <main className={`lg:ml-64 overflow-x-hidden overflow-y-auto pull-to-refresh ${currentSong ? "pb-44 lg:pb-28" : "pb-20 lg:pb-6"}`}>
         {children}
       </main>
       <PlayerBar />

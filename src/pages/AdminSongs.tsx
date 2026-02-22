@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer, FileAudio, ChevronDown, Rewind, FastForward, Pencil, Check } from "lucide-react";
+import { useIsEditor } from "@/hooks/useIsEditor";
+import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer, FileAudio, ChevronDown, Rewind, FastForward, Pencil, Check, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
@@ -117,6 +118,8 @@ const AudioPicker = ({ bucket, label, value, onChange }: {
 
 const AdminSongs = () => {
   const { isAdmin, loading: adminLoading } = useIsAdmin();
+  const { isEditor, loading: editorLoading } = useIsEditor();
+  const isEditorOnly = isEditor && !isAdmin;
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
@@ -351,21 +354,23 @@ const AdminSongs = () => {
     return `${m}:${s}`;
   };
 
-  if (adminLoading) return <AppLayout><div className="p-6 text-center text-muted-foreground">Loading...</div></AppLayout>;
-  if (!isAdmin) return <AppLayout><div className="p-6 text-center text-muted-foreground">Admin access required.</div></AppLayout>;
+  if (adminLoading || editorLoading) return <AppLayout><div className="p-6 text-center text-muted-foreground">Loading...</div></AppLayout>;
+  if (!isAdmin && !isEditor) return <AppLayout><div className="p-6 text-center text-muted-foreground">Admin or Editor access required.</div></AppLayout>;
 
   return (
     <AppLayout>
       <div className="px-4 lg:px-6 pt-4 lg:pt-6 max-w-4xl">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-serif font-bold text-foreground">Manage Songs</h2>
-          <Button onClick={() => setShowForm(!showForm)} className="gradient-gold text-primary-foreground gap-2">
-            <Plus className="w-4 h-4" /> Add Song
-          </Button>
+          {!isEditorOnly && (
+            <Button onClick={() => setShowForm(!showForm)} className="gradient-gold text-primary-foreground gap-2">
+              <Plus className="w-4 h-4" /> Add Song
+            </Button>
+          )}
         </div>
 
         {/* Create Song Form */}
-        {showForm && (
+        {showForm && !isEditorOnly && (
           <div className="glass-card p-5 mb-6 space-y-4">
             <h3 className="font-serif font-bold text-foreground">New Song</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -711,15 +716,20 @@ const AdminSongs = () => {
 
                 <div className="flex gap-2">
                   <button onClick={() => openEdit(song, "details")}
-                    className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors" title="Edit Details">
+                    className={`p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors ${isEditorOnly ? "opacity-30 pointer-events-none" : ""}`} title="Edit Details"
+                    disabled={isEditorOnly}>
                     <Edit3 className="w-4 h-4" />
                   </button>
                   <button onClick={() => openEdit(song, "lrc")}
-                    className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors" title="Edit Lyrics">
+                    className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors relative" title="Edit Lyrics">
                     <Music className="w-4 h-4" />
+                    {song.lyrics_lrc && /\[\d{2}:\d{2}\.\d{2,3}\]/.test(song.lyrics_lrc) && (
+                      <CheckCircle className="w-3 h-3 text-green-500 absolute -top-0.5 -right-0.5" />
+                    )}
                   </button>
                   <button onClick={() => handleDelete(song.id)}
-                    className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Delete">
+                    className={`p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors ${isEditorOnly ? "opacity-30 pointer-events-none" : ""}`} title="Delete"
+                    disabled={isEditorOnly}>
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
