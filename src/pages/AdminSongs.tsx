@@ -137,6 +137,17 @@ const AdminSongs = () => {
   const [albumOptions, setAlbumOptions] = useState<AlbumOption[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<{ id: string; name: string }[]>([]);
 
+  // Auto-detect audio duration from URL
+  const detectAudioDuration = (url: string, callback: (seconds: number) => void) => {
+    if (!url) return;
+    const audio = new Audio(url);
+    audio.addEventListener("loadedmetadata", () => {
+      if (audio.duration && isFinite(audio.duration)) {
+        callback(Math.round(audio.duration));
+      }
+    });
+  };
+
   // Sync state — each line can have multiple timestamps
   const [syncLines, setSyncLines] = useState<string[]>([]);
   const [syncTimestamps, setSyncTimestamps] = useState<number[][]>([]);
@@ -396,7 +407,7 @@ const AdminSongs = () => {
             </div>
 
             <ImageUploadPicker bucket="song-covers" label="Cover Image" value={form.cover_url} onChange={url => setForm({ ...form, cover_url: url })} />
-            <AudioPicker bucket="song-audio" label="Audio File" value={form.audio_url} onChange={url => setForm({ ...form, audio_url: url })} />
+            <AudioPicker bucket="song-audio" label="Audio File" value={form.audio_url} onChange={url => { setForm(f => ({ ...f, audio_url: url })); detectAudioDuration(url, sec => setForm(f => ({ ...f, duration_seconds: sec }))); }} />
             <AudioPicker bucket="song-instrumentals" label="Instrumental File" value={form.instrumental_url} onChange={url => setForm({ ...form, instrumental_url: url })} />
 
             <textarea placeholder="Lyrics (plain text, one line per verse line)" value={form.lyrics_raw}
@@ -466,7 +477,7 @@ const AdminSongs = () => {
                   </div>
 
                   <ImageUploadPicker bucket="song-covers" label="Cover Image" value={editForm.cover_url} onChange={url => setEditForm({ ...editForm, cover_url: url })} />
-                  <AudioPicker bucket="song-audio" label="Audio File" value={editForm.audio_url} onChange={url => setEditForm({ ...editForm, audio_url: url })} />
+                  <AudioPicker bucket="song-audio" label="Audio File" value={editForm.audio_url} onChange={url => { setEditForm(f => ({ ...f, audio_url: url })); detectAudioDuration(url, sec => setEditForm(f => ({ ...f, duration_seconds: sec }))); }} />
                   <AudioPicker bucket="song-instrumentals" label="Instrumental File" value={editForm.instrumental_url} onChange={url => setEditForm({ ...editForm, instrumental_url: url })} />
 
                   <div className="flex gap-3">

@@ -2,35 +2,43 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Music, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useIsPremium } from "@/hooks/useIsPremium";
 
-interface BannerConfig {
+interface PremiumAd {
   id: string;
   title: string;
   subtitle: string | null;
+  description: string | null;
   image_url: string | null;
+  cta_text: string | null;
   link_url: string | null;
 }
 
 const SecondaryBanner = () => {
-  const [banner, setBanner] = useState<BannerConfig | null>(null);
+  const [ad, setAd] = useState<PremiumAd | null>(null);
+  const { isPremium } = useIsPremium();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Use the second active hero_banner as the secondary banner (sort_order >= 1)
     supabase
-      .from("hero_banners")
+      .from("premium_ads")
       .select("*")
       .eq("is_active", true)
+      .eq("placement", "secondary_banner")
       .order("sort_order")
-      .range(1, 1) // Get the second banner
+      .limit(1)
       .then(({ data }) => {
-        if (data && data.length > 0) setBanner(data[0]);
+        if (data && data.length > 0) setAd(data[0] as PremiumAd);
       });
   }, []);
 
-  const title = banner?.title || "Upgrade to Karaoke+";
-  const subtitle = banner?.subtitle || "Unlimited songs, karaoke mode, games & offline downloads.";
-  const linkUrl = banner?.link_url;
+  // Hide for premium users
+  if (isPremium) return null;
+
+  const title = ad?.title || "Upgrade to Karaoke+";
+  const subtitle = ad?.subtitle || "Unlimited songs, karaoke mode, games & offline downloads.";
+  const ctaText = ad?.cta_text || "Get Premium";
+  const linkUrl = ad?.link_url;
 
   const handleClick = () => {
     if (linkUrl) {
@@ -45,9 +53,9 @@ const SecondaryBanner = () => {
         className="relative w-full h-36 md:h-44 rounded-2xl overflow-hidden group cursor-pointer"
         onClick={handleClick}
       >
-        {banner?.image_url ? (
+        {ad?.image_url ? (
           <>
-            <img src={banner.image_url} alt={title} className="absolute inset-0 w-full h-full object-cover" />
+            <img src={ad.image_url} alt={title} className="absolute inset-0 w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/50 to-transparent" />
           </>
         ) : (
@@ -71,7 +79,7 @@ const SecondaryBanner = () => {
               {subtitle}
             </p>
             <span className="gradient-gold text-primary-foreground px-5 py-2 rounded-full text-xs font-semibold hover:opacity-90 transition-all duration-300 hover:shadow-[0_0_20px_hsl(43_70%_53%/0.3)] inline-block">
-              {linkUrl ? "Learn More" : "Get Premium"}
+              {ctaText}
             </span>
           </div>
           <div className="hidden md:flex items-center justify-center w-20 h-20 rounded-full bg-gold/10 border border-gold/20 group-hover:scale-110 transition-transform duration-500">
