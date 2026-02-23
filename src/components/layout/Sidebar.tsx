@@ -26,6 +26,7 @@ const adminItems = [
   { icon: Gamepad2, label: "Manage Games", path: "/admin/games" },
   { icon: MessageSquare, label: "Manage Feedback", path: "/admin/feedback" },
   { icon: Sparkles, label: "Onboarding Screens", path: "/admin/onboarding" },
+  { icon: Sparkles, label: "Premium Ads", path: "/admin/premium-ads" },
 ];
 
 const Sidebar = () => {
