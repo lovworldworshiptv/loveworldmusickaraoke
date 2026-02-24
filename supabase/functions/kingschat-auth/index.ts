@@ -146,24 +146,44 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const fakeEmail = `kc_${kcUserId}@kingschat.local`;
+    // Use kingschat handle/username for a readable email, fallback to userId
+    const emailHandle = (kcHandle || profile?.username || "").toLowerCase().replace(/[^a-z0-9_]/g, "");
+    const newEmail = emailHandle ? `${emailHandle}@kingschat.online` : `kc_${kcUserId}@kingschat.online`;
+    const oldEmail = `kc_${kcUserId}@kingschat.local`;
     const password = `kc_auth_${kcUserId}_${serviceKey.slice(-8)}`;
 
-    // Try sign in first
-    let { data: signInData, error: signInError } =
-      await supabase.auth.signInWithPassword({ email: fakeEmail, password });
+    console.log(`Auth emails - new: ${newEmail}, old: ${oldEmail}`);
 
+    // Try sign in with new email first
+    let { data: signInData, error: signInError } =
+      await supabase.auth.signInWithPassword({ email: newEmail, password });
+
+    // If new email fails, try old email (migration case)
+    if (signInError) {
+      const { data: oldSignIn, error: oldError } =
+        await supabase.auth.signInWithPassword({ email: oldEmail, password });
+
+      if (!oldError && oldSignIn?.user) {
+        // Migrate: update email from old to new format
+        console.log(`Migrating user ${oldSignIn.user.id} email from ${oldEmail} to ${newEmail}`);
+        await supabase.auth.admin.updateUserById(oldSignIn.user.id, { email: newEmail });
+        signInData = oldSignIn;
+        signInError = null;
+      }
+    }
+
+    // If still no user, create new account
     if (signInError) {
       const { data: signUpData, error: signUpError } = await supabase.auth.admin.createUser({
-        email: fakeEmail,
+        email: newEmail,
         password,
         email_confirm: true,
         user_metadata: {
-        username: kcUsername,
-        avatar_url: kcAvatar,
-        provider: "kingschat",
-        kingschat_id: kcUserId,
-        kingschat_handle: kcHandle,
+          username: kcUsername,
+          avatar_url: kcAvatar,
+          provider: "kingschat",
+          kingschat_id: kcUserId,
+          kingschat_handle: kcHandle,
         },
       });
 
@@ -176,7 +196,7 @@ Deno.serve(async (req) => {
       }
 
       const { data: newSignIn, error: newSignInError } =
-        await supabase.auth.signInWithPassword({ email: fakeEmail, password });
+        await supabase.auth.signInWithPassword({ email: newEmail, password });
 
       if (newSignInError) {
         return new Response(
