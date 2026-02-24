@@ -1,5 +1,9 @@
-import { createContext, useContext, useState, useRef, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  hapticPlay, hapticPause, hapticNavigation,
+  updateMediaSession, setMediaSessionHandlers, setMediaSessionPlaybackState,
+} from "@/lib/nativeService";
 
 export interface PlayerSong {
   id: string;
@@ -228,6 +232,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     setQueueIndex(0);
     loadAndPlay(song);
     recordPlay(song.id);
+    hapticPlay();
+    updateMediaSession({ title: song.title, artist: song.artist, album: song.album, coverUrl: song.coverUrl });
     setTimeout(() => {
       if (audioRef.current) attachEndedListener(audioRef.current);
     }, 0);
@@ -281,10 +287,14 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
   const togglePlay = useCallback(() => {
     if (audioRef.current) {
-      if (isPlaying) { audioRef.current.pause(); stopInterval(); }
-      else { audioRef.current.play(); startInterval(); }
+      if (isPlaying) { audioRef.current.pause(); stopInterval(); hapticPause(); }
+      else { audioRef.current.play(); startInterval(); hapticPlay(); }
     }
-    setIsPlaying((p) => !p);
+    setIsPlaying((p) => {
+      const next = !p;
+      setMediaSessionPlaybackState(next ? "playing" : "paused");
+      return next;
+    });
   }, [isPlaying, startInterval, stopInterval]);
 
   const toggleKaraoke = useCallback(() => {
@@ -330,6 +340,16 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     setVolumeState(v);
     if (audioRef.current) audioRef.current.volume = v;
   }, []);
+
+  // Media session handlers for lock screen / notification controls
+  useEffect(() => {
+    setMediaSessionHandlers({
+      onPlay: () => { if (audioRef.current && !isPlaying) { audioRef.current.play(); startInterval(); setIsPlaying(true); setMediaSessionPlaybackState("playing"); } },
+      onPause: () => { if (audioRef.current && isPlaying) { audioRef.current.pause(); stopInterval(); setIsPlaying(false); setMediaSessionPlaybackState("paused"); } },
+      onNext: skipNext,
+      onPrev: skipPrev,
+    });
+  }, [isPlaying, skipNext, skipPrev, startInterval, stopInterval]);
 
   return (
     <PlayerContext.Provider value={{

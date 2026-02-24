@@ -2,6 +2,7 @@ import { Home, Compass, Library, Gamepad2, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
 import { memo } from "react";
+import { hapticNavigation } from "@/lib/nativeService";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
@@ -21,7 +22,7 @@ const BottomNav = memo(() => {
         {navItems.map((item) => (
           <button
             key={item.label}
-            onClick={() => navigate(item.path)}
+            onClick={() => { hapticNavigation(); navigate(item.path); }}
             className={cn(
               "flex flex-col items-center gap-1 rounded-lg transition-all duration-200 touch-target active:scale-95",
               "px-4 py-2",
