@@ -1,6 +1,7 @@
 import { usePlayer, RepeatMode } from "@/contexts/PlayerContext";
 import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
+import DownloadButton from "@/components/download/DownloadButton";
 import { useRef, useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -131,6 +132,9 @@ const ExpandedPlayer = () => {
           <button onClick={toggleFavorite} className={`transition-colors p-1 ${isFav ? "text-gold" : "text-muted-foreground hover:text-gold"}`}>
             <Heart className="w-5 h-5" fill={isFav ? "currentColor" : "none"} />
           </button>
+          {currentSong && (
+            <DownloadButton songId={currentSong.id} title={currentSong.title} artist={currentSong.artist} coverUrl={currentSong.coverUrl} className="p-1" />
+          )}
         </div>
 
         {/* Toggle: Album Art / Lyrics */}

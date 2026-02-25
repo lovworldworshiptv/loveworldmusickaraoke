@@ -1,4 +1,5 @@
 import { Play, Pause, Music } from "lucide-react";
+import DownloadButton from "@/components/download/DownloadButton";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { memo } from "react";
 
@@ -40,7 +41,10 @@ const SongCard = memo(({ song, index, allSongs }: SongCardProps) => {
           </button>
         </div>
       </div>
-      <p className="text-sm font-medium text-foreground truncate group-hover:text-gold transition-colors duration-200">{song.title}</p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-foreground truncate group-hover:text-gold transition-colors duration-200 flex-1 min-w-0">{song.title}</p>
+        <DownloadButton songId={song.id} title={song.title} artist={song.artist} coverUrl={song.coverUrl} className="flex-shrink-0 ml-1" />
+      </div>
       <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
     </div>
   );
