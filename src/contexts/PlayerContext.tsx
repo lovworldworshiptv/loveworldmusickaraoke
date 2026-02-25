@@ -72,9 +72,17 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [currentSong, setCurrentSong] = useState<PlayerSong | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isKaraoke, setIsKaraoke] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
+  const [shuffleOn, setShuffleOn] = useState(false);
+  const [queue, setQueue] = useState<PlayerSong[]>([]);
+  const [queueIndex, setQueueIndex] = useState(0);
+  const [volume, setVolumeState] = useState(1);
+  const [lrcLines, setLrcLines] = useState<LrcLine[]>([]);
+  const [activeLrcIndex, setActiveLrcIndex] = useState(-1);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<number | null>(null);
@@ -98,164 +106,219 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }, 200);
   }, [stopInterval]);
 
-  // ✅ MODIFIED: loadAndPlay
-  const loadAndPlay = useCallback((song: PlayerSong, karaokeMode?: boolean) => {
+  // Parse LRC lyrics
+  const parseLrc = useCallback((lrc?: string): LrcLine[] => {
+    if (!lrc) return [];
+    return lrc.split("\n").map(line => {
+      const match = line.match(/\[(\d+):(\d+\.\d+)\](.*)/);
+      if (!match) return null;
+      return { time: parseInt(match[1]) * 60 + parseFloat(match[2]), text: match[3].trim() };
+    }).filter(Boolean) as LrcLine[];
+  }, []);
 
-    stopInterval();
-
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
+  // Update active lyric index
+  useEffect(() => {
+    if (lrcLines.length === 0) { setActiveLrcIndex(-1); return; }
+    let idx = -1;
+    for (let i = 0; i < lrcLines.length; i++) {
+      if (currentTime >= lrcLines[i].time) idx = i;
+      else break;
     }
+    setActiveLrcIndex(idx);
+  }, [currentTime, lrcLines]);
+
+  const loadAndPlay = useCallback((song: PlayerSong, karaokeMode?: boolean) => {
+    stopInterval();
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
 
     setCurrentSong(song);
-
+    setLrcLines(parseLrc(song.lyricsLrc));
     const useKaraoke = karaokeMode ?? false;
     setIsKaraoke(useKaraoke);
 
     const url = toDirectUrl(useKaraoke ? song.instrumentalUrl : song.audioUrl);
-
     if (!url) return;
 
     const audio = new Audio(url);
+    audio.volume = volume;
     audioRef.current = audio;
 
-    audio.addEventListener("loadedmetadata", () => {
-      setDuration(audio.duration);
-    });
+    audio.addEventListener("loadedmetadata", () => setDuration(audio.duration));
 
-    // 🔥 IMPORTANT CHANGE
+    updateMediaSession({ title: song.title, artist: song.artist, album: song.album, coverUrl: song.coverUrl });
+
     if ((window as any).ReactNativeWebView) {
-
-      (window as any).ReactNativeWebView.postMessage(
-        JSON.stringify({
-          type: "PLAY_SONG",
-          url
-        })
-      );
-
+      (window as any).ReactNativeWebView.postMessage(JSON.stringify({ type: "PLAY_SONG", url }));
       setIsPlaying(true);
-
     } else {
-
-      audio.play()
-        .then(() => {
-          setIsPlaying(true);
-          startInterval();
-        })
-        .catch(() => {});
-
+      audio.play().then(() => {
+        setIsPlaying(true);
+        setMediaSessionPlaybackState("playing");
+        startInterval();
+      }).catch(() => {});
     }
+  }, [startInterval, stopInterval, parseLrc, volume]);
 
-  }, [startInterval, stopInterval]);
+  // We need a ref to access latest queue/repeat state inside the ended callback
+  const queueRef = useRef(queue);
+  const queueIndexRef = useRef(queueIndex);
+  const repeatModeRef = useRef(repeatMode);
+  useEffect(() => { queueRef.current = queue; }, [queue]);
+  useEffect(() => { queueIndexRef.current = queueIndex; }, [queueIndex]);
+  useEffect(() => { repeatModeRef.current = repeatMode; }, [repeatMode]);
 
-  // ✅ MODIFIED: togglePlay
+  // Attach ended handler whenever audio changes
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const onEnded = () => {
+      stopInterval();
+      const rm = repeatModeRef.current;
+      const q = queueRef.current;
+      const qi = queueIndexRef.current;
+      if (rm === "one") {
+        audio.currentTime = 0;
+        audio.play().then(() => startInterval()).catch(() => {});
+      } else if (q.length > 0) {
+        const nextIdx = qi + 1;
+        if (nextIdx < q.length) {
+          setQueueIndex(nextIdx);
+          loadAndPlay(q[nextIdx]);
+        } else if (rm === "all") {
+          setQueueIndex(0);
+          loadAndPlay(q[0]);
+        } else {
+          setIsPlaying(false);
+          setMediaSessionPlaybackState("paused");
+        }
+      } else {
+        setIsPlaying(false);
+        setMediaSessionPlaybackState("paused");
+      }
+    };
+    audio.addEventListener("ended", onEnded);
+    return () => audio.removeEventListener("ended", onEnded);
+  }, [currentSong, stopInterval, startInterval, loadAndPlay]);
+
+  const playQueue = useCallback((songs: PlayerSong[], startIndex = 0) => {
+    setQueue(songs);
+    setQueueIndex(startIndex);
+    if (songs[startIndex]) loadAndPlay(songs[startIndex]);
+  }, [loadAndPlay]);
+
   const togglePlay = useCallback(() => {
-
     if (!audioRef.current) return;
-
     if (isPlaying) {
       audioRef.current.pause();
       stopInterval();
       hapticPause();
     } else {
-
       if ((window as any).ReactNativeWebView) {
-
-        (window as any).ReactNativeWebView.postMessage(
-          JSON.stringify({
-            type: "PLAY_SONG",
-            url: audioRef.current.src
-          })
-        );
-
+        (window as any).ReactNativeWebView.postMessage(JSON.stringify({ type: "PLAY_SONG", url: audioRef.current.src }));
       } else {
         audioRef.current.play();
         startInterval();
       }
-
       hapticPlay();
     }
-
     setIsPlaying((p) => {
       const next = !p;
       setMediaSessionPlaybackState(next ? "playing" : "paused");
       return next;
     });
-
   }, [isPlaying, startInterval, stopInterval]);
 
-  // ✅ MODIFIED: toggleKaraoke
   const toggleKaraoke = useCallback(() => {
-
     setIsKaraoke((k) => {
-
       const next = !k;
-
       if (audioRef.current && currentSong) {
-
-        const url = toDirectUrl(
-          next ? currentSong.instrumentalUrl : currentSong.audioUrl
-        );
-
+        const url = toDirectUrl(next ? currentSong.instrumentalUrl : currentSong.audioUrl);
         if (!url) return next;
-
         if ((window as any).ReactNativeWebView) {
-
-          (window as any).ReactNativeWebView.postMessage(
-            JSON.stringify({
-              type: "PLAY_SONG",
-              url
-            })
-          );
-
+          (window as any).ReactNativeWebView.postMessage(JSON.stringify({ type: "PLAY_SONG", url }));
         } else {
-
           audioRef.current.pause();
           const audio = new Audio(url);
+          audio.volume = volume;
           audioRef.current = audio;
-
           audio.addEventListener("loadedmetadata", () => {
             setDuration(audio.duration);
             if (isPlaying) audio.play();
           });
-
         }
       }
-
       return next;
-
     });
+  }, [currentSong, isPlaying, volume]);
 
-  }, [currentSong, isPlaying]);
+  const toggleExpanded = useCallback(() => setIsExpanded(e => !e), []);
+
+  const seekTo = useCallback((percent: number) => {
+    if (!audioRef.current) return;
+    const t = (percent / 100) * (audioRef.current.duration || 0);
+    audioRef.current.currentTime = t;
+    setCurrentTime(t);
+    setProgress(percent);
+  }, []);
+
+  const skipNext = useCallback(() => {
+    if (queue.length === 0) return;
+    let nextIdx: number;
+    if (shuffleOn) {
+      nextIdx = Math.floor(Math.random() * queue.length);
+    } else {
+      nextIdx = queueIndex + 1;
+      if (nextIdx >= queue.length) nextIdx = repeatMode === "all" ? 0 : queueIndex;
+    }
+    if (nextIdx !== queueIndex || repeatMode === "all") {
+      setQueueIndex(nextIdx);
+      loadAndPlay(queue[nextIdx]);
+      hapticNavigation();
+    }
+  }, [queue, queueIndex, shuffleOn, repeatMode, loadAndPlay]);
+
+  const skipPrev = useCallback(() => {
+    if (audioRef.current && audioRef.current.currentTime > 3) {
+      audioRef.current.currentTime = 0;
+      setCurrentTime(0);
+      setProgress(0);
+      return;
+    }
+    if (queue.length === 0) return;
+    let prevIdx = queueIndex - 1;
+    if (prevIdx < 0) prevIdx = repeatMode === "all" ? queue.length - 1 : 0;
+    setQueueIndex(prevIdx);
+    loadAndPlay(queue[prevIdx]);
+    hapticNavigation();
+  }, [queue, queueIndex, repeatMode, loadAndPlay]);
+
+  const cycleRepeat = useCallback(() => {
+    setRepeatMode(m => m === "off" ? "all" : m === "all" ? "one" : "off");
+  }, []);
+
+  const toggleShuffle = useCallback(() => setShuffleOn(s => !s), []);
+
+  const setVolume = useCallback((v: number) => {
+    setVolumeState(v);
+    if (audioRef.current) audioRef.current.volume = v;
+  }, []);
+
+  // Media session handlers
+  useEffect(() => {
+    setMediaSessionHandlers({
+      onPlay: togglePlay,
+      onPause: togglePlay,
+      onNext: skipNext,
+      onPrev: skipPrev,
+    });
+  }, [togglePlay, skipNext, skipPrev]);
 
   return (
     <PlayerContext.Provider value={{
-      currentSong,
-      isPlaying,
-      isKaraoke,
-      progress,
-      duration,
-      currentTime,
-      playSong: loadAndPlay,
-      playQueue: () => {},
-      togglePlay,
-      toggleKaraoke,
-      toggleExpanded: () => {},
-      seekTo: () => {},
-      skipNext: () => {},
-      skipPrev: () => {},
-      cycleRepeat: () => {},
-      toggleShuffle: () => {},
-      setVolume: () => {},
-      repeatMode: "off",
-      shuffleOn: false,
-      queue: [],
-      queueIndex: 0,
-      volume: 1,
-      isExpanded: false,
-      lrcLines: [],
-      activeLrcIndex: -1,
+      currentSong, isPlaying, isKaraoke, isExpanded, progress, duration, currentTime,
+      lrcLines, activeLrcIndex, repeatMode, shuffleOn, queue, queueIndex, volume,
+      playSong: loadAndPlay, playQueue, togglePlay, toggleKaraoke, toggleExpanded,
+      seekTo, skipNext, skipPrev, cycleRepeat, toggleShuffle, setVolume,
     }}>
       {children}
     </PlayerContext.Provider>
