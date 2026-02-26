@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PlayerProvider } from "@/contexts/PlayerContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { useNativeInit } from "@/hooks/useNativeInit";
 import AuthGate from "@/components/auth/AuthGate";
 import Index from "./pages/Index";
 import Library from "./pages/Library";
@@ -36,42 +35,6 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const AppContent = () => {
-  useNativeInit();
-  return (
-    <Routes>
-      {/* Public routes */}
-      <Route path="/" element={<Index />} />
-      <Route path="/auth" element={<Auth />} />
-      <Route path="/privacy" element={<Privacy />} />
-      <Route path="/terms" element={<Terms />} />
-
-      {/* Protected routes */}
-      <Route path="/library" element={<AuthGate><Library /></AuthGate>} />
-      <Route path="/games" element={<AuthGate><Games /></AuthGate>} />
-      <Route path="/articles" element={<AuthGate><Articles /></AuthGate>} />
-      <Route path="/profile" element={<AuthGate><Profile /></AuthGate>} />
-      <Route path="/discover" element={<AuthGate><Discover /></AuthGate>} />
-      <Route path="/history" element={<AuthGate><History /></AuthGate>} />
-      <Route path="/playlists" element={<AuthGate><Playlists /></AuthGate>} />
-      <Route path="/feedback" element={<AuthGate><Feedback /></AuthGate>} />
-      <Route path="/albums" element={<AuthGate><Albums /></AuthGate>} />
-      <Route path="/category/:id" element={<AuthGate><CategorySongs /></AuthGate>} />
-      <Route path="/admin/songs" element={<AuthGate><AdminSongs /></AuthGate>} />
-      <Route path="/admin/albums" element={<AuthGate><AdminAlbums /></AuthGate>} />
-      <Route path="/admin/articles" element={<AuthGate><AdminArticles /></AuthGate>} />
-      <Route path="/admin/categories" element={<AuthGate><AdminCategories /></AuthGate>} />
-      <Route path="/admin/playlists" element={<AuthGate><AdminPlaylists /></AuthGate>} />
-      <Route path="/admin/banners" element={<AuthGate><AdminBanners /></AuthGate>} />
-      <Route path="/admin/games" element={<AuthGate><AdminGames /></AuthGate>} />
-      <Route path="/admin/feedback" element={<AuthGate><AdminFeedback /></AuthGate>} />
-      <Route path="/admin/onboarding" element={<AuthGate><AdminOnboarding /></AuthGate>} />
-      <Route path="/admin/premium-ads" element={<AuthGate><AdminPremiumAds /></AuthGate>} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
-};
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -81,7 +44,36 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <PlayerProvider>
-              <AppContent />
+              <Routes>
+                {/* Public routes */}
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
+
+                {/* Protected routes */}
+                <Route path="/library" element={<AuthGate><Library /></AuthGate>} />
+                <Route path="/games" element={<AuthGate><Games /></AuthGate>} />
+                <Route path="/articles" element={<AuthGate><Articles /></AuthGate>} />
+                <Route path="/profile" element={<AuthGate><Profile /></AuthGate>} />
+                <Route path="/discover" element={<AuthGate><Discover /></AuthGate>} />
+                <Route path="/history" element={<AuthGate><History /></AuthGate>} />
+                <Route path="/playlists" element={<AuthGate><Playlists /></AuthGate>} />
+                <Route path="/feedback" element={<AuthGate><Feedback /></AuthGate>} />
+                <Route path="/albums" element={<AuthGate><Albums /></AuthGate>} />
+                <Route path="/category/:id" element={<AuthGate><CategorySongs /></AuthGate>} />
+                <Route path="/admin/songs" element={<AuthGate><AdminSongs /></AuthGate>} />
+                <Route path="/admin/albums" element={<AuthGate><AdminAlbums /></AuthGate>} />
+                <Route path="/admin/articles" element={<AuthGate><AdminArticles /></AuthGate>} />
+                <Route path="/admin/categories" element={<AuthGate><AdminCategories /></AuthGate>} />
+                <Route path="/admin/playlists" element={<AuthGate><AdminPlaylists /></AuthGate>} />
+                <Route path="/admin/banners" element={<AuthGate><AdminBanners /></AuthGate>} />
+                <Route path="/admin/games" element={<AuthGate><AdminGames /></AuthGate>} />
+                <Route path="/admin/feedback" element={<AuthGate><AdminFeedback /></AuthGate>} />
+                <Route path="/admin/onboarding" element={<AuthGate><AdminOnboarding /></AuthGate>} />
+                <Route path="/admin/premium-ads" element={<AuthGate><AdminPremiumAds /></AuthGate>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
             </PlayerProvider>
           </AuthProvider>
         </BrowserRouter>

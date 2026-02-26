@@ -11,8 +11,7 @@ interface ShareInviteButtonProps {
 const ShareInviteButton = ({ article }: ShareInviteButtonProps) => {
   const [copied, setCopied] = useState(false);
 
-  const slug = article.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  const shareUrl = `https://loveworldmusickaraoke.com/articles?id=${article.id}&title=${slug}`;
+  const shareUrl = `${window.location.origin}/articles?id=${article.id}`;
   const shareText = `Read "${article.title}" with me!`;
   const emailSubject = encodeURIComponent(`Let's study together: ${article.title}`);
   const emailBody = encodeURIComponent(`Hi!\n\nI'd love for you to read this article with me:\n\n"${article.title}"\n${article.excerpt || ""}\n\nRead it here: ${shareUrl}\n\nBlessings!`);
