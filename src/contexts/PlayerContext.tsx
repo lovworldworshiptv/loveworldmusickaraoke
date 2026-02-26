@@ -15,6 +15,7 @@ export interface PlayerSong {
   instrumentalUrl?: string;
   lyricsLrc?: string;
   durationSeconds?: number;
+  isFreeDownload?: boolean;
 }
 
 interface LrcLine {
@@ -303,15 +304,48 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     if (audioRef.current) audioRef.current.volume = v;
   }, []);
 
-  // Media session handlers
+  // Media session handlers — separate play/pause so native controls work correctly
   useEffect(() => {
     setMediaSessionHandlers({
-      onPlay: togglePlay,
-      onPause: togglePlay,
+      onPlay: () => {
+        if (!audioRef.current) return;
+        audioRef.current.play().then(() => {
+          setIsPlaying(true);
+          setMediaSessionPlaybackState("playing");
+          startInterval();
+        }).catch(() => {});
+        hapticPlay();
+      },
+      onPause: () => {
+        if (!audioRef.current) return;
+        audioRef.current.pause();
+        stopInterval();
+        setIsPlaying(false);
+        setMediaSessionPlaybackState("paused");
+        hapticPause();
+      },
       onNext: skipNext,
       onPrev: skipPrev,
+      onSeekTo: (time: number) => {
+        if (!audioRef.current) return;
+        audioRef.current.currentTime = time;
+        setCurrentTime(time);
+        setProgress((time / (audioRef.current.duration || 1)) * 100);
+      },
     });
-  }, [togglePlay, skipNext, skipPrev]);
+  }, [skipNext, skipPrev, startInterval, stopInterval]);
+
+  // Update position state for media session
+  useEffect(() => {
+    if (!("mediaSession" in navigator) || !audioRef.current) return;
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: duration || 0,
+        playbackRate: 1,
+        position: Math.min(currentTime, duration || 0),
+      });
+    } catch {}
+  }, [currentTime, duration]);
 
   return (
     <PlayerContext.Provider value={{

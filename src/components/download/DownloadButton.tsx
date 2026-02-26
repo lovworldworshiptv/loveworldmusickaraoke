@@ -20,11 +20,12 @@ interface DownloadButtonProps {
   title: string;
   artist: string;
   coverUrl?: string;
+  isFreeDownload?: boolean;
   variant?: "icon" | "full";
   className?: string;
 }
 
-const DownloadButton = ({ songId, title, artist, coverUrl, variant = "icon", className = "" }: DownloadButtonProps) => {
+const DownloadButton = ({ songId, title, artist, coverUrl, isFreeDownload = false, variant = "icon", className = "" }: DownloadButtonProps) => {
   const { user } = useAuth();
   const { isPremium } = useIsPremium();
   const { isAdmin } = useIsAdmin();
@@ -32,7 +33,7 @@ const DownloadButton = ({ songId, title, artist, coverUrl, variant = "icon", cla
   const [isOffline, setIsOffline] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
-  const canDownload = isPremium || isAdmin;
+  const canDownload = isPremium || isAdmin || isFreeDownload;
 
   useEffect(() => {
     isTrackOffline(songId).then(setIsOffline);
@@ -53,7 +54,6 @@ const DownloadButton = ({ songId, title, artist, coverUrl, variant = "icon", cla
 
     setDownloading(true);
     try {
-      // Request signed URL from backend
       const { data, error } = await supabase.functions.invoke("generate-signed-url", {
         body: { songId },
       });
@@ -62,12 +62,10 @@ const DownloadButton = ({ songId, title, artist, coverUrl, variant = "icon", cla
         throw new Error(data?.error || "Failed to get download URL");
       }
 
-      // Fetch audio as blob (not exposing URL)
       const response = await fetch(data.signedUrl);
       if (!response.ok) throw new Error("Failed to download audio");
       const audioBlob = await response.blob();
 
-      // Store in IndexedDB
       await saveOfflineTrack(songId, audioBlob, {
         title: data.title || title,
         artist: data.artist || artist,
@@ -162,7 +160,7 @@ const DownloadButton = ({ songId, title, artist, coverUrl, variant = "icon", cla
       className={`flex items-center gap-1.5 text-muted-foreground hover:text-gold transition-colors ${className}`}
     >
       <Download className="w-4 h-4" />
-      {variant === "full" && <span className="text-xs">Download</span>}
+      {variant === "full" && <span className="text-xs">{isFreeDownload ? "Free Download" : "Download"}</span>}
     </button>
   );
 };

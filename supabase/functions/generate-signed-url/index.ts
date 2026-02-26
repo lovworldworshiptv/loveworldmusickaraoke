@@ -23,7 +23,6 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify user with their JWT
     const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -35,22 +34,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check premium/admin role using service client
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-    const { data: roles } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .in("role", ["premium", "admin"]);
-
-    if (!roles || roles.length === 0) {
-      return new Response(JSON.stringify({ error: "Premium subscription required" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Get song ID from request
     const { songId } = await req.json();
     if (!songId) {
       return new Response(JSON.stringify({ error: "songId required" }), {
@@ -59,10 +42,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get song details
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get song details (including free download flag)
     const { data: song, error: songError } = await adminClient
       .from("songs")
-      .select("audio_url, title, artist, lyrics_lrc")
+      .select("audio_url, title, artist, lyrics_lrc, is_free_download")
       .eq("id", songId)
       .single();
 
@@ -73,17 +58,32 @@ Deno.serve(async (req) => {
       });
     }
 
-    // If audio_url is a Supabase storage URL, generate a signed URL
+    // If not a free download, check premium/admin role
+    if (!song.is_free_download) {
+      const { data: roles } = await adminClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .in("role", ["premium", "admin"]);
+
+      if (!roles || roles.length === 0) {
+        return new Response(JSON.stringify({ error: "Premium subscription required" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // Generate signed URL
     let signedUrl = song.audio_url;
 
     if (song.audio_url && song.audio_url.includes("/storage/v1/object/public/")) {
-      // Extract bucket and path from public URL
       const match = song.audio_url.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)/);
       if (match) {
         const [, bucket, path] = match;
         const { data: signed, error: signError } = await adminClient.storage
           .from(bucket)
-          .createSignedUrl(path, 120); // 120 seconds expiry
+          .createSignedUrl(path, 120);
 
         if (!signError && signed?.signedUrl) {
           signedUrl = signed.signedUrl;
@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
-  } catch (err) {
+  } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
