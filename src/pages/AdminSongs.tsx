@@ -21,7 +21,6 @@ interface Song {
   duration_seconds: number;
   is_featured: boolean;
   is_top: boolean;
-  is_free_download: boolean;
   category_id: string | null;
 }
 
@@ -129,11 +128,11 @@ const AdminSongs = () => {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", duration_seconds: 240,
-    is_featured: false, is_top: false, is_free_download: false, audio_url: "", instrumental_url: "", lyrics_raw: "", cover_url: "",
+    is_featured: false, is_top: false, audio_url: "", instrumental_url: "", lyrics_raw: "", cover_url: "",
   });
   const [editForm, setEditForm] = useState({
     title: "", artist: "", album: "", album_id: "", category_id: "", duration_seconds: 240,
-    is_featured: false, is_top: false, is_free_download: false, audio_url: "", instrumental_url: "", cover_url: "",
+    is_featured: false, is_top: false, audio_url: "", instrumental_url: "", cover_url: "",
   });
   const [albumOptions, setAlbumOptions] = useState<AlbumOption[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<{ id: string; name: string }[]>([]);
@@ -205,14 +204,14 @@ const AdminSongs = () => {
       title: form.title, artist: form.artist, album: form.album || null,
       album_id: form.album_id || null, category_id: form.category_id || null,
       duration_seconds: form.duration_seconds, is_featured: form.is_featured,
-      is_top: form.is_top, is_free_download: form.is_free_download, audio_url: form.audio_url || null,
+      is_top: form.is_top, audio_url: form.audio_url || null,
       instrumental_url: form.instrumental_url || null,
       lyrics_lrc: form.lyrics_raw || null, cover_url: form.cover_url || null,
     });
     if (error) { toast.error("Failed: " + error.message); return; }
     toast.success("Song created!");
     setShowForm(false);
-    setForm({ title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", duration_seconds: 240, is_featured: false, is_top: false, is_free_download: false, audio_url: "", instrumental_url: "", lyrics_raw: "", cover_url: "" });
+    setForm({ title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", duration_seconds: 240, is_featured: false, is_top: false, audio_url: "", instrumental_url: "", lyrics_raw: "", cover_url: "" });
     fetchSongs();
   };
 
@@ -229,7 +228,7 @@ const AdminSongs = () => {
       title: editForm.title, artist: editForm.artist, album: editForm.album || null,
       album_id: editForm.album_id || null, category_id: editForm.category_id || null,
       duration_seconds: editForm.duration_seconds, is_featured: editForm.is_featured,
-      is_top: editForm.is_top, is_free_download: editForm.is_free_download, audio_url: editForm.audio_url || null,
+      is_top: editForm.is_top, audio_url: editForm.audio_url || null,
       instrumental_url: editForm.instrumental_url || null, cover_url: editForm.cover_url || null,
     }).eq("id", editingSong.id);
     if (error) { toast.error("Failed: " + error.message); return; }
@@ -353,7 +352,7 @@ const AdminSongs = () => {
         title: song.title, artist: song.artist, album: song.album || "",
         album_id: song.album_id || "", category_id: song.category_id || "",
         duration_seconds: song.duration_seconds, is_featured: song.is_featured,
-        is_top: song.is_top, is_free_download: song.is_free_download, audio_url: song.audio_url || "", instrumental_url: song.instrumental_url || "",
+        is_top: song.is_top, audio_url: song.audio_url || "", instrumental_url: song.instrumental_url || "",
         cover_url: song.cover_url || "",
       });
     }
@@ -414,15 +413,12 @@ const AdminSongs = () => {
             <textarea placeholder="Lyrics (plain text, one line per verse line)" value={form.lyrics_raw}
               onChange={e => setForm({ ...form, lyrics_raw: e.target.value })}
               className="w-full min-h-[120px] px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm font-mono resize-y" />
-            <div className="flex gap-3 flex-wrap">
+            <div className="flex gap-3">
               <label className="flex items-center gap-2 text-sm text-foreground">
                 <input type="checkbox" checked={form.is_top} onChange={e => setForm({ ...form, is_top: e.target.checked })} /> Top Song
               </label>
               <label className="flex items-center gap-2 text-sm text-foreground">
                 <input type="checkbox" checked={form.is_featured} onChange={e => setForm({ ...form, is_featured: e.target.checked })} /> Featured
-              </label>
-              <label className="flex items-center gap-2 text-sm text-foreground">
-                <input type="checkbox" checked={form.is_free_download} onChange={e => setForm({ ...form, is_free_download: e.target.checked })} /> Free Download
               </label>
             </div>
             <Button onClick={handleCreateSong} className="gradient-gold text-primary-foreground">Create Song</Button>
@@ -484,15 +480,12 @@ const AdminSongs = () => {
                   <AudioPicker bucket="song-audio" label="Audio File" value={editForm.audio_url} onChange={url => { setEditForm(f => ({ ...f, audio_url: url })); detectAudioDuration(url, sec => setEditForm(f => ({ ...f, duration_seconds: sec }))); }} />
                   <AudioPicker bucket="song-instrumentals" label="Instrumental File" value={editForm.instrumental_url} onChange={url => setEditForm({ ...editForm, instrumental_url: url })} />
 
-                  <div className="flex gap-3 flex-wrap">
+                  <div className="flex gap-3">
                     <label className="flex items-center gap-2 text-sm text-foreground">
                       <input type="checkbox" checked={editForm.is_top} onChange={e => setEditForm({ ...editForm, is_top: e.target.checked })} /> Top Song
                     </label>
                     <label className="flex items-center gap-2 text-sm text-foreground">
                       <input type="checkbox" checked={editForm.is_featured} onChange={e => setEditForm({ ...editForm, is_featured: e.target.checked })} /> Featured
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-foreground">
-                      <input type="checkbox" checked={editForm.is_free_download} onChange={e => setEditForm({ ...editForm, is_free_download: e.target.checked })} /> Free Download
                     </label>
                   </div>
                   <Button onClick={handleUpdateDetails} className="gradient-gold text-primary-foreground gap-2">
@@ -729,7 +722,6 @@ const AdminSongs = () => {
                     {song.lyrics_lrc && <span className="text-[10px] bg-gold/20 text-gold px-1.5 py-0.5 rounded">LRC</span>}
                     {song.is_top && <span className="text-[10px] bg-accent/30 text-accent-foreground px-1.5 py-0.5 rounded">Top</span>}
                     {song.is_featured && <span className="text-[10px] bg-accent/30 text-accent-foreground px-1.5 py-0.5 rounded">Featured</span>}
-                    {song.is_free_download && <span className="text-[10px] bg-green-500/20 text-green-600 dark:text-green-400 px-1.5 py-0.5 rounded">Free DL</span>}
                   </div>
                 </div>
 

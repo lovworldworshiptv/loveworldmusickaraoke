@@ -9,15 +9,12 @@ import GameSection from "@/components/home/GameSection";
 import SecondaryBanner from "@/components/home/SecondaryBanner";
 import RecentlyPlayed from "@/components/home/RecentlyPlayed";
 import OnboardingSplash from "@/components/onboarding/OnboardingSplash";
-import OfflineScreen from "@/components/offline/OfflineScreen";
 import { useAuth } from "@/contexts/AuthContext";
-import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import ProfileMenu from "@/components/layout/ProfileMenu";
 
 const Index = () => {
   const { username } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const isOnline = useOnlineStatus();
 
   useEffect(() => {
     const seen = localStorage.getItem("onboarding_completed");
@@ -31,14 +28,6 @@ const Index = () => {
 
   if (showOnboarding) {
     return <OnboardingSplash onComplete={handleOnboardingComplete} />;
-  }
-
-  if (!isOnline) {
-    return (
-      <AppLayout>
-        <OfflineScreen />
-      </AppLayout>
-    );
   }
 
   return (

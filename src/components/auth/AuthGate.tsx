@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Lock, Music, Sparkles, LogIn, UserPlus } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import MusicBackground from "@/components/auth/MusicBackground";
-import OfflineScreen from "@/components/offline/OfflineScreen";
-import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 interface AuthGateProps {
   children: React.ReactNode;
@@ -13,16 +11,6 @@ interface AuthGateProps {
 const AuthGate = ({ children }: AuthGateProps) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const isOnline = useOnlineStatus();
-
-  // When offline, show offline screen with link to downloads (except library which handles its own offline)
-  if (!isOnline) {
-    return (
-      <AppLayout>
-        <OfflineScreen />
-      </AppLayout>
-    );
-  }
 
   if (loading) {
     return (

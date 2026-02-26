@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Loveworld Music Karaoke+</string>
-    <string name="title_activity_main">Loveworld Music Karaoke+</string>
-    <string name="package_name">com.loveworldmusic.karaoke</string>
-    <string name="custom_url_scheme">com.loveworldmusic.karaoke</string>
-</resources>
