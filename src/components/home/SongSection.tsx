@@ -23,6 +23,7 @@ const SongSection = ({ title }: SongSectionProps) => {
             coverUrl: s.cover_url || undefined, audioUrl: s.audio_url || undefined,
             instrumentalUrl: s.instrumental_url || undefined, lyricsLrc: s.lyrics_lrc || undefined,
             durationSeconds: s.duration_seconds,
+            isFreeDownload: (s as any).is_free_download ?? false,
           })));
         }
       });

@@ -1,7 +1,8 @@
-import { useState, memo, useCallback } from "react";
+import { useState, useEffect, memo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Play, Heart, Plus, Music, ListMusic, Trash2, Shuffle } from "lucide-react";
+import { Search, Play, Heart, Plus, Music, ListMusic, Trash2, Shuffle, Download, WifiOff } from "lucide-react";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { SongRowSkeleton, EmptyState } from "@/components/ui/loading-skeleton";
+import { getAllOfflineTracks, getOfflineTrack, removeOfflineTrack, getOfflineAudioUrl } from "@/lib/offlineStorage";
+import DownloadButton from "@/components/download/DownloadButton";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 type SongRow = {
   id: string;
@@ -25,16 +29,26 @@ type SongRow = {
 };
 
 const Library = () => {
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get("tab") || "all";
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [search, setSearch] = useState("");
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const { playSong, playQueue, currentSong, isPlaying } = usePlayer();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const isOnline = useOnlineStatus();
+
+  // If offline, force downloads tab
+  useEffect(() => {
+    if (!isOnline) setActiveTab("downloads");
+  }, [isOnline]);
 
   // Fetch all songs
   const { data: songs = [], isLoading: loadingSongs } = useQuery({
     queryKey: ["library-songs"],
+    enabled: isOnline,
     queryFn: async () => {
       const { data, error } = await supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album").order("title");
       if (error) throw error;
@@ -45,7 +59,7 @@ const Library = () => {
   // Fetch favorites (with song details)
   const { data: favorites = [], isLoading: loadingFavs } = useQuery({
     queryKey: ["library-favorites", user?.id],
-    enabled: !!user,
+    enabled: !!user && isOnline,
     queryFn: async () => {
       const { data, error } = await supabase.from("favorites").select("id, song_id, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album)").eq("user_id", user!.id);
       if (error) throw error;
@@ -56,13 +70,28 @@ const Library = () => {
   // Fetch playlists
   const { data: playlists = [], isLoading: loadingPlaylists } = useQuery({
     queryKey: ["library-playlists", user?.id],
-    enabled: !!user,
+    enabled: !!user && isOnline,
     queryFn: async () => {
       const { data, error } = await supabase.from("playlists").select("id, name, cover_url, created_at, playlist_songs(id, song_id, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album))").eq("user_id", user!.id).order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
     },
   });
+
+  // Offline downloads
+  const [offlineTracks, setOfflineTracks] = useState<any[]>([]);
+  const [loadingDownloads, setLoadingDownloads] = useState(true);
+
+  const refreshDownloads = useCallback(async () => {
+    setLoadingDownloads(true);
+    try {
+      const tracks = await getAllOfflineTracks();
+      setOfflineTracks(tracks);
+    } catch { setOfflineTracks([]); }
+    setLoadingDownloads(false);
+  }, []);
+
+  useEffect(() => { refreshDownloads(); }, [refreshDownloads]);
 
   // Toggle favorite
   const toggleFav = useMutation({
@@ -129,6 +158,31 @@ const Library = () => {
       s.artist.toLowerCase().includes(search.toLowerCase())
   );
 
+  const playOfflineTrack = async (track: any) => {
+    try {
+      const full = await getOfflineTrack(track.songId);
+      if (!full) { toast.error("Track not found"); return; }
+      const blobUrl = getOfflineAudioUrl(full.audioBlob);
+      const ps: PlayerSong = {
+        id: track.songId,
+        title: track.title,
+        artist: track.artist,
+        coverUrl: track.coverUrl,
+        audioUrl: blobUrl,
+        lyricsLrc: full.lyricsLrc,
+      };
+      playSong(ps);
+    } catch {
+      toast.error("Failed to play offline track");
+    }
+  };
+
+  const handleRemoveDownload = async (songId: string) => {
+    await removeOfflineTrack(songId);
+    refreshDownloads();
+    toast.success("Removed from downloads");
+  };
+
   const SongRowItem = memo(({ song, index, songList }: { song: SongRow; index: number; songList: PlayerSong[] }) => (
     <button
       onClick={() => playQueue(songList, index)}
@@ -185,11 +239,14 @@ const Library = () => {
           />
         </div>
 
-        <Tabs defaultValue="all">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full bg-muted/50 mb-4">
-            <TabsTrigger value="all" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">All Songs</TabsTrigger>
-            <TabsTrigger value="favorites" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Favorites</TabsTrigger>
-            <TabsTrigger value="playlists" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Playlists</TabsTrigger>
+            <TabsTrigger value="all" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground" disabled={!isOnline}>All Songs</TabsTrigger>
+            <TabsTrigger value="favorites" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground" disabled={!isOnline}>Favorites</TabsTrigger>
+            <TabsTrigger value="downloads" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Download className="w-3.5 h-3.5 mr-1" /> Downloads
+            </TabsTrigger>
+            <TabsTrigger value="playlists" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground" disabled={!isOnline}>Playlists</TabsTrigger>
           </TabsList>
 
           {/* All Songs */}
@@ -228,6 +285,64 @@ const Library = () => {
             ) : (
               <div className="space-y-1">
                 {(() => { const favSongList = favorites.filter((f: any) => f.songs).map((f: any) => toPlayerSong(f.songs)); return favorites.map((fav: any, i: number) => fav.songs && <SongRowItem key={fav.id} song={fav.songs} index={i} songList={favSongList} />); })()}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Downloads */}
+          <TabsContent value="downloads">
+            {!isOnline && (
+              <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg bg-muted/50 border border-border">
+                <WifiOff className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">You're offline — showing downloaded tracks</span>
+              </div>
+            )}
+            {loadingDownloads ? (
+              <div className="space-y-1">{Array.from({ length: 4 }).map((_, i) => <SongRowSkeleton key={i} />)}</div>
+            ) : offlineTracks.length === 0 ? (
+              <EmptyState icon={Download} title="No downloads yet" description="Download songs for offline listening" />
+            ) : (
+              <div className="space-y-1">
+                {offlineTracks.map((track) => (
+                  <button
+                    key={track.songId}
+                    onClick={() => playOfflineTrack(track)}
+                    className={`flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-200 active:scale-[0.98] hover:bg-muted/60 touch-target ${
+                      currentSong?.id === track.songId ? "bg-muted/80 ring-1 ring-primary" : ""
+                    }`}
+                  >
+                    {track.coverUrl ? (
+                      <img src={track.coverUrl} alt={track.title} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <Music className="w-5 h-5 text-primary" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-sm font-medium text-foreground truncate">{track.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleRemoveDownload(track.songId); }}
+                        className="p-2 text-muted-foreground hover:text-destructive transition-colors touch-target"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      {currentSong?.id === track.songId && isPlaying ? (
+                        <div className="flex gap-0.5 items-end h-4">
+                          <div className="w-0.5 h-2 bg-gold rounded-full animate-pulse" />
+                          <div className="w-0.5 h-3 bg-gold rounded-full animate-pulse" style={{ animationDelay: "0.15s" }} />
+                          <div className="w-0.5 h-4 bg-gold rounded-full animate-pulse" style={{ animationDelay: "0.3s" }} />
+                        </div>
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_2px_12px_hsl(43_70%_53%/0.4)] ring-1 ring-white/20">
+                          <Play className="w-3.5 h-3.5 text-white ml-0.5 drop-shadow-sm" fill="currentColor" />
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                ))}
               </div>
             )}
           </TabsContent>
