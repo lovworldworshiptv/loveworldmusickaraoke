@@ -1,8 +1,10 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Lock, Music, Sparkles, LogIn, UserPlus } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import MusicBackground from "@/components/auth/MusicBackground";
+import OfflineScreen from "@/components/offline/OfflineScreen";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 interface AuthGateProps {
   children: React.ReactNode;
@@ -11,6 +13,19 @@ interface AuthGateProps {
 const AuthGate = ({ children }: AuthGateProps) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isOnline = useOnlineStatus();
+
+  // Allow downloads page when offline
+  const isDownloadsPage = location.pathname === "/library" && location.search.includes("tab=downloads");
+
+  if (!isOnline && !isDownloadsPage) {
+    return (
+      <AppLayout>
+        <OfflineScreen />
+      </AppLayout>
+    );
+  }
 
   if (loading) {
     return (
@@ -28,7 +43,6 @@ const AuthGate = ({ children }: AuthGateProps) => {
         <div className="relative flex items-center justify-center min-h-[70vh] px-4">
           <MusicBackground />
           <div className="relative z-10 w-full max-w-sm text-center">
-            {/* Animated icon cluster */}
             <div className="relative w-28 h-28 mx-auto mb-8">
               <div className="absolute inset-0 rounded-full bg-gradient-to-br from-gold/20 via-gold-light/10 to-transparent animate-pulse" />
               <div className="absolute inset-2 rounded-full bg-gradient-to-br from-gold/10 to-transparent backdrop-blur-sm" />
@@ -43,7 +57,6 @@ const AuthGate = ({ children }: AuthGateProps) => {
               </div>
             </div>
 
-            {/* Message */}
             <h2 className="text-2xl font-serif font-bold gradient-gold-text mb-2">
               Unlock the Full Experience
             </h2>
@@ -51,7 +64,6 @@ const AuthGate = ({ children }: AuthGateProps) => {
               Sign in to explore your library, play games, discover new music, read articles and so much more!
             </p>
 
-            {/* Action buttons */}
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => navigate("/auth")}
@@ -69,7 +81,6 @@ const AuthGate = ({ children }: AuthGateProps) => {
               </button>
             </div>
 
-            {/* Subtle features list */}
             <div className="mt-8 grid grid-cols-3 gap-2">
               {[
                 { icon: "🎵", label: "Full Library" },

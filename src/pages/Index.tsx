@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import HeroBanner from "@/components/home/HeroBanner";
 import SongSection from "@/components/home/SongSection";
@@ -11,15 +12,25 @@ import RecentlyPlayed from "@/components/home/RecentlyPlayed";
 import OnboardingSplash from "@/components/onboarding/OnboardingSplash";
 import { useAuth } from "@/contexts/AuthContext";
 import ProfileMenu from "@/components/layout/ProfileMenu";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 const Index = () => {
   const { username } = useAuth();
+  const navigate = useNavigate();
+  const isOnline = useOnlineStatus();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     const seen = localStorage.getItem("onboarding_completed");
     if (!seen) setShowOnboarding(true);
   }, []);
+
+  // Redirect to downloads when offline
+  useEffect(() => {
+    if (!isOnline) {
+      navigate("/library?tab=downloads", { replace: true });
+    }
+  }, [isOnline, navigate]);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem("onboarding_completed", "true");
@@ -40,7 +51,6 @@ const Index = () => {
         <ProfileMenu />
       </div>
 
-      {/* PRD Order: Hero → Top Albums → Featured Songs → Secondary Banner → Categories → Recently Played → Articles → Games */}
       <HeroBanner />
       <AlbumSection />
       <SongSection title="Featured Songs" />
