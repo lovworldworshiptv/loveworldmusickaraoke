@@ -492,6 +492,7 @@ export type Database = {
           id: string
           instrumental_url: string | null
           is_featured: boolean
+          is_free_download: boolean
           is_top: boolean
           lyrics_lrc: string | null
           play_count: number
@@ -509,6 +510,7 @@ export type Database = {
           id?: string
           instrumental_url?: string | null
           is_featured?: boolean
+          is_free_download?: boolean
           is_top?: boolean
           lyrics_lrc?: string | null
           play_count?: number
@@ -526,6 +528,7 @@ export type Database = {
           id?: string
           instrumental_url?: string | null
           is_featured?: boolean
+          is_free_download?: boolean
           is_top?: boolean
           lyrics_lrc?: string | null
           play_count?: number
