@@ -52,7 +52,7 @@ const SongCard = memo(({ song, index, allSongs }: SongCardProps) => {
         coverUrl: song.coverUrl, lyricsLrc: song.lyricsLrc,
         durationSeconds: song.durationSeconds || 0, album: song.album,
         downloadedAt: Date.now(),
-      });
+      }, song.instrumentalUrl);
       setDlState("done");
       toast.success(`"${song.title}" saved for offline`);
     } catch {

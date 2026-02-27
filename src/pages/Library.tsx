@@ -14,7 +14,7 @@ import { SongRowSkeleton, EmptyState } from "@/components/ui/loading-skeleton";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsPremium } from "@/hooks/useIsPremium";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
-import { getDownloadedMeta, getDownloadedAudioUrl, saveDownload, removeDownload, type DownloadedTrack } from "@/lib/downloadManager";
+import { getDownloadedMeta, getDownloadedAudioUrl, getDownloadedInstrumentalUrl, saveDownload, removeDownload, type DownloadedTrack } from "@/lib/downloadManager";
 import { useSearchParams } from "react-router-dom";
 
 type SongRow = {
@@ -197,12 +197,14 @@ const Library = () => {
   const playOfflineTrack = async (track: DownloadedTrack) => {
     const url = await getDownloadedAudioUrl(track.id);
     if (!url) { toast.error("Audio not found in downloads"); return; }
+    const instrumentalUrl = await getDownloadedInstrumentalUrl(track.id);
     playSong({
       id: track.id,
       title: track.title,
       artist: track.artist,
       coverUrl: track.coverUrl,
       audioUrl: url,
+      instrumentalUrl: instrumentalUrl || undefined,
       lyricsLrc: track.lyricsLrc,
       durationSeconds: track.durationSeconds,
     });

@@ -82,7 +82,7 @@ const ExpandedPlayer = () => {
         coverUrl: currentSong.coverUrl, lyricsLrc: currentSong.lyricsLrc,
         durationSeconds: currentSong.durationSeconds || 0, album: currentSong.album,
         downloadedAt: Date.now(),
-      });
+      }, currentSong.instrumentalUrl);
       setDlState("done");
       toast.success(`"${currentSong.title}" saved for offline`);
     } catch { setDlState("none"); toast.error("Download failed"); }
