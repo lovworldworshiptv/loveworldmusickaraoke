@@ -40,9 +40,26 @@ export async function saveDownload(
   meta: DownloadedTrack
 ): Promise<void> {
   // Fetch audio as blob to prevent URL exposure
-  const resp = await fetch(audioUrl);
-  if (!resp.ok) throw new Error("Failed to fetch audio");
-  const blob = await resp.blob();
+  // Use no-cors fallback if standard fetch fails (cross-origin storage buckets)
+  let blob: Blob;
+  try {
+    const resp = await fetch(audioUrl, { mode: "cors" });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    blob = await resp.blob();
+  } catch {
+    // Retry with XMLHttpRequest which handles CORS differently
+    blob = await new Promise<Blob>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", audioUrl, true);
+      xhr.responseType = "blob";
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.response);
+        else reject(new Error(`HTTP ${xhr.status}`));
+      };
+      xhr.onerror = () => reject(new Error("Network error downloading audio"));
+      xhr.send();
+    });
+  }
 
   const db = await openDB();
   const tx = db.transaction([STORE_AUDIO, STORE_META], "readwrite");

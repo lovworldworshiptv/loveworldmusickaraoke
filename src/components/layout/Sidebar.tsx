@@ -1,4 +1,4 @@
-import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3, List, Image, Gamepad2, Sparkles, Users } from "lucide-react";
+import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3, List, Image, Gamepad2, Sparkles, Users, BarChart3 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -28,6 +28,7 @@ const adminItems = [
   { icon: Sparkles, label: "Onboarding Screens", path: "/admin/onboarding" },
   { icon: Sparkles, label: "Premium Ads", path: "/admin/premium-ads" },
   { icon: Users, label: "Manage Users", path: "/admin/users" },
+  { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
 ];
 
 const Sidebar = () => {

@@ -23,6 +23,7 @@ import AdminFeedback from "./pages/AdminFeedback";
 import AdminOnboarding from "./pages/AdminOnboarding";
 import AdminPremiumAds from "./pages/AdminPremiumAds";
 import AdminUsers from "./pages/AdminUsers";
+import AdminAnalytics from "./pages/AdminAnalytics";
 import Profile from "./pages/Profile";
 import Discover from "./pages/Discover";
 import History from "./pages/History";
@@ -74,6 +75,7 @@ const App = () => (
                 <Route path="/admin/onboarding" element={<AuthGate><AdminOnboarding /></AuthGate>} />
                 <Route path="/admin/premium-ads" element={<AuthGate><AdminPremiumAds /></AuthGate>} />
                 <Route path="/admin/users" element={<AuthGate><AdminUsers /></AuthGate>} />
+                <Route path="/admin/analytics" element={<AuthGate><AdminAnalytics /></AuthGate>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </PlayerProvider>
