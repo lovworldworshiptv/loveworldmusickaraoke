@@ -249,7 +249,7 @@ const Library = () => {
               onClick={(e) => { e.stopPropagation(); setShowUpgradeModal(true); }}
               className="flex items-center gap-1 px-2 py-1 rounded-full bg-gold/10 text-gold text-[10px] font-semibold opacity-70"
             >
-              <Lock className="w-3 h-3" /> Premium
+              <Download className="w-3 h-3" /> Premium
             </button>
           )
         )}
