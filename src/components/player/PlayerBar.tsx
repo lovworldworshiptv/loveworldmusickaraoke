@@ -1,5 +1,10 @@
-import { useState } from "react";
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, VolumeX, Mic2, ListMusic, ChevronUp, X } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, VolumeX, Mic2, ListMusic, ChevronUp, X, Download, Check, Lock } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useIsPremium } from "@/hooks/useIsPremium";
+import { isDownloaded, saveDownload, type DownloadedTrack } from "@/lib/downloadManager";
+import { toast } from "sonner";
 import { Slider } from "@/components/ui/slider";
 import { usePlayer } from "@/contexts/PlayerContext";
 import ExpandedPlayer from "./ExpandedPlayer";
@@ -17,8 +22,47 @@ const PlayerBar = () => {
     skipNext, skipPrev, repeatMode, cycleRepeat, shuffleOn, toggleShuffle,
     volume, setVolume, queue, queueIndex,
   } = usePlayer();
+  const { user } = useAuth();
+  const { isAdmin } = useIsAdmin();
+  const { isPremium } = useIsPremium();
   const [hidden, setHidden] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  const canDownload = isAdmin || isPremium;
+
+  useEffect(() => {
+    if (!currentSong) { setDownloaded(false); return; }
+    isDownloaded(currentSong.id).then(setDownloaded);
+  }, [currentSong?.id]);
+
+  const handleDownload = useCallback(async () => {
+    if (!currentSong?.audioUrl) { toast.error("No audio available"); return; }
+    if (!canDownload && !(currentSong as any).isFreeDownload) {
+      toast.info("Upgrade to Premium to download tracks");
+      return;
+    }
+    setDownloading(true);
+    try {
+      await saveDownload(currentSong.id, currentSong.audioUrl, {
+        id: currentSong.id,
+        title: currentSong.title,
+        artist: currentSong.artist,
+        coverUrl: currentSong.coverUrl,
+        lyricsLrc: currentSong.lyricsLrc,
+        durationSeconds: currentSong.durationSeconds || 0,
+        album: currentSong.album,
+        downloadedAt: Date.now(),
+      });
+      setDownloaded(true);
+      toast.success(`"${currentSong.title}" saved for offline`);
+    } catch (err: any) {
+      toast.error("Download failed: " + (err.message || "Unknown error"));
+    } finally {
+      setDownloading(false);
+    }
+  }, [currentSong, canDownload]);
 
   if (!currentSong) return null;
   if (hidden) return (
@@ -64,6 +108,22 @@ const PlayerBar = () => {
 
           {/* Controls */}
           <div className="flex items-center gap-2 md:gap-4">
+            {/* Mobile download button */}
+            <div className="md:hidden">
+              {currentSong?.audioUrl && (
+                downloaded ? (
+                  <span className="text-green-500"><Check className="w-4 h-4" /></span>
+                ) : canDownload ? (
+                  <button onClick={handleDownload} disabled={downloading} className="text-muted-foreground">
+                    <Download className={`w-4 h-4 ${downloading ? "animate-pulse text-gold" : ""}`} />
+                  </button>
+                ) : (
+                  <button onClick={() => toast.info("Upgrade to Premium to download")} className="text-gold/50">
+                    <Lock className="w-3.5 h-3.5" />
+                  </button>
+                )
+              )}
+            </div>
             <button onClick={toggleShuffle} className={`hidden md:block transition-colors ${shuffleOn ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               <Shuffle className="w-4 h-4" />
             </button>
@@ -84,6 +144,20 @@ const PlayerBar = () => {
 
           {/* Right Controls */}
           <div className="hidden md:flex items-center gap-3 flex-1 justify-end">
+            {/* Download button */}
+            {currentSong?.audioUrl && (
+              downloaded ? (
+                <span className="text-green-500"><Check className="w-4 h-4" /></span>
+              ) : canDownload ? (
+                <button onClick={handleDownload} disabled={downloading} className="text-muted-foreground hover:text-foreground transition-colors">
+                  <Download className={`w-4 h-4 ${downloading ? "animate-pulse text-gold" : ""}`} />
+                </button>
+              ) : (
+                <button onClick={() => toast.info("Upgrade to Premium to download")} className="text-gold/50">
+                  <Lock className="w-4 h-4" />
+                </button>
+              )
+            )}
             <button onClick={toggleKaraoke} className={`transition-opacity ${isKaraoke ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               <Mic2 className="w-4 h-4" />
             </button>

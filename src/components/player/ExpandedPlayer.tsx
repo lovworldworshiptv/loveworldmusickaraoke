@@ -1,10 +1,13 @@
 import { usePlayer, RepeatMode } from "@/contexts/PlayerContext";
-import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart } from "lucide-react";
+import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
-import { useRef, useEffect, useState, useMemo } from "react";
+import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useIsPremium } from "@/hooks/useIsPremium";
+import { isDownloaded as checkDownloaded, saveDownload } from "@/lib/downloadManager";
 
 const formatTime = (s: number) => {
   const m = Math.floor(s / 60);
@@ -58,7 +61,32 @@ const ExpandedPlayer = () => {
 
   const dominantColor = useDominantColor(currentSong?.coverUrl);
   const { user } = useAuth();
+  const { isAdmin } = useIsAdmin();
+  const { isPremium } = useIsPremium();
   const [isFav, setIsFav] = useState(false);
+  const [dlState, setDlState] = useState<"none" | "downloading" | "done">("none");
+  const canDl = isAdmin || isPremium;
+
+  useEffect(() => {
+    if (!currentSong) { setDlState("none"); return; }
+    checkDownloaded(currentSong.id).then(d => setDlState(d ? "done" : "none"));
+  }, [currentSong?.id]);
+
+  const handleDl = useCallback(async () => {
+    if (!currentSong?.audioUrl) return;
+    if (!canDl) { toast.info("Upgrade to Premium to download"); return; }
+    setDlState("downloading");
+    try {
+      await saveDownload(currentSong.id, currentSong.audioUrl, {
+        id: currentSong.id, title: currentSong.title, artist: currentSong.artist,
+        coverUrl: currentSong.coverUrl, lyricsLrc: currentSong.lyricsLrc,
+        durationSeconds: currentSong.durationSeconds || 0, album: currentSong.album,
+        downloadedAt: Date.now(),
+      });
+      setDlState("done");
+      toast.success(`"${currentSong.title}" saved for offline`);
+    } catch { setDlState("none"); toast.error("Download failed"); }
+  }, [currentSong, canDl]);
 
   // Check if current song is favorited
   useEffect(() => {
@@ -128,9 +156,26 @@ const ExpandedPlayer = () => {
           <div className="text-center">
             <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-medium">Now Playing</p>
           </div>
-          <button onClick={toggleFavorite} className={`transition-colors p-1 ${isFav ? "text-gold" : "text-muted-foreground hover:text-gold"}`}>
-            <Heart className="w-5 h-5" fill={isFav ? "currentColor" : "none"} />
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Download */}
+            {currentSong?.audioUrl && (
+              dlState === "done" ? (
+                <span className="text-green-500 p-1"><Check className="w-5 h-5" /></span>
+              ) : canDl ? (
+                <button onClick={handleDl} disabled={dlState === "downloading"} className="text-muted-foreground hover:text-foreground p-1">
+                  <Download className={`w-5 h-5 ${dlState === "downloading" ? "animate-pulse text-gold" : ""}`} />
+                </button>
+              ) : (
+                <button onClick={() => toast.info("Upgrade to Premium to download")} className="text-gold/50 p-1">
+                  <Lock className="w-5 h-5" />
+                </button>
+              )
+            )}
+            {/* Favorite */}
+            <button onClick={toggleFavorite} className={`transition-colors p-1 ${isFav ? "text-gold" : "text-muted-foreground hover:text-gold"}`}>
+              <Heart className="w-5 h-5" fill={isFav ? "currentColor" : "none"} />
+            </button>
+          </div>
         </div>
 
         {/* Toggle: Album Art / Lyrics */}
