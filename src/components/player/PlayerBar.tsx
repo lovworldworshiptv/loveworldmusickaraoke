@@ -54,7 +54,7 @@ const PlayerBar = () => {
         durationSeconds: currentSong.durationSeconds || 0,
         album: currentSong.album,
         downloadedAt: Date.now(),
-      });
+      }, currentSong.instrumentalUrl);
       setDownloaded(true);
       toast.success(`"${currentSong.title}" saved for offline`);
     } catch (err: any) {

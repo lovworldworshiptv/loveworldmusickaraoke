@@ -34,17 +34,10 @@ function openDB(): Promise<IDBDatabase> {
   });
 }
 
-export async function saveDownload(
-  songId: string,
-  audioUrl: string,
-  meta: DownloadedTrack
-): Promise<void> {
-  // Proxy audio through edge function to bypass CORS restrictions
-  let blob: Blob;
+async function fetchViaProxy(url: string): Promise<Blob> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   const proxyUrl = `${supabaseUrl}/functions/v1/download-audio`;
-
   const resp = await fetch(proxyUrl, {
     method: "POST",
     headers: {
@@ -52,18 +45,41 @@ export async function saveDownload(
       "apikey": supabaseKey,
       "Authorization": `Bearer ${supabaseKey}`,
     },
-    body: JSON.stringify({ url: audioUrl }),
+    body: JSON.stringify({ url }),
   });
-
   if (!resp.ok) {
     const err = await resp.text().catch(() => "Unknown error");
     throw new Error(`Download proxy failed: ${err}`);
   }
-  blob = await resp.blob();
+  return resp.blob();
+}
+
+export async function saveDownload(
+  songId: string,
+  audioUrl: string,
+  meta: DownloadedTrack,
+  instrumentalUrl?: string
+): Promise<void> {
+  // Download main audio
+  const blob = await fetchViaProxy(audioUrl);
+
+  // Download instrumental if available
+  let instrumentalBlob: Blob | null = null;
+  if (instrumentalUrl) {
+    try {
+      instrumentalBlob = await fetchViaProxy(instrumentalUrl);
+    } catch {
+      // Non-fatal: instrumental download failed, continue with main audio
+      console.warn("Instrumental download failed, skipping");
+    }
+  }
 
   const db = await openDB();
   const tx = db.transaction([STORE_AUDIO, STORE_META], "readwrite");
   tx.objectStore(STORE_AUDIO).put(blob, songId);
+  if (instrumentalBlob) {
+    tx.objectStore(STORE_AUDIO).put(instrumentalBlob, `${songId}_instrumental`);
+  }
   tx.objectStore(STORE_META).put(meta, songId);
   return new Promise((resolve, reject) => {
     tx.oncomplete = () => resolve();
@@ -71,10 +87,24 @@ export async function saveDownload(
   });
 }
 
+export async function getDownloadedInstrumentalUrl(songId: string): Promise<string | null> {
+  const db = await openDB();
+  const tx = db.transaction(STORE_AUDIO, "readonly");
+  const req = tx.objectStore(STORE_AUDIO).get(`${songId}_instrumental`);
+  return new Promise((resolve, reject) => {
+    req.onsuccess = () => {
+      if (req.result) resolve(URL.createObjectURL(req.result));
+      else resolve(null);
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
 export async function removeDownload(songId: string): Promise<void> {
   const db = await openDB();
   const tx = db.transaction([STORE_AUDIO, STORE_META], "readwrite");
   tx.objectStore(STORE_AUDIO).delete(songId);
+  tx.objectStore(STORE_AUDIO).delete(`${songId}_instrumental`);
   tx.objectStore(STORE_META).delete(songId);
   return new Promise((resolve, reject) => {
     tx.oncomplete = () => resolve();
