@@ -16,7 +16,7 @@ interface PremiumAd {
 
 const SecondaryBanner = () => {
   const [ad, setAd] = useState<PremiumAd | null>(null);
-  const { isPremium } = useIsPremium();
+  const { isPremium, isTrial } = useIsPremium();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,8 +32,8 @@ const SecondaryBanner = () => {
       });
   }, []);
 
-  // Hide for premium users
-  if (isPremium) return null;
+  // Hide only for full premium users (show for free and trial)
+  if (isPremium && !isTrial) return null;
 
   const title = ad?.title || "Upgrade to Karaoke+";
   const subtitle = ad?.subtitle || "Unlimited songs, karaoke mode, games & offline downloads.";

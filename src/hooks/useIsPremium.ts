@@ -5,12 +5,14 @@ import { useAuth } from "@/contexts/AuthContext";
 export const useIsPremium = () => {
   const { user } = useAuth();
   const [isPremium, setIsPremium] = useState(false);
+  const [isTrial, setIsTrial] = useState(false);
   const [loading, setLoading] = useState(true);
   const [subscriptionExpiry, setSubscriptionExpiry] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
       setIsPremium(false);
+      setIsTrial(false);
       setSubscriptionExpiry(null);
       setLoading(false);
       return;
@@ -21,18 +23,21 @@ export const useIsPremium = () => {
       .eq("user_id", user.id)
       .single()
       .then(({ data }) => {
-        const isActive = data?.subscription === "premium" || data?.subscription === "trial";
+        const sub = data?.subscription;
         const expiry = (data as any)?.subscription_expiry_date;
-        // If there's an expiry date, check it hasn't passed
-        if (isActive && expiry && new Date(expiry) < new Date()) {
+        const expired = expiry && new Date(expiry) < new Date();
+
+        if (expired) {
           setIsPremium(false);
+          setIsTrial(false);
         } else {
-          setIsPremium(isActive);
+          setIsPremium(sub === "premium" || sub === "trial");
+          setIsTrial(sub === "trial");
         }
         setSubscriptionExpiry(expiry || null);
         setLoading(false);
       });
   }, [user]);
 
-  return { isPremium, loading, subscriptionExpiry };
+  return { isPremium, isTrial, loading, subscriptionExpiry };
 };
