@@ -1,1 +1,16 @@
 project_id = "qphlczkvepcxzgqagsmx"
+
+[functions.send-notification]
+verify_jwt = false
+
+[functions.sync-onesignal-tag]
+verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = false
+
+[functions.download-audio]
+verify_jwt = false
+
+[functions.kingschat-auth]
+verify_jwt = false
