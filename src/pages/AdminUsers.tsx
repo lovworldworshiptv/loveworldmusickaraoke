@@ -8,6 +8,9 @@ import { toast } from "sonner";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 interface UserRow {
   user_id: string;
@@ -15,8 +18,16 @@ interface UserRow {
   avatar_url: string | null;
   role: string;
   subscription: string;
+  subscription_expiry_date: string | null;
   created_at: string;
 }
+
+const PLANS = [
+  { value: "3_day_trial", label: "3-Day Trial", days: 3 },
+  { value: "1_month", label: "1 Month (2 ESP)", days: 30 },
+  { value: "6_months", label: "6 Months (10 ESP)", days: 180 },
+  { value: "1_year", label: "1 Year (15 ESP)", days: 365 },
+];
 
 const AdminUsers = () => {
   const { isAdmin, loading: adminLoading } = useIsAdmin();
@@ -24,6 +35,11 @@ const AdminUsers = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  // Premium plan modal state
+  const [planModalOpen, setPlanModalOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState("1_month");
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -39,20 +55,21 @@ const AdminUsers = () => {
     }
 
     const { data: roles } = await supabase.from("user_roles").select("user_id, role");
-    const { data: subs } = await supabase.from("user_subscriptions").select("user_id, subscription");
+    const { data: subs } = await supabase.from("user_subscriptions").select("user_id, subscription, subscription_expiry_date");
 
     const roleMap = new Map<string, string>();
     (roles || []).forEach((r: any) => roleMap.set(r.user_id, r.role));
 
-    const subMap = new Map<string, string>();
-    (subs || []).forEach((s: any) => subMap.set(s.user_id, s.subscription));
+    const subMap = new Map<string, { subscription: string; expiry: string | null }>();
+    (subs || []).forEach((s: any) => subMap.set(s.user_id, { subscription: s.subscription, expiry: s.subscription_expiry_date }));
 
     const merged: UserRow[] = profiles.map((p: any) => ({
       user_id: p.user_id,
       username: p.username,
       avatar_url: p.avatar_url,
       role: roleMap.get(p.user_id) || "user",
-      subscription: subMap.get(p.user_id) || "free",
+      subscription: subMap.get(p.user_id)?.subscription || "free",
+      subscription_expiry_date: subMap.get(p.user_id)?.expiry || null,
       created_at: p.created_at,
     }));
 
@@ -80,26 +97,66 @@ const AdminUsers = () => {
     setUpdatingId(null);
   };
 
-  const handleSubscriptionChange = async (userId: string, newSub: string) => {
+  const handleSubscriptionChange = (userId: string, newSub: string) => {
+    if (newSub === "premium") {
+      setPendingUserId(userId);
+      setSelectedPlan("1_month");
+      setPlanModalOpen(true);
+    } else {
+      confirmSubscriptionChange(userId, newSub, null, null);
+    }
+  };
+
+  const confirmSubscriptionChange = async (
+    userId: string,
+    newSub: string,
+    plan: string | null,
+    expiryDate: string | null
+  ) => {
     setUpdatingId(userId);
+    const updateData: any = {
+      subscription: newSub as any,
+      subscription_plan: plan || "none",
+      subscription_start_date: newSub === "premium" ? new Date().toISOString() : null,
+      subscription_expiry_date: expiryDate,
+    };
+
     const { error } = await supabase
       .from("user_subscriptions")
-      .update({ subscription: newSub as any })
+      .update(updateData)
       .eq("user_id", userId);
+
     if (error) {
-      // If no row exists, insert
       const { error: insertErr } = await supabase
         .from("user_subscriptions")
-        .insert({ user_id: userId, subscription: newSub as any });
+        .insert({ user_id: userId, ...updateData });
       if (insertErr) {
         toast.error("Failed to update subscription");
         setUpdatingId(null);
         return;
       }
     }
-    toast.success("Subscription updated");
-    setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, subscription: newSub } : u));
+
+    toast.success(newSub === "premium" ? "Premium activated" : "Subscription reverted to free");
+    setUsers(prev => prev.map(u => u.user_id === userId ? {
+      ...u,
+      subscription: newSub,
+      subscription_expiry_date: expiryDate,
+    } : u));
     setUpdatingId(null);
+  };
+
+  const handleConfirmPremium = () => {
+    if (!pendingUserId) return;
+    const plan = PLANS.find(p => p.value === selectedPlan);
+    if (!plan) return;
+
+    const expiry = new Date();
+    expiry.setDate(expiry.getDate() + plan.days);
+
+    confirmSubscriptionChange(pendingUserId, "premium", plan.value, expiry.toISOString());
+    setPlanModalOpen(false);
+    setPendingUserId(null);
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -127,6 +184,8 @@ const AdminUsers = () => {
     u.username.toLowerCase().includes(search.toLowerCase()) ||
     u.user_id.toLowerCase().includes(search.toLowerCase())
   );
+
+  const pendingUser = users.find(u => u.user_id === pendingUserId);
 
   return (
     <AppLayout>
@@ -158,6 +217,7 @@ const AdminUsers = () => {
                   <TableHead>User</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Subscription</TableHead>
+                  <TableHead>Expiry</TableHead>
                   <TableHead>Joined</TableHead>
                   <TableHead className="w-[80px]">Actions</TableHead>
                 </TableRow>
@@ -223,6 +283,13 @@ const AdminUsers = () => {
                     </TableCell>
                     <TableCell>
                       <span className="text-xs text-muted-foreground">
+                        {user.subscription === "premium" && user.subscription_expiry_date
+                          ? new Date(user.subscription_expiry_date).toLocaleDateString()
+                          : "—"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs text-muted-foreground">
                         {new Date(user.created_at).toLocaleDateString()}
                       </span>
                     </TableCell>
@@ -260,6 +327,47 @@ const AdminUsers = () => {
         )}
       </div>
       <div className="h-8" />
+
+      {/* Premium Plan Selection Modal */}
+      <Dialog open={planModalOpen} onOpenChange={(open) => {
+        if (!open) {
+          setPlanModalOpen(false);
+          setPendingUserId(null);
+        }
+      }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crown className="w-5 h-5 text-gold" />
+              Activate Premium
+            </DialogTitle>
+            <DialogDescription>
+              Select a subscription plan for <strong>{pendingUser?.username}</strong>
+            </DialogDescription>
+          </DialogHeader>
+
+          <RadioGroup value={selectedPlan} onValueChange={setSelectedPlan} className="space-y-3 mt-2">
+            {PLANS.map(plan => (
+              <div key={plan.value} className="flex items-center space-x-3">
+                <RadioGroupItem value={plan.value} id={plan.value} />
+                <Label htmlFor={plan.value} className="flex-1 cursor-pointer text-sm">
+                  <span className="font-medium text-foreground">{plan.label}</span>
+                  <span className="block text-xs text-muted-foreground">{plan.days} days</span>
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
+
+          <div className="flex gap-3 mt-4">
+            <Button variant="outline" className="flex-1" onClick={() => { setPlanModalOpen(false); setPendingUserId(null); }}>
+              Cancel
+            </Button>
+            <Button className="flex-1" onClick={handleConfirmPremium}>
+              Confirm
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };
