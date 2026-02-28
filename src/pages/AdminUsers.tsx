@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { Users, Shield, Crown, User, Search, Trash2 } from "lucide-react";
+import { Users, Shield, Crown, User, Search, Trash2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
@@ -102,6 +102,11 @@ const AdminUsers = () => {
       setPendingUserId(userId);
       setSelectedPlan("1_month");
       setPlanModalOpen(true);
+    } else if (newSub === "trial") {
+      // Auto-activate 3-day trial
+      const expiry = new Date();
+      expiry.setDate(expiry.getDate() + 3);
+      confirmSubscriptionChange(userId, "trial", "3_day_trial", expiry.toISOString());
     } else {
       confirmSubscriptionChange(userId, newSub, null, null);
     }
@@ -137,7 +142,7 @@ const AdminUsers = () => {
       }
     }
 
-    toast.success(newSub === "premium" ? "Premium activated" : "Subscription reverted to free");
+    toast.success(newSub === "premium" ? "Premium activated" : newSub === "trial" ? "Trial activated" : "Subscription reverted to free");
     setUsers(prev => prev.map(u => u.user_id === userId ? {
       ...u,
       subscription: newSub,
@@ -275,6 +280,9 @@ const AdminUsers = () => {
                           <SelectItem value="free">
                             <span className="flex items-center gap-1.5"><User className="w-3 h-3" /> Free</span>
                           </SelectItem>
+                          <SelectItem value="trial">
+                            <span className="flex items-center gap-1.5"><Clock className="w-3 h-3 text-orange-400" /> Trial</span>
+                          </SelectItem>
                           <SelectItem value="premium">
                             <span className="flex items-center gap-1.5"><Crown className="w-3 h-3 text-gold" /> Premium</span>
                           </SelectItem>
@@ -283,7 +291,7 @@ const AdminUsers = () => {
                     </TableCell>
                     <TableCell>
                       <span className="text-xs text-muted-foreground">
-                        {user.subscription === "premium" && user.subscription_expiry_date
+                        {(user.subscription === "premium" || user.subscription === "trial") && user.subscription_expiry_date
                           ? new Date(user.subscription_expiry_date).toLocaleDateString()
                           : "—"}
                       </span>

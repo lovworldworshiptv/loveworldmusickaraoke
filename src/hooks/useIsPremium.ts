@@ -21,7 +21,7 @@ export const useIsPremium = () => {
       .eq("user_id", user.id)
       .single()
       .then(({ data }) => {
-        const isActive = data?.subscription === "premium";
+        const isActive = data?.subscription === "premium" || data?.subscription === "trial";
         const expiry = (data as any)?.subscription_expiry_date;
         // If there's an expiry date, check it hasn't passed
         if (isActive && expiry && new Date(expiry) < new Date()) {
