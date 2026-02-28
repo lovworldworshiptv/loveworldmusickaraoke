@@ -9,6 +9,7 @@ import ArticleSection from "@/components/home/ArticleSection";
 import GameSection from "@/components/home/GameSection";
 import SecondaryBanner from "@/components/home/SecondaryBanner";
 import RecentlyPlayed from "@/components/home/RecentlyPlayed";
+import HomepagePopup from "@/components/home/HomepagePopup";
 import OnboardingSplash from "@/components/onboarding/OnboardingSplash";
 import { useAuth } from "@/contexts/AuthContext";
 import ProfileMenu from "@/components/layout/ProfileMenu";
@@ -43,6 +44,7 @@ const Index = () => {
 
   return (
     <AppLayout>
+      <HomepagePopup />
       <div className="px-4 lg:px-6 pt-4 lg:pt-6 animate-fade-in-up flex items-center justify-between">
         <div>
           <p className="text-sm text-muted-foreground tracking-wide">Welcome Esteemed</p>
