@@ -4,6 +4,7 @@ import BottomNav from "./BottomNav";
 import TopNavbar from "./TopNavbar";
 import PlayerBar from "../player/PlayerBar";
 import { usePlayer } from "@/contexts/PlayerContext";
+import { useOneSignalSync } from "@/hooks/useOneSignal";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -11,6 +12,7 @@ interface AppLayoutProps {
 
 const AppLayout = memo(({ children }: AppLayoutProps) => {
   const { currentSong } = usePlayer();
+  useOneSignalSync();
 
   return (
     <div className="h-[100dvh] bg-background overflow-hidden safe-top flex flex-col">

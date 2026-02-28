@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import logo from "@/assets/logo.png";
+import NotificationCenter from "@/components/notifications/NotificationCenter";
 
 const TopNavbar = () => {
   const navigate = useNavigate();
@@ -8,7 +9,7 @@ const TopNavbar = () => {
   const isHome = location.pathname === "/";
 
   return (
-    <header className="sticky top-0 z-40 glass border-b border-border px-4 py-3 flex items-center lg:ml-64">
+    <header className="sticky top-0 z-40 glass border-b border-border px-4 py-3 flex items-center justify-between lg:ml-64">
       <div className="flex items-center gap-2">
         {!isHome && (
           <button
@@ -20,6 +21,7 @@ const TopNavbar = () => {
         )}
         <img src={logo} alt="Loveworld Music Karaoke+" className="h-9 w-auto lg:hidden" />
       </div>
+      <NotificationCenter />
     </header>
   );
 };

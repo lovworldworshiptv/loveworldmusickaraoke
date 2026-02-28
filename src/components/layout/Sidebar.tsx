@@ -29,6 +29,7 @@ const adminItems = [
   { icon: Sparkles, label: "Premium Ads", path: "/admin/premium-ads" },
   { icon: Users, label: "Manage Users", path: "/admin/users" },
   { icon: Bell, label: "Homepage Popup", path: "/admin/popup" },
+  { icon: Bell, label: "Notifications", path: "/admin/notifications" },
   { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
 ];
 
