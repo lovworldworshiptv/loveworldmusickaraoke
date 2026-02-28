@@ -3,7 +3,8 @@ import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsPremium } from "@/hooks/useIsPremium";
 import { supabase } from "@/integrations/supabase/client";
-import { Crown, Gift, Clock, Check, Upload, Camera, Search, X, ChevronRight } from "lucide-react";
+import { Crown, Gift, Clock, Check, Upload, Camera, Search, X, ChevronRight, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +24,7 @@ const GIFT_PLANS = PLANS.filter(p => p.id !== "3_day_trial");
 const Subscription = () => {
   const { user, username, kingschatHandle } = useAuth();
   const { isPremium, subscriptionExpiry } = useIsPremium();
+  const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showGiftForm, setShowGiftForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -88,7 +90,33 @@ const Subscription = () => {
 
   const handleSubscribe = async () => {
     if (!selectedPlan || !user) return;
-    if (selectedPlan !== "3_day_trial" && !proofFile) { toast.error("Please upload proof of payment"); return; }
+
+    // Trial: activate directly without name/proof
+    if (selectedPlan === "3_day_trial") {
+      setSubmitting(true);
+      try {
+        const now = new Date();
+        const expiry = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+        const { error } = await supabase.from("user_subscriptions")
+          .update({
+            subscription: "premium" as any,
+            subscription_plan: "3_day_trial",
+            subscription_start_date: now.toISOString(),
+            subscription_expiry_date: expiry.toISOString(),
+          })
+          .eq("user_id", user.id);
+        if (error) throw error;
+        setSuccessDialog("trial");
+        setSelectedPlan(null);
+      } catch (err: any) {
+        toast.error(err.message || "Failed to activate trial");
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    if (!proofFile) { toast.error("Please upload proof of payment"); return; }
     if (!subFullName.trim()) { toast.error("Please enter your full name"); return; }
 
     setSubmitting(true);
@@ -225,61 +253,74 @@ const Subscription = () => {
               {chosenPlan?.label} — {chosenPlan?.espees}
             </h3>
 
-            {/* Payment Details */}
-            {selectedPlan !== "3_day_trial" && (
-              <div className="bg-muted/50 rounded-xl p-4 text-sm space-y-2">
-                <p className="font-semibold text-foreground">Payment Details</p>
-                <div className="space-y-1 text-muted-foreground">
-                  <p><span className="font-medium text-foreground">Espees Merchant Code:</span> LMM01</p>
-                  <p className="font-semibold text-foreground mt-2">Bank Transfer:</p>
-                  <p><span className="font-medium text-foreground">Account No:</span> 1000316347</p>
-                  <p><span className="font-medium text-foreground">Account Name:</span> LMAM - Music App</p>
-                  <p><span className="font-medium text-foreground">Bank:</span> Parallex Bank</p>
+            {selectedPlan === "3_day_trial" ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Enjoy all premium features free for 3 days. No payment required. Your subscription will automatically revert to free after the trial period.
+                </p>
+                <Button
+                  onClick={handleSubscribe}
+                  disabled={submitting}
+                  className="w-full gradient-gold text-primary-foreground font-semibold"
+                >
+                  {submitting ? "Activating..." : "Activate"}
+                </Button>
+              </>
+            ) : (
+              <>
+                {/* Payment Details */}
+                <div className="bg-muted/50 rounded-xl p-4 text-sm space-y-2">
+                  <p className="font-semibold text-foreground">Payment Details</p>
+                  <div className="space-y-1 text-muted-foreground">
+                    <p><span className="font-medium text-foreground">Espees Merchant Code:</span> LMM01</p>
+                    <p className="font-semibold text-foreground mt-2">Bank Transfer:</p>
+                    <p><span className="font-medium text-foreground">Account No:</span> 1000316347</p>
+                    <p><span className="font-medium text-foreground">Account Name:</span> LMAM - Music App</p>
+                    <p><span className="font-medium text-foreground">Bank:</span> Parallex Bank</p>
+                  </div>
                 </div>
-              </div>
-            )}
 
-            <Input placeholder="Full Name *" value={subFullName} onChange={e => setSubFullName(e.target.value)} />
-            <Input placeholder="KingsChat Username" value={subKcUsername} onChange={e => setSubKcUsername(e.target.value)} />
-            <Input
-              placeholder={`Amount: ${chosenPlan?.amount || 0} ESP`}
-              value={`${chosenPlan?.amount || 0} ESP`}
-              disabled
-              className="bg-muted"
-            />
+                <Input placeholder="Full Name *" value={subFullName} onChange={e => setSubFullName(e.target.value)} />
+                <Input placeholder="KingsChat Username" value={subKcUsername} onChange={e => setSubKcUsername(e.target.value)} />
+                <Input
+                  placeholder={`Amount: ${chosenPlan?.amount || 0} ESP`}
+                  value={`${chosenPlan?.amount || 0} ESP`}
+                  disabled
+                  className="bg-muted"
+                />
 
-            {selectedPlan !== "3_day_trial" && (
-              <div>
-                <label className="text-sm font-medium text-foreground mb-1 block">Proof of Transaction *</label>
-              {proofFile && (
-                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg mb-2">
-                  <Check className="w-4 h-4 text-green-500" />
-                  <span className="text-sm text-foreground truncate flex-1">{proofFile.name}</span>
-                  <button onClick={() => setProofFile(null)} className="text-muted-foreground hover:text-destructive"><X className="w-4 h-4" /></button>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1 block">Proof of Transaction *</label>
+                  {proofFile && (
+                    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg mb-2">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span className="text-sm text-foreground truncate flex-1">{proofFile.name}</span>
+                      <button onClick={() => setProofFile(null)} className="text-muted-foreground hover:text-destructive"><X className="w-4 h-4" /></button>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <label className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-gold/50 transition-colors">
+                      <Upload className="w-5 h-5 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Select Image</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={e => setProofFile(e.target.files?.[0] || null)} />
+                    </label>
+                    <label className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-gold/50 transition-colors">
+                      <Camera className="w-5 h-5 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Take Photo</span>
+                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => setProofFile(e.target.files?.[0] || null)} />
+                    </label>
+                  </div>
                 </div>
-              )}
-              <div className="flex gap-2">
-                <label className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-gold/50 transition-colors">
-                  <Upload className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Select Image</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={e => setProofFile(e.target.files?.[0] || null)} />
-                </label>
-                <label className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-gold/50 transition-colors">
-                  <Camera className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Take Photo</span>
-                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => setProofFile(e.target.files?.[0] || null)} />
-                </label>
-              </div>
-              </div>
-            )}
 
-            <Button
-              onClick={handleSubscribe}
-              disabled={submitting}
-              className="w-full gradient-gold text-primary-foreground font-semibold"
-            >
-              {submitting ? "Submitting..." : "Submit Payment"}
-            </Button>
+                <Button
+                  onClick={handleSubscribe}
+                  disabled={submitting}
+                  className="w-full gradient-gold text-primary-foreground font-semibold"
+                >
+                  {submitting ? "Submitting..." : "Submit Payment"}
+                </Button>
+              </>
+            )}
           </div>
         )}
 
@@ -401,24 +442,37 @@ const Subscription = () => {
         )}
 
         {/* Success Dialog */}
-        <Dialog open={!!successDialog} onOpenChange={() => setSuccessDialog(null)}>
+        <Dialog open={!!successDialog} onOpenChange={() => { setSuccessDialog(null); navigate("/"); }}>
           <DialogContent className="max-w-sm text-center">
             <DialogHeader>
-              <DialogTitle className="text-lg font-serif">Subscription Pending</DialogTitle>
+              <DialogTitle className="text-lg font-serif">
+                {successDialog === "trial" ? "Premium Trial Activated" : "Subscription Pending"}
+              </DialogTitle>
             </DialogHeader>
             <div className="py-4 space-y-3">
               <div className="w-14 h-14 rounded-full bg-gold/20 flex items-center justify-center mx-auto">
-                <Clock className="w-7 h-7 text-gold" />
+                {successDialog === "trial"
+                  ? <Sparkles className="w-7 h-7 text-gold" />
+                  : <Clock className="w-7 h-7 text-gold" />
+                }
               </div>
-              <p className="text-sm text-muted-foreground">
-                Thank you for your submission. {successDialog === "gift" ? "Gift subscription" : "Your subscription"} is currently pending approval.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {successDialog === "gift"
-                  ? "Recipients will be notified via KingsChat or email once the subscription is active."
-                  : "You will be notified via KingsChat or email once your subscription is active."}
-              </p>
-              <Button onClick={() => setSuccessDialog(null)} className="w-full gradient-gold text-primary-foreground">
+              {successDialog === "trial" ? (
+                <p className="text-sm text-muted-foreground">
+                  Thank you for your subscription. Enjoy all premium features for the next 3 days!
+                </p>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Thank you for your submission. {successDialog === "gift" ? "Gift subscription" : "Your subscription"} is currently pending approval.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {successDialog === "gift"
+                      ? "Recipients will be notified via KingsChat or email once the subscription is active."
+                      : "You will be notified via KingsChat or email once your subscription is active."}
+                  </p>
+                </>
+              )}
+              <Button onClick={() => { setSuccessDialog(null); navigate("/"); }} className="w-full gradient-gold text-primary-foreground">
                 Got it
               </Button>
             </div>
