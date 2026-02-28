@@ -10,7 +10,8 @@ import { toast } from "@/components/ui/sonner";
 const Profile = () => {
   const { user, username, avatarUrl, kingschatHandle, signOut, loading } = useAuth();
   const navigate = useNavigate();
-  const [role, setRole] = useState<string>("free");
+  const [role, setRole] = useState<string>("user");
+  const [subscription, setSubscription] = useState<string>("free");
   const [deleting, setDeleting] = useState(false);
 
   const handleDeleteAccount = async () => {
@@ -39,6 +40,8 @@ const Profile = () => {
     if (user) {
       supabase.from("user_roles").select("role").eq("user_id", user.id).single()
         .then(({ data }) => { if (data) setRole(data.role); });
+      supabase.from("user_subscriptions").select("subscription").eq("user_id", user.id).single()
+        .then(({ data }) => { if (data) setSubscription(data.subscription); });
     }
   }, [user]);
 
@@ -68,9 +71,12 @@ const Profile = () => {
     );
   }
 
-  const roleIcon = role === "admin" ? Shield : role === "premium" ? Crown : User;
-  const roleLabel = role === "admin" ? "Admin" : role === "premium" ? "Premium" : "Free";
-  const roleColor = role === "admin" ? "text-destructive" : role === "premium" ? "text-gold" : "text-muted-foreground";
+  const roleIcon = role === "admin" ? Shield : role === "editor" ? Shield : User;
+  const subscriptionIcon = subscription === "premium" ? Crown : User;
+  const roleLabel = role === "admin" ? "Admin" : role === "editor" ? "Editor" : "User";
+  const subscriptionLabel = subscription === "premium" ? "Premium" : "Free";
+  const roleColor = role === "admin" ? "text-destructive" : role === "editor" ? "text-primary" : "text-muted-foreground";
+  const subscriptionColor = subscription === "premium" ? "text-gold" : "text-muted-foreground";
 
   const menuItems = [
     { label: "My Favorites", path: "/library", icon: ChevronRight },
@@ -98,11 +104,17 @@ const Profile = () => {
             </p>
           )}
           <p className="text-xs text-muted-foreground mt-1">{user.email?.includes("@kingschat.local") ? "" : user.email}</p>
-          <div className={`inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full bg-muted text-xs font-semibold ${roleColor}`}>
-            {role === "admin" && <Shield className="w-3.5 h-3.5" />}
-            {role === "premium" && <Crown className="w-3.5 h-3.5" />}
-            {role === "free" && <User className="w-3.5 h-3.5" />}
-            {roleLabel}
+          <div className="flex items-center gap-2 mt-3 justify-center flex-wrap">
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted text-xs font-semibold ${roleColor}`}>
+              {role === "admin" && <Shield className="w-3.5 h-3.5" />}
+              {role === "editor" && <Shield className="w-3.5 h-3.5" />}
+              {role === "user" && <User className="w-3.5 h-3.5" />}
+              {roleLabel}
+            </span>
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted text-xs font-semibold ${subscriptionColor}`}>
+              {subscription === "premium" ? <Crown className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
+              {subscriptionLabel}
+            </span>
           </div>
         </div>
 

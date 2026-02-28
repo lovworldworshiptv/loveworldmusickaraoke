@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { Users, Shield, Crown, User, Search, Save, Trash2 } from "lucide-react";
+import { Users, Shield, Crown, User, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
@@ -13,8 +13,8 @@ interface UserRow {
   user_id: string;
   username: string;
   avatar_url: string | null;
-  email?: string;
   role: string;
+  subscription: string;
   created_at: string;
 }
 
@@ -27,7 +27,6 @@ const AdminUsers = () => {
 
   const fetchUsers = async () => {
     setLoading(true);
-    // Get profiles + roles
     const { data: profiles, error: pErr } = await supabase
       .from("profiles")
       .select("user_id, username, avatar_url, created_at")
@@ -39,19 +38,21 @@ const AdminUsers = () => {
       return;
     }
 
-    // Get all roles
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("user_id, role");
+    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+    const { data: subs } = await supabase.from("user_subscriptions").select("user_id, subscription");
 
     const roleMap = new Map<string, string>();
     (roles || []).forEach((r: any) => roleMap.set(r.user_id, r.role));
+
+    const subMap = new Map<string, string>();
+    (subs || []).forEach((s: any) => subMap.set(s.user_id, s.subscription));
 
     const merged: UserRow[] = profiles.map((p: any) => ({
       user_id: p.user_id,
       username: p.username,
       avatar_url: p.avatar_url,
-      role: roleMap.get(p.user_id) || "free",
+      role: roleMap.get(p.user_id) || "user",
+      subscription: subMap.get(p.user_id) || "free",
       created_at: p.created_at,
     }));
 
@@ -65,26 +66,39 @@ const AdminUsers = () => {
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     setUpdatingId(userId);
-    // Upsert role
     const { error } = await supabase
       .from("user_roles")
-      .upsert({ user_id: userId, role: newRole as any }, { onConflict: "user_id,role" });
-
+      .update({ role: newRole as any })
+      .eq("user_id", userId);
     if (error) {
-      // If unique conflict, update instead
-      const { error: updateErr } = await supabase
-        .from("user_roles")
-        .update({ role: newRole as any })
-        .eq("user_id", userId);
-      if (updateErr) {
-        toast.error("Failed to update role");
+      toast.error("Failed to update role");
+      setUpdatingId(null);
+      return;
+    }
+    toast.success("Role updated");
+    setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, role: newRole } : u));
+    setUpdatingId(null);
+  };
+
+  const handleSubscriptionChange = async (userId: string, newSub: string) => {
+    setUpdatingId(userId);
+    const { error } = await supabase
+      .from("user_subscriptions")
+      .update({ subscription: newSub as any })
+      .eq("user_id", userId);
+    if (error) {
+      // If no row exists, insert
+      const { error: insertErr } = await supabase
+        .from("user_subscriptions")
+        .insert({ user_id: userId, subscription: newSub as any });
+      if (insertErr) {
+        toast.error("Failed to update subscription");
         setUpdatingId(null);
         return;
       }
     }
-
-    toast.success("Role updated");
-    setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, role: newRole } : u));
+    toast.success("Subscription updated");
+    setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, subscription: newSub } : u));
     setUpdatingId(null);
   };
 
@@ -102,7 +116,6 @@ const AdminUsers = () => {
 
   const roleIcon = (role: string) => {
     if (role === "admin") return <Shield className="w-3.5 h-3.5 text-destructive" />;
-    if (role === "premium") return <Crown className="w-3.5 h-3.5 text-gold" />;
     if (role === "editor") return <Shield className="w-3.5 h-3.5 text-primary" />;
     return <User className="w-3.5 h-3.5 text-muted-foreground" />;
   };
@@ -144,6 +157,7 @@ const AdminUsers = () => {
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Subscription</TableHead>
                   <TableHead>Joined</TableHead>
                   <TableHead className="w-[80px]">Actions</TableHead>
                 </TableRow>
@@ -172,7 +186,29 @@ const AdminUsers = () => {
                         onValueChange={(v) => handleRoleChange(user.user_id, v)}
                         disabled={updatingId === user.user_id}
                       >
-                        <SelectTrigger className="w-[120px] h-8 text-xs">
+                        <SelectTrigger className="w-[110px] h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="user">
+                            <span className="flex items-center gap-1.5"><User className="w-3 h-3" /> User</span>
+                          </SelectItem>
+                          <SelectItem value="editor">
+                            <span className="flex items-center gap-1.5"><Shield className="w-3 h-3 text-primary" /> Editor</span>
+                          </SelectItem>
+                          <SelectItem value="admin">
+                            <span className="flex items-center gap-1.5"><Shield className="w-3 h-3 text-destructive" /> Admin</span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={user.subscription}
+                        onValueChange={(v) => handleSubscriptionChange(user.user_id, v)}
+                        disabled={updatingId === user.user_id}
+                      >
+                        <SelectTrigger className="w-[110px] h-8 text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -181,12 +217,6 @@ const AdminUsers = () => {
                           </SelectItem>
                           <SelectItem value="premium">
                             <span className="flex items-center gap-1.5"><Crown className="w-3 h-3 text-gold" /> Premium</span>
-                          </SelectItem>
-                          <SelectItem value="editor">
-                            <span className="flex items-center gap-1.5"><Shield className="w-3 h-3 text-primary" /> Editor</span>
-                          </SelectItem>
-                          <SelectItem value="admin">
-                            <span className="flex items-center gap-1.5"><Shield className="w-3 h-3 text-destructive" /> Admin</span>
                           </SelectItem>
                         </SelectContent>
                       </Select>
