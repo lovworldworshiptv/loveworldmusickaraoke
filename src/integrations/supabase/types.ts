@@ -268,6 +268,84 @@ export type Database = {
         }
         Relationships: []
       }
+      homepage_popup: {
+        Row: {
+          bg_color: string | null
+          border_radius: string | null
+          button_color: string | null
+          button_text_color: string | null
+          created_at: string
+          delay_seconds: number
+          description: string | null
+          enabled: boolean
+          homepage_only: boolean
+          id: string
+          image_position: string
+          image_url: string | null
+          max_width: string | null
+          primary_button_new_tab: boolean
+          primary_button_text: string | null
+          primary_button_url: string | null
+          secondary_button_new_tab: boolean
+          secondary_button_text: string | null
+          secondary_button_url: string | null
+          show_frequency: string
+          text_color: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          bg_color?: string | null
+          border_radius?: string | null
+          button_color?: string | null
+          button_text_color?: string | null
+          created_at?: string
+          delay_seconds?: number
+          description?: string | null
+          enabled?: boolean
+          homepage_only?: boolean
+          id?: string
+          image_position?: string
+          image_url?: string | null
+          max_width?: string | null
+          primary_button_new_tab?: boolean
+          primary_button_text?: string | null
+          primary_button_url?: string | null
+          secondary_button_new_tab?: boolean
+          secondary_button_text?: string | null
+          secondary_button_url?: string | null
+          show_frequency?: string
+          text_color?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bg_color?: string | null
+          border_radius?: string | null
+          button_color?: string | null
+          button_text_color?: string | null
+          created_at?: string
+          delay_seconds?: number
+          description?: string | null
+          enabled?: boolean
+          homepage_only?: boolean
+          id?: string
+          image_position?: string
+          image_url?: string | null
+          max_width?: string | null
+          primary_button_new_tab?: boolean
+          primary_button_text?: string | null
+          primary_button_url?: string | null
+          secondary_button_new_tab?: boolean
+          secondary_button_text?: string | null
+          secondary_button_url?: string | null
+          show_frequency?: string
+          text_color?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       onboarding_screens: {
         Row: {
           created_at: string
