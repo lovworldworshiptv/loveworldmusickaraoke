@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Bell, Send, Clock, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
 
 const AdminNotifications = () => {
   const { session } = useAuth();
@@ -95,7 +96,7 @@ const AdminNotifications = () => {
           <CardContent className="space-y-4">
             <Input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
             <Textarea placeholder="Message" value={message} onChange={(e) => setMessage(e.target.value)} rows={3} />
-            <Input placeholder="Image URL (optional)" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+            <ImageUploadPicker bucket="notification-images" label="Notification Image (optional)" value={imageUrl} onChange={setImageUrl} />
             <Input placeholder="Deep Link (optional, e.g. /albums)" value={deepLink} onChange={(e) => setDeepLink(e.target.value)} />
 
             <div className="flex gap-4 flex-wrap">
