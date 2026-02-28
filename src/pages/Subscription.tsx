@@ -238,200 +238,205 @@ const Subscription = () => {
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
         </button>
 
-        {/* Subscribe Form */}
-        {selectedPlan && (
-          <div className="glass-card p-5 space-y-4 mb-6 animate-fade-in-up">
-            <h3 className="font-semibold text-foreground text-lg">
-              {chosenPlan?.label} — {chosenPlan?.espees}
-            </h3>
-
-            {selectedPlan === "3_day_trial" ? (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  Enjoy all premium features free for 3 days. No payment required. Your subscription will automatically revert to free after the trial period.
-                </p>
-                <Button
-                  onClick={handleSubscribe}
-                  disabled={submitting}
-                  className="w-full gradient-gold text-primary-foreground font-semibold"
-                >
-                  {submitting ? "Activating..." : "Activate"}
-                </Button>
-              </>
-            ) : (
-              <>
-                {/* Payment Details */}
-                <div className="bg-muted/50 rounded-xl p-4 text-sm space-y-2">
-                  <p className="font-semibold text-foreground">Payment Details</p>
-                  <div className="space-y-1 text-muted-foreground">
-                    <p><span className="font-medium text-foreground">Espees Merchant Code:</span> LMM01</p>
-                    <p className="font-semibold text-foreground mt-2">Bank Transfer:</p>
-                    <p><span className="font-medium text-foreground">Account No:</span> 1000316347</p>
-                    <p><span className="font-medium text-foreground">Account Name:</span> LMAM - Music App</p>
-                    <p><span className="font-medium text-foreground">Bank:</span> Parallex Bank</p>
-                  </div>
-                </div>
-
-                <Input placeholder="Full Name *" value={subFullName} onChange={e => setSubFullName(e.target.value)} />
-                <Input placeholder="KingsChat Username" value={subKcUsername} onChange={e => setSubKcUsername(e.target.value)} />
-                <Input
-                  placeholder={`Amount: ${chosenPlan?.amount || 0} ESP`}
-                  value={`${chosenPlan?.amount || 0} ESP`}
-                  disabled
-                  className="bg-muted"
-                />
-
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-1 block">Proof of Transaction *</label>
-                  {proofFile && (
-                    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg mb-2">
-                      <Check className="w-4 h-4 text-green-500" />
-                      <span className="text-sm text-foreground truncate flex-1">{proofFile.name}</span>
-                      <button onClick={() => setProofFile(null)} className="text-muted-foreground hover:text-destructive"><X className="w-4 h-4" /></button>
+        {/* Subscribe Plan Dialog */}
+        <Dialog open={!!selectedPlan} onOpenChange={(open) => { if (!open) setSelectedPlan(null); }}>
+          <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-serif">
+                {chosenPlan?.label} — {chosenPlan?.espees}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {selectedPlan === "3_day_trial" ? (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Enjoy all premium features free for 3 days. No payment required. Your subscription will automatically revert to free after the trial period.
+                  </p>
+                  <Button
+                    onClick={handleSubscribe}
+                    disabled={submitting}
+                    className="w-full gradient-gold text-primary-foreground font-semibold"
+                  >
+                    {submitting ? "Activating..." : "Activate"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="bg-muted/50 rounded-xl p-4 text-sm space-y-2">
+                    <p className="font-semibold text-foreground">Payment Details</p>
+                    <div className="space-y-1 text-muted-foreground">
+                      <p><span className="font-medium text-foreground">Espees Merchant Code:</span> LMM01</p>
+                      <p className="font-semibold text-foreground mt-2">Bank Transfer:</p>
+                      <p><span className="font-medium text-foreground">Account No:</span> 1000316347</p>
+                      <p><span className="font-medium text-foreground">Account Name:</span> LMAM - Music App</p>
+                      <p><span className="font-medium text-foreground">Bank:</span> Parallex Bank</p>
                     </div>
-                  )}
-                  <div className="flex gap-2">
-                    <label className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-gold/50 transition-colors">
-                      <Upload className="w-5 h-5 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Select Image</span>
-                      <input type="file" accept="image/*" className="hidden" onChange={e => setProofFile(e.target.files?.[0] || null)} />
-                    </label>
-                    <label className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-gold/50 transition-colors">
-                      <Camera className="w-5 h-5 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Take Photo</span>
-                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => setProofFile(e.target.files?.[0] || null)} />
-                    </label>
                   </div>
+
+                  <Input placeholder="Full Name *" value={subFullName} onChange={e => setSubFullName(e.target.value)} />
+                  <Input placeholder="KingsChat Username" value={subKcUsername} onChange={e => setSubKcUsername(e.target.value)} />
+                  <Input
+                    placeholder={`Amount: ${chosenPlan?.amount || 0} ESP`}
+                    value={`${chosenPlan?.amount || 0} ESP`}
+                    disabled
+                    className="bg-muted"
+                  />
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1 block">Proof of Transaction *</label>
+                    {proofFile && (
+                      <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg mb-2">
+                        <Check className="w-4 h-4 text-green-500" />
+                        <span className="text-sm text-foreground truncate flex-1">{proofFile.name}</span>
+                        <button onClick={() => setProofFile(null)} className="text-muted-foreground hover:text-destructive"><X className="w-4 h-4" /></button>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <label className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-gold/50 transition-colors">
+                        <Upload className="w-5 h-5 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Select Image</span>
+                        <input type="file" accept="image/*" className="hidden" onChange={e => setProofFile(e.target.files?.[0] || null)} />
+                      </label>
+                      <label className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-gold/50 transition-colors">
+                        <Camera className="w-5 h-5 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Take Photo</span>
+                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => setProofFile(e.target.files?.[0] || null)} />
+                      </label>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={handleSubscribe}
+                    disabled={submitting}
+                    className="w-full gradient-gold text-primary-foreground font-semibold"
+                  >
+                    {submitting ? "Submitting..." : "Submit Payment"}
+                  </Button>
+                </>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Gift Subscription Dialog */}
+        <Dialog open={showGiftForm} onOpenChange={setShowGiftForm}>
+          <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-serif flex items-center gap-2">
+                <Gift className="w-5 h-5 text-gold" /> Gift a Subscription
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {/* Recipient Search */}
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1 block">Search Recipients *</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by username, email or KC handle"
+                    value={recipientSearch}
+                    onChange={e => searchRecipients(e.target.value)}
+                    className="pl-9"
+                  />
                 </div>
-
-                <Button
-                  onClick={handleSubscribe}
-                  disabled={submitting}
-                  className="w-full gradient-gold text-primary-foreground font-semibold"
-                >
-                  {submitting ? "Submitting..." : "Submit Payment"}
-                </Button>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Gift Subscription Form */}
-        {showGiftForm && (
-          <div className="glass-card p-5 space-y-4 mb-6 animate-fade-in-up">
-            <h3 className="font-semibold text-foreground text-lg flex items-center gap-2">
-              <Gift className="w-5 h-5 text-gold" /> Gift a Subscription
-            </h3>
-
-            {/* Recipient Search */}
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1 block">Search Recipients *</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by username, email or KC handle"
-                  value={recipientSearch}
-                  onChange={e => searchRecipients(e.target.value)}
-                  className="pl-9"
-                />
+                {recipientResults.length > 0 && (
+                  <div className="mt-1 border border-border rounded-lg bg-card max-h-40 overflow-y-auto">
+                    {recipientResults.map(r => (
+                      <button key={r.user_id} onClick={() => addRecipient(r)} className="w-full flex items-center gap-2 p-2 hover:bg-muted/60 text-left text-sm">
+                        <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
+                          {r.username?.charAt(0)?.toUpperCase() || "?"}
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">{r.username}</p>
+                          {r.kingschat_handle && <p className="text-xs text-muted-foreground">@{r.kingschat_handle}</p>}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {searching && <p className="text-xs text-muted-foreground mt-1">Searching...</p>}
               </div>
-              {recipientResults.length > 0 && (
-                <div className="mt-1 border border-border rounded-lg bg-card max-h-40 overflow-y-auto">
-                  {recipientResults.map(r => (
-                    <button key={r.user_id} onClick={() => addRecipient(r)} className="w-full flex items-center gap-2 p-2 hover:bg-muted/60 text-left text-sm">
-                      <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
-                        {r.username?.charAt(0)?.toUpperCase() || "?"}
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">{r.username}</p>
-                        {r.kingschat_handle && <p className="text-xs text-muted-foreground">@{r.kingschat_handle}</p>}
-                      </div>
-                    </button>
+
+              {/* Selected Recipients */}
+              {selectedRecipients.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedRecipients.map(r => (
+                    <span key={r.user_id} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gold/20 text-gold text-xs font-medium">
+                      {r.username}
+                      <button onClick={() => removeRecipient(r.user_id)}><X className="w-3 h-3" /></button>
+                    </span>
                   ))}
                 </div>
               )}
-              {searching && <p className="text-xs text-muted-foreground mt-1">Searching...</p>}
-            </div>
 
-            {/* Selected Recipients */}
-            {selectedRecipients.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {selectedRecipients.map(r => (
-                  <span key={r.user_id} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gold/20 text-gold text-xs font-medium">
-                    {r.username}
-                    <button onClick={() => removeRecipient(r.user_id)}><X className="w-3 h-3" /></button>
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Payment Details */}
-            <div className="bg-muted/50 rounded-xl p-4 text-sm space-y-2">
-              <p className="font-semibold text-foreground">Payment Details</p>
-              <div className="space-y-1 text-muted-foreground">
-                <p><span className="font-medium text-foreground">Espees Merchant Code:</span> LMM01</p>
-                <p className="font-semibold text-foreground mt-2">Bank Transfer:</p>
-                <p><span className="font-medium text-foreground">Account No:</span> 1000316347</p>
-                <p><span className="font-medium text-foreground">Account Name:</span> LMAM - Music App</p>
-                <p><span className="font-medium text-foreground">Bank:</span> Parallex Bank</p>
-              </div>
-            </div>
-
-            <Input placeholder="Your Full Name *" value={giftFullName} onChange={e => setGiftFullName(e.target.value)} />
-            <Input placeholder="Your KC Username (Espees sender account)" value={giftKcUsername} onChange={e => setGiftKcUsername(e.target.value)} />
-
-            <Select value={giftPlan} onValueChange={setGiftPlan}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select Plan" />
-              </SelectTrigger>
-              <SelectContent>
-                {GIFT_PLANS.map(p => (
-                  <SelectItem key={p.id} value={p.id}>{p.label} — {p.espees}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Input
-              placeholder="Total Amount"
-              value={giftTotalAmount > 0 ? `${giftTotalAmount} ESP (${selectedRecipients.length} recipient${selectedRecipients.length !== 1 ? "s" : ""} × ${chosenGiftPlan?.amount || 0} ESP)` : ""}
-              disabled
-              className="bg-muted"
-            />
-
-            <Textarea placeholder="Gift message (optional)" value={giftMessage} onChange={e => setGiftMessage(e.target.value)} rows={2} />
-
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1 block">Proof of Transaction *</label>
-              {giftProofFile && (
-                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg mb-2">
-                  <Check className="w-4 h-4 text-green-500" />
-                  <span className="text-sm text-foreground truncate flex-1">{giftProofFile.name}</span>
-                  <button onClick={() => setGiftProofFile(null)} className="text-muted-foreground hover:text-destructive"><X className="w-4 h-4" /></button>
+              {/* Payment Details */}
+              <div className="bg-muted/50 rounded-xl p-4 text-sm space-y-2">
+                <p className="font-semibold text-foreground">Payment Details</p>
+                <div className="space-y-1 text-muted-foreground">
+                  <p><span className="font-medium text-foreground">Espees Merchant Code:</span> LMM01</p>
+                  <p className="font-semibold text-foreground mt-2">Bank Transfer:</p>
+                  <p><span className="font-medium text-foreground">Account No:</span> 1000316347</p>
+                  <p><span className="font-medium text-foreground">Account Name:</span> LMAM - Music App</p>
+                  <p><span className="font-medium text-foreground">Bank:</span> Parallex Bank</p>
                 </div>
-              )}
-              <div className="flex gap-2">
-                <label className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-gold/50 transition-colors">
-                  <Upload className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Select Image</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={e => setGiftProofFile(e.target.files?.[0] || null)} />
-                </label>
-                <label className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-gold/50 transition-colors">
-                  <Camera className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Take Photo</span>
-                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => setGiftProofFile(e.target.files?.[0] || null)} />
-                </label>
               </div>
-            </div>
 
-            <Button
-              onClick={handleGiftSubmit}
-              disabled={submitting || selectedRecipients.length === 0 || !giftPlan}
-              className="w-full gradient-gold text-primary-foreground font-semibold"
-            >
-              {submitting ? "Submitting..." : "Send Gift"}
-            </Button>
-          </div>
-        )}
+              <Input placeholder="Your Full Name *" value={giftFullName} onChange={e => setGiftFullName(e.target.value)} />
+              <Input placeholder="Your KC Username (Espees sender account)" value={giftKcUsername} onChange={e => setGiftKcUsername(e.target.value)} />
+
+              <Select value={giftPlan} onValueChange={setGiftPlan}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {GIFT_PLANS.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.label} — {p.espees}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Input
+                placeholder="Total Amount"
+                value={giftTotalAmount > 0 ? `${giftTotalAmount} ESP (${selectedRecipients.length} recipient${selectedRecipients.length !== 1 ? "s" : ""} × ${chosenGiftPlan?.amount || 0} ESP)` : ""}
+                disabled
+                className="bg-muted"
+              />
+
+              <Textarea placeholder="Gift message (optional)" value={giftMessage} onChange={e => setGiftMessage(e.target.value)} rows={2} />
+
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1 block">Proof of Transaction *</label>
+                {giftProofFile && (
+                  <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg mb-2">
+                    <Check className="w-4 h-4 text-green-500" />
+                    <span className="text-sm text-foreground truncate flex-1">{giftProofFile.name}</span>
+                    <button onClick={() => setGiftProofFile(null)} className="text-muted-foreground hover:text-destructive"><X className="w-4 h-4" /></button>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <label className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-gold/50 transition-colors">
+                    <Upload className="w-5 h-5 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Select Image</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={e => setGiftProofFile(e.target.files?.[0] || null)} />
+                  </label>
+                  <label className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-gold/50 transition-colors">
+                    <Camera className="w-5 h-5 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Take Photo</span>
+                    <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => setGiftProofFile(e.target.files?.[0] || null)} />
+                  </label>
+                </div>
+              </div>
+
+              <Button
+                onClick={handleGiftSubmit}
+                disabled={submitting || selectedRecipients.length === 0 || !giftPlan}
+                className="w-full gradient-gold text-primary-foreground font-semibold"
+              >
+                {submitting ? "Submitting..." : "Send Gift"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Success Dialog */}
         <Dialog open={!!successDialog} onOpenChange={() => { setSuccessDialog(null); navigate("/"); }}>
