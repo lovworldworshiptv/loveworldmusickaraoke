@@ -14,9 +14,9 @@ export const useIsPremium = () => {
       return;
     }
 
-    supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "premium").maybeSingle()
+    supabase.from("user_subscriptions").select("subscription").eq("user_id", user.id).single()
       .then(({ data }) => {
-        setIsPremium(!!data);
+        setIsPremium(data?.subscription === "premium");
         setLoading(false);
       });
   }, [user]);
