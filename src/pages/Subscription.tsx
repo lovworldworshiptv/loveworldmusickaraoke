@@ -251,22 +251,25 @@ const Subscription = () => {
             {selectedPlan !== "3_day_trial" && (
               <div>
                 <label className="text-sm font-medium text-foreground mb-1 block">Proof of Transaction *</label>
-                <label className="flex items-center gap-3 p-4 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-gold/50 transition-colors">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Upload className="w-5 h-5" />
-                    <Camera className="w-5 h-5" />
-                  </div>
-                  <span className="text-sm text-muted-foreground flex-1">
-                    {proofFile ? proofFile.name : "Upload image or take photo"}
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={e => setProofFile(e.target.files?.[0] || null)}
-                  />
+              {proofFile && (
+                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg mb-2">
+                  <Check className="w-4 h-4 text-green-500" />
+                  <span className="text-sm text-foreground truncate flex-1">{proofFile.name}</span>
+                  <button onClick={() => setProofFile(null)} className="text-muted-foreground hover:text-destructive"><X className="w-4 h-4" /></button>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <label className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-gold/50 transition-colors">
+                  <Upload className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Select Image</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={e => setProofFile(e.target.files?.[0] || null)} />
                 </label>
+                <label className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-gold/50 transition-colors">
+                  <Camera className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Take Photo</span>
+                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => setProofFile(e.target.files?.[0] || null)} />
+                </label>
+              </div>
               </div>
             )}
 
@@ -366,22 +369,25 @@ const Subscription = () => {
 
             <div>
               <label className="text-sm font-medium text-foreground mb-1 block">Proof of Transaction *</label>
-              <label className="flex items-center gap-3 p-4 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-gold/50 transition-colors">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Upload className="w-5 h-5" />
-                  <Camera className="w-5 h-5" />
+              {giftProofFile && (
+                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg mb-2">
+                  <Check className="w-4 h-4 text-green-500" />
+                  <span className="text-sm text-foreground truncate flex-1">{giftProofFile.name}</span>
+                  <button onClick={() => setGiftProofFile(null)} className="text-muted-foreground hover:text-destructive"><X className="w-4 h-4" /></button>
                 </div>
-                <span className="text-sm text-muted-foreground flex-1">
-                  {giftProofFile ? giftProofFile.name : "Upload image or take photo"}
-                </span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="hidden"
-                  onChange={e => setGiftProofFile(e.target.files?.[0] || null)}
-                />
-              </label>
+              )}
+              <div className="flex gap-2">
+                <label className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-gold/50 transition-colors">
+                  <Upload className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Select Image</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={e => setGiftProofFile(e.target.files?.[0] || null)} />
+                </label>
+                <label className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-gold/50 transition-colors">
+                  <Camera className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Take Photo</span>
+                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e => setGiftProofFile(e.target.files?.[0] || null)} />
+                </label>
+              </div>
             </div>
 
             <Button

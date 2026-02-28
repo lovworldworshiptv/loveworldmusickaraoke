@@ -2,12 +2,16 @@ import { usePlayer, RepeatMode } from "@/contexts/PlayerContext";
 import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsPremium } from "@/hooks/useIsPremium";
 import { isDownloaded as checkDownloaded, saveDownload } from "@/lib/downloadManager";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Crown } from "lucide-react";
 
 const formatTime = (s: number) => {
   const m = Math.floor(s / 60);
@@ -63,8 +67,10 @@ const ExpandedPlayer = () => {
   const { user } = useAuth();
   const { isAdmin } = useIsAdmin();
   const { isPremium } = useIsPremium();
+  const navigate = useNavigate();
   const [isFav, setIsFav] = useState(false);
   const [dlState, setDlState] = useState<"none" | "downloading" | "done">("none");
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const canDl = isPremium;
 
   useEffect(() => {
@@ -74,7 +80,7 @@ const ExpandedPlayer = () => {
 
   const handleDl = useCallback(async () => {
     if (!currentSong?.audioUrl) return;
-    if (!canDl) { toast.info("Upgrade to Premium to download"); return; }
+    if (!canDl) { setShowUpgrade(true); return; }
     setDlState("downloading");
     try {
       await saveDownload(currentSong.id, currentSong.audioUrl, {
@@ -139,6 +145,7 @@ const ExpandedPlayer = () => {
     : undefined;
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex flex-col overflow-hidden">
       {/* Background — solid, not transparent */}
       <div className="absolute inset-0 bg-background" />
@@ -166,7 +173,7 @@ const ExpandedPlayer = () => {
                   <Download className={`w-5 h-5 ${dlState === "downloading" ? "animate-pulse text-gold" : ""}`} />
                 </button>
               ) : (
-                <button onClick={() => toast.info("Upgrade to Premium to download")} className="text-gold/50 p-1">
+                <button onClick={() => setShowUpgrade(true)} className="text-gold/50 p-1">
                   <Lock className="w-5 h-5" />
                 </button>
               )
@@ -308,6 +315,26 @@ const ExpandedPlayer = () => {
         </div>
       </div>
     </div>
+
+    {/* Premium Upgrade Modal */}
+    <Dialog open={showUpgrade} onOpenChange={setShowUpgrade}>
+      <DialogContent className="max-w-sm text-center">
+        <div className="flex flex-col items-center gap-4 py-4">
+          <div className="w-16 h-16 rounded-full bg-gold/20 flex items-center justify-center">
+            <Crown className="w-8 h-8 text-gold" />
+          </div>
+          <h3 className="text-xl font-serif font-bold text-foreground">Upgrade to Premium</h3>
+          <p className="text-sm text-muted-foreground">Download songs for offline playback, access karaoke mode, and more — starting at just 2 Espees/month!</p>
+          <Button className="gradient-gold text-primary-foreground w-full" onClick={() => { setShowUpgrade(false); navigate("/subscription"); }}>
+            View Plans
+          </Button>
+          <Button variant="ghost" className="w-full" onClick={() => setShowUpgrade(false)}>
+            Maybe Later
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
 

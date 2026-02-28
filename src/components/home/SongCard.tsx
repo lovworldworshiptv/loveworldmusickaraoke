@@ -98,14 +98,20 @@ const SongCard = memo(({ song, index, allSongs }: SongCardProps) => {
       </div>
 
       <Dialog open={showUpgrade} onOpenChange={setShowUpgrade}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Crown className="w-5 h-5 text-gold" /> Premium Feature
-            </DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">Upgrade to Premium to download songs for offline playback.</p>
-          <Button className="w-full mt-2 gradient-gold text-primary-foreground" onClick={() => setShowUpgrade(false)}>Got it</Button>
+        <DialogContent className="max-w-sm text-center">
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="w-16 h-16 rounded-full bg-gold/20 flex items-center justify-center">
+              <Crown className="w-8 h-8 text-gold" />
+            </div>
+            <h3 className="text-xl font-serif font-bold text-foreground">Upgrade to Premium</h3>
+            <p className="text-sm text-muted-foreground">Download songs for offline playback, access karaoke mode, and more — starting at just 2 Espees/month!</p>
+            <Button className="gradient-gold text-primary-foreground w-full" onClick={() => { setShowUpgrade(false); window.location.href = "/subscription"; }}>
+              View Plans
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={() => setShowUpgrade(false)}>
+              Maybe Later
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </>
