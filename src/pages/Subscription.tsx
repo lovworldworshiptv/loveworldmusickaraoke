@@ -126,6 +126,11 @@ const Subscription = () => {
       });
       if (error) throw error;
 
+      // Notify admins
+      supabase.functions.invoke("notify-admin-payment", {
+        body: { type: "subscription", plan: selectedPlan, amount: chosenPlan?.amount || 0, username: username || "Unknown" },
+      }).catch(() => {});
+
       setSuccessDialog("subscribe");
       setSelectedPlan(null);
       setSubFullName("");
@@ -165,6 +170,11 @@ const Subscription = () => {
         recipient_user_id: r.user_id,
       }));
       await supabase.from("gift_subscription_recipients").insert(recipients);
+
+      // Notify admins
+      supabase.functions.invoke("notify-admin-payment", {
+        body: { type: "gift", plan: giftPlan, amount: giftTotalAmount, username: username || "Unknown" },
+      }).catch(() => {});
 
       setSuccessDialog("gift");
       setShowGiftForm(false);
