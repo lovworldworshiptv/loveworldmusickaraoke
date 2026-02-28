@@ -95,17 +95,9 @@ const Subscription = () => {
     if (selectedPlan === "3_day_trial") {
       setSubmitting(true);
       try {
-        const now = new Date();
-        const expiry = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-        const { error } = await supabase.from("user_subscriptions")
-          .update({
-            subscription: "premium" as any,
-            subscription_plan: "3_day_trial",
-            subscription_start_date: now.toISOString(),
-            subscription_expiry_date: expiry.toISOString(),
-          })
-          .eq("user_id", user.id);
+        const { data, error } = await supabase.functions.invoke("activate-trial");
         if (error) throw error;
+        if (data?.error) throw new Error(data.error);
         setSuccessDialog("trial");
         setSelectedPlan(null);
       } catch (err: any) {
