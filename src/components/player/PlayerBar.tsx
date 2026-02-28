@@ -30,7 +30,7 @@ const PlayerBar = () => {
   const [downloaded, setDownloaded] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
-  const canDownload = isAdmin || isPremium;
+  const canDownload = isPremium;
 
   useEffect(() => {
     if (!currentSong) { setDownloaded(false); return; }

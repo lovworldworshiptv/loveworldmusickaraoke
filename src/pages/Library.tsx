@@ -16,7 +16,8 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsPremium } from "@/hooks/useIsPremium";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { getDownloadedMeta, getDownloadedAudioUrl, getDownloadedInstrumentalUrl, saveDownload, removeDownload, type DownloadedTrack } from "@/lib/downloadManager";
-import { useSearchParams } from "react-router-dom";
+import { checkPlaybackAllowed, revalidateLicense, setTrackLicense } from "@/lib/offlineLicense";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 type SongRow = {
   id: string;
@@ -37,6 +38,7 @@ const Library = () => {
   const [search, setSearch] = useState("");
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const navigate = useNavigate();
   const { playSong, playQueue, currentSong, isPlaying } = usePlayer();
   const { user } = useAuth();
   const { isAdmin } = useIsAdmin();
@@ -44,7 +46,7 @@ const Library = () => {
   const isOnline = useOnlineStatus();
   const queryClient = useQueryClient();
 
-  const canDownload = isAdmin || isPremium;
+  const canDownload = isPremium;
 
   // Downloads state
   const [downloads, setDownloads] = useState<DownloadedTrack[]>([]);
@@ -179,7 +181,20 @@ const Library = () => {
         album: song.album ?? undefined,
         isFreeDownload: song.is_free_download,
         downloadedAt: Date.now(),
-      });
+      }, song.instrumental_url ?? undefined);
+
+      // Set offline license if premium (not free download)
+      if (!song.is_free_download && user) {
+        const { data: subData } = await supabase.from("user_subscriptions")
+          .select("subscription_expiry_date")
+          .eq("user_id", user.id)
+          .single();
+        const expiry = (subData as any)?.subscription_expiry_date;
+        if (expiry) {
+          setTrackLicense(song.id, expiry);
+        }
+      }
+
       await loadDownloads();
       toast.success(`"${song.title}" downloaded for offline play`);
     } catch (err: any) {
@@ -199,6 +214,22 @@ const Library = () => {
   };
 
   const playOfflineTrack = async (track: DownloadedTrack) => {
+    // Check offline license
+    const check = checkPlaybackAllowed(track.id);
+    if (check.allowed === false) {
+      if (check.reason === "needs_validation" && isOnline && user) {
+        const recheck = await revalidateLicense(track.id, user.id);
+        if (recheck.allowed === false) {
+          toast.error(recheck.message);
+          return;
+        }
+      } else {
+        toast.error(check.message);
+        if (check.reason === "expired") navigate("/subscription");
+        return;
+      }
+    }
+
     const url = await getDownloadedAudioUrl(track.id);
     if (!url) { toast.error("Audio not found in downloads"); return; }
     const instrumentalUrl = await getDownloadedInstrumentalUrl(track.id);
@@ -489,8 +520,11 @@ const Library = () => {
                 <Crown className="w-8 h-8 text-gold" />
               </div>
               <h3 className="text-xl font-serif font-bold text-foreground">Upgrade to Premium</h3>
-              <p className="text-sm text-muted-foreground">Download songs for offline playback, access karaoke mode, and more — all for just $1/month!</p>
-              <Button className="gradient-gold text-primary-foreground w-full" onClick={() => setShowUpgradeModal(false)}>
+              <p className="text-sm text-muted-foreground">Download songs for offline playback, access karaoke mode, and more — starting at just 2 Espees/month!</p>
+              <Button className="gradient-gold text-primary-foreground w-full" onClick={() => { setShowUpgradeModal(false); navigate("/subscription"); }}>
+                View Plans
+              </Button>
+              <Button variant="ghost" className="w-full" onClick={() => setShowUpgradeModal(false)}>
                 Maybe Later
               </Button>
             </div>

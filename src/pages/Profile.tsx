@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Crown, Shield, LogOut, ChevronRight, AtSign, Trash2 } from "lucide-react";
+import { User, Crown, Shield, LogOut, ChevronRight, AtSign, Trash2, Camera } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/sonner";
 
@@ -13,19 +13,19 @@ const Profile = () => {
   const [role, setRole] = useState<string>("user");
   const [subscription, setSubscription] = useState<string>("free");
   const [deleting, setDeleting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [localAvatar, setLocalAvatar] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const handleDeleteAccount = async () => {
     setDeleting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
-
       const res = await supabase.functions.invoke("delete-account", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-
       if (res.error) throw res.error;
-
       toast.success("Account deleted successfully");
       await signOut();
       navigate("/");
@@ -33,6 +33,47 @@ const Profile = () => {
       toast.error(err.message || "Failed to delete account");
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleAvatarUpload = async (file: File) => {
+    if (!user) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/avatar.${ext}`;
+      // Delete old
+      await supabase.storage.from("avatars").remove([path]).catch(() => {});
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+      const url = `${publicUrl}?t=${Date.now()}`;
+      await supabase.from("profiles").update({ avatar_url: url }).eq("user_id", user.id);
+      setLocalAvatar(url);
+      toast.success("Profile picture updated!");
+    } catch (err: any) {
+      toast.error(err.message || "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!user) return;
+    setUploading(true);
+    try {
+      // List and remove all files in user's avatar folder
+      const { data: files } = await supabase.storage.from("avatars").list(user.id);
+      if (files && files.length > 0) {
+        await supabase.storage.from("avatars").remove(files.map(f => `${user.id}/${f.name}`));
+      }
+      await supabase.from("profiles").update({ avatar_url: null }).eq("user_id", user.id);
+      setLocalAvatar(null);
+      toast.success("Profile picture removed");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -44,6 +85,8 @@ const Profile = () => {
         .then(({ data }) => { if (data) setSubscription(data.subscription); });
     }
   }, [user]);
+
+  const displayAvatar = localAvatar ?? avatarUrl;
 
   if (loading) {
     return <AppLayout><div className="p-6 text-center text-muted-foreground">Loading...</div></AppLayout>;
@@ -71,8 +114,6 @@ const Profile = () => {
     );
   }
 
-  const roleIcon = role === "admin" ? Shield : role === "editor" ? Shield : User;
-  const subscriptionIcon = subscription === "premium" ? Crown : User;
   const roleLabel = role === "admin" ? "Admin" : role === "editor" ? "Editor" : "User";
   const subscriptionLabel = subscription === "premium" ? "Premium" : "Free";
   const roleColor = role === "admin" ? "text-destructive" : role === "editor" ? "text-primary" : "text-muted-foreground";
@@ -81,6 +122,7 @@ const Profile = () => {
   const menuItems = [
     { label: "My Favorites", path: "/library", icon: ChevronRight },
     { label: "My Playlists", path: "/library", icon: ChevronRight },
+    { label: subscription === "premium" ? "Manage Subscription" : "Upgrade to Premium", path: "/subscription", icon: Crown },
     ...(role === "admin" ? [{ label: "Admin Panel", path: "/admin/songs", icon: Shield }] : []),
   ];
 
@@ -89,12 +131,33 @@ const Profile = () => {
       <div className="px-4 lg:px-6 pt-4 lg:pt-6 max-w-md mx-auto">
         {/* Avatar & Info */}
         <div className="glass-card p-6 text-center mb-6">
-          {avatarUrl ? (
-            <img src={avatarUrl} alt={username} className="w-20 h-20 rounded-full mx-auto mb-4 object-cover border-2 border-primary" />
-          ) : (
-            <div className="w-20 h-20 rounded-full gradient-gold flex items-center justify-center mx-auto mb-4 text-primary-foreground text-2xl font-serif font-bold">
-              {username.charAt(0).toUpperCase()}
-            </div>
+          <div className="relative w-20 h-20 mx-auto mb-4">
+            {displayAvatar ? (
+              <img src={displayAvatar} alt={username} className="w-20 h-20 rounded-full object-cover border-2 border-primary" />
+            ) : (
+              <div className="w-20 h-20 rounded-full gradient-gold flex items-center justify-center text-primary-foreground text-2xl font-serif font-bold">
+                {username.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:opacity-90"
+            >
+              <Camera className="w-3.5 h-3.5" />
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleAvatarUpload(f); }}
+            />
+          </div>
+          {displayAvatar && (
+            <button onClick={handleRemoveAvatar} disabled={uploading} className="text-xs text-destructive hover:underline mb-2">
+              Remove photo
+            </button>
           )}
           <h2 className="text-xl font-serif font-bold text-foreground">Welcome Esteemed</h2>
           <p className="text-lg gradient-gold-text font-bold">{username}</p>
@@ -106,8 +169,7 @@ const Profile = () => {
           <p className="text-xs text-muted-foreground mt-1">{user.email?.includes("@kingschat.local") ? "" : user.email}</p>
           <div className="flex items-center gap-2 mt-3 justify-center flex-wrap">
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted text-xs font-semibold ${roleColor}`}>
-              {role === "admin" && <Shield className="w-3.5 h-3.5" />}
-              {role === "editor" && <Shield className="w-3.5 h-3.5" />}
+              {(role === "admin" || role === "editor") && <Shield className="w-3.5 h-3.5" />}
               {role === "user" && <User className="w-3.5 h-3.5" />}
               {roleLabel}
             </span>
@@ -151,16 +213,12 @@ const Profile = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>Delete your account?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action is <strong>permanent and irreversible</strong>. All your data — including favorites, playlists, game progress, and profile — will be permanently deleted. You will not be able to recover your account.
+                This action is <strong>permanent and irreversible</strong>. All your data — including favorites, playlists, game progress, and profile — will be permanently deleted.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDeleteAccount}
-                disabled={deleting}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
+              <AlertDialogAction onClick={handleDeleteAccount} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 {deleting ? "Deleting..." : "Yes, delete my account"}
               </AlertDialogAction>
             </AlertDialogFooter>

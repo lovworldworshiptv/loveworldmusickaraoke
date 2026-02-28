@@ -20,7 +20,7 @@ const SongCard = memo(({ song, index, allSongs }: SongCardProps) => {
   const { isAdmin } = useIsAdmin();
   const { isPremium } = useIsPremium();
   const isActive = currentSong?.id === song.id;
-  const canDl = isAdmin || isPremium;
+  const canDl = isPremium;
 
   const [dlState, setDlState] = useState<"none" | "downloading" | "done">("none");
   const [showUpgrade, setShowUpgrade] = useState(false);

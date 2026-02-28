@@ -226,6 +226,89 @@ export type Database = {
         }
         Relationships: []
       }
+      gift_subscription_recipients: {
+        Row: {
+          gift_id: string
+          id: string
+          recipient_email: string | null
+          recipient_kc_handle: string | null
+          recipient_user_id: string | null
+          recipient_username: string | null
+        }
+        Insert: {
+          gift_id: string
+          id?: string
+          recipient_email?: string | null
+          recipient_kc_handle?: string | null
+          recipient_user_id?: string | null
+          recipient_username?: string | null
+        }
+        Update: {
+          gift_id?: string
+          id?: string
+          recipient_email?: string | null
+          recipient_kc_handle?: string | null
+          recipient_user_id?: string | null
+          recipient_username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_subscription_recipients_gift_id_fkey"
+            columns: ["gift_id"]
+            isOneToOne: false
+            referencedRelation: "gift_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_subscriptions: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          gift_message: string | null
+          id: string
+          plan: string
+          proof_url: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sender_full_name: string
+          sender_id: string
+          sender_kc_username: string | null
+          status: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          gift_message?: string | null
+          id?: string
+          plan: string
+          proof_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sender_full_name: string
+          sender_id: string
+          sender_kc_username?: string | null
+          status?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          gift_message?: string | null
+          id?: string
+          plan?: string
+          proof_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sender_full_name?: string
+          sender_id?: string
+          sender_kc_username?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       hero_banners: {
         Row: {
           created_at: string
@@ -698,6 +781,51 @@ export type Database = {
           },
         ]
       }
+      subscription_requests: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          full_name: string
+          id: string
+          kingschat_username: string | null
+          plan: string
+          proof_url: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          full_name: string
+          id?: string
+          kingschat_username?: string | null
+          plan: string
+          proof_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          full_name?: string
+          id?: string
+          kingschat_username?: string | null
+          plan?: string
+          proof_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_game_progress: {
         Row: {
           completed: boolean
@@ -791,6 +919,9 @@ export type Database = {
           created_at: string
           id: string
           subscription: Database["public"]["Enums"]["subscription_type"]
+          subscription_expiry_date: string | null
+          subscription_plan: string | null
+          subscription_start_date: string | null
           updated_at: string
           user_id: string
         }
@@ -798,6 +929,9 @@ export type Database = {
           created_at?: string
           id?: string
           subscription?: Database["public"]["Enums"]["subscription_type"]
+          subscription_expiry_date?: string | null
+          subscription_plan?: string | null
+          subscription_start_date?: string | null
           updated_at?: string
           user_id: string
         }
@@ -805,6 +939,9 @@ export type Database = {
           created_at?: string
           id?: string
           subscription?: Database["public"]["Enums"]["subscription_type"]
+          subscription_expiry_date?: string | null
+          subscription_plan?: string | null
+          subscription_start_date?: string | null
           updated_at?: string
           user_id?: string
         }

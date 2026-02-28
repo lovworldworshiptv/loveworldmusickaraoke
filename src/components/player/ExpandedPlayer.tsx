@@ -65,7 +65,7 @@ const ExpandedPlayer = () => {
   const { isPremium } = useIsPremium();
   const [isFav, setIsFav] = useState(false);
   const [dlState, setDlState] = useState<"none" | "downloading" | "done">("none");
-  const canDl = isAdmin || isPremium;
+  const canDl = isPremium;
 
   useEffect(() => {
     if (!currentSong) { setDlState("none"); return; }
