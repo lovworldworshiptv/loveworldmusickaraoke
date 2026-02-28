@@ -3,7 +3,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Crown, Shield, LogOut, ChevronRight, AtSign, Trash2, Camera } from "lucide-react";
+import { User, Crown, Shield, LogOut, ChevronRight, AtSign, Trash2, Camera, Sparkles } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/sonner";
 
@@ -115,9 +115,9 @@ const Profile = () => {
   }
 
   const roleLabel = role === "admin" ? "Admin" : role === "editor" ? "Editor" : "User";
-  const subscriptionLabel = subscription === "premium" ? "Premium" : "Free";
+  const subscriptionLabel = subscription === "premium" ? "Premium" : subscription === "trial" ? "Trial" : "Free";
   const roleColor = role === "admin" ? "text-destructive" : role === "editor" ? "text-primary" : "text-muted-foreground";
-  const subscriptionColor = subscription === "premium" ? "text-gold" : "text-muted-foreground";
+  const subscriptionColor = subscription === "premium" ? "text-gold" : subscription === "trial" ? "text-gold" : "text-muted-foreground";
 
   const menuItems = [
     { label: "My Favorites", path: "/library", icon: ChevronRight },
@@ -174,7 +174,7 @@ const Profile = () => {
               {roleLabel}
             </span>
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted text-xs font-semibold ${subscriptionColor}`}>
-              {subscription === "premium" ? <Crown className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
+              {subscription === "premium" ? <Crown className="w-3.5 h-3.5" /> : subscription === "trial" ? <Sparkles className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
               {subscriptionLabel}
             </span>
           </div>
