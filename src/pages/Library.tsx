@@ -2,6 +2,7 @@ import { useState, useEffect, memo, useCallback } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Search, Play, Heart, Plus, Music, ListMusic, Trash2, Shuffle, Download, Lock, Crown, WifiOff } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -188,9 +189,12 @@ const Library = () => {
     }
   };
 
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
   const handleRemoveDownload = async (songId: string) => {
     await removeDownload(songId);
     await loadDownloads();
+    setConfirmDeleteId(null);
     toast.success("Download removed");
   };
 
@@ -460,7 +464,7 @@ const Library = () => {
                       </div>
                     </button>
                     <button
-                      onClick={() => handleRemoveDownload(track.id)}
+                      onClick={() => setConfirmDeleteId(track.id)}
                       className="p-2 text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -493,6 +497,24 @@ const Library = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Confirm delete download */}
+      <AlertDialog open={!!confirmDeleteId} onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Download?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the track from your device. You can download it again later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmDeleteId && handleRemoveDownload(confirmDeleteId)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="h-8" />
     </AppLayout>
