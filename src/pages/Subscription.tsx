@@ -61,8 +61,8 @@ const Subscription = () => {
     setSearching(true);
     try {
       const { data } = await supabase.from("profiles")
-        .select("user_id, username, kingschat_handle, avatar_url")
-        .or(`username.ilike.%${query}%,kingschat_handle.ilike.%${query}%`)
+        .select("user_id, username, kingschat_handle, avatar_url, email")
+        .or(`username.ilike.%${query}%,kingschat_handle.ilike.%${query}%,email.ilike.%${query}%`)
         .limit(10);
       setRecipientResults((data || []).filter(r => r.user_id !== user?.id && !selectedRecipients.some(s => s.user_id === r.user_id)));
     } catch { setRecipientResults([]); }
