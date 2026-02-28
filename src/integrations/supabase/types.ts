@@ -706,6 +706,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subscriptions: {
+        Row: {
+          created_at: string
+          id: string
+          subscription: Database["public"]["Enums"]["subscription_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          subscription?: Database["public"]["Enums"]["subscription_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          subscription?: Database["public"]["Enums"]["subscription_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -720,7 +744,8 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "free" | "premium" | "editor"
+      app_role: "admin" | "free" | "premium" | "editor" | "user"
+      subscription_type: "free" | "premium"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -848,7 +873,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "free", "premium", "editor"],
+      app_role: ["admin", "free", "premium", "editor", "user"],
+      subscription_type: ["free", "premium"],
     },
   },
 } as const
