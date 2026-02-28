@@ -346,6 +346,51 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string
+          created_by: string
+          deep_link: string | null
+          id: string
+          image_url: string | null
+          message: string
+          onesignal_id: string | null
+          scheduled_at: string | null
+          segment: string
+          sent_at: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          deep_link?: string | null
+          id?: string
+          image_url?: string | null
+          message: string
+          onesignal_id?: string | null
+          scheduled_at?: string | null
+          segment?: string
+          sent_at?: string | null
+          status?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          deep_link?: string | null
+          id?: string
+          image_url?: string | null
+          message?: string
+          onesignal_id?: string | null
+          scheduled_at?: string | null
+          segment?: string
+          sent_at?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
       onboarding_screens: {
         Row: {
           created_at: string
@@ -684,6 +729,41 @@ export type Database = {
             columns: ["level_id"]
             isOneToOne: false
             referencedRelation: "game_levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          notification_id: string
+          read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          notification_id: string
+          read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          notification_id?: string
+          read_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notifications_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
             referencedColumns: ["id"]
           },
         ]
