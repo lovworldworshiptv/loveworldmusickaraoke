@@ -17,11 +17,11 @@ Deno.serve(async (req) => {
 
     const now = new Date().toISOString();
 
-    // 1. Revert expired premium subscriptions to free
+    // 1. Revert expired premium/trial subscriptions to free
     const { data: expired, error: expErr } = await supabase
       .from("user_subscriptions")
       .select("user_id, subscription_expiry_date")
-      .eq("subscription", "premium")
+      .in("subscription", ["premium", "trial"])
       .not("subscription_expiry_date", "is", null)
       .lt("subscription_expiry_date", now);
 
@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     const { data: expiringSoon, error: remErr } = await supabase
       .from("user_subscriptions")
       .select("user_id")
-      .eq("subscription", "premium")
+      .in("subscription", ["premium", "trial"])
       .not("subscription_expiry_date", "is", null)
       .gt("subscription_expiry_date", now)
       .lte("subscription_expiry_date", threeDaysIso);
