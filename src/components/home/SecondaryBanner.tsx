@@ -44,6 +44,8 @@ const SecondaryBanner = () => {
     if (linkUrl) {
       if (linkUrl.startsWith("http")) window.open(linkUrl, "_blank");
       else navigate(linkUrl);
+    } else {
+      navigate("/subscription");
     }
   };
 
