@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.process-scheduled-notifications]
 verify_jwt = false
+
+[functions.notify-admin-payment]
+verify_jwt = false
