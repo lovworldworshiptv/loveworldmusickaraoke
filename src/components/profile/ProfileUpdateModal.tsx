@@ -9,7 +9,7 @@ interface ProfileUpdateModalProps {
   open: boolean;
   onComplete: () => void;
   userId: string;
-  userEmail: string | undefined;
+  userEmail?: string;
   isKingschatUser: boolean;
   currentProfile: {
     email?: string | null;
@@ -18,9 +18,10 @@ interface ProfileUpdateModalProps {
     zone?: string | null;
     region?: string | null;
   };
+  editMode?: boolean;
 }
 
-const ProfileUpdateModal = ({ open, onComplete, userId, userEmail, isKingschatUser, currentProfile }: ProfileUpdateModalProps) => {
+const ProfileUpdateModal = ({ open, onComplete, userId, userEmail, isKingschatUser, currentProfile, editMode = false }: ProfileUpdateModalProps) => {
   const [email, setEmail] = useState(currentProfile.email || "");
   const [kingschatHandle, setKingschatHandle] = useState(currentProfile.kingschat_handle || "");
   const [church, setChurch] = useState(currentProfile.church || "");
@@ -36,7 +37,6 @@ const ProfileUpdateModal = ({ open, onComplete, userId, userEmail, isKingschatUs
     setRegion(currentProfile.region || "");
   }, [currentProfile, userEmail]);
 
-  // For KingsChat users, email is required. For email users, nothing extra is strictly required.
   const isKcUser = isKingschatUser;
   const emailRequired = isKcUser;
   const emailValid = !emailRequired || (email.trim().length > 0 && email.includes("@") && !email.includes("@kingschat."));
@@ -72,13 +72,26 @@ const ProfileUpdateModal = ({ open, onComplete, userId, userEmail, isKingschatUs
     }
   };
 
+  const dismissable = editMode;
+
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-md [&>button]:hidden" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v && dismissable) onComplete(); }}>
+      <DialogContent
+        className="sm:max-w-md [&>button]:hidden"
+        {...(!dismissable ? {
+          onPointerDownOutside: (e: any) => e.preventDefault(),
+          onEscapeKeyDown: (e: any) => e.preventDefault(),
+        } : {})}
+      >
+        {dismissable && (
+          <button onClick={onComplete} className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100 text-muted-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        )}
         <DialogHeader>
-          <DialogTitle className="text-center font-serif">Complete Your Profile</DialogTitle>
+          <DialogTitle className="text-center font-serif">{editMode ? "Edit Profile" : "Complete Your Profile"}</DialogTitle>
           <DialogDescription className="text-center">
-            Please fill in your details to continue using the app.
+            {editMode ? "Update your profile details below." : "Please fill in your details to continue using the app."}
           </DialogDescription>
         </DialogHeader>
 
@@ -145,7 +158,7 @@ const ProfileUpdateModal = ({ open, onComplete, userId, userEmail, isKingschatUs
             disabled={!canSubmit || saving}
             className="w-full py-3 rounded-lg gradient-gold text-primary-foreground font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 mt-2"
           >
-            {saving ? "Saving..." : "Update Profile"}
+            {saving ? "Saving..." : editMode ? "Save Changes" : "Update Profile"}
           </button>
         </div>
       </DialogContent>

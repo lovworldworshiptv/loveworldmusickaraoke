@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
     }
 
-    const { title, message, image_url, deep_link, segment, scheduled_at } = await req.json();
+    const { title, message, image_url, deep_link, segment, scheduled_at, target_user_ids } = await req.json();
 
     if (!title || !message || !segment) {
       return new Response(JSON.stringify({ error: "title, message, segment are required" }), { status: 400, headers: corsHeaders });
@@ -56,9 +56,14 @@ Deno.serve(async (req) => {
     const status = scheduled_at ? "scheduled" : "pending";
 
     // 1. Save notification to DB
+    const insertData: any = { title, message, image_url, deep_link, segment, scheduled_at, status, created_by: userId };
+    if (segment === "direct" && target_user_ids) {
+      insertData.target_user_ids = target_user_ids;
+    }
+
     const { data: notification, error: insertError } = await supabaseAdmin
       .from("notifications")
-      .insert({ title, message, image_url, deep_link, segment, scheduled_at, status, created_by: userId })
+      .insert(insertData)
       .select()
       .single();
 
@@ -67,27 +72,35 @@ Deno.serve(async (req) => {
     }
 
     // 2. Create user_notification records for targeted users
-    let userQuery = supabaseAdmin.from("user_subscriptions").select("user_id");
-    if (segment === "free") {
-      userQuery = userQuery.eq("subscription", "free");
-    } else if (segment === "premium") {
-      userQuery = userQuery.eq("subscription", "premium");
-    }
-    // segment === "all" → no filter
+    let targetIds: string[] = [];
 
-    const { data: users } = await userQuery;
-    if (users && users.length > 0) {
-      const records = users.map((u: any) => ({
-        user_id: u.user_id,
+    if (segment === "direct" && target_user_ids && target_user_ids.length > 0) {
+      // Direct message to specific users
+      targetIds = target_user_ids;
+    } else {
+      // Segment-based
+      let userQuery = supabaseAdmin.from("user_subscriptions").select("user_id");
+      if (segment === "free") {
+        userQuery = userQuery.eq("subscription", "free");
+      } else if (segment === "premium") {
+        userQuery = userQuery.eq("subscription", "premium");
+      }
+      const { data: users } = await userQuery;
+      targetIds = (users || []).map((u: any) => u.user_id);
+    }
+
+    if (targetIds.length > 0) {
+      const records = targetIds.map((uid: string) => ({
+        user_id: uid,
         notification_id: notification.id,
       }));
       await supabaseAdmin.from("user_notifications").insert(records);
     }
 
-    // 3. Send or schedule via OneSignal
+    // 3. Send via OneSignal
     if (!scheduled_at) {
       const onesignalResult = await sendOneSignalPush({
-        title, message, image_url, deep_link, segment,
+        title, message, image_url, deep_link, segment, target_user_ids: segment === "direct" ? target_user_ids : undefined,
       });
 
       await supabaseAdmin
@@ -103,6 +116,7 @@ Deno.serve(async (req) => {
     // For scheduled: use OneSignal's send_after
     const onesignalResult = await sendOneSignalPush({
       title, message, image_url, deep_link, segment, send_after: scheduled_at,
+      target_user_ids: segment === "direct" ? target_user_ids : undefined,
     });
 
     await supabaseAdmin
@@ -126,6 +140,7 @@ async function sendOneSignalPush(opts: {
   deep_link?: string;
   segment: string;
   send_after?: string;
+  target_user_ids?: string[];
 }) {
   const appId = Deno.env.get("ONESIGNAL_APP_ID")!;
   const apiKey = Deno.env.get("ONESIGNAL_REST_API_KEY")!;
@@ -140,7 +155,11 @@ async function sendOneSignalPush(opts: {
   if (opts.deep_link) payload.url = opts.deep_link;
   if (opts.send_after) payload.send_after = opts.send_after;
 
-  if (opts.segment === "all") {
+  if (opts.segment === "direct" && opts.target_user_ids && opts.target_user_ids.length > 0) {
+    // Send to specific users using OneSignal External User IDs
+    payload.include_external_user_ids = opts.target_user_ids;
+    payload.channel_for_external_user_ids = "push";
+  } else if (opts.segment === "all") {
     payload.included_segments = ["All"];
   } else {
     payload.included_segments = ["All"];
