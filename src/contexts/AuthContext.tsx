@@ -2,16 +2,27 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
+interface ProfileData {
+  email?: string | null;
+  kingschat_handle?: string | null;
+  church?: string | null;
+  zone?: string | null;
+  region?: string | null;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   username: string;
   avatarUrl: string | null;
   kingschatHandle: string | null;
+  profileCompleted: boolean;
+  profileData: ProfileData;
   loading: boolean;
   signUp: (email: string, password: string, username: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  markProfileCompleted: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -28,17 +39,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [username, setUsername] = useState("Guest");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [kingschatHandle, setKingschatHandle] = useState<string | null>(null);
+  const [profileCompleted, setProfileCompleted] = useState(true);
+  const [profileData, setProfileData] = useState<ProfileData>({});
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = (userId: string) => {
-    supabase.from("profiles").select("username, avatar_url, kingschat_handle").eq("user_id", userId).single()
+    supabase.from("profiles").select("username, avatar_url, kingschat_handle, email, church, zone, region, profile_completed").eq("user_id", userId).single()
       .then(({ data }) => {
         if (data) {
           setUsername(data.username);
           setAvatarUrl(data.avatar_url);
           setKingschatHandle((data as any).kingschat_handle ?? null);
+          setProfileCompleted((data as any).profile_completed ?? false);
+          setProfileData({
+            email: (data as any).email,
+            kingschat_handle: (data as any).kingschat_handle,
+            church: (data as any).church,
+            zone: (data as any).zone,
+            region: (data as any).region,
+          });
         }
       });
+  };
+
+  const markProfileCompleted = () => {
+    setProfileCompleted(true);
   };
 
   useEffect(() => {
@@ -84,7 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, username, avatarUrl, kingschatHandle, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, username, avatarUrl, kingschatHandle, profileCompleted, profileData, loading, signUp, signIn, signOut, markProfileCompleted }}>
       {children}
     </AuthContext.Provider>
   );
