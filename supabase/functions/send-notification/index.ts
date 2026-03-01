@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 Deno.serve(async (req) => {
@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const supabaseAdmin = createClient(
@@ -27,13 +27,12 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
 
     // Check admin role
     const { data: roleData } = await supabaseAdmin
@@ -44,13 +43,13 @@ Deno.serve(async (req) => {
       .single();
 
     if (!roleData) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const { title, message, image_url, deep_link, segment, scheduled_at, target_user_ids } = await req.json();
 
     if (!title || !message || !segment) {
-      return new Response(JSON.stringify({ error: "title, message, segment are required" }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: "title, message, segment are required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const status = scheduled_at ? "scheduled" : "pending";
@@ -68,17 +67,16 @@ Deno.serve(async (req) => {
       .single();
 
     if (insertError) {
-      return new Response(JSON.stringify({ error: insertError.message }), { status: 500, headers: corsHeaders });
+      console.error("Insert error:", insertError);
+      return new Response(JSON.stringify({ error: insertError.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // 2. Create user_notification records for targeted users
     let targetIds: string[] = [];
 
     if (segment === "direct" && target_user_ids && target_user_ids.length > 0) {
-      // Direct message to specific users
       targetIds = target_user_ids;
     } else {
-      // Segment-based
       let userQuery = supabaseAdmin.from("user_subscriptions").select("user_id");
       if (segment === "free") {
         userQuery = userQuery.eq("subscription", "free");
@@ -129,7 +127,8 @@ Deno.serve(async (req) => {
     });
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
+    console.error("Send notification error:", err);
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
 
@@ -156,7 +155,6 @@ async function sendOneSignalPush(opts: {
   if (opts.send_after) payload.send_after = opts.send_after;
 
   if (opts.segment === "direct" && opts.target_user_ids && opts.target_user_ids.length > 0) {
-    // Send to specific users using OneSignal External User IDs
     payload.include_external_user_ids = opts.target_user_ids;
     payload.channel_for_external_user_ids = "push";
   } else if (opts.segment === "all") {
