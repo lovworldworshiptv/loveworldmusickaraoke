@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import UserDetailDialog from "@/components/admin/UserDetailDialog";
 
 interface SubRequest {
   id: string;
@@ -47,6 +48,7 @@ const AdminSubscriptions = () => {
   const [loading, setLoading] = useState(true);
   const [proofUrl, setProofUrl] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [detailUserId, setDetailUserId] = useState<string | null>(null);
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -216,7 +218,7 @@ const AdminSubscriptions = () => {
           </TableHeader>
           <TableBody>
             {items.map(req => (
-              <TableRow key={req.id}>
+              <TableRow key={req.id} className="cursor-pointer" onClick={() => setDetailUserId(req.user_id)}>
                 <TableCell>
                   <div>
                     <p className="text-sm font-medium text-foreground">{req.full_name}</p>
@@ -263,7 +265,7 @@ const AdminSubscriptions = () => {
                   </span>
                 </TableCell>
                 {showActions && (
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="flex gap-1">
                       <Button
                         size="sm"
@@ -341,6 +343,12 @@ const AdminSubscriptions = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <UserDetailDialog
+        userId={detailUserId}
+        open={!!detailUserId}
+        onOpenChange={(open) => { if (!open) setDetailUserId(null); }}
+      />
     </AppLayout>
   );
 };

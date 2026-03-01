@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import UserDetailDialog from "@/components/admin/UserDetailDialog";
 
 interface UserRow {
   user_id: string;
@@ -40,6 +41,9 @@ const AdminUsers = () => {
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState("1_month");
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+
+  // User detail dialog
+  const [detailUserId, setDetailUserId] = useState<string | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -229,7 +233,7 @@ const AdminUsers = () => {
               </TableHeader>
               <TableBody>
                 {filtered.map(user => (
-                  <TableRow key={user.user_id}>
+                  <TableRow key={user.user_id} className="cursor-pointer" onClick={() => setDetailUserId(user.user_id)}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         {user.avatar_url ? (
@@ -245,7 +249,7 @@ const AdminUsers = () => {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <Select
                         value={user.role}
                         onValueChange={(v) => handleRoleChange(user.user_id, v)}
@@ -267,7 +271,7 @@ const AdminUsers = () => {
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <Select
                         value={user.subscription}
                         onValueChange={(v) => handleSubscriptionChange(user.user_id, v)}
@@ -301,7 +305,7 @@ const AdminUsers = () => {
                         {new Date(user.created_at).toLocaleDateString()}
                       </span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <button className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Delete user">
@@ -376,6 +380,12 @@ const AdminUsers = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <UserDetailDialog
+        userId={detailUserId}
+        open={!!detailUserId}
+        onOpenChange={(open) => { if (!open) setDetailUserId(null); }}
+      />
     </AppLayout>
   );
 };
