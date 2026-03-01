@@ -5,6 +5,8 @@ import TopNavbar from "./TopNavbar";
 import PlayerBar from "../player/PlayerBar";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useOneSignalSync } from "@/hooks/useOneSignal";
+import { useAuth } from "@/contexts/AuthContext";
+import ProfileUpdateModal from "@/components/profile/ProfileUpdateModal";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -12,7 +14,10 @@ interface AppLayoutProps {
 
 const AppLayout = memo(({ children }: AppLayoutProps) => {
   const { currentSong } = usePlayer();
+  const { user, profileCompleted, profileData, markProfileCompleted } = useAuth();
   useOneSignalSync();
+
+  const isKingschatUser = !!(user?.email?.includes("@kingschat."));
 
   return (
     <div className="h-[100dvh] bg-background overflow-hidden safe-top flex flex-col">
@@ -23,6 +28,16 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
       </main>
       <PlayerBar />
       <BottomNav />
+      {user && !profileCompleted && (
+        <ProfileUpdateModal
+          open={true}
+          onComplete={markProfileCompleted}
+          userId={user.id}
+          userEmail={user.email}
+          isKingschatUser={isKingschatUser}
+          currentProfile={profileData}
+        />
+      )}
     </div>
   );
 });
