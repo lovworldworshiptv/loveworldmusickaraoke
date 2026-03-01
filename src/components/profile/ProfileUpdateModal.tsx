@@ -40,7 +40,9 @@ const ProfileUpdateModal = ({ open, onComplete, userId, userEmail, isKingschatUs
   const isKcUser = isKingschatUser;
   const emailRequired = isKcUser;
   const emailValid = !emailRequired || (email.trim().length > 0 && email.includes("@") && !email.includes("@kingschat."));
-  const canSubmit = emailValid;
+  const kcHandleRequired = !isKcUser;
+  const kcHandleValid = !kcHandleRequired || kingschatHandle.trim().length > 0;
+  const canSubmit = emailValid && kcHandleValid;
 
   const handleSubmit = async () => {
     setSaving(true);
@@ -97,7 +99,7 @@ const ProfileUpdateModal = ({ open, onComplete, userId, userEmail, isKingschatUs
             </div>
           ) : (
             <div className="space-y-1.5">
-              <Label htmlFor="profile-kc">KingsChat Username</Label>
+              <Label htmlFor="profile-kc">KingsChat Username <span className="text-destructive">*</span></Label>
               <Input
                 id="profile-kc"
                 placeholder="@username"
