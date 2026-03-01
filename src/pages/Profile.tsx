@@ -9,7 +9,7 @@ import { toast } from "@/components/ui/sonner";
 import ProfileUpdateModal from "@/components/profile/ProfileUpdateModal";
 
 const Profile = () => {
-  const { user, username, avatarUrl, kingschatHandle, profileData, signOut, loading, markProfileCompleted } = useAuth();
+  const { user, username, avatarUrl, kingschatHandle, profileData, signOut, loading, markProfileCompleted, refetchProfile } = useAuth();
   const navigate = useNavigate();
   const [role, setRole] = useState<string>("user");
   const [subscription, setSubscription] = useState<string>("free");
@@ -246,6 +246,7 @@ const Profile = () => {
           onComplete={() => {
             setEditModalOpen(false);
             markProfileCompleted();
+            refetchProfile();
           }}
           userId={user.id}
           userEmail={user.email}

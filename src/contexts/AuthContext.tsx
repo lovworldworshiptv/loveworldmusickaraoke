@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface ProfileData {
+  username?: string | null;
   email?: string | null;
   kingschat_handle?: string | null;
   church?: string | null;
@@ -23,6 +24,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   markProfileCompleted: () => void;
+  refetchProfile: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -52,6 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setKingschatHandle((data as any).kingschat_handle ?? null);
           setProfileCompleted((data as any).profile_completed ?? false);
           setProfileData({
+            username: data.username,
             email: (data as any).email,
             kingschat_handle: (data as any).kingschat_handle,
             church: (data as any).church,
@@ -64,6 +67,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const markProfileCompleted = () => {
     setProfileCompleted(true);
+  };
+
+  const refetchProfile = () => {
+    if (user) fetchProfile(user.id);
   };
 
   useEffect(() => {
@@ -109,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, username, avatarUrl, kingschatHandle, profileCompleted, profileData, loading, signUp, signIn, signOut, markProfileCompleted }}>
+    <AuthContext.Provider value={{ user, session, username, avatarUrl, kingschatHandle, profileCompleted, profileData, loading, signUp, signIn, signOut, markProfileCompleted, refetchProfile }}>
       {children}
     </AuthContext.Provider>
   );

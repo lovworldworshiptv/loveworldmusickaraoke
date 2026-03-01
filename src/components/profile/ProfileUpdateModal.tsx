@@ -12,6 +12,7 @@ interface ProfileUpdateModalProps {
   userEmail?: string;
   isKingschatUser: boolean;
   currentProfile: {
+    username?: string | null;
     email?: string | null;
     kingschat_handle?: string | null;
     church?: string | null;
@@ -22,6 +23,7 @@ interface ProfileUpdateModalProps {
 }
 
 const ProfileUpdateModal = ({ open, onComplete, userId, userEmail, isKingschatUser, currentProfile, editMode = false }: ProfileUpdateModalProps) => {
+  const [displayName, setDisplayName] = useState(currentProfile.username || "");
   const [email, setEmail] = useState(currentProfile.email || "");
   const [kingschatHandle, setKingschatHandle] = useState(currentProfile.kingschat_handle || "");
   const [church, setChurch] = useState(currentProfile.church || "");
@@ -30,6 +32,7 @@ const ProfileUpdateModal = ({ open, onComplete, userId, userEmail, isKingschatUs
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    setDisplayName(currentProfile.username || "");
     setEmail(currentProfile.email || userEmail || "");
     setKingschatHandle(currentProfile.kingschat_handle || "");
     setChurch(currentProfile.church || "");
@@ -38,26 +41,34 @@ const ProfileUpdateModal = ({ open, onComplete, userId, userEmail, isKingschatUs
   }, [currentProfile, userEmail]);
 
   const isKcUser = isKingschatUser;
-  const emailRequired = isKcUser;
+
+  // For first-time completion: KC users must provide email, email users must provide KC handle
+  // For edit mode: all fields are optional (but display name is always required)
+  const displayNameValid = displayName.trim().length > 0;
+
+  const emailRequired = !editMode && isKcUser;
   const emailValid = !emailRequired || (email.trim().length > 0 && email.includes("@") && !email.includes("@kingschat."));
-  const kcHandleRequired = !isKcUser;
+
+  const kcHandleRequired = !editMode && !isKcUser;
   const kcHandleValid = !kcHandleRequired || kingschatHandle.trim().length > 0;
-  const canSubmit = emailValid && kcHandleValid;
+
+  const canSubmit = displayNameValid && emailValid && kcHandleValid;
 
   const handleSubmit = async () => {
     setSaving(true);
     try {
       const updates: Record<string, any> = {
         profile_completed: true,
+        username: displayName.trim(),
         church: church.trim() || null,
         zone: zone.trim() || null,
         region: region.trim() || null,
       };
 
-      if (isKcUser && email.trim()) {
+      if (email.trim()) {
         updates.email = email.trim();
       }
-      if (!isKcUser && kingschatHandle.trim()) {
+      if (kingschatHandle.trim()) {
         updates.kingschat_handle = kingschatHandle.trim();
       }
 
@@ -96,31 +107,46 @@ const ProfileUpdateModal = ({ open, onComplete, userId, userEmail, isKingschatUs
         </DialogHeader>
 
         <div className="space-y-4 mt-2">
-          {isKcUser ? (
-            <div className="space-y-1.5">
-              <Label htmlFor="profile-email">Email Address <span className="text-destructive">*</span></Label>
-              <Input
-                id="profile-email"
-                type="email"
-                placeholder="your.email@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              {emailRequired && !emailValid && email.length > 0 && (
-                <p className="text-xs text-destructive">Please enter a valid email address</p>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              <Label htmlFor="profile-kc">KingsChat Username <span className="text-destructive">*</span></Label>
-              <Input
-                id="profile-kc"
-                placeholder="@username"
-                value={kingschatHandle}
-                onChange={(e) => setKingschatHandle(e.target.value)}
-              />
-            </div>
-          )}
+          {/* Display Name - always shown */}
+          <div className="space-y-1.5">
+            <Label htmlFor="profile-displayname">Display Name <span className="text-destructive">*</span></Label>
+            <Input
+              id="profile-displayname"
+              placeholder="Your display name"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
+          </div>
+
+          {/* Email - always shown, required for KC users on first completion */}
+          <div className="space-y-1.5">
+            <Label htmlFor="profile-email">
+              Email Address {emailRequired && <span className="text-destructive">*</span>}
+            </Label>
+            <Input
+              id="profile-email"
+              type="email"
+              placeholder="your.email@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            {emailRequired && !emailValid && email.length > 0 && (
+              <p className="text-xs text-destructive">Please enter a valid email address</p>
+            )}
+          </div>
+
+          {/* KingsChat Handle - always shown, required for email users on first completion */}
+          <div className="space-y-1.5">
+            <Label htmlFor="profile-kc">
+              KingsChat Username {kcHandleRequired && <span className="text-destructive">*</span>}
+            </Label>
+            <Input
+              id="profile-kc"
+              placeholder="@username"
+              value={kingschatHandle}
+              onChange={(e) => setKingschatHandle(e.target.value)}
+            />
+          </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="profile-church">Church</Label>
