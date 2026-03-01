@@ -3,18 +3,20 @@ import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Crown, Shield, LogOut, ChevronRight, AtSign, Trash2, Camera, Sparkles } from "lucide-react";
+import { User, Crown, Shield, LogOut, ChevronRight, AtSign, Trash2, Camera, Sparkles, Edit } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/sonner";
+import ProfileUpdateModal from "@/components/profile/ProfileUpdateModal";
 
 const Profile = () => {
-  const { user, username, avatarUrl, kingschatHandle, signOut, loading } = useAuth();
+  const { user, username, avatarUrl, kingschatHandle, profileData, signOut, loading, markProfileCompleted } = useAuth();
   const navigate = useNavigate();
   const [role, setRole] = useState<string>("user");
   const [subscription, setSubscription] = useState<string>("free");
   const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [localAvatar, setLocalAvatar] = useState<string | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleDeleteAccount = async () => {
@@ -42,7 +44,6 @@ const Profile = () => {
     try {
       const ext = file.name.split(".").pop();
       const path = `${user.id}/avatar.${ext}`;
-      // Delete old
       await supabase.storage.from("avatars").remove([path]).catch(() => {});
       const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
@@ -62,7 +63,6 @@ const Profile = () => {
     if (!user) return;
     setUploading(true);
     try {
-      // List and remove all files in user's avatar folder
       const { data: files } = await supabase.storage.from("avatars").list(user.id);
       if (files && files.length > 0) {
         await supabase.storage.from("avatars").remove(files.map(f => `${user.id}/${f.name}`));
@@ -118,8 +118,10 @@ const Profile = () => {
   const subscriptionLabel = subscription === "premium" ? "Premium" : subscription === "trial" ? "Trial" : "Free";
   const roleColor = role === "admin" ? "text-destructive" : role === "editor" ? "text-primary" : "text-muted-foreground";
   const subscriptionColor = subscription === "premium" ? "text-gold" : subscription === "trial" ? "text-gold" : "text-muted-foreground";
+  const isKingschatUser = !!(user.email?.includes("@kingschat."));
 
   const menuItems = [
+    { label: "Edit Profile", path: "", icon: Edit, action: () => setEditModalOpen(true) },
     { label: "My Favorites", path: "/library", icon: ChevronRight },
     { label: "My Playlists", path: "/library", icon: ChevronRight },
     { label: subscription === "premium" ? "Manage Subscription" : "Upgrade to Premium", path: "/subscription", icon: Crown },
@@ -167,6 +169,16 @@ const Profile = () => {
             </p>
           )}
           <p className="text-xs text-muted-foreground mt-1">{user.email?.includes("@kingschat.local") ? "" : user.email}</p>
+
+          {/* Church/Zone/Region info */}
+          {(profileData.church || profileData.zone || profileData.region) && (
+            <div className="flex items-center justify-center gap-2 mt-2 text-xs text-muted-foreground flex-wrap">
+              {profileData.church && <span>{profileData.church}</span>}
+              {profileData.zone && <><span>•</span><span>{profileData.zone}</span></>}
+              {profileData.region && <><span>•</span><span>{profileData.region}</span></>}
+            </div>
+          )}
+
           <div className="flex items-center gap-2 mt-3 justify-center flex-wrap">
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted text-xs font-semibold ${roleColor}`}>
               {(role === "admin" || role === "editor") && <Shield className="w-3.5 h-3.5" />}
@@ -185,11 +197,11 @@ const Profile = () => {
           {menuItems.map((item) => (
             <button
               key={item.label}
-              onClick={() => navigate(item.path)}
+              onClick={() => item.action ? item.action() : navigate(item.path)}
               className="w-full flex items-center justify-between p-4 glass-card hover:glow-gold transition-all duration-200"
             >
               <span className="text-sm font-medium text-foreground">{item.label}</span>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              <item.icon className="w-4 h-4 text-muted-foreground" />
             </button>
           ))}
         </div>
@@ -226,6 +238,22 @@ const Profile = () => {
         </AlertDialog>
       </div>
       <div className="h-8" />
+
+      {/* Edit Profile Modal */}
+      {user && (
+        <ProfileUpdateModal
+          open={editModalOpen}
+          onComplete={() => {
+            setEditModalOpen(false);
+            markProfileCompleted();
+          }}
+          userId={user.id}
+          userEmail={user.email}
+          isKingschatUser={isKingschatUser}
+          currentProfile={profileData}
+          editMode={true}
+        />
+      )}
     </AppLayout>
   );
 };

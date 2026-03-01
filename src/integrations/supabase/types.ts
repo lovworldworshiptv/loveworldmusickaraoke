@@ -143,6 +143,35 @@ export type Database = {
         }
         Relationships: []
       }
+      downloads: {
+        Row: {
+          downloaded_at: string
+          id: string
+          song_id: string
+          user_id: string
+        }
+        Insert: {
+          downloaded_at?: string
+          id?: string
+          song_id: string
+          user_id: string
+        }
+        Update: {
+          downloaded_at?: string
+          id?: string
+          song_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "downloads_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorites: {
         Row: {
           created_at: string
@@ -442,6 +471,7 @@ export type Database = {
           segment: string
           sent_at: string | null
           status: string
+          target_user_ids: string[] | null
           title: string
         }
         Insert: {
@@ -456,6 +486,7 @@ export type Database = {
           segment?: string
           sent_at?: string | null
           status?: string
+          target_user_ids?: string[] | null
           title: string
         }
         Update: {
@@ -470,6 +501,7 @@ export type Database = {
           segment?: string
           sent_at?: string | null
           status?: string
+          target_user_ids?: string[] | null
           title?: string
         }
         Relationships: []

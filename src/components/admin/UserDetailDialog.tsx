@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Crown, User, Shield, Clock, Mail, Calendar, Music, Heart, Sparkles } from "lucide-react";
+import { Crown, User, Shield, Clock, Mail, Calendar, Music, Heart, Sparkles, Download, AtSign } from "lucide-react";
 
 interface UserDetailDialogProps {
   userId: string | null;
@@ -15,6 +15,9 @@ interface UserDetail {
   email: string | null;
   avatar_url: string | null;
   kingschat_handle: string | null;
+  church: string | null;
+  zone: string | null;
+  region: string | null;
   created_at: string;
   role: string;
   subscription: string;
@@ -25,6 +28,7 @@ interface UserDetail {
   recently_played_count: number;
   playlists_count: number;
   feedback_count: number;
+  downloads_count: number;
 }
 
 const UserDetailDialog = ({ userId, open, onOpenChange }: UserDetailDialogProps) => {
@@ -36,14 +40,15 @@ const UserDetailDialog = ({ userId, open, onOpenChange }: UserDetailDialogProps)
     setLoading(true);
 
     const fetchAll = async () => {
-      const [profileRes, roleRes, subRes, favRes, recentRes, playlistRes, feedbackRes] = await Promise.all([
-        supabase.from("profiles").select("username, email, avatar_url, kingschat_handle, created_at").eq("user_id", userId).single(),
+      const [profileRes, roleRes, subRes, favRes, recentRes, playlistRes, feedbackRes, downloadsRes] = await Promise.all([
+        supabase.from("profiles").select("username, email, avatar_url, kingschat_handle, church, zone, region, created_at").eq("user_id", userId).single(),
         supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
         supabase.from("user_subscriptions").select("subscription, subscription_plan, subscription_start_date, subscription_expiry_date").eq("user_id", userId).maybeSingle(),
         supabase.from("favorites").select("id", { count: "exact", head: true }).eq("user_id", userId),
         supabase.from("recently_played").select("id", { count: "exact", head: true }).eq("user_id", userId),
         supabase.from("playlists").select("id", { count: "exact", head: true }).eq("user_id", userId),
         supabase.from("feedback").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("downloads").select("id", { count: "exact", head: true }).eq("user_id", userId),
       ]);
 
       const p = profileRes.data;
@@ -54,6 +59,9 @@ const UserDetailDialog = ({ userId, open, onOpenChange }: UserDetailDialogProps)
         email: p.email,
         avatar_url: p.avatar_url,
         kingschat_handle: p.kingschat_handle,
+        church: (p as any).church,
+        zone: (p as any).zone,
+        region: (p as any).region,
         created_at: p.created_at,
         role: roleRes.data?.role || "user",
         subscription: subRes.data?.subscription || "free",
@@ -64,6 +72,7 @@ const UserDetailDialog = ({ userId, open, onOpenChange }: UserDetailDialogProps)
         recently_played_count: recentRes.count || 0,
         playlists_count: playlistRes.count || 0,
         feedback_count: feedbackRes.count || 0,
+        downloads_count: downloadsRes.count || 0,
       });
       setLoading(false);
     };
@@ -113,7 +122,9 @@ const UserDetailDialog = ({ userId, open, onOpenChange }: UserDetailDialogProps)
                   </p>
                 )}
                 {detail.kingschat_handle && (
-                  <p className="text-xs text-muted-foreground">KC: @{detail.kingschat_handle}</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <AtSign className="w-3 h-3" /> {detail.kingschat_handle}
+                  </p>
                 )}
               </div>
             </div>
@@ -127,6 +138,18 @@ const UserDetailDialog = ({ userId, open, onOpenChange }: UserDetailDialogProps)
                 {subIcon(detail.subscription)} {detail.subscription.charAt(0).toUpperCase() + detail.subscription.slice(1)}
               </Badge>
             </div>
+
+            {/* Church/Zone/Region */}
+            {(detail.church || detail.zone || detail.region) && (
+              <div className="rounded-lg border border-border p-3 space-y-2 text-sm">
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Church Info</h4>
+                <div className="grid grid-cols-2 gap-y-1.5 text-sm">
+                  {detail.church && <><span className="text-muted-foreground">Church</span><span className="text-foreground">{detail.church}</span></>}
+                  {detail.zone && <><span className="text-muted-foreground">Zone</span><span className="text-foreground">{detail.zone}</span></>}
+                  {detail.region && <><span className="text-muted-foreground">Region</span><span className="text-foreground">{detail.region}</span></>}
+                </div>
+              </div>
+            )}
 
             {/* Subscription details */}
             <div className="rounded-lg border border-border p-3 space-y-2 text-sm">
@@ -151,6 +174,8 @@ const UserDetailDialog = ({ userId, open, onOpenChange }: UserDetailDialogProps)
                 <span className="text-foreground">{detail.recently_played_count}</span>
                 <span className="text-muted-foreground flex items-center gap-1"><Music className="w-3 h-3" /> Playlists</span>
                 <span className="text-foreground">{detail.playlists_count}</span>
+                <span className="text-muted-foreground flex items-center gap-1"><Download className="w-3 h-3" /> Downloads</span>
+                <span className="text-foreground">{detail.downloads_count}</span>
                 <span className="text-muted-foreground">Feedback</span>
                 <span className="text-foreground">{detail.feedback_count}</span>
               </div>
