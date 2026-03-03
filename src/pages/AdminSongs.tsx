@@ -568,6 +568,11 @@ const AdminSongs = () => {
                       </div>
                       <span className="text-sm text-foreground font-mono">{formatSyncTime(syncTime)}</span>
                       <span className="text-[10px] text-muted-foreground font-mono">/ {formatSyncTime(syncDuration)}</span>
+                      {editingSong?.instrumental_url && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                          {syncTrack === "instrumental" ? "♪ Instrumental" : "♪ Audio"}
+                        </span>
+                      )}
                       <span className="text-xs text-muted-foreground flex-1">Click a line to stamp — click again for multiples</span>
                       <Button onClick={() => { setBulkLyricsText(syncLines.join("\n")); setBulkEditingLyrics(true); }} size="sm" variant="outline" className="gap-1 text-xs border-border">
                         <Edit3 className="w-3 h-3" /> Edit All
