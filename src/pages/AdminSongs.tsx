@@ -161,6 +161,7 @@ const AdminSongs = () => {
   const [editingLineText, setEditingLineText] = useState("");
   const [bulkEditingLyrics, setBulkEditingLyrics] = useState(false);
   const [bulkLyricsText, setBulkLyricsText] = useState("");
+  const [syncTrack, setSyncTrack] = useState<"audio" | "instrumental">("audio");
 
   useEffect(() => { fetchSongs(); fetchAlbumOptions(); fetchCategoryOptions(); }, []);
 
@@ -265,7 +266,9 @@ const AdminSongs = () => {
     setSyncCurrentLine(0);
     setEditMode("sync");
 
-    const url = editingSong?.instrumental_url || editingSong?.audio_url;
+    const url = syncTrack === "instrumental" && editingSong?.instrumental_url
+      ? editingSong.instrumental_url
+      : editingSong?.audio_url;
     if (url) {
       const audio = new Audio(url);
       syncAudioRef.current = audio;
@@ -504,13 +507,25 @@ const AdminSongs = () => {
               {/* LRC editor */}
               {editMode === "lrc" && (
                 <>
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-3 gap-2">
                     <p className="text-xs text-muted-foreground">
                       Enter lyrics (with or without timestamps). Use "Sync Lyrics" to time them to audio.
                     </p>
-                    <Button onClick={startSync} size="sm" variant="outline" className="gap-1.5 text-gold border-gold/30">
-                      <MousePointer className="w-3.5 h-3.5" /> Sync Lyrics
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {editingSong?.instrumental_url && (
+                        <select
+                          value={syncTrack}
+                          onChange={e => setSyncTrack(e.target.value as "audio" | "instrumental")}
+                          className="text-xs rounded-md border border-border bg-muted px-2 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        >
+                          <option value="audio">Audio Track</option>
+                          <option value="instrumental">Instrumental</option>
+                        </select>
+                      )}
+                      <Button onClick={startSync} size="sm" variant="outline" className="gap-1.5 text-gold border-gold/30">
+                        <MousePointer className="w-3.5 h-3.5" /> Sync Lyrics
+                      </Button>
+                    </div>
                   </div>
                   <textarea
                     value={lrcText}
@@ -553,6 +568,11 @@ const AdminSongs = () => {
                       </div>
                       <span className="text-sm text-foreground font-mono">{formatSyncTime(syncTime)}</span>
                       <span className="text-[10px] text-muted-foreground font-mono">/ {formatSyncTime(syncDuration)}</span>
+                      {editingSong?.instrumental_url && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                          {syncTrack === "instrumental" ? "♪ Instrumental" : "♪ Audio"}
+                        </span>
+                      )}
                       <span className="text-xs text-muted-foreground flex-1">Click a line to stamp — click again for multiples</span>
                       <Button onClick={() => { setBulkLyricsText(syncLines.join("\n")); setBulkEditingLyrics(true); }} size="sm" variant="outline" className="gap-1 text-xs border-border">
                         <Edit3 className="w-3 h-3" /> Edit All
