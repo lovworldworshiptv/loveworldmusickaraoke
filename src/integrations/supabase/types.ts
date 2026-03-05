@@ -255,6 +255,45 @@ export type Database = {
         }
         Relationships: []
       }
+      game_sessions: {
+        Row: {
+          best_streak: number
+          correct_answers: number
+          created_at: string
+          difficulty: string
+          game_mode: string
+          id: string
+          max_score: number
+          score: number
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          best_streak?: number
+          correct_answers?: number
+          created_at?: string
+          difficulty: string
+          game_mode: string
+          id?: string
+          max_score?: number
+          score?: number
+          total_questions?: number
+          user_id: string
+        }
+        Update: {
+          best_streak?: number
+          correct_answers?: number
+          created_at?: string
+          difficulty?: string
+          game_mode?: string
+          id?: string
+          max_score?: number
+          score?: number
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       gift_subscription_recipients: {
         Row: {
           gift_id: string
@@ -869,6 +908,27 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_achievements: {
+        Row: {
+          achievement_key: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          achievement_key: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          achievement_key?: string
+          earned_at?: string
+          id?: string
           user_id?: string
         }
         Relationships: []
