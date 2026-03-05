@@ -64,6 +64,10 @@ const App = () => (
                 {/* Protected routes */}
                 <Route path="/library" element={<AuthGate><Library /></AuthGate>} />
                 <Route path="/games" element={<AuthGate><Games /></AuthGate>} />
+                <Route path="/games/songmatch" element={<AuthGate><SongMatch /></AuthGate>} />
+                <Route path="/games/songmatch/lyrics" element={<AuthGate><SongMatchLyrics /></AuthGate>} />
+                <Route path="/games/songmatch/melody" element={<AuthGate><SongMatchMelody /></AuthGate>} />
+                <Route path="/games/songmatch/category" element={<AuthGate><SongMatchCategory /></AuthGate>} />
                 <Route path="/articles" element={<AuthGate><Articles /></AuthGate>} />
                 <Route path="/profile" element={<AuthGate><Profile /></AuthGate>} />
                 <Route path="/discover" element={<AuthGate><Discover /></AuthGate>} />
