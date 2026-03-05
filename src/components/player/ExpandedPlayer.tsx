@@ -1,5 +1,5 @@
 import { usePlayer, RepeatMode } from "@/contexts/PlayerContext";
-import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock } from "lucide-react";
+import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +12,7 @@ import { isDownloaded as checkDownloaded, saveDownload } from "@/lib/downloadMan
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Crown } from "lucide-react";
+import KaraokeRecorder from "@/components/karaoke/KaraokeRecorder";
 
 const formatTime = (s: number) => {
   const m = Math.floor(s / 60);
@@ -62,6 +63,7 @@ const ExpandedPlayer = () => {
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
   const [showLyrics, setShowLyrics] = useState(true);
+  const [showRecorder, setShowRecorder] = useState(false);
 
   const dominantColor = useDominantColor(currentSong?.coverUrl);
   const { user } = useAuth();
@@ -242,6 +244,33 @@ const ExpandedPlayer = () => {
                 <Mic2 className="w-3.5 h-3.5" /> Karaoke
               </button>
             </div>
+
+            {/* Karaoke Recorder */}
+            {isKaraoke && isPremium && showRecorder && currentSong && (
+              <div className="px-6 mb-3 flex-shrink-0">
+                <KaraokeRecorder
+                  songId={currentSong.id}
+                  songTitle={currentSong.title}
+                  instrumentalUrl={currentSong.instrumentalUrl}
+                  isKaraokeMode={isKaraoke}
+                  onClose={() => setShowRecorder(false)}
+                />
+              </div>
+            )}
+            {isKaraoke && isPremium && !showRecorder && (
+              <div className="px-6 mb-3 flex-shrink-0">
+                <button onClick={() => setShowRecorder(true)} className="flex items-center gap-2 px-4 py-2 rounded-full bg-gold/20 text-gold text-xs font-semibold hover:bg-gold/30 transition-colors mx-auto">
+                  <Disc3 className="w-4 h-4" /> Record Karaoke
+                </button>
+              </div>
+            )}
+            {isKaraoke && !isPremium && (
+              <div className="px-6 mb-3 flex-shrink-0 text-center">
+                <button onClick={() => setShowUpgrade(true)} className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted text-muted-foreground text-xs font-semibold mx-auto">
+                  <Lock className="w-4 h-4" /> Premium Feature – Record Karaoke
+                </button>
+              </div>
+            )}
 
             {/* Synced Lyrics */}
             <div

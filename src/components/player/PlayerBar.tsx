@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, VolumeX, Mic2, ListMusic, ChevronUp, X, Download, Check, Lock, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,7 +23,7 @@ const PlayerBar = () => {
     currentSong, isPlaying, isKaraoke, isExpanded, progress, currentTime, duration,
     togglePlay, toggleKaraoke, toggleExpanded, seekTo,
     skipNext, skipPrev, repeatMode, cycleRepeat, shuffleOn, toggleShuffle,
-    volume, setVolume, queue, queueIndex,
+    volume, setVolume, queue, queueIndex, trackEndCount,
   } = usePlayer();
   const { user } = useAuth();
   const { isAdmin } = useIsAdmin();
@@ -34,6 +34,15 @@ const PlayerBar = () => {
   const [downloaded, setDownloaded] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const prevTrackEndRef = useRef(trackEndCount);
+
+  // Show premium modal after each track ends for free users
+  useEffect(() => {
+    if (trackEndCount > prevTrackEndRef.current && !isPremium && user) {
+      setShowUpgrade(true);
+    }
+    prevTrackEndRef.current = trackEndCount;
+  }, [trackEndCount, isPremium, user]);
 
   const canDownload = isPremium;
 

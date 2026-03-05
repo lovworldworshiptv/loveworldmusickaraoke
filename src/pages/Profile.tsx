@@ -7,6 +7,7 @@ import { User, Crown, Shield, LogOut, ChevronRight, AtSign, Trash2, Camera, Spar
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/sonner";
 import ProfileUpdateModal from "@/components/profile/ProfileUpdateModal";
+import MyKaraoke from "@/components/profile/MyKaraoke";
 
 const Profile = () => {
   const { user, username, avatarUrl, kingschatHandle, profileData, signOut, loading, markProfileCompleted, refetchProfile } = useAuth();
@@ -191,6 +192,9 @@ const Profile = () => {
             </span>
           </div>
         </div>
+
+        {/* My Karaoke */}
+        <MyKaraoke />
 
         {/* Menu */}
         <div className="space-y-2 mb-6">

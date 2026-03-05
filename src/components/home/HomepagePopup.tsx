@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { X } from "lucide-react";
 
 interface PopupData {
@@ -22,6 +23,8 @@ interface PopupData {
   button_text_color: string | null;
   border_radius: string | null;
   max_width: string | null;
+  target_segment: string;
+  target_user_ids: string[] | null;
 }
 
 const STORAGE_KEY = "homepage_popup_last_shown";
@@ -51,6 +54,7 @@ function markShown(frequency: string) {
 const HomepagePopup = () => {
   const [popup, setPopup] = useState<PopupData | null>(null);
   const [visible, setVisible] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     supabase
@@ -66,12 +70,30 @@ const HomepagePopup = () => {
   useEffect(() => {
     if (!popup?.enabled) return;
     if (!shouldShow(popup.show_frequency)) return;
+
+    // Check targeting
+    const seg = popup.target_segment || "all";
+    if (seg === "specific" && popup.target_user_ids) {
+      if (!user || !popup.target_user_ids.includes(user.id)) return;
+    }
+    if (seg === "free" || seg === "premium" || seg === "trial") {
+      if (!user) return;
+      // Check subscription - we'll do a quick lookup
+      supabase.from("user_subscriptions").select("subscription").eq("user_id", user.id).single().then(({ data }) => {
+        const sub = data?.subscription || "free";
+        if (seg !== sub) return;
+        const timer = setTimeout(() => { setVisible(true); markShown(popup.show_frequency); }, (popup.delay_seconds || 2) * 1000);
+        return () => clearTimeout(timer);
+      });
+      return;
+    }
+
     const timer = setTimeout(() => {
       setVisible(true);
       markShown(popup.show_frequency);
     }, (popup.delay_seconds || 2) * 1000);
     return () => clearTimeout(timer);
-  }, [popup]);
+  }, [popup, user]);
 
   const close = () => setVisible(false);
 
