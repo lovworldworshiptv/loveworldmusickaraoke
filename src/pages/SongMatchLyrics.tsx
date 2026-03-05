@@ -1,19 +1,22 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, BookOpen, Trophy, Star, Zap, RotateCcw, Home, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, BookOpen, Trophy, Star, Zap, RotateCcw, Home, CheckCircle, XCircle, FileText, Music, PenTool } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { saveGameSession, checkAndAwardAchievements, useGameStats } from "@/hooks/useGameStats";
 
 type Difficulty = "easy" | "medium" | "hard";
+type LyricsMode = "lyrics-to-title" | "title-to-lyrics" | "fill-in-blank";
 
 interface LyricsQuestion {
-  lyrics: string;
-  correctTitle: string;
+  prompt: string;
+  correctAnswer: string;
   options: string[];
+  songTitle: string;
   artist: string;
+  lyricSnippet: string;
   points: number;
 }
 
@@ -30,6 +33,12 @@ const DIFFICULTY_CONFIG = {
   hard: { label: "Hard", points: 25, lineCount: 1, color: "bg-red-500", emoji: "⚡", speedThreshold: 4 },
 };
 
+const LYRICS_MODES = [
+  { key: "lyrics-to-title" as LyricsMode, label: "Lyrics → Title", description: "Read lyrics, guess the song title", icon: FileText },
+  { key: "title-to-lyrics" as LyricsMode, label: "Title → Lyrics", description: "See the title, pick the correct lyrics", icon: Music },
+  { key: "fill-in-blank" as LyricsMode, label: "Fill in the Blank", description: "Complete the missing word in the lyric", icon: PenTool },
+];
+
 const OPTION_COUNT = 4;
 const QUESTIONS_PER_ROUND = 10;
 
@@ -40,7 +49,12 @@ function parseLrcLines(lrc: string): string[] {
     .filter((line) => line.length > 3 && !/^[♪♫]+$/.test(line));
 }
 
-function generateLyricsQuestions(
+function getSnippet(lines: string[], lineCount: number): string {
+  const startIdx = Math.floor(Math.random() * Math.max(1, lines.length - lineCount));
+  return lines.slice(startIdx, startIdx + lineCount).join("\n");
+}
+
+function generateLyricsToTitleQuestions(
   songs: { title: string; artist: string; lyrics_lrc: string }[],
   difficulty: Difficulty,
   count: number
@@ -48,31 +62,135 @@ function generateLyricsQuestions(
   const config = DIFFICULTY_CONFIG[difficulty];
   const shuffled = [...songs].sort(() => Math.random() - 0.5);
   const questions: LyricsQuestion[] = [];
-  const usedSongs = new Set<string>();
+  const used = new Set<string>();
 
   for (const song of shuffled) {
-    if (questions.length >= count) break;
-    if (usedSongs.has(song.title)) continue;
-
+    if (questions.length >= count || used.has(song.title)) continue;
     const lines = parseLrcLines(song.lyrics_lrc);
     if (lines.length < config.lineCount) continue;
 
-    const startIdx = Math.floor(Math.random() * Math.max(1, lines.length - config.lineCount));
-    const snippet = lines.slice(startIdx, startIdx + config.lineCount).join("\n");
+    const snippet = getSnippet(lines, config.lineCount);
+    const others = shuffled.filter((s) => s.title !== song.title).sort(() => Math.random() - 0.5).slice(0, OPTION_COUNT - 1).map((s) => s.title);
+    if (others.length < OPTION_COUNT - 1) continue;
 
-    const otherSongs = shuffled
-      .filter((s) => s.title !== song.title)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, OPTION_COUNT - 1)
-      .map((s) => s.title);
-
-    if (otherSongs.length < OPTION_COUNT - 1) continue;
-
-    const options = [song.title, ...otherSongs].sort(() => Math.random() - 0.5);
-    usedSongs.add(song.title);
-    questions.push({ lyrics: snippet, correctTitle: song.title, options, artist: song.artist, points: config.points });
+    used.add(song.title);
+    questions.push({
+      prompt: snippet,
+      correctAnswer: song.title,
+      options: [song.title, ...others].sort(() => Math.random() - 0.5),
+      songTitle: song.title,
+      artist: song.artist,
+      lyricSnippet: snippet,
+      points: config.points,
+    });
   }
+  return questions.sort(() => Math.random() - 0.5);
+}
 
+function generateTitleToLyricsQuestions(
+  songs: { title: string; artist: string; lyrics_lrc: string }[],
+  difficulty: Difficulty,
+  count: number
+): LyricsQuestion[] {
+  const config = DIFFICULTY_CONFIG[difficulty];
+  const shuffled = [...songs].sort(() => Math.random() - 0.5);
+  const questions: LyricsQuestion[] = [];
+  const used = new Set<string>();
+
+  for (const song of shuffled) {
+    if (questions.length >= count || used.has(song.title)) continue;
+    const lines = parseLrcLines(song.lyrics_lrc);
+    if (lines.length < config.lineCount) continue;
+
+    const snippet = getSnippet(lines, config.lineCount);
+
+    // Get lyric snippets from other songs as wrong options
+    const otherSnippets: string[] = [];
+    for (const other of shuffled) {
+      if (other.title === song.title || otherSnippets.length >= OPTION_COUNT - 1) continue;
+      const oLines = parseLrcLines(other.lyrics_lrc);
+      if (oLines.length < config.lineCount) continue;
+      otherSnippets.push(getSnippet(oLines, config.lineCount));
+    }
+    if (otherSnippets.length < OPTION_COUNT - 1) continue;
+
+    used.add(song.title);
+    questions.push({
+      prompt: song.title,
+      correctAnswer: snippet,
+      options: [snippet, ...otherSnippets].sort(() => Math.random() - 0.5),
+      songTitle: song.title,
+      artist: song.artist,
+      lyricSnippet: snippet,
+      points: config.points,
+    });
+  }
+  return questions.sort(() => Math.random() - 0.5);
+}
+
+function generateFillInBlankQuestions(
+  songs: { title: string; artist: string; lyrics_lrc: string }[],
+  difficulty: Difficulty,
+  count: number
+): LyricsQuestion[] {
+  const config = DIFFICULTY_CONFIG[difficulty];
+  const shuffled = [...songs].sort(() => Math.random() - 0.5);
+  const questions: LyricsQuestion[] = [];
+  const used = new Set<string>();
+
+  for (const song of shuffled) {
+    if (questions.length >= count || used.has(song.title)) continue;
+    const lines = parseLrcLines(song.lyrics_lrc);
+    if (lines.length < 2) continue;
+
+    // Pick a random line with enough words
+    const candidates = lines.filter((l) => l.split(/\s+/).length >= 4);
+    if (candidates.length === 0) continue;
+
+    const line = candidates[Math.floor(Math.random() * candidates.length)];
+    const words = line.split(/\s+/);
+    // Pick a word to blank out (not first/last for better context), prefer longer words
+    const blankCandidates = words
+      .map((w, i) => ({ w, i }))
+      .filter(({ w, i }) => i > 0 && i < words.length - 1 && w.length >= 3);
+    if (blankCandidates.length === 0) continue;
+
+    const { w: blankWord, i: blankIdx } = blankCandidates[Math.floor(Math.random() * blankCandidates.length)];
+    const cleanBlank = blankWord.replace(/[^a-zA-Z'-]/g, "");
+    if (cleanBlank.length < 3) continue;
+
+    const displayLine = words.map((w, i) => (i === blankIdx ? "_____" : w)).join(" ");
+
+    // Generate wrong word options from other songs
+    const wrongWords = new Set<string>();
+    for (const other of shuffled) {
+      if (wrongWords.size >= OPTION_COUNT - 1) break;
+      if (other.title === song.title) continue;
+      const oLines = parseLrcLines(other.lyrics_lrc);
+      for (const ol of oLines) {
+        if (wrongWords.size >= OPTION_COUNT - 1) break;
+        const oWords = ol.split(/\s+/).filter((w) => w.length >= 3).map((w) => w.replace(/[^a-zA-Z'-]/g, ""));
+        for (const ow of oWords) {
+          if (ow.length >= 3 && ow.toLowerCase() !== cleanBlank.toLowerCase() && !wrongWords.has(ow)) {
+            wrongWords.add(ow);
+            break;
+          }
+        }
+      }
+    }
+    if (wrongWords.size < OPTION_COUNT - 1) continue;
+
+    used.add(song.title);
+    questions.push({
+      prompt: displayLine,
+      correctAnswer: cleanBlank,
+      options: [cleanBlank, ...Array.from(wrongWords).slice(0, OPTION_COUNT - 1)].sort(() => Math.random() - 0.5),
+      songTitle: song.title,
+      artist: song.artist,
+      lyricSnippet: line,
+      points: config.points + 5, // bonus for fill-in-blank difficulty
+    });
+  }
   return questions.sort(() => Math.random() - 0.5);
 }
 
@@ -81,6 +199,7 @@ const SongMatchLyrics = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: gameStats } = useGameStats();
+  const [lyricsMode, setLyricsMode] = useState<LyricsMode | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [questions, setQuestions] = useState<LyricsQuestion[]>([]);
   const [currentQ, setCurrentQ] = useState(0);
@@ -109,7 +228,15 @@ const SongMatchLyrics = () => {
 
   const startGame = useCallback(
     (diff: Difficulty) => {
-      const q = generateLyricsQuestions(songs as any, diff, QUESTIONS_PER_ROUND);
+      if (!lyricsMode) return;
+      let q: LyricsQuestion[];
+      if (lyricsMode === "title-to-lyrics") {
+        q = generateTitleToLyricsQuestions(songs as any, diff, QUESTIONS_PER_ROUND);
+      } else if (lyricsMode === "fill-in-blank") {
+        q = generateFillInBlankQuestions(songs as any, diff, QUESTIONS_PER_ROUND);
+      } else {
+        q = generateLyricsToTitleQuestions(songs as any, diff, QUESTIONS_PER_ROUND);
+      }
       setQuestions(q);
       setDifficulty(diff);
       setCurrentQ(0);
@@ -121,7 +248,7 @@ const SongMatchLyrics = () => {
       setAnswers([]);
       setQuestionStartTime(Date.now());
     },
-    [songs]
+    [songs, lyricsMode]
   );
 
   useEffect(() => {
@@ -132,7 +259,7 @@ const SongMatchLyrics = () => {
     if (answered) return;
     setAnswered(option);
     const timeTaken = (Date.now() - questionStartTime) / 1000;
-    const correct = option === questions[currentQ].correctTitle;
+    const correct = option === questions[currentQ].correctAnswer;
     let pointsEarned = 0;
 
     if (correct) {
@@ -158,7 +285,6 @@ const SongMatchLyrics = () => {
         setQuestionStartTime(Date.now());
       } else {
         setCompleted(true);
-        // Save session
         if (user?.id && difficulty) {
           const correctCount = [...answers, { correct }].filter((a) => a.correct).length;
           const maxScore = questions.reduce((sum, q) => sum + q.points, 0);
@@ -180,8 +306,10 @@ const SongMatchLyrics = () => {
     }, 1200);
   };
 
-  // Difficulty Selection
-  if (!difficulty) {
+  const modeLabel = LYRICS_MODES.find((m) => m.key === lyricsMode)?.label || "Lyrics Game";
+
+  // Step 1: Mode Selection
+  if (!lyricsMode) {
     return (
       <AppLayout>
         <div className="px-4 lg:px-6 pt-4 lg:pt-6 pb-8 max-w-md mx-auto">
@@ -193,9 +321,45 @@ const SongMatchLyrics = () => {
               <BookOpen className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-serif font-bold text-foreground mb-1">Lyrics Game</h1>
-            <p className="text-muted-foreground text-sm">Match song lyrics to their titles</p>
+            <p className="text-muted-foreground text-sm">Choose a game type</p>
           </div>
-          <p className="text-center text-sm text-muted-foreground mb-4">Select Difficulty</p>
+          <div className="space-y-3">
+            {LYRICS_MODES.map((mode) => {
+              const Icon = mode.icon;
+              return (
+                <button key={mode.key} onClick={() => setLyricsMode(mode.key)}
+                  className="w-full glass-card p-4 flex items-center gap-4 hover:ring-2 hover:ring-primary/50 transition-all duration-300 text-left">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground text-sm">{mode.label}</p>
+                    <p className="text-muted-foreground text-xs">{mode.description}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Step 2: Difficulty Selection
+  if (!difficulty) {
+    return (
+      <AppLayout>
+        <div className="px-4 lg:px-6 pt-4 lg:pt-6 pb-8 max-w-md mx-auto">
+          <button onClick={() => setLyricsMode(null)} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 text-sm">
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <BookOpen className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-2xl font-serif font-bold text-foreground mb-1">{modeLabel}</h1>
+            <p className="text-muted-foreground text-sm">Select Difficulty</p>
+          </div>
           <div className="space-y-3">
             {(["easy", "medium", "hard"] as Difficulty[]).map((d) => {
               const config = DIFFICULTY_CONFIG[d];
@@ -214,7 +378,7 @@ const SongMatchLyrics = () => {
     );
   }
 
-  // Game Complete with learning insights
+  // Game Complete
   if (completed) {
     const maxScore = questions.reduce((sum, q) => sum + q.points, 0);
     const pct = Math.round((score / maxScore) * 100);
@@ -225,7 +389,7 @@ const SongMatchLyrics = () => {
           <div className="glass-card p-8 text-center mb-6">
             <Trophy className="w-16 h-16 text-amber-400 mx-auto mb-4" />
             <h2 className="text-2xl font-serif font-bold text-foreground mb-2">Game Complete!</h2>
-            <p className="text-muted-foreground mb-4 text-sm capitalize">{difficulty} Mode</p>
+            <p className="text-muted-foreground mb-4 text-sm capitalize">{modeLabel} · {difficulty} Mode</p>
             <div className="flex justify-center gap-1 mb-4">
               {[1, 2, 3].map((star) => (
                 <Star key={star} className={`w-8 h-8 ${pct >= star * 30 ? "text-amber-400 fill-amber-400" : "text-muted-foreground"}`} />
@@ -247,7 +411,6 @@ const SongMatchLyrics = () => {
             </div>
           </div>
 
-          {/* Learning Insights */}
           <div className="glass-card p-5">
             <h3 className="font-semibold text-foreground text-sm mb-3">📖 Learning Insights</h3>
             <div className="space-y-3">
@@ -255,8 +418,8 @@ const SongMatchLyrics = () => {
                 <div key={i} className="flex items-start gap-2 text-xs">
                   {a.correct ? <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" /> : <XCircle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />}
                   <div>
-                    <p className="font-medium text-foreground">{a.question.correctTitle}</p>
-                    <p className="text-muted-foreground italic line-clamp-1">"{a.question.lyrics.split("\n")[0]}"</p>
+                    <p className="font-medium text-foreground">{a.question.songTitle}</p>
+                    <p className="text-muted-foreground italic line-clamp-1">"{a.question.lyricSnippet.split("\n")[0]}"</p>
                     {!a.correct && <p className="text-destructive">You answered: {a.userAnswer}</p>}
                   </div>
                 </div>
@@ -271,6 +434,13 @@ const SongMatchLyrics = () => {
   // Game Play
   const q = questions[currentQ];
   if (!q) return null;
+
+  const questionLabel =
+    lyricsMode === "lyrics-to-title" ? "Which song contains these lyrics?" :
+    lyricsMode === "title-to-lyrics" ? "Which lyrics belong to this song?" :
+    "Fill in the missing word:";
+
+  const isLyricPrompt = lyricsMode === "lyrics-to-title" || lyricsMode === "fill-in-blank";
 
   return (
     <AppLayout>
@@ -289,24 +459,31 @@ const SongMatchLyrics = () => {
           <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${((currentQ + 1) / questions.length) * 100}%` }} />
         </div>
         <div className="glass-card p-6 mb-6">
-          <p className="text-xs text-muted-foreground mb-3 font-medium">Which song contains these lyrics?</p>
-          <p className="text-foreground font-serif text-lg leading-relaxed whitespace-pre-line italic">"{q.lyrics}"</p>
+          <p className="text-xs text-muted-foreground mb-3 font-medium">{questionLabel}</p>
+          {isLyricPrompt ? (
+            <p className="text-foreground font-serif text-lg leading-relaxed whitespace-pre-line italic">"{q.prompt}"</p>
+          ) : (
+            <p className="text-foreground font-serif text-xl font-bold">{q.prompt}</p>
+          )}
         </div>
         <div className="space-y-3">
           {q.options.map((opt, i) => {
             const letter = String.fromCharCode(65 + i);
             let cls = "w-full glass-card p-4 text-left text-sm font-medium transition-all duration-300 flex items-center gap-3 ";
             if (answered) {
-              if (opt === q.correctTitle) cls += "ring-2 ring-green-500 text-green-400";
+              if (opt === q.correctAnswer) cls += "ring-2 ring-green-500 text-green-400";
               else if (opt === answered) cls += "ring-2 ring-destructive text-destructive";
               else cls += "text-muted-foreground opacity-50";
             } else {
               cls += "text-foreground hover:ring-2 hover:ring-primary cursor-pointer";
             }
+            const displayOpt = lyricsMode === "title-to-lyrics"
+              ? <span className="italic whitespace-pre-line line-clamp-2">"{opt}"</span>
+              : opt;
             return (
-              <button key={opt} onClick={() => handleAnswer(opt)} className={cls} disabled={!!answered}>
+              <button key={i} onClick={() => handleAnswer(opt)} className={cls} disabled={!!answered}>
                 <span className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold flex-shrink-0">{letter}</span>
-                {opt}
+                {displayOpt}
               </button>
             );
           })}
