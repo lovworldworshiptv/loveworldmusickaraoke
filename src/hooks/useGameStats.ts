@@ -95,10 +95,14 @@ export async function checkAndAwardAchievements(userId: string, stats: GameStats
   for (const ach of ACHIEVEMENTS) {
     if (stats.achievements.includes(ach.key)) continue;
     if (ach.requirement(stats)) {
-      await supabase.from("user_achievements").insert({
-        user_id: userId,
-        achievement_key: ach.key,
-      } as any).onConflict("user_id,achievement_key" as any);
+      try {
+        await supabase.from("user_achievements").insert({
+          user_id: userId,
+          achievement_key: ach.key,
+        } as any);
+      } catch {
+        // Ignore duplicate
+      }
     }
   }
 }
