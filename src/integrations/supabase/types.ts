@@ -65,6 +65,24 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       articles: {
         Row: {
           audio_url: string | null
@@ -502,6 +520,38 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      karaoke_comments: {
+        Row: {
+          comment: string
+          created_at: string
+          id: string
+          recording_id: string
+          user_id: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          id?: string
+          recording_id: string
+          user_id: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          id?: string
+          recording_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "karaoke_comments_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "karaoke_recordings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       karaoke_recordings: {
         Row: {
