@@ -10,6 +10,10 @@ import AuthGate from "@/components/auth/AuthGate";
 import Index from "./pages/Index";
 import Library from "./pages/Library";
 import Games from "./pages/Games";
+import SongMatch from "./pages/SongMatch";
+import SongMatchLyrics from "./pages/SongMatchLyrics";
+import SongMatchMelody from "./pages/SongMatchMelody";
+import SongMatchCategory from "./pages/SongMatchCategory";
 import Auth from "./pages/Auth";
 import Articles from "./pages/Articles";
 import AdminSongs from "./pages/AdminSongs";
@@ -60,6 +64,10 @@ const App = () => (
                 {/* Protected routes */}
                 <Route path="/library" element={<AuthGate><Library /></AuthGate>} />
                 <Route path="/games" element={<AuthGate><Games /></AuthGate>} />
+                <Route path="/games/songmatch" element={<AuthGate><SongMatch /></AuthGate>} />
+                <Route path="/games/songmatch/lyrics" element={<AuthGate><SongMatchLyrics /></AuthGate>} />
+                <Route path="/games/songmatch/melody" element={<AuthGate><SongMatchMelody /></AuthGate>} />
+                <Route path="/games/songmatch/category" element={<AuthGate><SongMatchCategory /></AuthGate>} />
                 <Route path="/articles" element={<AuthGate><Articles /></AuthGate>} />
                 <Route path="/profile" element={<AuthGate><Profile /></AuthGate>} />
                 <Route path="/discover" element={<AuthGate><Discover /></AuthGate>} />
