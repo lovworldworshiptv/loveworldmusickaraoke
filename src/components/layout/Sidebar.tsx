@@ -1,4 +1,4 @@
-import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3, List, Image, Gamepad2, Sparkles, Users, BarChart3, Bell, Crown } from "lucide-react";
+import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3, List, Image, Gamepad2, Sparkles, Users, BarChart3, Bell, Crown, Compass } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -8,8 +8,10 @@ import { useIsEditor } from "@/hooks/useIsEditor";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
+  { icon: Compass, label: "Discover", path: "/discover" },
   { icon: BookOpen, label: "Articles", path: "/articles" },
   { icon: Library, label: "My Library", path: "/library" },
+  { icon: Gamepad2, label: "Games", path: "/games" },
   { icon: Disc3, label: "Albums", path: "/albums" },
   { icon: Clock, label: "History", path: "/history" },
   { icon: ListMusic, label: "Playlist", path: "/playlists" },

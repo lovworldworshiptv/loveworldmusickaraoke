@@ -8,7 +8,7 @@ const navItems = [
   { icon: Compass, label: "Discover", path: "/discover" },
   { icon: BookOpen, label: "Articles", path: "/articles" },
   { icon: Library, label: "Library", path: "/library" },
-  { icon: Gamepad2, label: "Trivial", path: "/games" },
+  { icon: Gamepad2, label: "Games", path: "/games" },
 ];
 
 const BottomNav = memo(() => {
