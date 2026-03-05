@@ -1100,16 +1100,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_public_karaoke: {
-        Args: { p_user_id: string }
-        Returns: {
-          audio_url: string
-          created_at: string
-          id: string
-          song_id: string
-          song_title: string
-        }[]
-      }
       get_public_profile: {
         Args: { p_user_id: string }
         Returns: {
