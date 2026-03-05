@@ -1,0 +1,216 @@
+import { useState, useEffect, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { Play, Pause, X } from "lucide-react";
+
+interface KaraokeStory {
+  id: string;
+  user_id: string;
+  username: string;
+  avatar_url: string | null;
+  song_title: string;
+  audio_url: string;
+  caption: string | null;
+  created_at: string;
+}
+
+const KaraokeStories = () => {
+  const [stories, setStories] = useState<KaraokeStory[]>([]);
+  const [visible, setVisible] = useState(true);
+  const [activeStory, setActiveStory] = useState<KaraokeStory | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchStories = async () => {
+      // Check admin visibility setting
+      const { data: setting } = await supabase
+        .from("app_settings" as any)
+        .select("value")
+        .eq("key", "karaoke_stories_visible")
+        .single();
+      if (setting && (setting as any).value === false) {
+        setVisible(false);
+        return;
+      }
+
+      // Fetch recent karaoke recordings with profile info
+      const { data } = await supabase
+        .from("karaoke_recordings")
+        .select("id, user_id, song_title, audio_url, caption, created_at")
+        .gte("created_at", new Date(Date.now() - 24 * 3600000).toISOString())
+        .order("created_at", { ascending: false })
+        .limit(20) as any;
+
+      if (!data || data.length === 0) return;
+
+      // Get unique user_ids and fetch profiles
+      const userIds = [...new Set(data.map((d: any) => d.user_id))] as string[];
+      const profiles: Record<string, { username: string; avatar_url: string | null }> = {};
+
+      for (const uid of userIds) {
+        const { data: pData } = await supabase.rpc("get_public_profile", { p_user_id: uid });
+        if (pData && (pData as any[]).length > 0) {
+          const p = (pData as any[])[0];
+          profiles[uid] = { username: p.username, avatar_url: p.avatar_url };
+        }
+      }
+
+      const enriched: KaraokeStory[] = data
+        .filter((d: any) => profiles[d.user_id])
+        .map((d: any) => ({
+          ...d,
+          username: profiles[d.user_id].username,
+          avatar_url: profiles[d.user_id].avatar_url,
+        }));
+
+      setStories(enriched);
+    };
+
+    fetchStories();
+  }, []);
+
+  const openStory = (story: KaraokeStory) => {
+    audioRef.current?.pause();
+    setActiveStory(story);
+    const audio = new Audio(story.audio_url);
+    audio.onended = () => setPlaying(false);
+    audio.play();
+    audioRef.current = audio;
+    setPlaying(true);
+  };
+
+  const closeStory = () => {
+    audioRef.current?.pause();
+    setActiveStory(null);
+    setPlaying(false);
+  };
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (playing) {
+      audioRef.current.pause();
+      setPlaying(false);
+    } else {
+      audioRef.current.play();
+      setPlaying(true);
+    }
+  };
+
+  if (!visible || stories.length === 0) return null;
+
+  // Group by user, show latest per user
+  const seen = new Set<string>();
+  const uniqueStories = stories.filter((s) => {
+    if (seen.has(s.user_id)) return false;
+    seen.add(s.user_id);
+    return true;
+  });
+
+  return (
+    <>
+      <div className="px-4 lg:px-6 pt-2 pb-1">
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide py-2">
+          {uniqueStories.map((story) => (
+            <button
+              key={story.id}
+              onClick={() => openStory(story)}
+              className="flex flex-col items-center gap-1 flex-shrink-0 w-16"
+            >
+              <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-br from-primary to-accent">
+                <div className="w-full h-full rounded-full bg-background p-[2px]">
+                  {story.avatar_url ? (
+                    <img
+                      src={story.avatar_url}
+                      alt={story.username}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
+                      {story.username.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <span className="text-[10px] text-muted-foreground truncate w-full text-center">
+                {story.username}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Story Viewer Modal */}
+      {activeStory && (
+        <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center">
+          <div className="relative w-full max-w-sm mx-4">
+            {/* Close */}
+            <button
+              onClick={closeStory}
+              className="absolute top-2 right-2 z-10 text-white/80 hover:text-white"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Record player visual */}
+            <div className="flex flex-col items-center gap-6 py-8">
+              {/* Avatar */}
+              <button
+                onClick={() => {
+                  closeStory();
+                  navigate(`/user/${activeStory.user_id}`);
+                }}
+                className="text-center"
+              >
+                <div className="w-20 h-20 mx-auto rounded-full p-[2px] bg-gradient-to-br from-primary to-accent">
+                  <div className="w-full h-full rounded-full bg-background p-[2px]">
+                    {activeStory.avatar_url ? (
+                      <img
+                        src={activeStory.avatar_url}
+                        alt=""
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full rounded-full bg-muted flex items-center justify-center text-lg font-bold text-muted-foreground">
+                        {activeStory.username.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <p className="text-white text-sm font-medium mt-2">{activeStory.username}</p>
+              </button>
+
+              {/* Spinning record */}
+              <div
+                className={`w-40 h-40 rounded-full bg-gradient-to-br from-muted to-card border-4 border-muted flex items-center justify-center ${
+                  playing ? "animate-spin" : ""
+                }`}
+                style={{ animationDuration: "3s" }}
+              >
+                <div className="w-16 h-16 rounded-full bg-background flex items-center justify-center">
+                  <button onClick={togglePlay}>
+                    {playing ? (
+                      <Pause className="w-8 h-8 text-primary" />
+                    ) : (
+                      <Play className="w-8 h-8 text-primary ml-1" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-center">
+                <p className="text-white text-sm font-medium">{activeStory.song_title}</p>
+                {activeStory.caption && (
+                  <p className="text-white/60 text-xs mt-1 italic">"{activeStory.caption}"</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+export default KaraokeStories;

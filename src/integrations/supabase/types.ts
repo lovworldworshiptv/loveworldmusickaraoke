@@ -65,6 +65,24 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       articles: {
         Row: {
           audio_url: string | null
@@ -503,9 +521,42 @@ export type Database = {
         }
         Relationships: []
       }
+      karaoke_comments: {
+        Row: {
+          comment: string
+          created_at: string
+          id: string
+          recording_id: string
+          user_id: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          id?: string
+          recording_id: string
+          user_id: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          id?: string
+          recording_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "karaoke_comments_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "karaoke_recordings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       karaoke_recordings: {
         Row: {
           audio_url: string
+          caption: string | null
           created_at: string
           id: string
           song_id: string
@@ -514,6 +565,7 @@ export type Database = {
         }
         Insert: {
           audio_url: string
+          caption?: string | null
           created_at?: string
           id?: string
           song_id: string
@@ -522,6 +574,7 @@ export type Database = {
         }
         Update: {
           audio_url?: string
+          caption?: string | null
           created_at?: string
           id?: string
           song_id?: string
@@ -1104,6 +1157,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: {
           audio_url: string
+          caption: string
           created_at: string
           id: string
           song_id: string
