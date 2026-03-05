@@ -441,6 +441,8 @@ export type Database = {
           secondary_button_text: string | null
           secondary_button_url: string | null
           show_frequency: string
+          target_segment: string
+          target_user_ids: string[] | null
           text_color: string | null
           title: string | null
           updated_at: string
@@ -466,6 +468,8 @@ export type Database = {
           secondary_button_text?: string | null
           secondary_button_url?: string | null
           show_frequency?: string
+          target_segment?: string
+          target_user_ids?: string[] | null
           text_color?: string | null
           title?: string | null
           updated_at?: string
@@ -491,11 +495,48 @@ export type Database = {
           secondary_button_text?: string | null
           secondary_button_url?: string | null
           show_frequency?: string
+          target_segment?: string
+          target_user_ids?: string[] | null
           text_color?: string | null
           title?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      karaoke_recordings: {
+        Row: {
+          audio_url: string
+          created_at: string
+          id: string
+          song_id: string
+          song_title: string
+          user_id: string
+        }
+        Insert: {
+          audio_url: string
+          created_at?: string
+          id?: string
+          song_id: string
+          song_title: string
+          user_id: string
+        }
+        Update: {
+          audio_url?: string
+          created_at?: string
+          id?: string
+          song_id?: string
+          song_title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "karaoke_recordings_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -1059,6 +1100,35 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_public_karaoke: {
+        Args: { p_user_id: string }
+        Returns: {
+          audio_url: string
+          created_at: string
+          id: string
+          song_id: string
+          song_title: string
+        }[]
+      }
+      get_public_profile: {
+        Args: { p_user_id: string }
+        Returns: {
+          avatar_url: string
+          kingschat_handle: string
+          user_id: string
+          username: string
+        }[]
+      }
+      get_public_recently_played: {
+        Args: { p_limit?: number; p_user_id: string }
+        Returns: {
+          artist: string
+          cover_url: string
+          played_at: string
+          song_id: string
+          title: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
