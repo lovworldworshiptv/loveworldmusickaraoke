@@ -506,6 +506,7 @@ export type Database = {
       karaoke_recordings: {
         Row: {
           audio_url: string
+          caption: string | null
           created_at: string
           id: string
           song_id: string
@@ -514,6 +515,7 @@ export type Database = {
         }
         Insert: {
           audio_url: string
+          caption?: string | null
           created_at?: string
           id?: string
           song_id: string
@@ -522,6 +524,7 @@ export type Database = {
         }
         Update: {
           audio_url?: string
+          caption?: string | null
           created_at?: string
           id?: string
           song_id?: string
