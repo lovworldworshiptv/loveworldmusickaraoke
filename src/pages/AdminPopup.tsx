@@ -9,9 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
 import { toast } from "sonner";
-import { Save } from "lucide-react";
+import { Save, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface PopupConfig {
   id: string;
@@ -35,6 +37,8 @@ interface PopupConfig {
   button_text_color: string | null;
   border_radius: string | null;
   max_width: string | null;
+  target_segment: string;
+  target_user_ids: string[] | null;
 }
 
 const AdminPopup = () => {
@@ -42,6 +46,9 @@ const AdminPopup = () => {
   const navigate = useNavigate();
   const [config, setConfig] = useState<PopupConfig | null>(null);
   const [saving, setSaving] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<{ id: string; username: string }[]>([]);
 
   useEffect(() => {
     if (!adminLoading && !isAdmin) navigate("/");
@@ -77,11 +84,30 @@ const AdminPopup = () => {
       button_text_color: config.button_text_color,
       border_radius: config.border_radius,
       max_width: config.max_width,
-    }).eq("id", config.id);
+      target_segment: config.target_segment,
+      target_user_ids: config.target_segment === "specific" ? selectedUsers.map(u => u.id) : null,
+    } as any).eq("id", config.id);
     setSaving(false);
     if (error) toast.error("Save failed: " + error.message);
     else toast.success("Popup settings saved!");
   };
+
+  const searchUsers = async (q: string) => {
+    setUserSearch(q);
+    if (q.length < 2) { setSearchResults([]); return; }
+    const { data } = await supabase.from("profiles").select("user_id, username, email").or(`username.ilike.%${q}%,email.ilike.%${q}%`).limit(10);
+    setSearchResults(data || []);
+  };
+
+  const addUser = (u: any) => {
+    if (!selectedUsers.find(x => x.id === u.user_id)) {
+      setSelectedUsers(prev => [...prev, { id: u.user_id, username: u.username }]);
+    }
+    setUserSearch("");
+    setSearchResults([]);
+  };
+
+  const removeUser = (id: string) => setSelectedUsers(prev => prev.filter(u => u.id !== id));
 
   const upd = (key: keyof PopupConfig, val: any) => setConfig(prev => prev ? { ...prev, [key]: val } : prev);
 
@@ -123,6 +149,52 @@ const AdminPopup = () => {
               </SelectContent>
             </Select>
           </div>
+        </section>
+
+        {/* Targeting */}
+        <section className="space-y-4 bg-card border border-border rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider flex items-center gap-2"><Users className="w-4 h-4" /> Targeting</h2>
+          <div className="space-y-1">
+            <Label>Show To</Label>
+            <Select value={config.target_segment} onValueChange={v => upd("target_segment", v)}>
+              <SelectTrigger className="bg-muted"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Users</SelectItem>
+                <SelectItem value="free">Free Users Only</SelectItem>
+                <SelectItem value="premium">Premium Users Only</SelectItem>
+                <SelectItem value="trial">Trial Users Only</SelectItem>
+                <SelectItem value="specific">Specific Users</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {config.target_segment === "specific" && (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label>Search Users</Label>
+                <Input value={userSearch} onChange={e => searchUsers(e.target.value)} placeholder="Search by name or email" className="bg-muted" />
+              </div>
+              {searchResults.length > 0 && (
+                <div className="border border-border rounded-lg max-h-40 overflow-y-auto">
+                  {searchResults.map(u => (
+                    <button key={u.user_id} onClick={() => addUser(u)} className="w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors flex items-center justify-between">
+                      <span>{u.username}</span>
+                      <span className="text-xs text-muted-foreground">{u.email}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {selectedUsers.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedUsers.map(u => (
+                    <Badge key={u.id} variant="secondary" className="flex items-center gap-1">
+                      {u.username}
+                      <button onClick={() => removeUser(u.id)} className="ml-1 text-muted-foreground hover:text-foreground">×</button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* Content Fields */}

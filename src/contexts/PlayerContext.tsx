@@ -35,6 +35,7 @@ interface PlayerContextType {
   queue: PlayerSong[];
   queueIndex: number;
   volume: number;
+  trackEndCount: number;
   playSong: (song: PlayerSong) => void;
   playQueue: (songs: PlayerSong[], startIndex?: number) => void;
   togglePlay: () => void;
@@ -105,6 +106,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<number | null>(null);
   const [volume, setVolumeState] = useState(0.7);
+  const [trackEndCount, setTrackEndCount] = useState(0);
 
   const stopInterval = useCallback(() => {
     if (intervalRef.current) {
@@ -181,8 +183,9 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     const q = queueRef.current;
     const qi = queueIndexRef.current;
 
+    setTrackEndCount(c => c + 1);
+
     if (rm === "one") {
-      // Replay same song
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
         audioRef.current.play();
@@ -335,7 +338,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     <PlayerContext.Provider value={{
       currentSong, isPlaying, isKaraoke, isExpanded, progress, duration,
       currentTime, lrcLines, activeLrcIndex, repeatMode, shuffleOn,
-      queue, queueIndex, volume, playSong, playQueue, togglePlay,
+      queue, queueIndex, volume, trackEndCount, playSong, playQueue, togglePlay,
       toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev,
       cycleRepeat, toggleShuffle, setVolume,
     }}>

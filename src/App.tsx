@@ -32,6 +32,7 @@ import AdminPopup from "./pages/AdminPopup";
 import AdminNotifications from "./pages/AdminNotifications";
 import AdminSubscriptions from "./pages/AdminSubscriptions";
 import Profile from "./pages/Profile";
+import PublicProfile from "./pages/PublicProfile";
 import Discover from "./pages/Discover";
 import History from "./pages/History";
 import Playlists from "./pages/Playlists";
@@ -70,6 +71,7 @@ const App = () => (
                 <Route path="/games/songmatch/category" element={<AuthGate><SongMatchCategory /></AuthGate>} />
                 <Route path="/articles" element={<AuthGate><Articles /></AuthGate>} />
                 <Route path="/profile" element={<AuthGate><Profile /></AuthGate>} />
+                <Route path="/user/:userId" element={<PublicProfile />} />
                 <Route path="/discover" element={<AuthGate><Discover /></AuthGate>} />
                 <Route path="/history" element={<AuthGate><History /></AuthGate>} />
                 <Route path="/playlists" element={<AuthGate><Playlists /></AuthGate>} />
