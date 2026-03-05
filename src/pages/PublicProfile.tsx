@@ -202,7 +202,7 @@ const PublicProfile = () => {
             </div>
             <div className="glass-card p-3 flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
-                {currentSong?.cover_url ? <img src={currentSong.cover_url} alt="" className="w-full h-full object-cover" /> : <Music className="w-4 h-4 text-muted-foreground" />}
+                {currentSong?.coverUrl ? <img src={currentSong.coverUrl} alt="" className="w-full h-full object-cover" /> : <Music className="w-4 h-4 text-muted-foreground" />}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-foreground truncate">{currentSong?.title}</p>

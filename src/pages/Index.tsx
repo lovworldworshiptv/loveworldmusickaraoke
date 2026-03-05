@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import HeroBanner from "@/components/home/HeroBanner";
+import KaraokeStories from "@/components/home/KaraokeStories";
 import SongSection from "@/components/home/SongSection";
 import AlbumSection from "@/components/home/AlbumSection";
 import CategorySection from "@/components/home/CategorySection";
@@ -25,7 +26,6 @@ const Index = () => {
     if (!seen) setShowOnboarding(true);
   }, []);
 
-  // Redirect to downloads when offline
   useEffect(() => {
     if (!isOnline) {
       navigate("/library?tab=downloads", { replace: true });
@@ -44,7 +44,7 @@ const Index = () => {
   return (
     <AppLayout>
       <HomepagePopup />
-
+      <KaraokeStories />
       <HeroBanner />
       <AlbumSection />
       <SongSection title="Featured Songs" />
@@ -53,7 +53,6 @@ const Index = () => {
       <RecentlyPlayed />
       <ArticleSection />
       <GameSection />
-
       <div className="h-8" />
     </AppLayout>
   );
