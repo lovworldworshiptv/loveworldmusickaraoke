@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Mic2, Square, Play, Pause, Trash2, RotateCcw, Share2, X, Copy, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,6 +25,7 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
   const [uploading, setUploading] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
+  const [caption, setCaption] = useState("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -48,7 +50,6 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
       setRecording(true);
       setRecorded(false);
 
-      // Play instrumental alongside
       if (instrumentalUrl) {
         const inst = new Audio(instrumentalUrl);
         inst.play().catch(() => {});
@@ -82,6 +83,7 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
     setRecordedUrl(null);
     setRecorded(false);
     setPlaying(false);
+    setCaption("");
   };
 
   const shareToMyKaraoke = async () => {
@@ -97,6 +99,7 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
         song_id: songId,
         song_title: songTitle,
         audio_url: publicUrl,
+        caption: caption.trim() || null,
       } as any);
       if (dbErr) throw dbErr;
       toast.success("Shared to My Karaoke!");
@@ -128,7 +131,7 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
     <div className="glass-card p-4 rounded-2xl space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Mic2 className="w-5 h-5 text-gold" />
+          <Mic2 className="w-5 h-5 text-primary" />
           <h4 className="text-sm font-semibold text-foreground">Karaoke Recording</h4>
         </div>
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
@@ -148,11 +151,11 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
             </>
           ) : (
             <>
-              <div className="w-16 h-16 rounded-full bg-gold/20 flex items-center justify-center">
-                <Mic2 className="w-8 h-8 text-gold" />
+              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+                <Mic2 className="w-8 h-8 text-primary" />
               </div>
               <p className="text-xs text-muted-foreground">Record your voice over the instrumental</p>
-              <Button onClick={startRecording} className="gradient-gold text-primary-foreground">
+              <Button onClick={startRecording} className="bg-primary text-primary-foreground">
                 <Mic2 className="w-4 h-4 mr-1" /> Start Recording
               </Button>
             </>
@@ -172,13 +175,22 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
               <RotateCcw className="w-4 h-4 mr-1" /> Re-record
             </Button>
           </div>
-          <Button onClick={shareToMyKaraoke} disabled={uploading} className="gradient-gold text-primary-foreground w-full">
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Add a caption (optional)</label>
+            <Input
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              placeholder="e.g. My favorite worship song!"
+              className="text-sm"
+              maxLength={120}
+            />
+          </div>
+          <Button onClick={shareToMyKaraoke} disabled={uploading} className="bg-primary text-primary-foreground w-full">
             <Share2 className="w-4 h-4 mr-1" /> {uploading ? "Sharing…" : "Share to My Karaoke"}
           </Button>
         </div>
       )}
 
-      {/* Share Modal */}
       <Dialog open={showShare} onOpenChange={setShowShare}>
         <DialogContent className="max-w-sm">
           <h3 className="text-lg font-serif font-bold text-foreground mb-4">Share Your Recording</h3>
@@ -187,20 +199,12 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
             <Button onClick={copyLink} variant="outline" className="w-full justify-start">
               <Copy className="w-4 h-4 mr-2" /> Copy Link
             </Button>
-            <a
-              href={`https://kingschat.online/share?text=${encodeURIComponent(shareText + " " + shareUrl)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 w-full px-4 py-2 rounded-md border border-border text-sm hover:bg-muted transition-colors"
-            >
+            <a href={`https://kingschat.online/share?text=${encodeURIComponent(shareText + " " + shareUrl)}`} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 w-full px-4 py-2 rounded-md border border-border text-sm hover:bg-muted transition-colors">
               <ExternalLink className="w-4 h-4" /> Share on KingsChat
             </a>
-            <a
-              href={`https://lettubbe.com/?share=${encodeURIComponent(shareUrl)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 w-full px-4 py-2 rounded-md border border-border text-sm hover:bg-muted transition-colors"
-            >
+            <a href={`https://lettubbe.com/?share=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 w-full px-4 py-2 rounded-md border border-border text-sm hover:bg-muted transition-colors">
               <ExternalLink className="w-4 h-4" /> Share on Lettubbe
             </a>
           </div>
