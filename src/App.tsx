@@ -31,6 +31,7 @@ import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminPopup from "./pages/AdminPopup";
 import AdminNotifications from "./pages/AdminNotifications";
 import AdminSubscriptions from "./pages/AdminSubscriptions";
+import AdminKaraokeStories from "./pages/AdminKaraokeStories";
 import Profile from "./pages/Profile";
 import PublicProfile from "./pages/PublicProfile";
 import Discover from "./pages/Discover";
@@ -94,6 +95,7 @@ const App = () => (
                 <Route path="/admin/popup" element={<AuthGate><AdminPopup /></AuthGate>} />
                 <Route path="/admin/notifications" element={<AuthGate><AdminNotifications /></AuthGate>} />
                 <Route path="/admin/subscriptions" element={<AuthGate><AdminSubscriptions /></AuthGate>} />
+                <Route path="/admin/karaoke-stories" element={<AuthGate><AdminKaraokeStories /></AuthGate>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </PlayerProvider>
