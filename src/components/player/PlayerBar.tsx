@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsPremium } from "@/hooks/useIsPremium";
+import { supabase } from "@/integrations/supabase/client";
 import { isDownloaded, saveDownload, type DownloadedTrack } from "@/lib/downloadManager";
 import { toast } from "sonner";
 import { Slider } from "@/components/ui/slider";
