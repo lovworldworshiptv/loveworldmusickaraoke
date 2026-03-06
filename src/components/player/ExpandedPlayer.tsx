@@ -222,25 +222,16 @@ const ExpandedPlayer = () => {
               </button>
               {/* Record Karaoke Button - always visible */}
               {isPremium ? (
-                isRecordingActive ? (
-                  <button
-                    onClick={() => {
-                      // Trigger stop in recorder by toggling showRecorder off/on won't work,
-                      // so we set a flag; the recorder's stop button handles it
-                      setShowRecorder(true);
-                    }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-destructive text-destructive-foreground shadow-[0_0_12px_hsl(var(--destructive)/0.5)] animate-pulse border border-destructive/40"
-                  >
-                    <Disc3 className="w-3.5 h-3.5 animate-spin" /> Stop
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => { if (!isKaraoke) toggleKaraoke(); setShowRecorder(true); }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors border border-destructive/30"
-                  >
-                    <Disc3 className="w-3.5 h-3.5" /> Record
-                  </button>
-                )
+                <button
+                  onClick={() => { if (!isKaraoke) toggleKaraoke(); setShowRecorder(true); }}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
+                    isRecordingActive
+                      ? "bg-destructive text-destructive-foreground shadow-[0_0_12px_hsl(var(--destructive)/0.5)] animate-pulse border border-destructive/40"
+                      : "bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30"
+                  }`}
+                >
+                  <Disc3 className={`w-3.5 h-3.5 ${isRecordingActive ? "animate-spin" : ""}`} /> Record
+                </button>
               ) : (
                 <button
                   onClick={() => setShowUpgrade(true)}
