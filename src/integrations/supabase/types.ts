@@ -742,6 +742,7 @@ export type Database = {
           cover_url: string | null
           created_at: string
           id: string
+          is_visible_on_homepage: boolean
           name: string
           user_id: string
         }
@@ -749,6 +750,7 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           id?: string
+          is_visible_on_homepage?: boolean
           name: string
           user_id: string
         }
@@ -756,6 +758,7 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           id?: string
+          is_visible_on_homepage?: boolean
           name?: string
           user_id?: string
         }
