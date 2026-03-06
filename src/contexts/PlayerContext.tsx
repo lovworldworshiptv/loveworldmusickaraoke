@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, useRef, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export interface PlayerSong {
   id: string;
@@ -72,7 +74,6 @@ function parseLrc(lrc: string): LrcLine[] {
   return lines.sort((a, b) => a.time - b.time);
 }
 
-// Convert Google Drive view links to direct streamable URLs
 function toDirectUrl(url?: string): string | undefined {
   if (!url) return undefined;
   const match = url.match(/\/file\/d\/([^/]+)/);
@@ -88,6 +89,8 @@ function shuffleArray<T>(arr: T[]): T[] {
   }
   return a;
 }
+
+const AUTO_PAUSE_MS = 60 * 60 * 1000; // 1 hour
 
 export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [currentSong, setCurrentSong] = useState<PlayerSong | null>(null);
@@ -107,6 +110,23 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const intervalRef = useRef<number | null>(null);
   const [volume, setVolumeState] = useState(0.7);
   const [trackEndCount, setTrackEndCount] = useState(0);
+  const [showStillThere, setShowStillThere] = useState(false);
+  const autoPauseTimerRef = useRef<number | null>(null);
+  const playStartTimeRef = useRef<number>(Date.now());
+
+  // Refs for latest state (used in ended handler)
+  const repeatModeRef = useRef(repeatMode);
+  repeatModeRef.current = repeatMode;
+  const shuffleOnRef = useRef(shuffleOn);
+  shuffleOnRef.current = shuffleOn;
+  const queueRef = useRef(queue);
+  queueRef.current = queue;
+  const queueIndexRef = useRef(queueIndex);
+  queueIndexRef.current = queueIndex;
+  const volumeRef = useRef(volume);
+  volumeRef.current = volume;
+  const isPlayingRef = useRef(isPlaying);
+  isPlayingRef.current = isPlaying;
 
   const stopInterval = useCallback(() => {
     if (intervalRef.current) {
@@ -135,15 +155,38 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }, 200);
   }, [stopInterval]);
 
-  const loadAndPlay = useCallback((song: PlayerSong, karaokeMode?: boolean) => {
+  // Auto-pause timer management
+  const resetAutoPauseTimer = useCallback(() => {
+    if (autoPauseTimerRef.current) clearTimeout(autoPauseTimerRef.current);
+    playStartTimeRef.current = Date.now();
+    autoPauseTimerRef.current = window.setTimeout(() => {
+      // Only pause if repeat is on (continuous playback)
+      if (repeatModeRef.current === "all" && audioRef.current) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+        stopInterval();
+        setShowStillThere(true);
+      }
+    }, AUTO_PAUSE_MS);
+  }, [stopInterval]);
+
+  const clearAutoPauseTimer = useCallback(() => {
+    if (autoPauseTimerRef.current) {
+      clearTimeout(autoPauseTimerRef.current);
+      autoPauseTimerRef.current = null;
+    }
+  }, []);
+
+  // The core function that creates an audio, plays it, and attaches ended handler
+  const internalPlay = useCallback((song: PlayerSong, karaokeMode: boolean) => {
     stopInterval();
     if (audioRef.current) {
       audioRef.current.pause();
+      audioRef.current.onended = null;
       audioRef.current = null;
     }
     setCurrentSong(song);
-    const useKaraoke = karaokeMode ?? false;
-    setIsKaraoke(useKaraoke);
+    setIsKaraoke(karaokeMode);
     setProgress(0);
     setCurrentTime(0);
     setActiveLrcIndex(-1);
@@ -154,20 +197,58 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       setLrcLines([]);
     }
 
-    const url = toDirectUrl(useKaraoke ? song.instrumentalUrl : song.audioUrl);
+    const url = toDirectUrl(karaokeMode ? song.instrumentalUrl : song.audioUrl);
     if (url) {
       const audio = new Audio(url);
-      audio.volume = volume;
+      audio.volume = volumeRef.current;
       audioRef.current = audio;
+      
+      // Use onended directly - no setTimeout needed
+      audio.onended = () => {
+        const rm = repeatModeRef.current;
+        const q = queueRef.current;
+        const qi = queueIndexRef.current;
+
+        setTrackEndCount(c => c + 1);
+
+        if (rm === "one") {
+          audio.currentTime = 0;
+          audio.play().catch(() => {});
+          return;
+        }
+
+        if (q.length > 0 && qi >= 0) {
+          let nextIdx = qi + 1;
+          if (nextIdx >= q.length) {
+            if (rm === "all") {
+              nextIdx = 0;
+            } else {
+              setIsPlaying(false);
+              stopInterval();
+              clearAutoPauseTimer();
+              return;
+            }
+          }
+          setQueueIndex(nextIdx);
+          // Play next track
+          internalPlay(q[nextIdx], karaokeMode);
+          recordPlayFn(q[nextIdx].id);
+        } else {
+          setIsPlaying(false);
+          stopInterval();
+          clearAutoPauseTimer();
+        }
+      };
+
       audio.addEventListener("loadedmetadata", () => setDuration(audio.duration));
-      audio.play().then(() => { setIsPlaying(true); startInterval(); }).catch(() => {});
+      audio.play().then(() => { setIsPlaying(true); startInterval(); resetAutoPauseTimer(); }).catch(() => {});
     } else {
       setDuration(song.durationSeconds || 240);
       setIsPlaying(true);
       startInterval();
     }
 
-    // MediaSession API for lock-screen / background controls
+    // MediaSession API
     if ("mediaSession" in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: song.title,
@@ -188,60 +269,12 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       navigator.mediaSession.setActionHandler("previoustrack", () => skipPrevRef.current());
       navigator.mediaSession.setActionHandler("nexttrack", () => skipNextRef.current());
     }
-  }, [startInterval, stopInterval]);
+  }, [startInterval, stopInterval, resetAutoPauseTimer, clearAutoPauseTimer]);
 
-  // Handle song ended — needs access to latest state via refs
-  const repeatModeRef = useRef(repeatMode);
-  repeatModeRef.current = repeatMode;
-  const shuffleOnRef = useRef(shuffleOn);
-  shuffleOnRef.current = shuffleOn;
-  const queueRef = useRef(queue);
-  queueRef.current = queue;
-  const queueIndexRef = useRef(queueIndex);
-  queueIndexRef.current = queueIndex;
   const skipNextRef = useRef(() => {});
   const skipPrevRef = useRef(() => {});
 
-  const handleEnded = useCallback(() => {
-    const rm = repeatModeRef.current;
-    const q = queueRef.current;
-    const qi = queueIndexRef.current;
-
-    setTrackEndCount(c => c + 1);
-
-    if (rm === "one") {
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play();
-      }
-      return;
-    }
-
-    if (q.length > 0 && qi >= 0) {
-      let nextIdx = qi + 1;
-      if (nextIdx >= q.length) {
-        if (rm === "all") {
-          nextIdx = 0;
-        } else {
-          setIsPlaying(false);
-          stopInterval();
-          return;
-        }
-      }
-      setQueueIndex(nextIdx);
-      loadAndPlay(q[nextIdx]);
-    } else {
-      setIsPlaying(false);
-      stopInterval();
-    }
-  }, [loadAndPlay, stopInterval]);
-
-  // Attach ended listener whenever audio changes
-  const attachEndedListener = useCallback((audio: HTMLAudioElement) => {
-    audio.addEventListener("ended", handleEnded);
-  }, [handleEnded]);
-
-  const recordPlay = useCallback(async (songId: string) => {
+  const recordPlayFn = useCallback(async (songId: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -253,25 +286,19 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const playSong = useCallback((song: PlayerSong) => {
     setQueue([song]);
     setQueueIndex(0);
-    loadAndPlay(song);
-    recordPlay(song.id);
-    setTimeout(() => {
-      if (audioRef.current) attachEndedListener(audioRef.current);
-    }, 0);
-  }, [loadAndPlay, attachEndedListener, recordPlay]);
+    internalPlay(song, false);
+    recordPlayFn(song.id);
+  }, [internalPlay, recordPlayFn]);
 
   const playQueue = useCallback((songs: PlayerSong[], startIndex = 0) => {
     const q = shuffleOnRef.current ? shuffleArray(songs) : songs;
     setQueue(q);
     setQueueIndex(startIndex);
     if (q[startIndex]) {
-      loadAndPlay(q[startIndex]);
-      recordPlay(q[startIndex].id);
-      setTimeout(() => {
-        if (audioRef.current) attachEndedListener(audioRef.current);
-      }, 0);
+      internalPlay(q[startIndex], false);
+      recordPlayFn(q[startIndex].id);
     }
-  }, [loadAndPlay, attachEndedListener, recordPlay]);
+  }, [internalPlay, recordPlayFn]);
 
   const skipNext = useCallback(() => {
     if (queue.length === 0) return;
@@ -281,15 +308,12 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       else return;
     }
     setQueueIndex(nextIdx);
-    loadAndPlay(queue[nextIdx]);
-    setTimeout(() => {
-      if (audioRef.current) attachEndedListener(audioRef.current);
-    }, 0);
-  }, [queue, queueIndex, repeatMode, loadAndPlay, attachEndedListener]);
+    internalPlay(queue[nextIdx], isKaraoke);
+    recordPlayFn(queue[nextIdx].id);
+  }, [queue, queueIndex, repeatMode, isKaraoke, internalPlay, recordPlayFn]);
 
   const skipPrev = useCallback(() => {
     if (queue.length === 0) return;
-    // If > 3s in, restart; otherwise go previous
     if (audioRef.current && audioRef.current.currentTime > 3) {
       audioRef.current.currentTime = 0;
       return;
@@ -300,23 +324,20 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       else { if (audioRef.current) audioRef.current.currentTime = 0; return; }
     }
     setQueueIndex(prevIdx);
-    loadAndPlay(queue[prevIdx]);
-    setTimeout(() => {
-      if (audioRef.current) attachEndedListener(audioRef.current);
-    }, 0);
-  }, [queue, queueIndex, repeatMode, loadAndPlay, attachEndedListener]);
+    internalPlay(queue[prevIdx], isKaraoke);
+    recordPlayFn(queue[prevIdx].id);
+  }, [queue, queueIndex, repeatMode, isKaraoke, internalPlay, recordPlayFn]);
 
-  // Keep refs updated for MediaSession handlers
   skipNextRef.current = skipNext;
   skipPrevRef.current = skipPrev;
 
   const togglePlay = useCallback(() => {
     if (audioRef.current) {
-      if (isPlaying) { audioRef.current.pause(); stopInterval(); }
-      else { audioRef.current.play(); startInterval(); }
+      if (isPlaying) { audioRef.current.pause(); stopInterval(); clearAutoPauseTimer(); }
+      else { audioRef.current.play(); startInterval(); resetAutoPauseTimer(); }
     }
     setIsPlaying((p) => !p);
-  }, [isPlaying, startInterval, stopInterval]);
+  }, [isPlaying, startInterval, stopInterval, resetAutoPauseTimer, clearAutoPauseTimer]);
 
   const toggleKaraoke = useCallback(() => {
     setIsKaraoke((k) => {
@@ -324,21 +345,37 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       if (audioRef.current && currentSong) {
         const ct = audioRef.current.currentTime;
         audioRef.current.pause();
+        audioRef.current.onended = null;
         const url = toDirectUrl(next ? currentSong.instrumentalUrl : currentSong.audioUrl);
         if (url) {
           const audio = new Audio(url);
+          audio.volume = volumeRef.current;
           audioRef.current = audio;
           audio.addEventListener("loadedmetadata", () => {
             audio.currentTime = ct;
             setDuration(audio.duration);
-            if (isPlaying) audio.play();
+            if (isPlayingRef.current) audio.play();
           });
-          attachEndedListener(audio);
+          // Re-attach ended handler
+          audio.onended = () => {
+            const rm = repeatModeRef.current;
+            const q = queueRef.current;
+            const qi = queueIndexRef.current;
+            setTrackEndCount(c => c + 1);
+            if (rm === "one") { audio.currentTime = 0; audio.play().catch(() => {}); return; }
+            if (q.length > 0 && qi >= 0) {
+              let nextIdx = qi + 1;
+              if (nextIdx >= q.length) { if (rm === "all") nextIdx = 0; else { setIsPlaying(false); stopInterval(); return; } }
+              setQueueIndex(nextIdx);
+              internalPlay(q[nextIdx], next);
+              recordPlayFn(q[nextIdx].id);
+            } else { setIsPlaying(false); stopInterval(); }
+          };
         }
       }
       return next;
     });
-  }, [currentSong, isPlaying, attachEndedListener]);
+  }, [currentSong, internalPlay, stopInterval, recordPlayFn]);
 
   const toggleExpanded = useCallback(() => setIsExpanded((e) => !e), []);
 
@@ -362,6 +399,17 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     if (audioRef.current) audioRef.current.volume = v;
   }, []);
 
+  const handleContinuePlaying = useCallback(() => {
+    setShowStillThere(false);
+    if (audioRef.current) {
+      audioRef.current.play().then(() => {
+        setIsPlaying(true);
+        startInterval();
+        resetAutoPauseTimer();
+      }).catch(() => {});
+    }
+  }, [startInterval, resetAutoPauseTimer]);
+
   return (
     <PlayerContext.Provider value={{
       currentSong, isPlaying, isKaraoke, isExpanded, progress, duration,
@@ -371,6 +419,20 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       cycleRepeat, toggleShuffle, setVolume,
     }}>
       {children}
+      {/* "Are you still there?" dialog */}
+      {showStillThere && (
+        <Dialog open={showStillThere} onOpenChange={(open) => { if (!open) setShowStillThere(false); }}>
+          <DialogContent className="max-w-sm text-center">
+            <div className="flex flex-col items-center gap-4 py-4">
+              <h3 className="text-xl font-serif font-bold text-foreground">Are you still listening?</h3>
+              <p className="text-sm text-muted-foreground">Playback was paused after 1 hour of continuous play.</p>
+              <Button className="gradient-gold text-primary-foreground w-full" onClick={handleContinuePlaying}>
+                Continue Playing
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </PlayerContext.Provider>
   );
 };

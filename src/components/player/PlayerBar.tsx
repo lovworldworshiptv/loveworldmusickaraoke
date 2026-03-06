@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsPremium } from "@/hooks/useIsPremium";
+import { supabase } from "@/integrations/supabase/client";
 import { isDownloaded, saveDownload, type DownloadedTrack } from "@/lib/downloadManager";
 import { toast } from "sonner";
 import { Slider } from "@/components/ui/slider";
@@ -35,6 +36,14 @@ const PlayerBar = () => {
   const [downloading, setDownloading] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const prevTrackEndRef = useRef(trackEndCount);
+  const [recordFeatureEnabled, setRecordFeatureEnabled] = useState(true);
+
+  useEffect(() => {
+    supabase.from("app_settings" as any).select("value").eq("key", "karaoke_record_enabled").single()
+      .then(({ data }: any) => {
+        if (data) setRecordFeatureEnabled(data.value === true);
+      });
+  }, []);
 
   // Show premium modal after each track ends for free users
   useEffect(() => {
@@ -123,11 +132,13 @@ const PlayerBar = () => {
           {/* Controls */}
           <div className="flex items-center gap-2 md:gap-4">
             {/* Mobile record karaoke icon */}
+            {recordFeatureEnabled && (
             <div className="md:hidden">
               <button onClick={() => { if (!isExpanded) toggleExpanded(); }} className="text-destructive/70 hover:text-destructive transition-colors">
                 <Disc3 className="w-4 h-4" />
               </button>
             </div>
+            )}
             {/* Mobile download button */}
             <div className="md:hidden">
               {currentSong?.audioUrl && (
@@ -181,9 +192,11 @@ const PlayerBar = () => {
             <button onClick={toggleKaraoke} className={`transition-opacity ${isKaraoke ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               <Mic2 className="w-4 h-4" />
             </button>
+            {recordFeatureEnabled && (
             <button onClick={() => { if (!isExpanded) toggleExpanded(); }} className="text-destructive/70 hover:text-destructive transition-colors" title="Record Karaoke">
               <Disc3 className="w-4 h-4" />
             </button>
+            )}
             <button onClick={() => setShowQueue(q => !q)} className={`transition-colors ${showQueue ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               <ListMusic className="w-4 h-4" />
             </button>
