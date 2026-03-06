@@ -10,6 +10,48 @@ import { toast } from "sonner";
 
 const SHARE_DOMAIN = "https://loveworldmusickaraoke.com";
 
+const toDirectUrl = (url?: string): string | undefined => {
+  if (!url) return undefined;
+  const trimmed = url.trim();
+  const match = trimmed.match(/\/file\/d\/([^/]+)/);
+  if (match) return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+  return trimmed;
+};
+
+const waitForAudioReady = (audio: HTMLAudioElement) =>
+  new Promise<void>((resolve, reject) => {
+    if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+      resolve();
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("Failed to load instrumental"));
+    }, 12000);
+
+    const onReady = () => {
+      cleanup();
+      resolve();
+    };
+
+    const onError = () => {
+      cleanup();
+      reject(new Error("Failed to load instrumental"));
+    };
+
+    const cleanup = () => {
+      window.clearTimeout(timer);
+      audio.removeEventListener("canplay", onReady);
+      audio.removeEventListener("loadedmetadata", onReady);
+      audio.removeEventListener("error", onError);
+    };
+
+    audio.addEventListener("canplay", onReady, { once: true });
+    audio.addEventListener("loadedmetadata", onReady, { once: true });
+    audio.addEventListener("error", onError, { once: true });
+  });
+
 interface KaraokeRecorderProps {
   songId: string;
   songTitle: string;
