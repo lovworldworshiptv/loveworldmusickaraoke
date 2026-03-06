@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-const SHARE_DOMAIN = "https://loveworldmusickaraoke.lovable.app";
+const SHARE_DOMAIN = "https://loveworldmusickaraoke.com";
 
 interface KaraokeRecorderProps {
   songId: string;
@@ -117,8 +117,11 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
     setCaption("");
   };
 
+  const [sharingTo, setSharingTo] = useState<"my_karaoke" | "karaoke_stories" | null>(null);
+
   const shareRecording = async (destination: "my_karaoke" | "karaoke_stories") => {
     if (!user || !recordedBlob) return;
+    setSharingTo(destination);
     setUploading(true);
     try {
       const ext = recordedBlob.type.includes("mp4") ? "mp4" : "webm";
@@ -136,11 +139,11 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
       if (dbErr) throw dbErr;
       toast.success(destination === "karaoke_stories" ? "Shared to Karaoke Stories!" : "Shared to My Karaoke!");
       setShareUrl(`${SHARE_DOMAIN}/user/${user.id}`);
-      setShowShare(true);
     } catch (err: any) {
       toast.error(err.message || "Upload failed");
     } finally {
       setUploading(false);
+      setSharingTo(null);
     }
   };
 
@@ -236,10 +239,10 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
           <p className="text-xs text-muted-foreground mb-4">Listen to my karaoke version of {songTitle} on Loveworld Music Karaoke.</p>
           <div className="space-y-2">
             <Button onClick={() => shareRecording("my_karaoke")} disabled={uploading} variant="outline" className="w-full justify-start">
-              <Mic2 className="w-4 h-4 mr-2" /> {uploading ? "Sharing…" : "My Karaoke"}
+              <Mic2 className="w-4 h-4 mr-2" /> {sharingTo === "my_karaoke" ? "Sharing…" : "My Karaoke"}
             </Button>
             <Button onClick={() => shareRecording("karaoke_stories")} disabled={uploading} variant="outline" className="w-full justify-start">
-              <Share2 className="w-4 h-4 mr-2" /> {uploading ? "Sharing…" : "Karaoke Stories"}
+              <Share2 className="w-4 h-4 mr-2" /> {sharingTo === "karaoke_stories" ? "Sharing…" : "Karaoke Stories"}
             </Button>
             <div className="flex items-center gap-2 w-full px-4 py-2 rounded-md border border-border text-sm text-muted-foreground opacity-60 cursor-not-allowed">
               <ExternalLink className="w-4 h-4" /> Share on KingsChat <span className="ml-auto text-[10px] bg-muted px-1.5 py-0.5 rounded">Coming soon</span>
