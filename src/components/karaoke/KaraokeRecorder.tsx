@@ -187,8 +187,8 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
 
   const stopRecording = () => {
     mediaRecorderRef.current?.stop();
-    instrumentalRef.current?.pause();
-    instrumentalRef.current = null;
+    instrumentalStopRef.current?.();
+    instrumentalStopRef.current = null;
     setRecording(false);
     onRecordingStateChange?.(false);
   };
@@ -252,12 +252,13 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
   useEffect(() => {
     return () => {
       audioRef.current?.pause();
-      instrumentalRef.current?.pause();
-      streamRef.current?.getTracks().forEach(t => t.stop());
+      instrumentalStopRef.current?.();
+      instrumentalStopRef.current = null;
+      streamRef.current?.getTracks().forEach((t) => t.stop());
       audioContextRef.current?.close();
       if (recordedUrl) URL.revokeObjectURL(recordedUrl);
     };
-  }, []);
+  }, [recordedUrl]);
 
   return (
     <div className="glass-card p-4 rounded-2xl space-y-4">
