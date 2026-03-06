@@ -8,7 +8,7 @@ import AlbumSection from "@/components/home/AlbumSection";
 import GlobalPlaylistsSection from "@/components/home/GlobalPlaylistsSection";
 import CategorySection from "@/components/home/CategorySection";
 import ArticleSection from "@/components/home/ArticleSection";
-import GameSection from "@/components/home/GameSection";
+
 import SecondaryBanner from "@/components/home/SecondaryBanner";
 import RecentlyPlayed from "@/components/home/RecentlyPlayed";
 import HomepagePopup from "@/components/home/HomepagePopup";
@@ -54,7 +54,7 @@ const Index = () => {
       <CategorySection />
       <RecentlyPlayed />
       <ArticleSection />
-      <GameSection />
+      
       <div className="h-8" />
     </AppLayout>
   );
