@@ -30,6 +30,11 @@ interface AlbumOption {
   title: string;
 }
 
+interface PlaylistOption {
+  id: string;
+  name: string;
+}
+
 interface StorageFile {
   name: string;
   url: string;
@@ -128,7 +133,7 @@ const AdminSongs = () => {
   const [lrcText, setLrcText] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
-    title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", duration_seconds: 240,
+    title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", playlist_id: "", duration_seconds: 240,
     is_featured: false, is_top: false, is_free_download: false, audio_url: "", instrumental_url: "", lyrics_raw: "", cover_url: "",
   });
   const [editForm, setEditForm] = useState({
@@ -137,6 +142,7 @@ const AdminSongs = () => {
   });
   const [albumOptions, setAlbumOptions] = useState<AlbumOption[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<{ id: string; name: string }[]>([]);
+  const [playlistOptions, setPlaylistOptions] = useState<PlaylistOption[]>([]);
 
   // Auto-detect audio duration from URL
   const detectAudioDuration = (url: string, callback: (seconds: number) => void) => {
@@ -163,7 +169,7 @@ const AdminSongs = () => {
   const [bulkLyricsText, setBulkLyricsText] = useState("");
   const [syncTrack, setSyncTrack] = useState<"audio" | "instrumental">("audio");
 
-  useEffect(() => { fetchSongs(); fetchAlbumOptions(); fetchCategoryOptions(); }, []);
+  useEffect(() => { fetchSongs(); fetchAlbumOptions(); fetchCategoryOptions(); fetchPlaylistOptions(); }, []);
 
   const fetchAlbumOptions = async () => {
     const { data } = await supabase.from("albums").select("id, title").order("title");
@@ -173,6 +179,11 @@ const AdminSongs = () => {
   const fetchCategoryOptions = async () => {
     const { data } = await supabase.from("categories").select("id, name").order("name");
     if (data) setCategoryOptions(data);
+  };
+
+  const fetchPlaylistOptions = async () => {
+    const { data } = await supabase.from("playlists").select("id, name").order("created_at", { ascending: false });
+    if (data) setPlaylistOptions(data);
   };
 
   const fetchSongs = async () => {
@@ -202,18 +213,53 @@ const AdminSongs = () => {
   };
 
   const handleCreateSong = async () => {
-    const { error } = await supabase.from("songs").insert({
+    const { data: newSong, error } = await supabase.from("songs").insert({
       title: form.title, artist: form.artist, album: form.album || null,
       album_id: form.album_id || null, category_id: form.category_id || null,
       duration_seconds: form.duration_seconds, is_featured: form.is_featured,
       is_top: form.is_top, is_free_download: form.is_free_download, audio_url: form.audio_url || null,
       instrumental_url: form.instrumental_url || null,
       lyrics_lrc: form.lyrics_raw || null, cover_url: form.cover_url || null,
-    });
-    if (error) { toast.error("Failed: " + error.message); return; }
+    }).select("id").single();
+
+    if (error || !newSong) {
+      toast.error("Failed: " + (error?.message || "Could not create song"));
+      return;
+    }
+
+    if (form.playlist_id) {
+      const { data: existingLink } = await supabase
+        .from("playlist_songs")
+        .select("id")
+        .eq("playlist_id", form.playlist_id)
+        .eq("song_id", newSong.id)
+        .maybeSingle();
+
+      if (!existingLink) {
+        const { data: lastSong } = await supabase
+          .from("playlist_songs")
+          .select("sort_order")
+          .eq("playlist_id", form.playlist_id)
+          .order("sort_order", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const nextSortOrder = (lastSong?.sort_order ?? -1) + 1;
+        const { error: playlistSongError } = await supabase.from("playlist_songs").insert({
+          playlist_id: form.playlist_id,
+          song_id: newSong.id,
+          sort_order: nextSortOrder,
+        });
+
+        if (playlistSongError) {
+          toast.error("Song created, but adding to playlist failed: " + playlistSongError.message);
+        }
+      }
+    }
+
     toast.success("Song created!");
     setShowForm(false);
-    setForm({ title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", duration_seconds: 240, is_featured: false, is_top: false, is_free_download: false, audio_url: "", instrumental_url: "", lyrics_raw: "", cover_url: "" });
+    setForm({ title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", playlist_id: "", duration_seconds: 240, is_featured: false, is_top: false, is_free_download: false, audio_url: "", instrumental_url: "", lyrics_raw: "", cover_url: "" });
     fetchSongs();
   };
 
@@ -404,6 +450,11 @@ const AdminSongs = () => {
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm">
                 <option value="">No Category</option>
                 {categoryOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <select value={form.playlist_id} onChange={e => setForm({ ...form, playlist_id: e.target.value })}
+                className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm">
+                <option value="">No Playlist</option>
+                {playlistOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
               <input placeholder="Duration (seconds)" type="number" value={form.duration_seconds}
                 onChange={e => setForm({ ...form, duration_seconds: Number(e.target.value) })}
