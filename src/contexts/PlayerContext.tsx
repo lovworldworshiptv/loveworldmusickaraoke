@@ -127,6 +127,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   volumeRef.current = volume;
   const isPlayingRef = useRef(isPlaying);
   isPlayingRef.current = isPlaying;
+  const internalPlayRef = useRef<(song: PlayerSong, karaokeMode: boolean) => void>(() => {});
 
   const stopInterval = useCallback(() => {
     if (intervalRef.current) {
