@@ -57,6 +57,14 @@ const ExpandedPlayer = () => {
   const [showLyrics, setShowLyrics] = useState(true);
   const [showRecorder, setShowRecorder] = useState(false);
   const [isRecordingActive, setIsRecordingActive] = useState(false);
+  const [recordFeatureEnabled, setRecordFeatureEnabled] = useState(true);
+
+  useEffect(() => {
+    supabase.from("app_settings" as any).select("value").eq("key", "karaoke_record_enabled").single()
+      .then(({ data }: any) => {
+        if (data) setRecordFeatureEnabled(data.value === true);
+      });
+  }, []);
 
   const dominantColor = useDominantColor(currentSong?.coverUrl);
   const { user } = useAuth();
@@ -220,8 +228,8 @@ const ExpandedPlayer = () => {
                 }`}>
                 <Mic2 className="w-3.5 h-3.5" /> Karaoke
               </button>
-              {/* Record Karaoke Button - always visible */}
-              {isPremium ? (
+              {/* Record Karaoke Button - only when enabled by admin */}
+              {recordFeatureEnabled && (isPremium ? (
                 <button
                   onClick={() => { if (!isKaraoke) toggleKaraoke(); setShowRecorder(true); }}
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
@@ -239,7 +247,7 @@ const ExpandedPlayer = () => {
                 >
                   <Crown className="w-3.5 h-3.5" /> Record
                 </button>
-              )}
+              ))}
             </div>
 
             {/* Karaoke Recorder Panel - below toggle, not covering lyrics */}
