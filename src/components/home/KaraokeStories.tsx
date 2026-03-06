@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Play, Pause, X, Timer, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Play, Pause, X, Timer, Trash2, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 
@@ -22,10 +22,27 @@ const KaraokeStories = () => {
   const [visible, setVisible] = useState(true);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { user } = useAuth();
 
   const activeStory = activeIndex !== null ? stories[activeIndex] ?? null : null;
+
+  // Record a view and fetch updated count
+  const recordView = useCallback(async (storyId: string) => {
+    if (!user) return;
+    // Upsert view (ignore conflict = already viewed)
+    await supabase.from("karaoke_story_views" as any).upsert(
+      { recording_id: storyId, viewer_id: user.id } as any,
+      { onConflict: "recording_id,viewer_id" }
+    );
+    // Fetch count
+    const { count } = await supabase
+      .from("karaoke_story_views" as any)
+      .select("id", { count: "exact", head: true })
+      .eq("recording_id", storyId) as any;
+    setViewCounts(prev => ({ ...prev, [storyId]: count ?? 0 }));
+  }, [user]);
 
   const deleteStory = async (story: KaraokeStory) => {
     audioRef.current?.pause();
@@ -91,6 +108,7 @@ const KaraokeStories = () => {
     const story = stories[index];
     if (!story) return;
     setActiveIndex(index);
+    recordView(story.id);
     const audio = new Audio(story.audio_url);
     audio.onended = () => {
       if (index + 1 < stories.length) {
@@ -253,7 +271,13 @@ const KaraokeStories = () => {
                 {activeStory.caption && (
                   <p className="text-white/60 text-xs mt-1 italic">"{activeStory.caption}"</p>
                 )}
-                <p className="text-white/40 text-[10px] mt-1">{(activeIndex ?? 0) + 1} / {stories.length}</p>
+                <div className="flex items-center justify-center gap-3 mt-1">
+                  <p className="text-white/40 text-[10px]">{(activeIndex ?? 0) + 1} / {stories.length}</p>
+                  <div className="flex items-center gap-1 text-white/50">
+                    <Eye className="w-3 h-3" />
+                    <span className="text-[10px]">{viewCounts[activeStory.id] ?? 0}</span>
+                  </div>
+                </div>
               </div>
 
               {user && user.id === activeStory.user_id && (
