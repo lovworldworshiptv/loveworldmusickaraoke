@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, VolumeX, Mic2, ListMusic, ChevronUp, X, Download, Check, Lock, Crown } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, VolumeX, Mic2, ListMusic, ChevronUp, X, Download, Check, Lock, Crown, Disc3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -122,6 +122,12 @@ const PlayerBar = () => {
 
           {/* Controls */}
           <div className="flex items-center gap-2 md:gap-4">
+            {/* Mobile record karaoke icon */}
+            <div className="md:hidden">
+              <button onClick={toggleExpanded} className="text-destructive/70 hover:text-destructive transition-colors">
+                <Disc3 className="w-4 h-4" />
+              </button>
+            </div>
             {/* Mobile download button */}
             <div className="md:hidden">
               {currentSong?.audioUrl && (
@@ -174,6 +180,9 @@ const PlayerBar = () => {
             )}
             <button onClick={toggleKaraoke} className={`transition-opacity ${isKaraoke ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               <Mic2 className="w-4 h-4" />
+            </button>
+            <button onClick={toggleExpanded} className="text-destructive/70 hover:text-destructive transition-colors" title="Record Karaoke">
+              <Disc3 className="w-4 h-4" />
             </button>
             <button onClick={() => setShowQueue(q => !q)} className={`transition-colors ${showQueue ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               <ListMusic className="w-4 h-4" />

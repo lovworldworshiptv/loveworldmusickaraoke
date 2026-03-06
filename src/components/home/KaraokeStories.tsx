@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Play, Pause, X } from "lucide-react";
+import { Play, Pause, X, Timer } from "lucide-react";
 
 interface KaraokeStory {
   id: string;
@@ -24,7 +24,6 @@ const KaraokeStories = () => {
 
   useEffect(() => {
     const fetchStories = async () => {
-      // Check admin visibility setting
       const { data: setting } = await supabase
         .from("app_settings" as any)
         .select("value")
@@ -35,7 +34,6 @@ const KaraokeStories = () => {
         return;
       }
 
-      // Fetch recent karaoke recordings with profile info
       const { data } = await supabase
         .from("karaoke_recordings")
         .select("id, user_id, song_title, audio_url, caption, created_at")
@@ -45,7 +43,6 @@ const KaraokeStories = () => {
 
       if (!data || data.length === 0) return;
 
-      // Get unique user_ids and fetch profiles
       const userIds = [...new Set(data.map((d: any) => d.user_id))] as string[];
       const profiles: Record<string, { username: string; avatar_url: string | null }> = {};
 
@@ -100,7 +97,6 @@ const KaraokeStories = () => {
 
   if (!visible || stories.length === 0) return null;
 
-  // Group by user, show latest per user
   const seen = new Set<string>();
   const uniqueStories = stories.filter((s) => {
     if (seen.has(s.user_id)) return false;
@@ -110,8 +106,17 @@ const KaraokeStories = () => {
 
   return (
     <>
-      <div className="px-4 lg:px-6 pt-2 pb-1">
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide py-2">
+      <div className="px-4 lg:px-6 pt-4 pb-1">
+        {/* Section Header */}
+        <div className="flex items-center gap-2 mb-3">
+          <h3 className="text-base font-serif font-bold text-foreground">Karaoke Stories</h3>
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+            <Timer className="w-3 h-3" />
+            <span className="text-[10px] font-semibold">24h</span>
+          </div>
+        </div>
+
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide py-1">
           {uniqueStories.map((story) => (
             <button
               key={story.id}
@@ -145,7 +150,6 @@ const KaraokeStories = () => {
       {activeStory && (
         <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center">
           <div className="relative w-full max-w-sm mx-4">
-            {/* Close */}
             <button
               onClick={closeStory}
               className="absolute top-2 right-2 z-10 text-white/80 hover:text-white"
@@ -153,24 +157,15 @@ const KaraokeStories = () => {
               <X className="w-6 h-6" />
             </button>
 
-            {/* Record player visual */}
             <div className="flex flex-col items-center gap-6 py-8">
-              {/* Avatar */}
               <button
-                onClick={() => {
-                  closeStory();
-                  navigate(`/user/${activeStory.user_id}`);
-                }}
+                onClick={() => { closeStory(); navigate(`/user/${activeStory.user_id}`); }}
                 className="text-center"
               >
                 <div className="w-20 h-20 mx-auto rounded-full p-[2px] bg-gradient-to-br from-primary to-accent">
                   <div className="w-full h-full rounded-full bg-background p-[2px]">
                     {activeStory.avatar_url ? (
-                      <img
-                        src={activeStory.avatar_url}
-                        alt=""
-                        className="w-full h-full rounded-full object-cover"
-                      />
+                      <img src={activeStory.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
                     ) : (
                       <div className="w-full h-full rounded-full bg-muted flex items-center justify-center text-lg font-bold text-muted-foreground">
                         {activeStory.username.charAt(0).toUpperCase()}
@@ -181,20 +176,13 @@ const KaraokeStories = () => {
                 <p className="text-white text-sm font-medium mt-2">{activeStory.username}</p>
               </button>
 
-              {/* Spinning record */}
               <div
-                className={`w-40 h-40 rounded-full bg-gradient-to-br from-muted to-card border-4 border-muted flex items-center justify-center ${
-                  playing ? "animate-spin" : ""
-                }`}
+                className={`w-40 h-40 rounded-full bg-gradient-to-br from-muted to-card border-4 border-muted flex items-center justify-center ${playing ? "animate-spin" : ""}`}
                 style={{ animationDuration: "3s" }}
               >
                 <div className="w-16 h-16 rounded-full bg-background flex items-center justify-center">
                   <button onClick={togglePlay}>
-                    {playing ? (
-                      <Pause className="w-8 h-8 text-primary" />
-                    ) : (
-                      <Play className="w-8 h-8 text-primary ml-1" />
-                    )}
+                    {playing ? <Pause className="w-8 h-8 text-primary" /> : <Play className="w-8 h-8 text-primary ml-1" />}
                   </button>
                 </div>
               </div>

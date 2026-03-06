@@ -44,9 +44,9 @@ const Index = () => {
   return (
     <AppLayout>
       <HomepagePopup />
-      <KaraokeStories />
       <HeroBanner />
       <AlbumSection />
+      <KaraokeStories />
       <SongSection title="Featured Songs" />
       <SecondaryBanner />
       <CategorySection />
