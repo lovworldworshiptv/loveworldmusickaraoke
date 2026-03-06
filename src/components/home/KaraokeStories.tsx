@@ -192,13 +192,31 @@ const KaraokeStories = () => {
       {/* Story Viewer Modal */}
       {activeStory && (
         <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center">
-          <div className="relative w-full max-w-sm mx-4">
-            <button
-              onClick={closeStory}
-              className="absolute top-2 right-2 z-10 text-white/80 hover:text-white"
-            >
-              <X className="w-6 h-6" />
+          {/* Previous arrow */}
+          {activeIndex !== null && activeIndex > 0 && (
+            <button onClick={goPrev} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 text-white/60 hover:text-white p-2">
+              <ChevronLeft className="w-8 h-8" />
             </button>
+          )}
+          {/* Next arrow */}
+          {activeIndex !== null && activeIndex + 1 < stories.length && (
+            <button onClick={goNext} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 text-white/60 hover:text-white p-2">
+              <ChevronRight className="w-8 h-8" />
+            </button>
+          )}
+
+          <div className="relative w-full max-w-sm mx-4">
+            <div className="flex items-center justify-between px-2 pt-2">
+              {/* Progress dots */}
+              <div className="flex gap-1 flex-1 mr-8">
+                {stories.map((_, i) => (
+                  <div key={i} className={`h-0.5 flex-1 rounded-full transition-colors ${i === activeIndex ? "bg-primary" : i < (activeIndex ?? 0) ? "bg-white/50" : "bg-white/20"}`} />
+                ))}
+              </div>
+              <button onClick={closeStory} className="text-white/80 hover:text-white">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
 
             <div className="flex flex-col items-center gap-6 py-8">
               <button
@@ -235,9 +253,9 @@ const KaraokeStories = () => {
                 {activeStory.caption && (
                   <p className="text-white/60 text-xs mt-1 italic">"{activeStory.caption}"</p>
                 )}
+                <p className="text-white/40 text-[10px] mt-1">{(activeIndex ?? 0) + 1} / {stories.length}</p>
               </div>
 
-              {/* Delete button for own stories */}
               {user && user.id === activeStory.user_id && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
