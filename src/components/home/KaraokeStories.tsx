@@ -208,7 +208,27 @@ const KaraokeStories = () => {
                   <p className="text-white/60 text-xs mt-1 italic">"{activeStory.caption}"</p>
                 )}
               </div>
-            </div>
+
+              {/* Delete button for own stories */}
+              {user && user.id === activeStory.user_id && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors text-xs font-medium">
+                      <Trash2 className="w-3.5 h-3.5" /> Delete Story
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete this story?</AlertDialogTitle>
+                      <AlertDialogDescription>This karaoke story will be permanently deleted.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => deleteStory(activeStory)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
           </div>
         </div>
       )}
