@@ -70,136 +70,120 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const instrumentalRef = useRef<HTMLAudioElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const instrumentalStopRef = useRef<(() => void) | null>(null);
 
   const startRecording = useCallback(async () => {
     let stream: MediaStream | null = null;
+    let audioContext: AudioContext | null = null;
+
     try {
-      // Pause the main player to avoid double audio
       if (isPlaying) {
         togglePlay();
       }
 
-      // Request mic access
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
         });
-      } catch (micErr: any) {
+      } catch {
         toast.error("Microphone access denied. Please allow microphone access in your browser settings.");
         return;
       }
+
       streamRef.current = stream;
 
-      // 3-second countdown
-      setCountdown(3);
-      for (let i = 3; i >= 1; i--) {
-        setCountdown(i);
-        await new Promise(r => setTimeout(r, 1000));
-      }
-      setCountdown(null);
-
-      // Set up Web Audio API to mix mic + instrumental
-      const audioContext = new AudioContext();
-      // Resume audio context if it's suspended (browser autoplay policy)
+      audioContext = new AudioContext();
       if (audioContext.state === "suspended") {
         await audioContext.resume();
       }
       audioContextRef.current = audioContext;
-      const destination = audioContext.createMediaStreamDestination();
 
-      // Add mic to the mix
+      const destination = audioContext.createMediaStreamDestination();
       const micSource = audioContext.createMediaStreamSource(stream);
       micSource.connect(destination);
 
-      // Add instrumental to the mix if available
       const normalizedInstrumentalUrl = toDirectUrl(instrumentalUrl);
-      if (normalizedInstrumentalUrl) {
-        // Fetch audio data as ArrayBuffer (try direct, then proxy for CORS)
-        let arrayBuffer: ArrayBuffer | null = null;
+      const instrumentalBuffer = normalizedInstrumentalUrl
+        ? await fetchInstrumentalBuffer(normalizedInstrumentalUrl, audioContext)
+        : null;
 
-        // Always use the edge function proxy to avoid CORS issues with S3/external hosts
-        try {
-          const proxyResp = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-audio`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-              },
-              body: JSON.stringify({ url: normalizedInstrumentalUrl }),
-            }
-          );
-          if (proxyResp.ok) {
-            arrayBuffer = await proxyResp.arrayBuffer();
-          } else {
-            const errText = await proxyResp.text().catch(() => "");
-            console.error("Proxy error:", proxyResp.status, errText);
-          }
-        } catch (proxyErr) {
-          console.error("Proxy fetch error:", proxyErr);
-        }
-
-        if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-          throw new Error("Failed to load instrumental");
-        }
-
-        // Decode and play via AudioBufferSourceNode (guaranteed to be captured)
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-        const bufferSource = audioContext.createBufferSource();
-        bufferSource.buffer = audioBuffer;
-        bufferSource.connect(destination); // captured in recording
-        bufferSource.connect(audioContext.destination); // audible to user
-        bufferSource.start(0);
-
-        // Store reference for cleanup
-        instrumentalRef.current = { pause: () => bufferSource.stop() } as any;
+      setCountdown(COUNTDOWN_SECONDS);
+      for (let i = COUNTDOWN_SECONDS; i >= 1; i--) {
+        setCountdown(i);
+        await wait(1000);
       }
+      setCountdown(null);
 
-      // Record from the mixed destination stream
       const mixedStream = destination.stream;
-
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") 
-        ? "audio/webm;codecs=opus" 
-        : MediaRecorder.isTypeSupported("audio/webm") 
-          ? "audio/webm" 
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
           : "audio/mp4";
 
       const mediaRecorder = new MediaRecorder(mixedStream, { mimeType });
       chunksRef.current = [];
-      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: mimeType });
         const url = URL.createObjectURL(blob);
+
         setRecordedBlob(blob);
         setRecordedUrl(url);
         setRecorded(true);
-        stream?.getTracks().forEach(t => t.stop());
+
+        instrumentalStopRef.current?.();
+        instrumentalStopRef.current = null;
+
+        stream?.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
+
         audioContextRef.current?.close();
         audioContextRef.current = null;
       };
+
       mediaRecorderRef.current = mediaRecorder;
       mediaRecorder.start(250);
+
+      if (instrumentalBuffer) {
+        const instrumentalSource = audioContext.createBufferSource();
+        instrumentalSource.buffer = instrumentalBuffer;
+        instrumentalSource.connect(destination);
+        instrumentalSource.connect(audioContext.destination);
+        instrumentalSource.start();
+
+        instrumentalStopRef.current = () => {
+          try {
+            instrumentalSource.stop();
+          } catch {
+            // noop when already stopped
+          }
+          instrumentalSource.disconnect();
+        };
+      }
+
       setRecording(true);
       setRecorded(false);
       onRecordingStateChange?.(true);
     } catch (err: any) {
-      stream?.getTracks().forEach(t => t.stop());
-      streamRef.current?.getTracks().forEach(t => t.stop());
+      stream?.getTracks().forEach((t) => t.stop());
+      streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
-      audioContextRef.current?.close();
+
+      instrumentalStopRef.current?.();
+      instrumentalStopRef.current = null;
+
+      audioContext?.close();
       audioContextRef.current = null;
-      instrumentalRef.current?.pause();
-      instrumentalRef.current = null;
+
       setCountdown(null);
       toast.error(err.message || "Failed to start recording. Please try again.");
     }
-  }, [instrumentalUrl, isPlaying, togglePlay]);
+  }, [instrumentalUrl, isPlaying, togglePlay, onRecordingStateChange]);
 
   const stopRecording = () => {
     mediaRecorderRef.current?.stop();
