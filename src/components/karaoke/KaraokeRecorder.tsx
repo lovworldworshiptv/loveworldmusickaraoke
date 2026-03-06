@@ -9,6 +9,7 @@ import { usePlayer } from "@/contexts/PlayerContext";
 import { toast } from "sonner";
 
 const SHARE_DOMAIN = "https://loveworldmusickaraoke.com";
+const COUNTDOWN_SECONDS = 3;
 
 const toDirectUrl = (url?: string): string | undefined => {
   if (!url) return undefined;
@@ -18,39 +19,31 @@ const toDirectUrl = (url?: string): string | undefined => {
   return trimmed;
 };
 
-const waitForAudioReady = (audio: HTMLAudioElement) =>
-  new Promise<void>((resolve, reject) => {
-    if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
-      resolve();
-      return;
-    }
+const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
-    const timer = window.setTimeout(() => {
-      cleanup();
-      reject(new Error("Failed to load instrumental"));
-    }, 12000);
-
-    const onReady = () => {
-      cleanup();
-      resolve();
-    };
-
-    const onError = () => {
-      cleanup();
-      reject(new Error("Failed to load instrumental"));
-    };
-
-    const cleanup = () => {
-      window.clearTimeout(timer);
-      audio.removeEventListener("canplay", onReady);
-      audio.removeEventListener("loadedmetadata", onReady);
-      audio.removeEventListener("error", onError);
-    };
-
-    audio.addEventListener("canplay", onReady, { once: true });
-    audio.addEventListener("loadedmetadata", onReady, { once: true });
-    audio.addEventListener("error", onError, { once: true });
+const fetchInstrumentalBuffer = async (url: string, audioContext: AudioContext): Promise<AudioBuffer> => {
+  const proxyResp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-audio`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+    body: JSON.stringify({ url }),
   });
+
+  if (!proxyResp.ok) {
+    const errText = await proxyResp.text().catch(() => "");
+    throw new Error(`Failed to load instrumental (${proxyResp.status}) ${errText}`.trim());
+  }
+
+  const arrayBuffer = await proxyResp.arrayBuffer();
+  if (!arrayBuffer.byteLength) {
+    throw new Error("Failed to load instrumental");
+  }
+
+  return audioContext.decodeAudioData(arrayBuffer);
+};
 
 interface KaraokeRecorderProps {
   songId: string;
