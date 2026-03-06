@@ -369,7 +369,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
               let nextIdx = qi + 1;
               if (nextIdx >= q.length) { if (rm === "all") nextIdx = 0; else { setIsPlaying(false); stopInterval(); return; } }
               setQueueIndex(nextIdx);
-              internalPlay(q[nextIdx], next);
+              internalPlayRef.current(q[nextIdx], next);
               recordPlayFn(q[nextIdx].id);
             } else { setIsPlaying(false); stopInterval(); }
           };
