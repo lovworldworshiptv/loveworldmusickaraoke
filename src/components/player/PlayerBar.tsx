@@ -122,6 +122,12 @@ const PlayerBar = () => {
 
           {/* Controls */}
           <div className="flex items-center gap-2 md:gap-4">
+            {/* Mobile record karaoke icon */}
+            <div className="md:hidden">
+              <button onClick={toggleExpanded} className="text-destructive/70 hover:text-destructive transition-colors">
+                <Disc3 className="w-4 h-4" />
+              </button>
+            </div>
             {/* Mobile download button */}
             <div className="md:hidden">
               {currentSong?.audioUrl && (
