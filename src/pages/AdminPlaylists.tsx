@@ -104,7 +104,7 @@ const AdminPlaylists = () => {
       name: newName.trim(),
       user_id: user.id,
       is_visible_on_homepage: newVisibleOnHomepage,
-    });
+    } as any);
 
     if (error) {
       toast.error(error.message);
@@ -142,7 +142,7 @@ const AdminPlaylists = () => {
 
     const { error } = await supabase
       .from("playlists")
-      .update({ is_visible_on_homepage: visible })
+      .update({ is_visible_on_homepage: visible } as any)
       .eq("id", playlistId);
 
     if (error) {
