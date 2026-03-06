@@ -231,6 +231,7 @@ const KaraokeStories = () => {
               )}
             </div>
           </div>
+        </div>
       )}
     </>
   );
