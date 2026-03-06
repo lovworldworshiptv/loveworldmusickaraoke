@@ -7,6 +7,7 @@ import { ListMusic, Plus, Trash2, Edit3, X, Save, Music, Search, UserCircle } fr
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 interface Playlist {
@@ -15,6 +16,7 @@ interface Playlist {
   user_id: string;
   cover_url: string | null;
   created_at: string;
+  is_visible_on_homepage: boolean;
   profile_username?: string;
   song_count?: number;
 }
@@ -36,6 +38,7 @@ const AdminPlaylists = () => {
   // Create playlist
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
+  const [newVisibleOnHomepage, setNewVisibleOnHomepage] = useState(false);
 
   // Edit playlist
   const [editing, setEditing] = useState<Playlist | null>(null);
@@ -47,78 +50,119 @@ const AdminPlaylists = () => {
   const [playlistSongIds, setPlaylistSongIds] = useState<Set<string>>(new Set());
   const [songSearch, setSongSearch] = useState("");
 
-  useEffect(() => { fetchPlaylists(); }, []);
+  useEffect(() => {
+    fetchPlaylists();
+  }, []);
 
   const fetchPlaylists = async () => {
-    // Fetch all playlists (admin can see all via RLS)
     const { data: playlistData } = await supabase
       .from("playlists")
-      .select("id, name, user_id, cover_url, created_at")
+      .select("id, name, user_id, cover_url, created_at, is_visible_on_homepage")
       .order("created_at", { ascending: false });
 
-    if (!playlistData) { setLoading(false); return; }
+    if (!playlistData) {
+      setLoading(false);
+      return;
+    }
 
-    // Fetch profiles for usernames
-    const userIds = [...new Set(playlistData.map(p => p.user_id))];
+    const userIds = [...new Set(playlistData.map((p) => p.user_id))];
     const { data: profiles } = await supabase
       .from("profiles")
       .select("user_id, username")
       .in("user_id", userIds);
 
     const profileMap: Record<string, string> = {};
-    (profiles || []).forEach(p => { profileMap[p.user_id] = p.username; });
+    (profiles || []).forEach((p) => {
+      profileMap[p.user_id] = p.username;
+    });
 
-    // Fetch song counts
-    const playlistIds = playlistData.map(p => p.id);
+    const playlistIds = playlistData.map((p) => p.id);
     const { data: songCounts } = await supabase
       .from("playlist_songs")
       .select("playlist_id")
       .in("playlist_id", playlistIds);
 
     const countMap: Record<string, number> = {};
-    (songCounts || []).forEach(ps => {
+    (songCounts || []).forEach((ps) => {
       countMap[ps.playlist_id] = (countMap[ps.playlist_id] || 0) + 1;
     });
 
-    setPlaylists(playlistData.map(p => ({
-      ...p,
-      profile_username: profileMap[p.user_id] || "Unknown",
-      song_count: countMap[p.id] || 0,
-    })));
+    setPlaylists(
+      playlistData.map((p) => ({
+        ...p,
+        profile_username: profileMap[p.user_id] || "Unknown",
+        song_count: countMap[p.id] || 0,
+      })),
+    );
     setLoading(false);
   };
 
   const handleCreate = async () => {
     if (!newName.trim() || !user) return;
+
     const { error } = await supabase.from("playlists").insert({
       name: newName.trim(),
       user_id: user.id,
-    });
-    if (error) { toast.error(error.message); return; }
+      is_visible_on_homepage: newVisibleOnHomepage,
+    } as any);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
     toast.success(`Playlist "${newName.trim()}" created as Loveworld Singers!`);
     setNewName("");
+    setNewVisibleOnHomepage(false);
     setShowCreate(false);
     fetchPlaylists();
   };
 
   const handleUpdate = async () => {
     if (!editing || !editName.trim()) return;
-    const { error } = await supabase.from("playlists").update({ name: editName.trim() }).eq("id", editing.id);
-    if (error) { toast.error(error.message); return; }
+
+    const { error } = await supabase
+      .from("playlists")
+      .update({ name: editName.trim() })
+      .eq("id", editing.id);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
     toast.success("Playlist updated!");
     setEditing(null);
     fetchPlaylists();
   };
 
+  const handleVisibilityToggle = async (playlistId: string, visible: boolean) => {
+    const previous = playlists;
+    setPlaylists((prev) => prev.map((pl) => (pl.id === playlistId ? { ...pl, is_visible_on_homepage: visible } : pl)));
+
+    const { error } = await supabase
+      .from("playlists")
+      .update({ is_visible_on_homepage: visible } as any)
+      .eq("id", playlistId);
+
+    if (error) {
+      setPlaylists(previous);
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success(visible ? "Playlist is now visible on homepage" : "Playlist hidden from homepage");
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this playlist and all its songs?")) return;
+
     await supabase.from("playlist_songs").delete().eq("playlist_id", id);
     await supabase.from("playlists").delete().eq("id", id);
     toast.success("Playlist deleted");
     fetchPlaylists();
   };
 
-  // Add songs flow
   const openAddSongs = async (playlistId: string) => {
     setAddingSongsTo(playlistId);
     setSongSearch("");
@@ -129,37 +173,61 @@ const AdminPlaylists = () => {
     ]);
 
     setAllSongs(songs || []);
-    setPlaylistSongIds(new Set((existing || []).map(e => e.song_id)));
+    setPlaylistSongIds(new Set((existing || []).map((e) => e.song_id)));
   };
 
   const toggleSongInPlaylist = async (songId: string) => {
     if (!addingSongsTo) return;
+
     if (playlistSongIds.has(songId)) {
       await supabase.from("playlist_songs").delete().eq("playlist_id", addingSongsTo).eq("song_id", songId);
-      setPlaylistSongIds(prev => { const n = new Set(prev); n.delete(songId); return n; });
-    } else {
-      const { error } = await supabase.from("playlist_songs").insert({
-        playlist_id: addingSongsTo,
-        song_id: songId,
-        sort_order: playlistSongIds.size,
+      setPlaylistSongIds((prev) => {
+        const next = new Set(prev);
+        next.delete(songId);
+        return next;
       });
-      if (error) { toast.error(error.message); return; }
-      setPlaylistSongIds(prev => new Set(prev).add(songId));
+      return;
     }
+
+    const { error } = await supabase.from("playlist_songs").insert({
+      playlist_id: addingSongsTo,
+      song_id: songId,
+      sort_order: playlistSongIds.size,
+    });
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    setPlaylistSongIds((prev) => new Set(prev).add(songId));
   };
 
-  const filteredPlaylists = playlists.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    (p.profile_username || "").toLowerCase().includes(search.toLowerCase())
+  const filteredPlaylists = playlists.filter(
+    (p) =>
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.profile_username || "").toLowerCase().includes(search.toLowerCase()),
   );
 
-  const filteredSongs = allSongs.filter(s =>
-    s.title.toLowerCase().includes(songSearch.toLowerCase()) ||
-    s.artist.toLowerCase().includes(songSearch.toLowerCase())
+  const filteredSongs = allSongs.filter(
+    (s) =>
+      s.title.toLowerCase().includes(songSearch.toLowerCase()) ||
+      s.artist.toLowerCase().includes(songSearch.toLowerCase()),
   );
 
-  if (adminLoading) return <AppLayout><div className="p-6 text-center text-muted-foreground">Loading...</div></AppLayout>;
-  if (!isAdmin) return <AppLayout><div className="p-6 text-center text-muted-foreground">Admin access required.</div></AppLayout>;
+  if (adminLoading)
+    return (
+      <AppLayout>
+        <div className="p-6 text-center text-muted-foreground">Loading...</div>
+      </AppLayout>
+    );
+
+  if (!isAdmin)
+    return (
+      <AppLayout>
+        <div className="p-6 text-center text-muted-foreground">Admin access required.</div>
+      </AppLayout>
+    );
 
   return (
     <AppLayout>
@@ -171,39 +239,51 @@ const AdminPlaylists = () => {
           </Button>
         </div>
 
-        {/* Search */}
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input type="text" placeholder="Search playlists or users..." value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
+          <input
+            type="text"
+            placeholder="Search playlists or users..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          />
         </div>
 
-        {/* Create Form */}
         {showCreate && (
           <div className="glass-card p-5 mb-6 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-serif font-bold text-foreground">New Official Playlist</h3>
-              <button onClick={() => setShowCreate(false)} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowCreate(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <p className="text-xs text-muted-foreground">This playlist will be created as <span className="text-gold font-medium">Loveworld Singers</span></p>
+            <p className="text-xs text-muted-foreground">
+              This playlist will be created as <span className="text-gold font-medium">Loveworld Singers</span>
+            </p>
             <div className="flex gap-2">
-              <Input placeholder="Playlist name" value={newName} onChange={e => setNewName(e.target.value)} />
+              <Input placeholder="Playlist name" value={newName} onChange={(e) => setNewName(e.target.value)} />
               <Button onClick={handleCreate} className="gradient-gold text-primary-foreground gap-1">
                 <Save className="w-4 h-4" /> Create
               </Button>
             </div>
+            <label className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-foreground">
+              <span>Show this playlist in Global Playlists on homepage</span>
+              <Switch checked={newVisibleOnHomepage} onCheckedChange={setNewVisibleOnHomepage} />
+            </label>
           </div>
         )}
 
-        {/* Edit Dialog */}
         {editing && (
           <div className="glass-card p-5 mb-6 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-serif font-bold text-foreground">Edit Playlist</h3>
-              <button onClick={() => setEditing(null)} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+              <button onClick={() => setEditing(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
             </div>
             <div className="flex gap-2">
-              <Input value={editName} onChange={e => setEditName(e.target.value)} />
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
               <Button onClick={handleUpdate} className="gradient-gold text-primary-foreground gap-1">
                 <Save className="w-4 h-4" /> Save
               </Button>
@@ -211,14 +291,13 @@ const AdminPlaylists = () => {
           </div>
         )}
 
-        {/* Playlist List */}
         {loading ? (
           <p className="text-muted-foreground text-sm">Loading...</p>
         ) : filteredPlaylists.length === 0 ? (
           <p className="text-muted-foreground text-center py-12">No playlists found.</p>
         ) : (
           <div className="space-y-2">
-            {filteredPlaylists.map(pl => (
+            {filteredPlaylists.map((pl) => (
               <div key={pl.id} className="glass-card p-4 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-lg gradient-purple flex items-center justify-center flex-shrink-0">
                   <ListMusic className="w-5 h-5 text-gold/40" />
@@ -232,17 +311,34 @@ const AdminPlaylists = () => {
                     <span>{pl.song_count} songs</span>
                   </div>
                 </div>
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-2 py-1">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Homepage</span>
+                  <Switch
+                    checked={pl.is_visible_on_homepage}
+                    onCheckedChange={(checked) => handleVisibilityToggle(pl.id, checked)}
+                  />
+                </div>
                 <div className="flex gap-1">
-                  <button onClick={() => openAddSongs(pl.id)}
-                    className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors" title="Add/remove songs">
+                  <button
+                    onClick={() => openAddSongs(pl.id)}
+                    className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+                    title="Add/remove songs"
+                  >
                     <Music className="w-4 h-4" />
                   </button>
-                  <button onClick={() => { setEditing(pl); setEditName(pl.name); }}
-                    className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors">
+                  <button
+                    onClick={() => {
+                      setEditing(pl);
+                      setEditName(pl.name);
+                    }}
+                    className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors"
+                  >
                     <Edit3 className="w-4 h-4" />
                   </button>
-                  <button onClick={() => handleDelete(pl.id)}
-                    className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                  <button
+                    onClick={() => handleDelete(pl.id)}
+                    className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                  >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -252,33 +348,54 @@ const AdminPlaylists = () => {
         )}
       </div>
 
-      {/* Add Songs Dialog */}
-      <Dialog open={!!addingSongsTo} onOpenChange={() => { setAddingSongsTo(null); fetchPlaylists(); }}>
+      <Dialog
+        open={!!addingSongsTo}
+        onOpenChange={() => {
+          setAddingSongsTo(null);
+          fetchPlaylists();
+        }}
+      >
         <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Manage Songs in Playlist</DialogTitle>
           </DialogHeader>
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input type="text" placeholder="Search songs..." value={songSearch} onChange={e => setSongSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-lg bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
+            <input
+              type="text"
+              placeholder="Search songs..."
+              value={songSearch}
+              onChange={(e) => setSongSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 rounded-lg bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            />
           </div>
           <div className="flex-1 overflow-y-auto space-y-1">
-            {filteredSongs.map(song => {
+            {filteredSongs.map((song) => {
               const inPlaylist = playlistSongIds.has(song.id);
               return (
-                <button key={song.id} onClick={() => toggleSongInPlaylist(song.id)}
-                  className={`w-full flex items-center gap-3 p-2.5 rounded-lg transition-colors text-left ${inPlaylist ? "bg-primary/10 ring-1 ring-primary" : "hover:bg-muted/60"}`}>
+                <button
+                  key={song.id}
+                  onClick={() => toggleSongInPlaylist(song.id)}
+                  className={`w-full flex items-center gap-3 p-2.5 rounded-lg transition-colors text-left ${
+                    inPlaylist ? "bg-primary/10 ring-1 ring-primary" : "hover:bg-muted/60"
+                  }`}
+                >
                   {song.cover_url ? (
                     <img src={song.cover_url} alt="" className="w-10 h-10 rounded object-cover" />
                   ) : (
-                    <div className="w-10 h-10 rounded bg-primary/20 flex items-center justify-center"><Music className="w-4 h-4 text-primary" /></div>
+                    <div className="w-10 h-10 rounded bg-primary/20 flex items-center justify-center">
+                      <Music className="w-4 h-4 text-primary" />
+                    </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm truncate text-foreground">{song.title}</p>
                     <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
                   </div>
-                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${inPlaylist ? "bg-primary border-primary" : "border-muted-foreground"}`}>
+                  <div
+                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                      inPlaylist ? "bg-primary border-primary" : "border-muted-foreground"
+                    }`}
+                  >
                     {inPlaylist && <span className="text-primary-foreground text-xs">✓</span>}
                   </div>
                 </button>
