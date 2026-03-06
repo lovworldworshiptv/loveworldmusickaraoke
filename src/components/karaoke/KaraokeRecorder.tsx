@@ -124,40 +124,51 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
       // Add instrumental to the mix if available
       const normalizedInstrumentalUrl = toDirectUrl(instrumentalUrl);
       if (normalizedInstrumentalUrl) {
-        const createAndLoadInstrumental = async (useCors: boolean) => {
-          const inst = new Audio();
-          if (useCors) inst.crossOrigin = "anonymous";
-          inst.preload = "auto";
-          inst.src = normalizedInstrumentalUrl;
-          await waitForAudioReady(inst);
-          return inst;
-        };
+        // Fetch audio data as ArrayBuffer (try direct, then proxy for CORS)
+        let arrayBuffer: ArrayBuffer | null = null;
 
-        let inst: HTMLAudioElement | null = null;
-        let instSource: MediaElementAudioSourceNode | null = null;
+        // Attempt 1: direct fetch
+        try {
+          const resp = await fetch(normalizedInstrumentalUrl);
+          if (resp.ok) arrayBuffer = await resp.arrayBuffer();
+        } catch (_) {
+          // CORS or network error, will try proxy
+        }
 
-        for (const useCors of [false, true]) {
+        // Attempt 2: proxy through edge function
+        if (!arrayBuffer) {
           try {
-            inst?.pause();
-            inst = await createAndLoadInstrumental(useCors);
-            instSource = audioContext.createMediaElementSource(inst);
-            break;
-          } catch (err) {
-            inst = null;
-            instSource = null;
-            if (useCors) throw err;
+            const proxyResp = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-audio`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                },
+                body: JSON.stringify({ url: normalizedInstrumentalUrl }),
+              }
+            );
+            if (proxyResp.ok) arrayBuffer = await proxyResp.arrayBuffer();
+          } catch (_) {
+            // proxy also failed
           }
         }
 
-        if (!inst || !instSource) {
+        if (!arrayBuffer || arrayBuffer.byteLength === 0) {
           throw new Error("Failed to load instrumental");
         }
 
-        instrumentalRef.current = inst;
-        instSource.connect(destination);
-        instSource.connect(audioContext.destination);
+        // Decode and play via AudioBufferSourceNode (guaranteed to be captured)
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        const bufferSource = audioContext.createBufferSource();
+        bufferSource.buffer = audioBuffer;
+        bufferSource.connect(destination); // captured in recording
+        bufferSource.connect(audioContext.destination); // audible to user
+        bufferSource.start(0);
 
-        await inst.play();
+        // Store reference for cleanup
+        instrumentalRef.current = { pause: () => bufferSource.stop() } as any;
       }
 
       // Record from the mixed destination stream
