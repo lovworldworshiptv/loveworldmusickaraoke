@@ -12,6 +12,7 @@ const AdminKaraokeStories = () => {
   const navigate = useNavigate();
   const [storiesVisible, setStoriesVisible] = useState(true);
   const [recordEnabled, setRecordEnabled] = useState(true);
+  const [myKaraokeEnabled, setMyKaraokeEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,9 +23,11 @@ const AdminKaraokeStories = () => {
     Promise.all([
       supabase.from("app_settings" as any).select("value").eq("key", "karaoke_stories_visible").single(),
       supabase.from("app_settings" as any).select("value").eq("key", "karaoke_record_enabled").single(),
-    ]).then(([storiesRes, recordRes]: any[]) => {
+      supabase.from("app_settings" as any).select("value").eq("key", "my_karaoke_visible").single(),
+    ]).then(([storiesRes, recordRes, myKaraokeRes]: any[]) => {
       if (storiesRes.data) setStoriesVisible(storiesRes.data.value === true);
       if (recordRes.data) setRecordEnabled(recordRes.data.value === true);
+      if (myKaraokeRes.data) setMyKaraokeEnabled(myKaraokeRes.data.value === true);
       setLoading(false);
     });
   }, []);
@@ -69,6 +72,16 @@ const AdminKaraokeStories = () => {
               <p className="text-xs text-muted-foreground mt-1">Allow users to record their voice over instrumental tracks. When disabled, the Record button is hidden globally.</p>
             </div>
             <Switch checked={recordEnabled} onCheckedChange={(v) => toggleSetting("karaoke_record_enabled", v, setRecordEnabled)} />
+          </div>
+
+          <div className="border-t border-border" />
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm font-medium">Show My Karaoke Section</Label>
+              <p className="text-xs text-muted-foreground mt-1">Display the "My Karaoke" section on user profiles. When disabled, it disappears for all users.</p>
+            </div>
+            <Switch checked={myKaraokeEnabled} onCheckedChange={(v) => toggleSetting("my_karaoke_visible", v, setMyKaraokeEnabled)} />
           </div>
         </div>
       </div>

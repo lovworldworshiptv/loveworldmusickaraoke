@@ -19,10 +19,18 @@ const MyKaraoke = () => {
   const { user } = useAuth();
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
+  const [featureEnabled, setFeatureEnabled] = useState(true);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [shareRec, setShareRec] = useState<Recording | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    supabase.from("app_settings" as any).select("value").eq("key", "my_karaoke_visible").single()
+      .then(({ data }: any) => {
+        if (data) setFeatureEnabled(data.value === true);
+      });
+  }, []);
 
   const fetchRecordings = async () => {
     if (!user) return;
@@ -73,6 +81,7 @@ const MyKaraoke = () => {
   const shareText = shareRec ? `Listen to my karaoke version of ${shareRec.song_title} on Loveworld Music Karaoke.` : "";
   const shareUrl = user ? `${window.location.origin}/user/${user.id}` : "";
 
+  if (!featureEnabled) return null;
   if (loading) return null;
   if (recordings.length === 0) return null;
 

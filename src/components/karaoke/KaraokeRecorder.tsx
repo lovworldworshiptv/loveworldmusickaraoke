@@ -40,16 +40,22 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
   const audioContextRef = useRef<AudioContext | null>(null);
 
   const startRecording = useCallback(async () => {
+    let stream: MediaStream | null = null;
     try {
       // Pause the main player to avoid double audio
       if (isPlaying) {
         togglePlay();
       }
 
-      // Request mic access early
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
-      });
+      // Request mic access
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+        });
+      } catch (micErr: any) {
+        toast.error("Microphone access denied. Please allow microphone access in your browser settings.");
+        return;
+      }
       streamRef.current = stream;
 
       // 3-second countdown
@@ -62,6 +68,10 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
 
       // Set up Web Audio API to mix mic + instrumental
       const audioContext = new AudioContext();
+      // Resume audio context if it's suspended (browser autoplay policy)
+      if (audioContext.state === "suspended") {
+        await audioContext.resume();
+      }
       audioContextRef.current = audioContext;
       const destination = audioContext.createMediaStreamDestination();
 
@@ -71,21 +81,30 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
 
       // Add instrumental to the mix if available
       if (instrumentalUrl) {
-        const inst = new Audio(instrumentalUrl);
+        const inst = new Audio();
         inst.crossOrigin = "anonymous";
+        inst.preload = "auto";
         instrumentalRef.current = inst;
         
-        // Wait for the audio to be ready before creating source
+        // Set src and wait for the audio to be ready
+        inst.src = instrumentalUrl;
         await new Promise<void>((resolve, reject) => {
-          inst.addEventListener("canplaythrough", () => resolve(), { once: true });
-          inst.addEventListener("error", () => reject(new Error("Failed to load instrumental")), { once: true });
+          const onReady = () => { cleanup(); resolve(); };
+          const onError = () => { cleanup(); reject(new Error("Failed to load instrumental")); };
+          const cleanup = () => {
+            inst.removeEventListener("canplaythrough", onReady);
+            inst.removeEventListener("error", onError);
+          };
+          inst.addEventListener("canplaythrough", onReady, { once: true });
+          inst.addEventListener("error", onError, { once: true });
+          // Trigger load if not auto-loading
           inst.load();
         });
 
         const instSource = audioContext.createMediaElementSource(inst);
         instSource.connect(destination);
         instSource.connect(audioContext.destination); // Also play through speakers
-        inst.play().catch(() => {});
+        await inst.play();
       }
 
       // Record from the mixed destination stream
@@ -106,7 +125,7 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
         setRecordedBlob(blob);
         setRecordedUrl(url);
         setRecorded(true);
-        stream.getTracks().forEach(t => t.stop());
+        stream?.getTracks().forEach(t => t.stop());
         streamRef.current = null;
         audioContextRef.current?.close();
         audioContextRef.current = null;
@@ -117,12 +136,15 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
       setRecorded(false);
       onRecordingStateChange?.(true);
     } catch (err: any) {
+      stream?.getTracks().forEach(t => t.stop());
       streamRef.current?.getTracks().forEach(t => t.stop());
       streamRef.current = null;
       audioContextRef.current?.close();
       audioContextRef.current = null;
+      instrumentalRef.current?.pause();
+      instrumentalRef.current = null;
       setCountdown(null);
-      toast.error("Microphone access denied or instrumental failed to load.");
+      toast.error(err.message || "Failed to start recording. Please try again.");
     }
   }, [instrumentalUrl, isPlaying, togglePlay]);
 
