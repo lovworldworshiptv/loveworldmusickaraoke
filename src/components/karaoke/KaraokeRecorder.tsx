@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Mic2, Square, Play, Pause, Trash2, RotateCcw, Share2, X, Copy, ExternalLink, Lock, Crown } from "lucide-react";
+import { Mic2, Square, Play, Pause, Trash2, RotateCcw, Share2, X, Copy, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePlayer } from "@/contexts/PlayerContext";
 import { toast } from "sonner";
 
 const SHARE_DOMAIN = "https://loveworldmusickaraoke.com";
@@ -20,6 +21,7 @@ interface KaraokeRecorderProps {
 
 const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, onClose, onRecordingStateChange }: KaraokeRecorderProps) => {
   const { user } = useAuth();
+  const { isPlaying, togglePlay } = usePlayer();
   const [recording, setRecording] = useState(false);
   const [recorded, setRecorded] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
@@ -35,9 +37,15 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const instrumentalRef = useRef<HTMLAudioElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   const startRecording = useCallback(async () => {
     try {
+      // Pause the main player to avoid double audio
+      if (isPlaying) {
+        togglePlay();
+      }
+
       // Request mic access early
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
@@ -52,14 +60,44 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
       }
       setCountdown(null);
 
-      // Determine supported mimeType
+      // Set up Web Audio API to mix mic + instrumental
+      const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
+      const destination = audioContext.createMediaStreamDestination();
+
+      // Add mic to the mix
+      const micSource = audioContext.createMediaStreamSource(stream);
+      micSource.connect(destination);
+
+      // Add instrumental to the mix if available
+      if (instrumentalUrl) {
+        const inst = new Audio(instrumentalUrl);
+        inst.crossOrigin = "anonymous";
+        instrumentalRef.current = inst;
+        
+        // Wait for the audio to be ready before creating source
+        await new Promise<void>((resolve, reject) => {
+          inst.addEventListener("canplaythrough", () => resolve(), { once: true });
+          inst.addEventListener("error", () => reject(new Error("Failed to load instrumental")), { once: true });
+          inst.load();
+        });
+
+        const instSource = audioContext.createMediaElementSource(inst);
+        instSource.connect(destination);
+        instSource.connect(audioContext.destination); // Also play through speakers
+        inst.play().catch(() => {});
+      }
+
+      // Record from the mixed destination stream
+      const mixedStream = destination.stream;
+
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") 
         ? "audio/webm;codecs=opus" 
         : MediaRecorder.isTypeSupported("audio/webm") 
           ? "audio/webm" 
           : "audio/mp4";
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      const mediaRecorder = new MediaRecorder(mixedStream, { mimeType });
       chunksRef.current = [];
       mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       mediaRecorder.onstop = () => {
@@ -70,29 +108,28 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
         setRecorded(true);
         stream.getTracks().forEach(t => t.stop());
         streamRef.current = null;
+        audioContextRef.current?.close();
+        audioContextRef.current = null;
       };
       mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start(250); // collect data every 250ms
+      mediaRecorder.start(250);
       setRecording(true);
       setRecorded(false);
       onRecordingStateChange?.(true);
-
-      if (instrumentalUrl) {
-        const inst = new Audio(instrumentalUrl);
-        inst.play().catch(() => {});
-        instrumentalRef.current = inst;
-      }
     } catch (err: any) {
       streamRef.current?.getTracks().forEach(t => t.stop());
       streamRef.current = null;
+      audioContextRef.current?.close();
+      audioContextRef.current = null;
       setCountdown(null);
-      toast.error("Microphone access denied. Please allow microphone in browser settings.");
+      toast.error("Microphone access denied or instrumental failed to load.");
     }
-  }, [instrumentalUrl]);
+  }, [instrumentalUrl, isPlaying, togglePlay]);
 
   const stopRecording = () => {
     mediaRecorderRef.current?.stop();
     instrumentalRef.current?.pause();
+    instrumentalRef.current = null;
     setRecording(false);
     onRecordingStateChange?.(false);
   };
@@ -158,6 +195,7 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
       audioRef.current?.pause();
       instrumentalRef.current?.pause();
       streamRef.current?.getTracks().forEach(t => t.stop());
+      audioContextRef.current?.close();
       if (recordedUrl) URL.revokeObjectURL(recordedUrl);
     };
   }, []);
