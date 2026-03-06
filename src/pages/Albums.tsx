@@ -8,7 +8,7 @@ import { SongRowSkeleton, EmptyState } from "@/components/ui/loading-skeleton";
 import { useSearchParams } from "react-router-dom";
 
 const Albums = () => {
-  const { playSong, playQueue, currentSong, isPlaying } = usePlayer();
+  const { playSong, playQueue, currentSong, isPlaying, toggleShuffle, shuffleOn } = usePlayer();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(searchParams.get("id"));
   const [search, setSearch] = useState("");
@@ -82,7 +82,7 @@ const Albums = () => {
                 <button onClick={() => playQueue(playerSongs)} className="px-4 py-2 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold text-white text-xs font-semibold flex items-center gap-1.5 shadow-[0_2px_12px_hsl(43_70%_53%/0.4)] hover:shadow-[0_4px_20px_hsl(43_70%_53%/0.5)] transition-shadow">
                   <Play className="w-3.5 h-3.5 drop-shadow-sm" fill="currentColor" /> Play All
                 </button>
-                <button onClick={() => { const shuffled = [...playerSongs].sort(() => Math.random() - 0.5); playQueue(shuffled); }}
+                <button onClick={() => { if (!shuffleOn) toggleShuffle(); playQueue(playerSongs); }}
                   className="px-4 py-2 rounded-full border border-border text-foreground text-xs font-semibold flex items-center gap-1.5 hover:bg-muted transition-colors">
                   <Shuffle className="w-3.5 h-3.5" /> Shuffle
                 </button>

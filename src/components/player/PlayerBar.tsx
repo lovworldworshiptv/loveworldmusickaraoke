@@ -124,7 +124,7 @@ const PlayerBar = () => {
           <div className="flex items-center gap-2 md:gap-4">
             {/* Mobile record karaoke icon */}
             <div className="md:hidden">
-              <button onClick={toggleExpanded} className="text-destructive/70 hover:text-destructive transition-colors">
+              <button onClick={() => { if (!isExpanded) toggleExpanded(); }} className="text-destructive/70 hover:text-destructive transition-colors">
                 <Disc3 className="w-4 h-4" />
               </button>
             </div>
@@ -181,7 +181,7 @@ const PlayerBar = () => {
             <button onClick={toggleKaraoke} className={`transition-opacity ${isKaraoke ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               <Mic2 className="w-4 h-4" />
             </button>
-            <button onClick={toggleExpanded} className="text-destructive/70 hover:text-destructive transition-colors" title="Record Karaoke">
+            <button onClick={() => { if (!isExpanded) toggleExpanded(); }} className="text-destructive/70 hover:text-destructive transition-colors" title="Record Karaoke">
               <Disc3 className="w-4 h-4" />
             </button>
             <button onClick={() => setShowQueue(q => !q)} className={`transition-colors ${showQueue ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
