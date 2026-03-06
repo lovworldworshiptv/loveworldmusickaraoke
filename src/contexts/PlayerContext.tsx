@@ -127,6 +127,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   volumeRef.current = volume;
   const isPlayingRef = useRef(isPlaying);
   isPlayingRef.current = isPlaying;
+  const internalPlayRef = useRef<(song: PlayerSong, karaokeMode: boolean) => void>(() => {});
 
   const stopInterval = useCallback(() => {
     if (intervalRef.current) {
@@ -203,7 +204,6 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       audio.volume = volumeRef.current;
       audioRef.current = audio;
       
-      // Use onended directly - no setTimeout needed
       audio.onended = () => {
         const rm = repeatModeRef.current;
         const q = queueRef.current;
@@ -230,10 +230,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             }
           }
           setQueueIndex(nextIdx);
-          // Play next track
-          internalPlay(q[nextIdx], karaokeMode);
+          internalPlayRef.current(q[nextIdx], karaokeMode);
           recordPlayFn(q[nextIdx].id);
         } else {
+          // No queue but repeat off — still try next sequential track
           setIsPlaying(false);
           stopInterval();
           clearAutoPauseTimer();
@@ -270,6 +270,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       navigator.mediaSession.setActionHandler("nexttrack", () => skipNextRef.current());
     }
   }, [startInterval, stopInterval, resetAutoPauseTimer, clearAutoPauseTimer]);
+
+  internalPlayRef.current = internalPlay;
 
   const skipNextRef = useRef(() => {});
   const skipPrevRef = useRef(() => {});
@@ -367,7 +369,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
               let nextIdx = qi + 1;
               if (nextIdx >= q.length) { if (rm === "all") nextIdx = 0; else { setIsPlaying(false); stopInterval(); return; } }
               setQueueIndex(nextIdx);
-              internalPlay(q[nextIdx], next);
+              internalPlayRef.current(q[nextIdx], next);
               recordPlayFn(q[nextIdx].id);
             } else { setIsPlaying(false); stopInterval(); }
           };
