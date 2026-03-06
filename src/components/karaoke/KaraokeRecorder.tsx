@@ -10,6 +10,48 @@ import { toast } from "sonner";
 
 const SHARE_DOMAIN = "https://loveworldmusickaraoke.com";
 
+const toDirectUrl = (url?: string): string | undefined => {
+  if (!url) return undefined;
+  const trimmed = url.trim();
+  const match = trimmed.match(/\/file\/d\/([^/]+)/);
+  if (match) return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+  return trimmed;
+};
+
+const waitForAudioReady = (audio: HTMLAudioElement) =>
+  new Promise<void>((resolve, reject) => {
+    if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+      resolve();
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("Failed to load instrumental"));
+    }, 12000);
+
+    const onReady = () => {
+      cleanup();
+      resolve();
+    };
+
+    const onError = () => {
+      cleanup();
+      reject(new Error("Failed to load instrumental"));
+    };
+
+    const cleanup = () => {
+      window.clearTimeout(timer);
+      audio.removeEventListener("canplay", onReady);
+      audio.removeEventListener("loadedmetadata", onReady);
+      audio.removeEventListener("error", onError);
+    };
+
+    audio.addEventListener("canplay", onReady, { once: true });
+    audio.addEventListener("loadedmetadata", onReady, { once: true });
+    audio.addEventListener("error", onError, { once: true });
+  });
+
 interface KaraokeRecorderProps {
   songId: string;
   songTitle: string;
@@ -80,30 +122,41 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
       micSource.connect(destination);
 
       // Add instrumental to the mix if available
-      if (instrumentalUrl) {
-        const inst = new Audio();
-        inst.crossOrigin = "anonymous";
-        inst.preload = "auto";
-        instrumentalRef.current = inst;
-        
-        // Set src and wait for the audio to be ready
-        inst.src = instrumentalUrl;
-        await new Promise<void>((resolve, reject) => {
-          const onReady = () => { cleanup(); resolve(); };
-          const onError = () => { cleanup(); reject(new Error("Failed to load instrumental")); };
-          const cleanup = () => {
-            inst.removeEventListener("canplaythrough", onReady);
-            inst.removeEventListener("error", onError);
-          };
-          inst.addEventListener("canplaythrough", onReady, { once: true });
-          inst.addEventListener("error", onError, { once: true });
-          // Trigger load if not auto-loading
-          inst.load();
-        });
+      const normalizedInstrumentalUrl = toDirectUrl(instrumentalUrl);
+      if (normalizedInstrumentalUrl) {
+        const createAndLoadInstrumental = async (useCors: boolean) => {
+          const inst = new Audio();
+          if (useCors) inst.crossOrigin = "anonymous";
+          inst.preload = "auto";
+          inst.src = normalizedInstrumentalUrl;
+          await waitForAudioReady(inst);
+          return inst;
+        };
 
-        const instSource = audioContext.createMediaElementSource(inst);
+        let inst: HTMLAudioElement | null = null;
+        let instSource: MediaElementAudioSourceNode | null = null;
+
+        for (const useCors of [false, true]) {
+          try {
+            inst?.pause();
+            inst = await createAndLoadInstrumental(useCors);
+            instSource = audioContext.createMediaElementSource(inst);
+            break;
+          } catch (err) {
+            inst = null;
+            instSource = null;
+            if (useCors) throw err;
+          }
+        }
+
+        if (!inst || !instSource) {
+          throw new Error("Failed to load instrumental");
+        }
+
+        instrumentalRef.current = inst;
         instSource.connect(destination);
-        instSource.connect(audioContext.destination); // Also play through speakers
+        instSource.connect(audioContext.destination);
+
         await inst.play();
       }
 
