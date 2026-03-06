@@ -306,6 +306,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }, 0);
   }, [queue, queueIndex, repeatMode, loadAndPlay, attachEndedListener]);
 
+  // Keep refs updated for MediaSession handlers
+  skipNextRef.current = skipNext;
+  skipPrevRef.current = skipPrev;
+
   const togglePlay = useCallback(() => {
     if (audioRef.current) {
       if (isPlaying) { audioRef.current.pause(); stopInterval(); }
