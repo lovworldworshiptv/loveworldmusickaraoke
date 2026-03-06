@@ -15,9 +15,10 @@ interface KaraokeRecorderProps {
   instrumentalUrl?: string;
   isKaraokeMode: boolean;
   onClose: () => void;
+  onRecordingStateChange?: (recording: boolean) => void;
 }
 
-const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, onClose }: KaraokeRecorderProps) => {
+const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, onClose, onRecordingStateChange }: KaraokeRecorderProps) => {
   const { user } = useAuth();
   const [recording, setRecording] = useState(false);
   const [recorded, setRecorded] = useState(false);
@@ -74,6 +75,7 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
       mediaRecorder.start(250); // collect data every 250ms
       setRecording(true);
       setRecorded(false);
+      onRecordingStateChange?.(true);
 
       if (instrumentalUrl) {
         const inst = new Audio(instrumentalUrl);
@@ -92,6 +94,7 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
     mediaRecorderRef.current?.stop();
     instrumentalRef.current?.pause();
     setRecording(false);
+    onRecordingStateChange?.(false);
   };
 
   const playRecording = () => {
@@ -179,9 +182,19 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
       {countdown === null && !recorded ? (
         <div className="flex flex-col items-center gap-3 py-2">
           {recording ? (
-            <p className="text-xs text-destructive font-medium animate-pulse">● Recording… Sing along!</p>
+            <div className="flex flex-col items-center gap-3">
+              <p className="text-xs text-destructive font-medium animate-pulse">● Recording… Sing along!</p>
+              <Button onClick={stopRecording} variant="destructive" size="sm" className="gap-1.5">
+                <Square className="w-3.5 h-3.5" fill="currentColor" /> Stop Recording
+              </Button>
+            </div>
           ) : (
-            <p className="text-xs text-muted-foreground">Record your voice over the instrumental</p>
+            <div className="flex flex-col items-center gap-3">
+              <p className="text-xs text-muted-foreground">Record your voice over the instrumental</p>
+              <Button onClick={startRecording} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground gap-1.5">
+                <Mic2 className="w-4 h-4" /> Start Recording
+              </Button>
+            </div>
           )}
         </div>
       ) : null}
