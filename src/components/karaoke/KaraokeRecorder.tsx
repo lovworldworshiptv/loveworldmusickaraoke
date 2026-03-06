@@ -127,32 +127,28 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
         // Fetch audio data as ArrayBuffer (try direct, then proxy for CORS)
         let arrayBuffer: ArrayBuffer | null = null;
 
-        // Attempt 1: direct fetch
+        // Always use the edge function proxy to avoid CORS issues with S3/external hosts
         try {
-          const resp = await fetch(normalizedInstrumentalUrl);
-          if (resp.ok) arrayBuffer = await resp.arrayBuffer();
-        } catch (_) {
-          // CORS or network error, will try proxy
-        }
-
-        // Attempt 2: proxy through edge function
-        if (!arrayBuffer) {
-          try {
-            const proxyResp = await fetch(
-              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-audio`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-                },
-                body: JSON.stringify({ url: normalizedInstrumentalUrl }),
-              }
-            );
-            if (proxyResp.ok) arrayBuffer = await proxyResp.arrayBuffer();
-          } catch (_) {
-            // proxy also failed
+          const proxyResp = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-audio`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+              },
+              body: JSON.stringify({ url: normalizedInstrumentalUrl }),
+            }
+          );
+          if (proxyResp.ok) {
+            arrayBuffer = await proxyResp.arrayBuffer();
+          } else {
+            const errText = await proxyResp.text().catch(() => "");
+            console.error("Proxy error:", proxyResp.status, errText);
           }
+        } catch (proxyErr) {
+          console.error("Proxy fetch error:", proxyErr);
         }
 
         if (!arrayBuffer || arrayBuffer.byteLength === 0) {
