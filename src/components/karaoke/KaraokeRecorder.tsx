@@ -105,9 +105,15 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
       micSource.connect(destination);
 
       const normalizedInstrumentalUrl = toDirectUrl(instrumentalUrl);
-      const instrumentalBuffer = normalizedInstrumentalUrl
-        ? await fetchInstrumentalBuffer(normalizedInstrumentalUrl, audioContext)
-        : null;
+      let instrumentalBuffer: AudioBuffer | null = null;
+      if (normalizedInstrumentalUrl) {
+        try {
+          instrumentalBuffer = await fetchInstrumentalBuffer(normalizedInstrumentalUrl, audioContext);
+        } catch (err: any) {
+          console.warn("Instrumental load failed, recording mic only:", err.message);
+          toast.info("Instrumental couldn't load — recording mic only");
+        }
+      }
 
       setCountdown(COUNTDOWN_SECONDS);
       for (let i = COUNTDOWN_SECONDS; i >= 1; i--) {
