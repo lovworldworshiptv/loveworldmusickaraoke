@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Play, Pause, X, Timer } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Play, Pause, X, Timer, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface KaraokeStory {
   id: string;
@@ -20,6 +23,18 @@ const KaraokeStories = () => {
   const [activeStory, setActiveStory] = useState<KaraokeStory | null>(null);
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { user } = useAuth();
+
+  const deleteStory = async (story: KaraokeStory) => {
+    audioRef.current?.pause();
+    await supabase.from("karaoke_recordings").delete().eq("id", story.id) as any;
+    const path = story.audio_url.split("/karaoke-recordings/")[1];
+    if (path) await supabase.storage.from("karaoke-recordings").remove([decodeURIComponent(path)]);
+    setStories(s => s.filter(x => x.id !== story.id));
+    setActiveStory(null);
+    setPlaying(false);
+    toast.success("Story deleted");
+  };
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -193,6 +208,27 @@ const KaraokeStories = () => {
                   <p className="text-white/60 text-xs mt-1 italic">"{activeStory.caption}"</p>
                 )}
               </div>
+
+              {/* Delete button for own stories */}
+              {user && user.id === activeStory.user_id && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors text-xs font-medium">
+                      <Trash2 className="w-3.5 h-3.5" /> Delete Story
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete this story?</AlertDialogTitle>
+                      <AlertDialogDescription>This karaoke story will be permanently deleted.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => deleteStory(activeStory)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
           </div>
         </div>
