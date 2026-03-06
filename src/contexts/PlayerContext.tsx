@@ -204,7 +204,6 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       audio.volume = volumeRef.current;
       audioRef.current = audio;
       
-      // Use onended directly - no setTimeout needed
       audio.onended = () => {
         const rm = repeatModeRef.current;
         const q = queueRef.current;
@@ -231,10 +230,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             }
           }
           setQueueIndex(nextIdx);
-          // Play next track
-          internalPlay(q[nextIdx], karaokeMode);
+          internalPlayRef.current(q[nextIdx], karaokeMode);
           recordPlayFn(q[nextIdx].id);
         } else {
+          // No queue but repeat off — still try next sequential track
           setIsPlaying(false);
           stopInterval();
           clearAutoPauseTimer();
