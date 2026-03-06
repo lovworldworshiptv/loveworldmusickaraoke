@@ -108,6 +108,7 @@ const KaraokeStories = () => {
     const story = stories[index];
     if (!story) return;
     setActiveIndex(index);
+    recordView(story.id);
     const audio = new Audio(story.audio_url);
     audio.onended = () => {
       if (index + 1 < stories.length) {
