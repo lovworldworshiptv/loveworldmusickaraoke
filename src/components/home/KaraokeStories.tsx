@@ -109,7 +109,7 @@ const KaraokeStories = () => {
       <div className="px-4 lg:px-6 pt-4 pb-1">
         {/* Section Header */}
         <div className="flex items-center gap-2 mb-3">
-          <h3 className="text-base font-serif font-bold text-foreground">Karaoke Stories</h3>
+          <h3 className="text-xl font-serif font-bold text-foreground">Karaoke Stories</h3>
           <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary">
             <Timer className="w-3 h-3" />
             <span className="text-[10px] font-semibold">24h</span>
