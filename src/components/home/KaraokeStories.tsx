@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Play, Pause, X, Timer, Trash2 } from "lucide-react";
+import { Play, Pause, X, Timer, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
@@ -20,18 +20,21 @@ interface KaraokeStory {
 const KaraokeStories = () => {
   const [stories, setStories] = useState<KaraokeStory[]>([]);
   const [visible, setVisible] = useState(true);
-  const [activeStory, setActiveStory] = useState<KaraokeStory | null>(null);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { user } = useAuth();
+
+  const activeStory = activeIndex !== null ? stories[activeIndex] ?? null : null;
 
   const deleteStory = async (story: KaraokeStory) => {
     audioRef.current?.pause();
     await supabase.from("karaoke_recordings").delete().eq("id", story.id) as any;
     const path = story.audio_url.split("/karaoke-recordings/")[1];
     if (path) await supabase.storage.from("karaoke-recordings").remove([decodeURIComponent(path)]);
-    setStories(s => s.filter(x => x.id !== story.id));
-    setActiveStory(null);
+    const newStories = stories.filter(x => x.id !== story.id);
+    setStories(newStories);
+    setActiveIndex(null);
     setPlaying(false);
     toast.success("Story deleted");
   };
@@ -83,19 +86,44 @@ const KaraokeStories = () => {
     fetchStories();
   }, []);
 
-  const openStory = (story: KaraokeStory) => {
+  const playStoryAt = (index: number) => {
     audioRef.current?.pause();
-    setActiveStory(story);
+    const story = stories[index];
+    if (!story) return;
+    setActiveIndex(index);
     const audio = new Audio(story.audio_url);
-    audio.onended = () => setPlaying(false);
+    audio.onended = () => {
+      if (index + 1 < stories.length) {
+        playStoryAt(index + 1);
+      } else {
+        setPlaying(false);
+      }
+    };
     audio.play();
     audioRef.current = audio;
     setPlaying(true);
   };
 
+  const openStory = (story: KaraokeStory) => {
+    const idx = stories.findIndex(s => s.user_id === story.user_id);
+    playStoryAt(idx >= 0 ? idx : 0);
+  };
+
+  const goNext = () => {
+    if (activeIndex !== null && activeIndex + 1 < stories.length) {
+      playStoryAt(activeIndex + 1);
+    }
+  };
+
+  const goPrev = () => {
+    if (activeIndex !== null && activeIndex > 0) {
+      playStoryAt(activeIndex - 1);
+    }
+  };
+
   const closeStory = () => {
     audioRef.current?.pause();
-    setActiveStory(null);
+    setActiveIndex(null);
     setPlaying(false);
   };
 
@@ -164,13 +192,31 @@ const KaraokeStories = () => {
       {/* Story Viewer Modal */}
       {activeStory && (
         <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center">
-          <div className="relative w-full max-w-sm mx-4">
-            <button
-              onClick={closeStory}
-              className="absolute top-2 right-2 z-10 text-white/80 hover:text-white"
-            >
-              <X className="w-6 h-6" />
+          {/* Previous arrow */}
+          {activeIndex !== null && activeIndex > 0 && (
+            <button onClick={goPrev} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 text-white/60 hover:text-white p-2">
+              <ChevronLeft className="w-8 h-8" />
             </button>
+          )}
+          {/* Next arrow */}
+          {activeIndex !== null && activeIndex + 1 < stories.length && (
+            <button onClick={goNext} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 text-white/60 hover:text-white p-2">
+              <ChevronRight className="w-8 h-8" />
+            </button>
+          )}
+
+          <div className="relative w-full max-w-sm mx-4">
+            <div className="flex items-center justify-between px-2 pt-2">
+              {/* Progress dots */}
+              <div className="flex gap-1 flex-1 mr-8">
+                {stories.map((_, i) => (
+                  <div key={i} className={`h-0.5 flex-1 rounded-full transition-colors ${i === activeIndex ? "bg-primary" : i < (activeIndex ?? 0) ? "bg-white/50" : "bg-white/20"}`} />
+                ))}
+              </div>
+              <button onClick={closeStory} className="text-white/80 hover:text-white">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
 
             <div className="flex flex-col items-center gap-6 py-8">
               <button
@@ -207,9 +253,9 @@ const KaraokeStories = () => {
                 {activeStory.caption && (
                   <p className="text-white/60 text-xs mt-1 italic">"{activeStory.caption}"</p>
                 )}
+                <p className="text-white/40 text-[10px] mt-1">{(activeIndex ?? 0) + 1} / {stories.length}</p>
               </div>
 
-              {/* Delete button for own stories */}
               {user && user.id === activeStory.user_id && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
