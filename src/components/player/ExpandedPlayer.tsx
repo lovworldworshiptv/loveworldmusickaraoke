@@ -1,5 +1,5 @@
 import { usePlayer, RepeatMode } from "@/contexts/PlayerContext";
-import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3 } from "lucide-react";
+import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3, Square } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -20,10 +20,8 @@ const formatTime = (s: number) => {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 };
 
-// Extract dominant color from image via canvas sampling
 function useDominantColor(imageUrl?: string) {
   const [color, setColor] = useState<string | null>(null);
-
   useEffect(() => {
     if (!imageUrl) { setColor(null); return; }
     const img = new Image();
@@ -31,26 +29,20 @@ function useDominantColor(imageUrl?: string) {
     img.onload = () => {
       try {
         const canvas = document.createElement("canvas");
-        canvas.width = 50;
-        canvas.height = 50;
+        canvas.width = 50; canvas.height = 50;
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
         ctx.drawImage(img, 0, 0, 50, 50);
         const data = ctx.getImageData(0, 0, 50, 50).data;
         let r = 0, g = 0, b = 0, count = 0;
-        for (let i = 0; i < data.length; i += 16) {
-          r += data[i]; g += data[i + 1]; b += data[i + 2]; count++;
-        }
+        for (let i = 0; i < data.length; i += 16) { r += data[i]; g += data[i + 1]; b += data[i + 2]; count++; }
         r = Math.round(r / count); g = Math.round(g / count); b = Math.round(b / count);
         setColor(`${r}, ${g}, ${b}`);
-      } catch {
-        setColor(null);
-      }
+      } catch { setColor(null); }
     };
     img.onerror = () => setColor(null);
     img.src = imageUrl;
   }, [imageUrl]);
-
   return color;
 }
 
@@ -64,6 +56,7 @@ const ExpandedPlayer = () => {
   const lineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
   const [showLyrics, setShowLyrics] = useState(true);
   const [showRecorder, setShowRecorder] = useState(false);
+  const [isRecordingActive, setIsRecordingActive] = useState(false);
 
   const dominantColor = useDominantColor(currentSong?.coverUrl);
   const { user } = useAuth();
@@ -96,7 +89,6 @@ const ExpandedPlayer = () => {
     } catch { setDlState("none"); toast.error("Download failed"); }
   }, [currentSong, canDl]);
 
-  // Check if current song is favorited
   useEffect(() => {
     if (!user || !currentSong) { setIsFav(false); return; }
     supabase.from("favorites").select("id").eq("user_id", user.id).eq("song_id", currentSong.id).maybeSingle()
@@ -114,18 +106,15 @@ const ExpandedPlayer = () => {
     }
   };
 
-  // Smooth scroll active lyric to center
   useEffect(() => {
     if (!lyricsContainerRef.current || activeLrcIndex < 0) return;
     const el = lineRefs.current[activeLrcIndex];
     if (!el) return;
-
     const container = lyricsContainerRef.current;
     const containerHeight = container.clientHeight;
     const elTop = el.offsetTop;
     const elHeight = el.clientHeight;
     const scrollTarget = elTop - containerHeight / 2 + elHeight / 2;
-
     container.scrollTo({ top: scrollTarget, behavior: "smooth" });
   }, [activeLrcIndex]);
 
@@ -142,20 +131,14 @@ const ExpandedPlayer = () => {
 
   const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
 
-  const bgStyle = dominantColor
-    ? { background: `linear-gradient(180deg, rgba(${dominantColor}, 0.5) 0%, hsl(var(--background)) 70%)` }
-    : undefined;
-
   return (
     <>
     <div className="fixed inset-0 z-50 flex flex-col overflow-hidden">
-      {/* Background — solid, not transparent */}
       <div className="absolute inset-0 bg-background" />
       <div className="absolute inset-0" style={dominantColor ? { background: `linear-gradient(180deg, rgba(${dominantColor}, 0.35) 0%, hsl(var(--background)) 60%)` } : undefined}>
         {!dominantColor && <div className="absolute inset-0 gradient-purple opacity-30" />}
       </div>
 
-      {/* Content */}
       <div className="relative flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 flex-shrink-0 safe-top">
@@ -166,7 +149,6 @@ const ExpandedPlayer = () => {
             <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-medium">Now Playing</p>
           </div>
           <div className="flex items-center gap-3">
-            {/* Download */}
             {currentSong?.audioUrl && (
               dlState === "done" ? (
                 <span className="text-green-500 p-1"><Check className="w-5 h-5" /></span>
@@ -180,7 +162,6 @@ const ExpandedPlayer = () => {
                 </button>
               )
             )}
-            {/* Favorite */}
             <button onClick={toggleFavorite} className={`transition-colors p-1 ${isFav ? "text-gold" : "text-muted-foreground hover:text-gold"}`}>
               <Heart className="w-5 h-5" fill={isFav ? "currentColor" : "none"} />
             </button>
@@ -223,69 +204,71 @@ const ExpandedPlayer = () => {
               </button>
             </div>
 
-            {/* Karaoke Toggle */}
+            {/* Karaoke + Record Toggle Row */}
             <div className="flex justify-center gap-1.5 mb-3 px-6 flex-shrink-0">
               <button
                 onClick={() => { if (isKaraoke) toggleKaraoke(); }}
-                className={`flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
-                  !isKaraoke
-                    ? "gradient-gold text-primary-foreground shadow-lg"
-                    : "bg-secondary/60 text-muted-foreground hover:text-foreground"
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
+                  !isKaraoke ? "gradient-gold text-primary-foreground shadow-lg" : "bg-secondary/60 text-muted-foreground hover:text-foreground"
                 }`}>
                 <Music className="w-3.5 h-3.5" /> Full Song
               </button>
               <button
                 onClick={() => { if (!isKaraoke) toggleKaraoke(); }}
-                className={`flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
-                  isKaraoke
-                    ? "gradient-gold text-primary-foreground shadow-lg"
-                    : "bg-secondary/60 text-muted-foreground hover:text-foreground"
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
+                  isKaraoke ? "gradient-gold text-primary-foreground shadow-lg" : "bg-secondary/60 text-muted-foreground hover:text-foreground"
                 }`}>
                 <Mic2 className="w-3.5 h-3.5" /> Karaoke
               </button>
+              {/* Record Karaoke Button - always visible */}
+              {isPremium ? (
+                isRecordingActive ? (
+                  <button
+                    onClick={() => { setShowRecorder(true); }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-destructive/20 text-destructive animate-pulse border border-destructive/40"
+                  >
+                    <Disc3 className="w-3.5 h-3.5" /> Recording
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => { if (!isKaraoke) toggleKaraoke(); setShowRecorder(true); }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors border border-destructive/30"
+                  >
+                    <Disc3 className="w-3.5 h-3.5" /> Record
+                  </button>
+                )
+              ) : (
+                <button
+                  onClick={() => setShowUpgrade(true)}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-gold/10 text-gold/70 border border-gold/20"
+                >
+                  <Crown className="w-3.5 h-3.5" /> Record
+                </button>
+              )}
             </div>
 
-            {/* Karaoke Recorder */}
-            {isKaraoke && isPremium && showRecorder && currentSong && (
+            {/* Karaoke Recorder Panel - below toggle, not covering lyrics */}
+            {showRecorder && isPremium && currentSong && (
               <div className="px-6 mb-3 flex-shrink-0">
                 <KaraokeRecorder
                   songId={currentSong.id}
                   songTitle={currentSong.title}
                   instrumentalUrl={currentSong.instrumentalUrl}
                   isKaraokeMode={isKaraoke}
-                  onClose={() => setShowRecorder(false)}
+                  onClose={() => { setShowRecorder(false); setIsRecordingActive(false); }}
                 />
-              </div>
-            )}
-            {isKaraoke && isPremium && !showRecorder && (
-              <div className="px-6 mb-3 flex-shrink-0">
-                <button onClick={() => setShowRecorder(true)} className="flex items-center gap-2 px-4 py-2 rounded-full bg-gold/20 text-gold text-xs font-semibold hover:bg-gold/30 transition-colors mx-auto">
-                  <Disc3 className="w-4 h-4" /> Record Karaoke
-                </button>
-              </div>
-            )}
-            {isKaraoke && !isPremium && (
-              <div className="px-6 mb-3 flex-shrink-0 text-center">
-                <button onClick={() => setShowUpgrade(true)} className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted text-muted-foreground text-xs font-semibold mx-auto">
-                  <Lock className="w-4 h-4" /> Premium Feature – Record Karaoke
-                </button>
               </div>
             )}
 
             {/* Synced Lyrics */}
-            <div
-              ref={lyricsContainerRef}
-              className="flex-1 overflow-y-auto scrollbar-hide px-6 relative"
-            >
+            <div ref={lyricsContainerRef} className="flex-1 overflow-y-auto scrollbar-hide px-6 relative">
               {lrcLines.length > 0 ? (
                 <div className="py-[40vh] space-y-5">
                   {lrcLines.map((line, i) => (
                     <p
                       key={i}
                       ref={(el) => { lineRefs.current[i] = el; }}
-                      onClick={() => {
-                        if (duration > 0) seekTo((line.time / duration) * 100);
-                      }}
+                      onClick={() => { if (duration > 0) seekTo((line.time / duration) * 100); }}
                       className={`text-center font-serif leading-relaxed transition-all duration-500 ease-out cursor-pointer hover:opacity-100 ${getLineStyle(i)}`}
                     >
                       {line.text || "♪"}
@@ -306,7 +289,6 @@ const ExpandedPlayer = () => {
 
         {/* Bottom Controls */}
         <div className="flex-shrink-0 px-6 pt-2 safe-bottom" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
-          {/* Progress */}
           <div className="mb-4 group/progress">
             <Slider value={[progress]} onValueChange={([v]) => seekTo(v)} max={100} step={0.5}
               className="w-full mb-1.5 [&_[class*=Track]]:h-1 [&_[class*=Track]]:bg-muted-foreground/20 [&_[class*=Range]]:bg-gradient-to-r [&_[class*=Range]]:from-gold [&_[class*=Range]]:via-gold-light [&_[class*=Range]]:to-gold [&_[class*=Thumb]]:w-3 [&_[class*=Thumb]]:h-3 [&_[class*=Thumb]]:bg-gold [&_[class*=Thumb]]:border-0 [&_[class*=Thumb]]:shadow-[0_0_10px_hsl(43_70%_53%/0.6)]"
@@ -317,7 +299,6 @@ const ExpandedPlayer = () => {
             </div>
           </div>
 
-          {/* Playback Controls */}
           <div className="flex items-center justify-center gap-8">
             <button onClick={toggleShuffle} className={`transition-all duration-200 hover:scale-110 ${shuffleOn ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               <Shuffle className="w-5 h-5" />
@@ -325,8 +306,7 @@ const ExpandedPlayer = () => {
             <button onClick={skipPrev} className="text-foreground hover:text-gold hover:scale-110 transition-all duration-200 active:scale-95">
               <SkipBack className="w-7 h-7" fill="currentColor" />
             </button>
-            <button
-              onClick={togglePlay}
+            <button onClick={togglePlay}
               className="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_6px_30px_hsl(43_70%_53%/0.6)] ring-2 ring-white/20 hover:scale-105 active:scale-95 transition-all duration-200"
             >
               {isPlaying ? <Pause className="w-8 h-8 text-white drop-shadow-sm" fill="currentColor" /> : <Play className="w-8 h-8 text-white ml-1 drop-shadow-sm" fill="currentColor" />}

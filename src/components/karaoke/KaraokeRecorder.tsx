@@ -1,11 +1,13 @@
-import { useState, useRef, useEffect } from "react";
-import { Mic2, Square, Play, Pause, Trash2, RotateCcw, Share2, X, Copy, ExternalLink } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Mic2, Square, Play, Pause, Trash2, RotateCcw, Share2, X, Copy, ExternalLink, Lock, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+
+const SHARE_DOMAIN = "https://loveworldmusickaraoke.lovable.app";
 
 interface KaraokeRecorderProps {
   songId: string;
@@ -26,27 +28,50 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
   const [showShare, setShowShare] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [caption, setCaption] = useState("");
+  const [countdown, setCountdown] = useState<number | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const instrumentalRef = useRef<HTMLAudioElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
-  const startRecording = async () => {
+  const startRecording = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      // Request mic access early
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+      });
+      streamRef.current = stream;
+
+      // 3-second countdown
+      setCountdown(3);
+      for (let i = 3; i >= 1; i--) {
+        setCountdown(i);
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      setCountdown(null);
+
+      // Determine supported mimeType
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") 
+        ? "audio/webm;codecs=opus" 
+        : MediaRecorder.isTypeSupported("audio/webm") 
+          ? "audio/webm" 
+          : "audio/mp4";
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       chunksRef.current = [];
       mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const blob = new Blob(chunksRef.current, { type: mimeType });
         const url = URL.createObjectURL(blob);
         setRecordedBlob(blob);
         setRecordedUrl(url);
         setRecorded(true);
         stream.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
       };
       mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start();
+      mediaRecorder.start(250); // collect data every 250ms
       setRecording(true);
       setRecorded(false);
 
@@ -55,10 +80,13 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
         inst.play().catch(() => {});
         instrumentalRef.current = inst;
       }
-    } catch {
-      toast.error("Microphone access denied");
+    } catch (err: any) {
+      streamRef.current?.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+      setCountdown(null);
+      toast.error("Microphone access denied. Please allow microphone in browser settings.");
     }
-  };
+  }, [instrumentalUrl]);
 
   const stopRecording = () => {
     mediaRecorderRef.current?.stop();
@@ -86,12 +114,13 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
     setCaption("");
   };
 
-  const shareToMyKaraoke = async () => {
+  const shareRecording = async (destination: "my_karaoke" | "karaoke_stories") => {
     if (!user || !recordedBlob) return;
     setUploading(true);
     try {
-      const filename = `${user.id}/${songId}-${Date.now()}.webm`;
-      const { error: uploadErr } = await supabase.storage.from("karaoke-recordings").upload(filename, recordedBlob, { contentType: "audio/webm" });
+      const ext = recordedBlob.type.includes("mp4") ? "mp4" : "webm";
+      const filename = `${user.id}/${songId}-${Date.now()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage.from("karaoke-recordings").upload(filename, recordedBlob, { contentType: recordedBlob.type });
       if (uploadErr) throw uploadErr;
       const { data: { publicUrl } } = supabase.storage.from("karaoke-recordings").getPublicUrl(filename);
       const { error: dbErr } = await supabase.from("karaoke_recordings").insert({
@@ -102,8 +131,8 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
         caption: caption.trim() || null,
       } as any);
       if (dbErr) throw dbErr;
-      toast.success("Shared to My Karaoke!");
-      setShareUrl(`${window.location.origin}/user/${user.id}`);
+      toast.success(destination === "karaoke_stories" ? "Shared to Karaoke Stories!" : "Shared to My Karaoke!");
+      setShareUrl(`${SHARE_DOMAIN}/user/${user.id}`);
       setShowShare(true);
     } catch (err: any) {
       toast.error(err.message || "Upload failed");
@@ -113,16 +142,16 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
   };
 
   const copyLink = () => {
-    navigator.clipboard.writeText(shareUrl);
+    const link = `${SHARE_DOMAIN}/user/${user?.id}`;
+    navigator.clipboard.writeText(`Listen to my karaoke version of ${songTitle} on Loveworld Music Karaoke. ${link}`);
     toast.success("Link copied!");
   };
-
-  const shareText = `Listen to my karaoke version of ${songTitle} on Loveworld Music Karaoke.`;
 
   useEffect(() => {
     return () => {
       audioRef.current?.pause();
       instrumentalRef.current?.pause();
+      streamRef.current?.getTracks().forEach(t => t.stop());
       if (recordedUrl) URL.revokeObjectURL(recordedUrl);
     };
   }, []);
@@ -137,31 +166,27 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
       </div>
 
-      {!recorded ? (
-        <div className="flex flex-col items-center gap-4 py-4">
+      {/* Countdown overlay */}
+      {countdown !== null && (
+        <div className="flex flex-col items-center gap-2 py-6">
+          <div className="w-20 h-20 rounded-full bg-destructive/20 flex items-center justify-center animate-pulse">
+            <span className="text-4xl font-bold text-destructive">{countdown}</span>
+          </div>
+          <p className="text-xs text-muted-foreground">Get ready…</p>
+        </div>
+      )}
+
+      {countdown === null && !recorded ? (
+        <div className="flex flex-col items-center gap-3 py-2">
           {recording ? (
-            <>
-              <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center animate-pulse">
-                <Mic2 className="w-8 h-8 text-destructive" />
-              </div>
-              <p className="text-xs text-muted-foreground">Recording… Sing along!</p>
-              <Button onClick={stopRecording} variant="destructive" size="sm">
-                <Square className="w-4 h-4 mr-1" /> Stop
-              </Button>
-            </>
+            <p className="text-xs text-destructive font-medium animate-pulse">● Recording… Sing along!</p>
           ) : (
-            <>
-              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
-                <Mic2 className="w-8 h-8 text-primary" />
-              </div>
-              <p className="text-xs text-muted-foreground">Record your voice over the instrumental</p>
-              <Button onClick={startRecording} className="bg-primary text-primary-foreground">
-                <Mic2 className="w-4 h-4 mr-1" /> Start Recording
-              </Button>
-            </>
+            <p className="text-xs text-muted-foreground">Record your voice over the instrumental</p>
           )}
         </div>
-      ) : (
+      ) : null}
+
+      {countdown === null && recorded && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Button onClick={playRecording} variant="outline" size="sm">
@@ -171,7 +196,7 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
             <Button onClick={deleteRecording} variant="outline" size="sm" className="text-destructive">
               <Trash2 className="w-4 h-4 mr-1" /> Delete
             </Button>
-            <Button onClick={() => { deleteRecording(); }} variant="outline" size="sm">
+            <Button onClick={() => deleteRecording()} variant="outline" size="sm">
               <RotateCcw className="w-4 h-4 mr-1" /> Re-record
             </Button>
           </div>
@@ -185,28 +210,33 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
               maxLength={120}
             />
           </div>
-          <Button onClick={shareToMyKaraoke} disabled={uploading} className="bg-primary text-primary-foreground w-full">
-            <Share2 className="w-4 h-4 mr-1" /> {uploading ? "Sharing…" : "Share to My Karaoke"}
+          <Button onClick={() => setShowShare(true)} disabled={uploading} className="bg-primary text-primary-foreground w-full">
+            <Share2 className="w-4 h-4 mr-1" /> Share
           </Button>
         </div>
       )}
 
+      {/* Share Options Modal */}
       <Dialog open={showShare} onOpenChange={setShowShare}>
         <DialogContent className="max-w-sm">
-          <h3 className="text-lg font-serif font-bold text-foreground mb-4">Share Your Recording</h3>
-          <p className="text-xs text-muted-foreground mb-4">{shareText}</p>
+          <h3 className="text-lg font-serif font-bold text-foreground mb-4">Share Recording</h3>
+          <p className="text-xs text-muted-foreground mb-4">Listen to my karaoke version of {songTitle} on Loveworld Music Karaoke.</p>
           <div className="space-y-2">
+            <Button onClick={() => shareRecording("my_karaoke")} disabled={uploading} variant="outline" className="w-full justify-start">
+              <Mic2 className="w-4 h-4 mr-2" /> {uploading ? "Sharing…" : "My Karaoke"}
+            </Button>
+            <Button onClick={() => shareRecording("karaoke_stories")} disabled={uploading} variant="outline" className="w-full justify-start">
+              <Share2 className="w-4 h-4 mr-2" /> {uploading ? "Sharing…" : "Karaoke Stories"}
+            </Button>
+            <div className="flex items-center gap-2 w-full px-4 py-2 rounded-md border border-border text-sm text-muted-foreground opacity-60 cursor-not-allowed">
+              <ExternalLink className="w-4 h-4" /> Share on KingsChat <span className="ml-auto text-[10px] bg-muted px-1.5 py-0.5 rounded">Coming soon</span>
+            </div>
+            <div className="flex items-center gap-2 w-full px-4 py-2 rounded-md border border-border text-sm text-muted-foreground opacity-60 cursor-not-allowed">
+              <ExternalLink className="w-4 h-4" /> Share on Lettubbe <span className="ml-auto text-[10px] bg-muted px-1.5 py-0.5 rounded">Coming soon</span>
+            </div>
             <Button onClick={copyLink} variant="outline" className="w-full justify-start">
               <Copy className="w-4 h-4 mr-2" /> Copy Link
             </Button>
-            <a href={`https://kingschat.online/share?text=${encodeURIComponent(shareText + " " + shareUrl)}`} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 w-full px-4 py-2 rounded-md border border-border text-sm hover:bg-muted transition-colors">
-              <ExternalLink className="w-4 h-4" /> Share on KingsChat
-            </a>
-            <a href={`https://lettubbe.com/?share=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 w-full px-4 py-2 rounded-md border border-border text-sm hover:bg-muted transition-colors">
-              <ExternalLink className="w-4 h-4" /> Share on Lettubbe
-            </a>
           </div>
         </DialogContent>
       </Dialog>
