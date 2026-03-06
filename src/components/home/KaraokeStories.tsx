@@ -24,6 +24,19 @@ const KaraokeStories = () => {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const deleteStory = async (story: KaraokeStory) => {
+    audioRef.current?.pause();
+    await supabase.from("karaoke_recordings").delete().eq("id", story.id) as any;
+    const path = story.audio_url.split("/karaoke-recordings/")[1];
+    if (path) await supabase.storage.from("karaoke-recordings").remove([decodeURIComponent(path)]);
+    setStories(s => s.filter(x => x.id !== story.id));
+    setActiveStory(null);
+    setPlaying(false);
+    toast.success("Story deleted");
+  };
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchStories = async () => {
