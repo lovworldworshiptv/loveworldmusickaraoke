@@ -166,6 +166,28 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       setIsPlaying(true);
       startInterval();
     }
+
+    // MediaSession API for lock-screen / background controls
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: song.title,
+        artist: song.artist,
+        album: song.album || "",
+        artwork: song.coverUrl ? [{ src: song.coverUrl, sizes: "512x512", type: "image/jpeg" }] : [],
+      });
+      navigator.mediaSession.setActionHandler("play", () => {
+        audioRef.current?.play();
+        setIsPlaying(true);
+        startInterval();
+      });
+      navigator.mediaSession.setActionHandler("pause", () => {
+        audioRef.current?.pause();
+        setIsPlaying(false);
+        stopInterval();
+      });
+      navigator.mediaSession.setActionHandler("previoustrack", () => skipPrevRef.current());
+      navigator.mediaSession.setActionHandler("nexttrack", () => skipNextRef.current());
+    }
   }, [startInterval, stopInterval]);
 
   // Handle song ended — needs access to latest state via refs
