@@ -5,6 +5,7 @@ import HeroBanner from "@/components/home/HeroBanner";
 import KaraokeStories from "@/components/home/KaraokeStories";
 import SongSection from "@/components/home/SongSection";
 import AlbumSection from "@/components/home/AlbumSection";
+import GlobalPlaylistsSection from "@/components/home/GlobalPlaylistsSection";
 import CategorySection from "@/components/home/CategorySection";
 import ArticleSection from "@/components/home/ArticleSection";
 import GameSection from "@/components/home/GameSection";
@@ -46,6 +47,7 @@ const Index = () => {
       <HomepagePopup />
       <HeroBanner />
       <AlbumSection />
+      <GlobalPlaylistsSection />
       <KaraokeStories />
       <SongSection title="Featured Songs" />
       <SecondaryBanner />
