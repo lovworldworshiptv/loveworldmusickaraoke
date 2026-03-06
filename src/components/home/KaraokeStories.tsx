@@ -229,8 +229,8 @@ const KaraokeStories = () => {
                   </AlertDialogContent>
                 </AlertDialog>
               )}
+            </div>
           </div>
-        </div>
       )}
     </>
   );
