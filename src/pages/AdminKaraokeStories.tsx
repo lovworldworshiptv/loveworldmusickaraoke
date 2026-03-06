@@ -10,7 +10,8 @@ import { toast } from "sonner";
 const AdminKaraokeStories = () => {
   const { isAdmin, loading: adminLoading } = useIsAdmin();
   const navigate = useNavigate();
-  const [visible, setVisible] = useState(true);
+  const [storiesVisible, setStoriesVisible] = useState(true);
+  const [recordEnabled, setRecordEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,25 +19,30 @@ const AdminKaraokeStories = () => {
   }, [isAdmin, adminLoading]);
 
   useEffect(() => {
-    supabase
-      .from("app_settings" as any)
-      .select("value")
-      .eq("key", "karaoke_stories_visible")
-      .single()
-      .then(({ data }: any) => {
-        if (data) setVisible(data.value === true);
-        setLoading(false);
-      });
+    Promise.all([
+      supabase.from("app_settings" as any).select("value").eq("key", "karaoke_stories_visible").single(),
+      supabase.from("app_settings" as any).select("value").eq("key", "karaoke_record_enabled").single(),
+    ]).then(([storiesRes, recordRes]: any[]) => {
+      if (storiesRes.data) setStoriesVisible(storiesRes.data.value === true);
+      if (recordRes.data) setRecordEnabled(recordRes.data.value === true);
+      setLoading(false);
+    });
   }, []);
 
-  const toggleVisibility = async (val: boolean) => {
-    setVisible(val);
+  const toggleSetting = async (key: string, val: boolean, setter: (v: boolean) => void) => {
+    setter(val);
     const { error } = await supabase
       .from("app_settings" as any)
       .update({ value: val, updated_at: new Date().toISOString() } as any)
-      .eq("key", "karaoke_stories_visible") as any;
-    if (error) toast.error("Failed to update");
-    else toast.success(val ? "Karaoke stories visible" : "Karaoke stories hidden");
+      .eq("key", key) as any;
+    if (error) {
+      // Try upsert if row doesn't exist
+      const { error: upsertErr } = await supabase
+        .from("app_settings" as any)
+        .upsert({ key, value: val, updated_at: new Date().toISOString() } as any) as any;
+      if (upsertErr) { toast.error("Failed to update"); return; }
+    }
+    toast.success(val ? `${key === "karaoke_stories_visible" ? "Karaoke stories visible" : "Record feature enabled"}` : `${key === "karaoke_stories_visible" ? "Karaoke stories hidden" : "Record feature disabled"}`);
   };
 
   if (loading) return <AppLayout><div className="p-6 text-muted-foreground">Loading…</div></AppLayout>;
@@ -45,13 +51,24 @@ const AdminKaraokeStories = () => {
     <AppLayout>
       <div className="px-4 lg:px-6 pt-6 pb-24 max-w-2xl mx-auto space-y-6 animate-fade-in-up">
         <h1 className="text-2xl font-serif font-bold text-foreground">Karaoke Stories</h1>
-        <div className="bg-card border border-border rounded-xl p-5">
+        
+        <div className="bg-card border border-border rounded-xl p-5 space-y-5">
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-sm font-medium">Show Karaoke Stories on Homepage</Label>
               <p className="text-xs text-muted-foreground mt-1">WhatsApp-style karaoke story bubbles displayed at the top of the homepage</p>
             </div>
-            <Switch checked={visible} onCheckedChange={toggleVisibility} />
+            <Switch checked={storiesVisible} onCheckedChange={(v) => toggleSetting("karaoke_stories_visible", v, setStoriesVisible)} />
+          </div>
+
+          <div className="border-t border-border" />
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm font-medium">Enable Karaoke Recording</Label>
+              <p className="text-xs text-muted-foreground mt-1">Allow users to record their voice over instrumental tracks. When disabled, the Record button is hidden globally.</p>
+            </div>
+            <Switch checked={recordEnabled} onCheckedChange={(v) => toggleSetting("karaoke_record_enabled", v, setRecordEnabled)} />
           </div>
         </div>
       </div>
