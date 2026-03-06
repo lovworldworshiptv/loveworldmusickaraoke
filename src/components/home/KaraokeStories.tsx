@@ -23,7 +23,6 @@ const KaraokeStories = () => {
   const [activeStory, setActiveStory] = useState<KaraokeStory | null>(null);
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const navigate = useNavigate();
   const { user } = useAuth();
 
   const deleteStory = async (story: KaraokeStory) => {
