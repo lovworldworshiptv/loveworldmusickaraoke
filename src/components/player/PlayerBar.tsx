@@ -181,6 +181,9 @@ const PlayerBar = () => {
             <button onClick={toggleKaraoke} className={`transition-opacity ${isKaraoke ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               <Mic2 className="w-4 h-4" />
             </button>
+            <button onClick={toggleExpanded} className="text-destructive/70 hover:text-destructive transition-colors" title="Record Karaoke">
+              <Disc3 className="w-4 h-4" />
+            </button>
             <button onClick={() => setShowQueue(q => !q)} className={`transition-colors ${showQueue ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               <ListMusic className="w-4 h-4" />
             </button>
