@@ -271,6 +271,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [startInterval, stopInterval, resetAutoPauseTimer, clearAutoPauseTimer]);
 
+  internalPlayRef.current = internalPlay;
+
   const skipNextRef = useRef(() => {});
   const skipPrevRef = useRef(() => {});
 
