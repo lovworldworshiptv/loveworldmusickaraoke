@@ -199,6 +199,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   queueRef.current = queue;
   const queueIndexRef = useRef(queueIndex);
   queueIndexRef.current = queueIndex;
+  const skipNextRef = useRef(() => {});
+  const skipPrevRef = useRef(() => {});
 
   const handleEnded = useCallback(() => {
     const rm = repeatModeRef.current;
