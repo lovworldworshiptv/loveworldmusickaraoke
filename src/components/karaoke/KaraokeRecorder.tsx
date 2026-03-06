@@ -133,16 +133,27 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
           return inst;
         };
 
-        let inst: HTMLAudioElement;
-        try {
-          inst = await createAndLoadInstrumental(false);
-        } catch {
-          inst = await createAndLoadInstrumental(true);
+        let inst: HTMLAudioElement | null = null;
+        let instSource: MediaElementAudioSourceNode | null = null;
+
+        for (const useCors of [false, true]) {
+          try {
+            inst?.pause();
+            inst = await createAndLoadInstrumental(useCors);
+            instSource = audioContext.createMediaElementSource(inst);
+            break;
+          } catch (err) {
+            inst = null;
+            instSource = null;
+            if (useCors) throw err;
+          }
+        }
+
+        if (!inst || !instSource) {
+          throw new Error("Failed to load instrumental");
         }
 
         instrumentalRef.current = inst;
-
-        const instSource = audioContext.createMediaElementSource(inst);
         instSource.connect(destination);
         instSource.connect(audioContext.destination);
 
