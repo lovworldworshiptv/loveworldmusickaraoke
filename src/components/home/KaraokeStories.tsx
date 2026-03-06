@@ -123,7 +123,7 @@ const KaraokeStories = () => {
 
   const closeStory = () => {
     audioRef.current?.pause();
-    setActiveStory(null);
+    setActiveIndex(null);
     setPlaying(false);
   };
 
