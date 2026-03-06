@@ -20,18 +20,21 @@ interface KaraokeStory {
 const KaraokeStories = () => {
   const [stories, setStories] = useState<KaraokeStory[]>([]);
   const [visible, setVisible] = useState(true);
-  const [activeStory, setActiveStory] = useState<KaraokeStory | null>(null);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { user } = useAuth();
+
+  const activeStory = activeIndex !== null ? stories[activeIndex] ?? null : null;
 
   const deleteStory = async (story: KaraokeStory) => {
     audioRef.current?.pause();
     await supabase.from("karaoke_recordings").delete().eq("id", story.id) as any;
     const path = story.audio_url.split("/karaoke-recordings/")[1];
     if (path) await supabase.storage.from("karaoke-recordings").remove([decodeURIComponent(path)]);
-    setStories(s => s.filter(x => x.id !== story.id));
-    setActiveStory(null);
+    const newStories = stories.filter(x => x.id !== story.id);
+    setStories(newStories);
+    setActiveIndex(null);
     setPlaying(false);
     toast.success("Story deleted");
   };
@@ -83,14 +86,39 @@ const KaraokeStories = () => {
     fetchStories();
   }, []);
 
-  const openStory = (story: KaraokeStory) => {
+  const playStoryAt = (index: number) => {
     audioRef.current?.pause();
-    setActiveStory(story);
+    const story = stories[index];
+    if (!story) return;
+    setActiveIndex(index);
     const audio = new Audio(story.audio_url);
-    audio.onended = () => setPlaying(false);
+    audio.onended = () => {
+      if (index + 1 < stories.length) {
+        playStoryAt(index + 1);
+      } else {
+        setPlaying(false);
+      }
+    };
     audio.play();
     audioRef.current = audio;
     setPlaying(true);
+  };
+
+  const openStory = (story: KaraokeStory) => {
+    const idx = stories.findIndex(s => s.user_id === story.user_id);
+    playStoryAt(idx >= 0 ? idx : 0);
+  };
+
+  const goNext = () => {
+    if (activeIndex !== null && activeIndex + 1 < stories.length) {
+      playStoryAt(activeIndex + 1);
+    }
+  };
+
+  const goPrev = () => {
+    if (activeIndex !== null && activeIndex > 0) {
+      playStoryAt(activeIndex - 1);
+    }
   };
 
   const closeStory = () => {
