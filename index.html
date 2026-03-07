@@ -19,6 +19,16 @@
     <meta name="median-pull-to-refresh" content="false" />
     <meta name="median-swipe-gestures" content="false" />
 
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "93df44e8-2b4f-4150-947a-5469de1905a8",
+        });
+      });
+    </script>
+
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/0MKmKSKiekY0IpwVE7MOFlGZI5k1/social-images/social-1771669111361-Frame_16.webp">
     <meta name="twitter:card" content="summary_large_image" />
