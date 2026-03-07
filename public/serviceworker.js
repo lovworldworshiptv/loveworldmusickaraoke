@@ -94,8 +94,68 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Default: network-first
+// Default: network-first
   event.respondWith(
     fetch(request).catch(() => caches.match(request))
+  );
+});
+
+// ── Push Notification ──
+self.addEventListener('push', (event) => {
+  console.log('[ServiceWorker] Push received');
+  let data = { title: 'New Notification', body: '', deep_link: null, image_url: null };
+
+  if (event.data) {
+    try {
+      data = { ...data, ...event.data.json() };
+    } catch (_) {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: '/icons/launchericon-192x192.png',
+    badge: '/icons/launchericon-192x192.png',
+    image: data.image_url || undefined,
+    data: { deep_link: data.deep_link },
+    vibrate: [200, 100, 200],
+    requireInteraction: true,
+    tag: 'lmk-notification',
+    renotify: true,
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+// ── Notification Click ──
+self.addEventListener('notificationclick', (event) => {
+  console.log('[ServiceWorker] Notification click');
+  event.notification.close();
+
+  const deepLink = event.notification.data?.deep_link;
+  const action = event.action; // e.g. 'play', 'pause', 'skip'
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Forward action to any open PWA window
+      if (action) {
+        for (const client of clientList) {
+          client.postMessage({ type: 'notification-action', action });
+        }
+      }
+
+      // Navigate to deep link or focus existing window
+      const url = deepLink || '/';
+      for (const client of clientList) {
+        if (client.url.includes(self.registration.scope) && 'focus' in client) {
+          if (deepLink) client.navigate(url);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(url);
+    })
   );
 });
