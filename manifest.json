@@ -1,0 +1,43 @@
+{
+  "background_color": "#ffffff",
+  "description": "Sing along and discover Loveworld Music — hymns, worship, and praise songs.",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Loveworld Music Karaoke+",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Loveworld Music Karaoke+",
+  "start_url": "https://loveworldmusickaraoke.com",
+  "theme_color": "#e7b002",
+  "icons": [
+    {
+      "src": "https://storage.googleapis.com/gpt-engineer-file-uploads/0MKmKSKiekY0IpwVE7MOFlGZI5k1/social-images/social-1771669111361-Frame_16.webp",
+      "type": "image/webp",
+      "sizes": "1200x630",
+      "isSquare": false,
+      "isPng": false,
+      "isWebp": true,
+      "isJpg": false,
+      "width": 1200,
+      "is512x512": false,
+      "is256x256": false,
+      "is192x192": false
+    },
+    {
+      "src": "https://loveworldmusickaraoke.com/favicon.ico",
+      "type": "image/x-icon",
+      "isSquare": false,
+      "isPng": false,
+      "isWebp": false,
+      "isJpg": false,
+      "width": 0,
+      "is512x512": false,
+      "is256x256": false,
+      "is192x192": false
+    }
+  ],
+  "lang": "en",
+  "categories": [
+    "music"
+  ]
+}
