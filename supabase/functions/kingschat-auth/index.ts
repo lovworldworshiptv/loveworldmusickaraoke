@@ -96,7 +96,7 @@ async function fetchKcProfileProtobuf(accessToken: string, userId: string) {
       const text = await res.text();
       console.log(`KC protobuf error: ${text.substring(0, 200)}`);
     }
-  } catch (e: any) {
+  } catch (e) {
     console.log(`KC protobuf fetch error: ${e.message}`);
   }
   return null;
@@ -239,7 +239,7 @@ Deno.serve(async (req) => {
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (err: any) {
+  } catch (err) {
     console.error("KingsChat auth error:", err);
     return new Response(
       JSON.stringify({ error: err.message || "Internal error" }),
