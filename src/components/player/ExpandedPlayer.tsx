@@ -13,6 +13,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Crown } from "lucide-react";
 import KaraokeRecorder from "@/components/karaoke/KaraokeRecorder";
+import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
+import { ListPlus } from "lucide-react";
 
 const formatTime = (s: number) => {
   const m = Math.floor(s / 60);
