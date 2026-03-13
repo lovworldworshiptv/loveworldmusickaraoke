@@ -53,6 +53,7 @@ const Library = () => {
   const [downloads, setDownloads] = useState<DownloadedTrack[]>([]);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [addToPlaylistSong, setAddToPlaylistSong] = useState<{ id: string; title: string } | null>(null);
 
   const loadDownloads = useCallback(async () => {
     const dl = await getDownloadedMeta();
