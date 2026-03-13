@@ -76,6 +76,7 @@ const ExpandedPlayer = () => {
   const [isFav, setIsFav] = useState(false);
   const [dlState, setDlState] = useState<"none" | "downloading" | "done">("none");
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
   const canDl = isPremium;
 
   useEffect(() => {
