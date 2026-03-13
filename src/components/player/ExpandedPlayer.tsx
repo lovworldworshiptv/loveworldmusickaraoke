@@ -355,6 +355,9 @@ const ExpandedPlayer = () => {
         </div>
       </DialogContent>
     </Dialog>
+    {currentSong && (
+      <AddToPlaylistModal open={showAddToPlaylist} onOpenChange={setShowAddToPlaylist} songId={currentSong.id} songTitle={currentSong.title} />
+    )}
     </>
   );
 };
