@@ -18,6 +18,7 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { getDownloadedMeta, getDownloadedAudioUrl, getDownloadedInstrumentalUrl, saveDownload, removeDownload, type DownloadedTrack } from "@/lib/downloadManager";
 import { checkPlaybackAllowed, revalidateLicense, setTrackLicense } from "@/lib/offlineLicense";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 
 type SongRow = {
   id: string;
