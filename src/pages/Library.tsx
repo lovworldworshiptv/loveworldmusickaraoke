@@ -560,6 +560,15 @@ const Library = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {addToPlaylistSong && (
+        <AddToPlaylistModal
+          open={!!addToPlaylistSong}
+          onOpenChange={(open) => { if (!open) setAddToPlaylistSong(null); }}
+          songId={addToPlaylistSong.id}
+          songTitle={addToPlaylistSong.title}
+        />
+      )}
+
       <div className="h-8" />
     </AppLayout>
   );
