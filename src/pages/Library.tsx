@@ -1,7 +1,7 @@
 import { useState, useEffect, memo, useCallback } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Play, Heart, Plus, Music, ListMusic, Trash2, Shuffle, Download, Lock, Crown, WifiOff } from "lucide-react";
+import { Search, Play, Heart, Plus, Music, ListMusic, Trash2, Shuffle, Download, Lock, Crown, WifiOff, ListPlus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +18,7 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { getDownloadedMeta, getDownloadedAudioUrl, getDownloadedInstrumentalUrl, saveDownload, removeDownload, type DownloadedTrack } from "@/lib/downloadManager";
 import { checkPlaybackAllowed, revalidateLicense, setTrackLicense } from "@/lib/offlineLicense";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 
 type SongRow = {
   id: string;
@@ -52,6 +53,7 @@ const Library = () => {
   const [downloads, setDownloads] = useState<DownloadedTrack[]>([]);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [addToPlaylistSong, setAddToPlaylistSong] = useState<{ id: string; title: string } | null>(null);
 
   const loadDownloads = useCallback(async () => {
     const dl = await getDownloadedMeta();
@@ -289,6 +291,14 @@ const Library = () => {
               <Download className="w-3 h-3" /> Premium
             </button>
           )
+        )}
+        {user && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setAddToPlaylistSong({ id: song.id, title: song.title }); }}
+            className="p-2 touch-target"
+          >
+            <ListPlus className="w-4 h-4 text-muted-foreground" />
+          </button>
         )}
         {user && (
           <button
@@ -549,6 +559,15 @@ const Library = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {addToPlaylistSong && (
+        <AddToPlaylistModal
+          open={!!addToPlaylistSong}
+          onOpenChange={(open) => { if (!open) setAddToPlaylistSong(null); }}
+          songId={addToPlaylistSong.id}
+          songTitle={addToPlaylistSong.title}
+        />
+      )}
 
       <div className="h-8" />
     </AppLayout>

@@ -1,0 +1,2 @@
+ALTER TABLE public.notifications DROP CONSTRAINT notifications_segment_check;
+ALTER TABLE public.notifications ADD CONSTRAINT notifications_segment_check CHECK (segment = ANY (ARRAY['free'::text, 'premium'::text, 'all'::text, 'direct'::text]));
