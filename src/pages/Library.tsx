@@ -294,6 +294,14 @@ const Library = () => {
         )}
         {user && (
           <button
+            onClick={(e) => { e.stopPropagation(); setAddToPlaylistSong({ id: song.id, title: song.title }); }}
+            className="p-2 touch-target"
+          >
+            <ListPlus className="w-4 h-4 text-muted-foreground" />
+          </button>
+        )}
+        {user && (
+          <button
             onClick={(e) => { e.stopPropagation(); toggleFav.mutate(song.id); }}
             className="p-2 touch-target"
           >
