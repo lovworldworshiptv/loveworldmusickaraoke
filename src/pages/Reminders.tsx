@@ -162,6 +162,12 @@ const Reminders = () => {
 
   return (
     <AppLayout>
+      {!featureEnabled ? (
+        <div className="text-center py-12">
+          <AlarmClock className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-muted-foreground text-sm">Reminders are currently disabled</p>
+        </div>
+      ) : (<>
       <div className="px-4 lg:px-6 pt-4 lg:pt-6 max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
