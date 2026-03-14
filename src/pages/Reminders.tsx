@@ -142,7 +142,7 @@ const Reminders = () => {
   };
 
   const deleteReminder = async (id: string) => {
-    await supabase.from("reminders").delete().eq("id", id);
+    await (supabase as any).from("reminders").delete().eq("id", id);
     setReminders(prev => prev.filter(r => r.id !== id));
     toast.success("Reminder deleted");
   };

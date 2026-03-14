@@ -36,6 +36,13 @@ const Articles = () => {
   const [allSongs, setAllSongs] = useState<any[]>([]);
   const [songSearch, setSongSearch] = useState("");
   const { playSong } = usePlayer();
+  const [bibleEnabled, setBibleEnabled] = useState(false);
+
+  // Check admin toggle for bible widget
+  useEffect(() => {
+    supabase.from("app_settings").select("value").eq("key", "bible_widget_enabled").maybeSingle()
+      .then(({ data }) => { if (data) setBibleEnabled((data.value as any) === true); });
+  }, []);
 
   useEffect(() => {
     fetchArticles();
