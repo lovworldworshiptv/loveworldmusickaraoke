@@ -59,8 +59,9 @@ const AdminKaraokeStories = () => {
   return (
     <AppLayout>
       <div className="px-4 lg:px-6 pt-6 pb-24 max-w-2xl mx-auto space-y-6 animate-fade-in-up">
-        <h1 className="text-2xl font-serif font-bold text-foreground">Karaoke Stories</h1>
+        <h1 className="text-2xl font-serif font-bold text-foreground">Feature Toggles</h1>
         
+        <h2 className="text-lg font-semibold text-foreground">Karaoke</h2>
         <div className="bg-card border border-border rounded-xl p-5 space-y-5">
           <div className="flex items-center justify-between">
             <div>
