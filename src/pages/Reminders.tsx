@@ -127,14 +127,14 @@ const Reminders = () => {
       toast.error("Please fill in title, date and time");
       return;
     }
-    const { error } = await supabase.from("reminders").insert({
+    const { error } = await (supabase as any).from("reminders").insert({
       user_id: user.id,
       title: title.trim(),
       song_id: selectedSong?.id || null,
       song_title: selectedSong?.title || null,
       reminder_date: date,
       reminder_time: time,
-    } as any);
+    });
     if (error) { toast.error("Failed to save reminder"); return; }
     toast.success("Reminder set!");
     setTitle(""); setDate(""); setTime(""); setSelectedSong(null); setShowForm(false);
