@@ -102,7 +102,7 @@ const Reminders = () => {
     alarmAudio?.pause();
     setAlarmAudio(null);
     if (activeAlarm) {
-      await supabase.from("reminders").update({ is_active: false } as any).eq("id", activeAlarm.id);
+      await (supabase as any).from("reminders").update({ is_active: false }).eq("id", activeAlarm.id);
       setReminders(prev => prev.filter(r => r.id !== activeAlarm.id));
     }
     setActiveAlarm(null);
