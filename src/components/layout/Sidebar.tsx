@@ -35,8 +35,7 @@ const adminItems = [
   { icon: Bell, label: "Homepage Popup", path: "/admin/popup" },
   { icon: Bell, label: "Notifications", path: "/admin/notifications" },
   { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
-  { icon: Mic2, label: "Karaoke Stories", path: "/admin/karaoke-stories" },
-  { icon: AlarmClock, label: "Feature Toggles", path: "/admin/karaoke-stories" },
+  { icon: Mic2, label: "Feature Toggles", path: "/admin/karaoke-stories" },
 ];
 
 const Sidebar = () => {
