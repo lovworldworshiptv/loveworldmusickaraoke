@@ -4,6 +4,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { BookOpen, Type, Video, Headphones, FileText, Music, X, ChevronRight, Minus, Plus, Search, Play } from "lucide-react";
 import ShareInviteButton from "@/components/articles/ShareInviteButton";
+import BibleWidget from "@/components/articles/BibleWidget";
 
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 
@@ -35,6 +36,13 @@ const Articles = () => {
   const [allSongs, setAllSongs] = useState<any[]>([]);
   const [songSearch, setSongSearch] = useState("");
   const { playSong } = usePlayer();
+  const [bibleEnabled, setBibleEnabled] = useState(false);
+
+  // Check admin toggle for bible widget
+  useEffect(() => {
+    supabase.from("app_settings").select("value").eq("key", "bible_widget_enabled").maybeSingle()
+      .then(({ data }) => { if (data) setBibleEnabled((data.value as any) === true); });
+  }, []);
 
   useEffect(() => {
     fetchArticles();
@@ -179,6 +187,9 @@ const Articles = () => {
               <Plus className="w-4 h-4" />
             </button>
           </div>
+
+          {/* Bible Widget */}
+          {bibleEnabled && <BibleWidget />}
 
           {/* Content */}
           {contentMode === "text" && (

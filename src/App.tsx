@@ -44,6 +44,7 @@ import Terms from "./pages/Terms";
 import CategorySongs from "./pages/CategorySongs";
 import NotFound from "./pages/NotFound";
 import Subscription from "./pages/Subscription";
+import Reminders from "./pages/Reminders";
 
 const queryClient = new QueryClient();
 
@@ -80,6 +81,7 @@ const App = () => (
                 <Route path="/albums" element={<AuthGate><Albums /></AuthGate>} />
                 <Route path="/category/:id" element={<AuthGate><CategorySongs /></AuthGate>} />
                 <Route path="/subscription" element={<AuthGate><Subscription /></AuthGate>} />
+                <Route path="/reminders" element={<AuthGate><Reminders /></AuthGate>} />
                 <Route path="/admin/songs" element={<AuthGate><AdminSongs /></AuthGate>} />
                 <Route path="/admin/albums" element={<AuthGate><AdminAlbums /></AuthGate>} />
                 <Route path="/admin/articles" element={<AuthGate><AdminArticles /></AuthGate>} />

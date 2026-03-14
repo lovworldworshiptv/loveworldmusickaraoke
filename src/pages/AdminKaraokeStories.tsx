@@ -13,6 +13,8 @@ const AdminKaraokeStories = () => {
   const [storiesVisible, setStoriesVisible] = useState(true);
   const [recordEnabled, setRecordEnabled] = useState(true);
   const [myKaraokeEnabled, setMyKaraokeEnabled] = useState(true);
+  const [bibleWidgetEnabled, setBibleWidgetEnabled] = useState(true);
+  const [remindersEnabled, setRemindersEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,10 +26,14 @@ const AdminKaraokeStories = () => {
       supabase.from("app_settings" as any).select("value").eq("key", "karaoke_stories_visible").single(),
       supabase.from("app_settings" as any).select("value").eq("key", "karaoke_record_enabled").single(),
       supabase.from("app_settings" as any).select("value").eq("key", "my_karaoke_visible").single(),
-    ]).then(([storiesRes, recordRes, myKaraokeRes]: any[]) => {
+      supabase.from("app_settings" as any).select("value").eq("key", "bible_widget_enabled").single(),
+      supabase.from("app_settings" as any).select("value").eq("key", "reminders_enabled").single(),
+    ]).then(([storiesRes, recordRes, myKaraokeRes, bibleRes, remindersRes]: any[]) => {
       if (storiesRes.data) setStoriesVisible(storiesRes.data.value === true);
       if (recordRes.data) setRecordEnabled(recordRes.data.value === true);
       if (myKaraokeRes.data) setMyKaraokeEnabled(myKaraokeRes.data.value === true);
+      if (bibleRes.data) setBibleWidgetEnabled(bibleRes.data.value === true);
+      if (remindersRes.data) setRemindersEnabled(remindersRes.data.value === true);
       setLoading(false);
     });
   }, []);
@@ -45,7 +51,7 @@ const AdminKaraokeStories = () => {
         .upsert({ key, value: val, updated_at: new Date().toISOString() } as any) as any;
       if (upsertErr) { toast.error("Failed to update"); return; }
     }
-    toast.success(val ? `${key === "karaoke_stories_visible" ? "Karaoke stories visible" : "Record feature enabled"}` : `${key === "karaoke_stories_visible" ? "Karaoke stories hidden" : "Record feature disabled"}`);
+    toast.success("Setting updated");
   };
 
   if (loading) return <AppLayout><div className="p-6 text-muted-foreground">Loading…</div></AppLayout>;
@@ -53,8 +59,9 @@ const AdminKaraokeStories = () => {
   return (
     <AppLayout>
       <div className="px-4 lg:px-6 pt-6 pb-24 max-w-2xl mx-auto space-y-6 animate-fade-in-up">
-        <h1 className="text-2xl font-serif font-bold text-foreground">Karaoke Stories</h1>
+        <h1 className="text-2xl font-serif font-bold text-foreground">Feature Toggles</h1>
         
+        <h2 className="text-lg font-semibold text-foreground">Karaoke</h2>
         <div className="bg-card border border-border rounded-xl p-5 space-y-5">
           <div className="flex items-center justify-between">
             <div>
@@ -82,6 +89,28 @@ const AdminKaraokeStories = () => {
               <p className="text-xs text-muted-foreground mt-1">Display the "My Karaoke" section on user profiles. When disabled, it disappears for all users.</p>
             </div>
             <Switch checked={myKaraokeEnabled} onCheckedChange={(v) => toggleSetting("my_karaoke_visible", v, setMyKaraokeEnabled)} />
+          </div>
+        </div>
+
+        <h2 className="text-lg font-semibold text-foreground pt-2">Articles & Bible</h2>
+        <div className="bg-card border border-border rounded-xl p-5 space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm font-medium">Bible Passage Widget</Label>
+              <p className="text-xs text-muted-foreground mt-1">Allow users to search and read Bible passages while reading articles.</p>
+            </div>
+            <Switch checked={bibleWidgetEnabled} onCheckedChange={(v) => toggleSetting("bible_widget_enabled", v, setBibleWidgetEnabled)} />
+          </div>
+        </div>
+
+        <h2 className="text-lg font-semibold text-foreground pt-2">Reminders</h2>
+        <div className="bg-card border border-border rounded-xl p-5 space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm font-medium">Prayer/Study Reminders</Label>
+              <p className="text-xs text-muted-foreground mt-1">Allow users to set prayer/study time reminders with worship songs.</p>
+            </div>
+            <Switch checked={remindersEnabled} onCheckedChange={(v) => toggleSetting("reminders_enabled", v, setRemindersEnabled)} />
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3, List, Image, Gamepad2, Sparkles, Users, BarChart3, Bell, Crown, Compass, Mic2 } from "lucide-react";
+import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3, List, Image, Gamepad2, Sparkles, Users, BarChart3, Bell, Crown, Compass, Mic2, AlarmClock } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -16,6 +16,7 @@ const navItems = [
   { icon: Clock, label: "History", path: "/history" },
   { icon: ListMusic, label: "Playlist", path: "/playlists" },
   { icon: MessageSquare, label: "Feedback", path: "/feedback" },
+  { icon: AlarmClock, label: "Reminders", path: "/reminders" },
 ];
 
 const adminItems = [
@@ -34,7 +35,7 @@ const adminItems = [
   { icon: Bell, label: "Homepage Popup", path: "/admin/popup" },
   { icon: Bell, label: "Notifications", path: "/admin/notifications" },
   { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
-  { icon: Mic2, label: "Karaoke Stories", path: "/admin/karaoke-stories" },
+  { icon: Mic2, label: "Feature Toggles", path: "/admin/karaoke-stories" },
 ];
 
 const Sidebar = () => {
