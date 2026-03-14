@@ -44,6 +44,7 @@ import Terms from "./pages/Terms";
 import CategorySongs from "./pages/CategorySongs";
 import NotFound from "./pages/NotFound";
 import Subscription from "./pages/Subscription";
+import Reminders from "./pages/Reminders";
 
 const queryClient = new QueryClient();
 
