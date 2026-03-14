@@ -13,6 +13,8 @@ const AdminKaraokeStories = () => {
   const [storiesVisible, setStoriesVisible] = useState(true);
   const [recordEnabled, setRecordEnabled] = useState(true);
   const [myKaraokeEnabled, setMyKaraokeEnabled] = useState(true);
+  const [bibleWidgetEnabled, setBibleWidgetEnabled] = useState(true);
+  const [remindersEnabled, setRemindersEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,10 +26,14 @@ const AdminKaraokeStories = () => {
       supabase.from("app_settings" as any).select("value").eq("key", "karaoke_stories_visible").single(),
       supabase.from("app_settings" as any).select("value").eq("key", "karaoke_record_enabled").single(),
       supabase.from("app_settings" as any).select("value").eq("key", "my_karaoke_visible").single(),
-    ]).then(([storiesRes, recordRes, myKaraokeRes]: any[]) => {
+      supabase.from("app_settings" as any).select("value").eq("key", "bible_widget_enabled").single(),
+      supabase.from("app_settings" as any).select("value").eq("key", "reminders_enabled").single(),
+    ]).then(([storiesRes, recordRes, myKaraokeRes, bibleRes, remindersRes]: any[]) => {
       if (storiesRes.data) setStoriesVisible(storiesRes.data.value === true);
       if (recordRes.data) setRecordEnabled(recordRes.data.value === true);
       if (myKaraokeRes.data) setMyKaraokeEnabled(myKaraokeRes.data.value === true);
+      if (bibleRes.data) setBibleWidgetEnabled(bibleRes.data.value === true);
+      if (remindersRes.data) setRemindersEnabled(remindersRes.data.value === true);
       setLoading(false);
     });
   }, []);
