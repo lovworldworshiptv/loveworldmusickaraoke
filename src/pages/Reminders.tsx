@@ -24,6 +24,7 @@ const Reminders = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [featureEnabled, setFeatureEnabled] = useState(true);
+  const [showSongPicker, setShowSongPicker] = useState(false);
   const [downloadedSongs, setDownloadedSongs] = useState<DownloadedTrack[]>([]);
   const [songSearch, setSongSearch] = useState("");
 
