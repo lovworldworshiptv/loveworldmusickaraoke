@@ -51,7 +51,7 @@ const AdminKaraokeStories = () => {
         .upsert({ key, value: val, updated_at: new Date().toISOString() } as any) as any;
       if (upsertErr) { toast.error("Failed to update"); return; }
     }
-    toast.success(val ? `${key === "karaoke_stories_visible" ? "Karaoke stories visible" : "Record feature enabled"}` : `${key === "karaoke_stories_visible" ? "Karaoke stories hidden" : "Record feature disabled"}`);
+    toast.success("Setting updated");
   };
 
   if (loading) return <AppLayout><div className="p-6 text-muted-foreground">Loading…</div></AppLayout>;
