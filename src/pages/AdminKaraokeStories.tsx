@@ -91,6 +91,28 @@ const AdminKaraokeStories = () => {
             <Switch checked={myKaraokeEnabled} onCheckedChange={(v) => toggleSetting("my_karaoke_visible", v, setMyKaraokeEnabled)} />
           </div>
         </div>
+
+        <h2 className="text-lg font-semibold text-foreground pt-2">Articles & Bible</h2>
+        <div className="bg-card border border-border rounded-xl p-5 space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm font-medium">Bible Passage Widget</Label>
+              <p className="text-xs text-muted-foreground mt-1">Allow users to search and read Bible passages while reading articles.</p>
+            </div>
+            <Switch checked={bibleWidgetEnabled} onCheckedChange={(v) => toggleSetting("bible_widget_enabled", v, setBibleWidgetEnabled)} />
+          </div>
+        </div>
+
+        <h2 className="text-lg font-semibold text-foreground pt-2">Reminders</h2>
+        <div className="bg-card border border-border rounded-xl p-5 space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm font-medium">Prayer/Study Reminders</Label>
+              <p className="text-xs text-muted-foreground mt-1">Allow users to set prayer/study time reminders with worship songs.</p>
+            </div>
+            <Switch checked={remindersEnabled} onCheckedChange={(v) => toggleSetting("reminders_enabled", v, setRemindersEnabled)} />
+          </div>
+        </div>
       </div>
     </AppLayout>
   );
