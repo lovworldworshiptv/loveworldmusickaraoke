@@ -4,6 +4,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { BookOpen, Type, Video, Headphones, FileText, Music, X, ChevronRight, Minus, Plus, Search, Play } from "lucide-react";
 import ShareInviteButton from "@/components/articles/ShareInviteButton";
+import BibleWidget from "@/components/articles/BibleWidget";
 
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 
