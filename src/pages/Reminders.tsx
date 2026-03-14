@@ -23,7 +23,7 @@ const Reminders = () => {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [showSongPicker, setShowSongPicker] = useState(false);
+  const [featureEnabled, setFeatureEnabled] = useState(true);
   const [downloadedSongs, setDownloadedSongs] = useState<DownloadedTrack[]>([]);
   const [songSearch, setSongSearch] = useState("");
 
