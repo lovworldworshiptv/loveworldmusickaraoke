@@ -40,7 +40,7 @@ const Reminders = () => {
 
   const fetchReminders = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from("reminders")
       .select("*")
       .eq("user_id", user.id)
