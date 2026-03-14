@@ -16,6 +16,7 @@ const navItems = [
   { icon: Clock, label: "History", path: "/history" },
   { icon: ListMusic, label: "Playlist", path: "/playlists" },
   { icon: MessageSquare, label: "Feedback", path: "/feedback" },
+  { icon: AlarmClock, label: "Reminders", path: "/reminders" },
 ];
 
 const adminItems = [

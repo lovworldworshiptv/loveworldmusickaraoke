@@ -188,6 +188,9 @@ const Articles = () => {
             </button>
           </div>
 
+          {/* Bible Widget */}
+          {bibleEnabled && <BibleWidget />}
+
           {/* Content */}
           {contentMode === "text" && (
             <article
