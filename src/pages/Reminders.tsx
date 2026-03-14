@@ -52,6 +52,12 @@ const Reminders = () => {
 
   useEffect(() => { fetchReminders(); }, [fetchReminders]);
 
+  // Check admin toggle
+  useEffect(() => {
+    supabase.from("app_settings").select("value").eq("key", "reminders_enabled").maybeSingle()
+      .then(({ data }) => { if (data && (data.value as any) === false) setFeatureEnabled(false); });
+  }, []);
+
   // Load downloaded songs for picker
   const loadDownloaded = async () => {
     const meta = await getDownloadedMeta();
