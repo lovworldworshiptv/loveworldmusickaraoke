@@ -344,6 +344,7 @@ const Reminders = () => {
         )}
       </div>
       <div className="h-8" />
+      </>)}
     </AppLayout>
   );
 };
