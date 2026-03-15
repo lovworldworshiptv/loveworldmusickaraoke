@@ -51,6 +51,7 @@ const ProfileMenu = () => {
   const RoleIcon = role === "admin" ? Shield : role === "premium" ? Crown : User;
 
   return (
+    <>
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold font-serif transition-opacity overflow-hidden ${user ? "gradient-gold text-primary-foreground hover:opacity-90" : "bg-muted text-muted-foreground hover:text-foreground"}`}>
