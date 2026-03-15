@@ -216,6 +216,29 @@ const ProfileMenu = () => {
         )}
       </PopoverContent>
     </Popover>
+
+    <Sheet open={adminSheetOpen} onOpenChange={setAdminSheetOpen}>
+      <SheetContent side="left" className="w-[280px] p-0 overflow-y-auto">
+        <SheetHeader className="p-4 border-b border-border">
+          <SheetTitle className="flex items-center gap-2 text-foreground">
+            <Shield className="w-5 h-5 text-primary" /> Admin Panel
+          </SheetTitle>
+        </SheetHeader>
+        <nav className="p-2 space-y-1">
+          {adminItems.map((item) => (
+            <button
+              key={item.path}
+              onClick={() => { setAdminSheetOpen(false); navigate(item.path); }}
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              <item.icon className="w-5 h-5 text-muted-foreground" />
+              {item.label}
+            </button>
+          ))}
+        </nav>
+      </SheetContent>
+    </Sheet>
+    </>
   );
 };
 
