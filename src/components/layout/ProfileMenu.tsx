@@ -45,6 +45,8 @@ const ProfileMenu = () => {
     if (!v) setView("main");
   };
 
+  const [adminSheetOpen, setAdminSheetOpen] = useState(false);
+
   const roleLabel = role === "admin" ? "Admin" : role === "premium" ? "Premium" : "Free";
   const RoleIcon = role === "admin" ? Shield : role === "premium" ? Crown : User;
 
