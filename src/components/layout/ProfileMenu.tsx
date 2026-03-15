@@ -100,7 +100,7 @@ const ProfileMenu = () => {
                 </button>
                 {role === "admin" && (
                   <button
-                    onClick={() => { setOpen(false); navigate("/admin/songs"); }}
+                    onClick={() => { setOpen(false); setAdminSheetOpen(true); }}
                     className="w-full flex items-center justify-between p-2.5 rounded-lg text-sm text-foreground hover:bg-muted transition-colors"
                   >
                     <span className="flex items-center gap-2"><Shield className="w-4 h-4" /> Admin Panel</span>
