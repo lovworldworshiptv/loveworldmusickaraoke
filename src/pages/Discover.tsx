@@ -7,9 +7,11 @@ import { useQuery } from "@tanstack/react-query";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 
 const tabs = [
-  { id: "articles", label: "Articles", icon: BookOpen, path: "/articles" },
-  { id: "music", label: "Music", icon: Music2, path: "/" },
-  { id: "games", label: "Games", icon: Gamepad2, path: "/games" },
+  { id: "articles", label: "Articles", icon: BookOpen, path: "/articles", desc: "Read inspiring articles and devotionals" },
+  { id: "music", label: "Music", icon: Music2, path: "/", desc: "Browse and play songs, karaoke, and more" },
+  { id: "games", label: "Games", icon: Gamepad2, path: "/games", desc: "Test your knowledge with trivia games" },
+  { id: "reminders", label: "Reminders", icon: Bell, path: "/reminders", desc: "Set prayer & study time reminders", mobileOnly: true },
+  { id: "feedback", label: "Feedback", icon: MessageSquare, path: "/feedback", desc: "Share your feedback with us", mobileOnly: true },
 ];
 
 const Discover = () => {
