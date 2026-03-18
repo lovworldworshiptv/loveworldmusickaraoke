@@ -141,22 +141,40 @@ const SongMatchMelody = () => {
 
     const audio = new Audio(q.audioUrl);
     audioRef.current = audio;
-    const startTime = 10 + Math.random() * 50;
-    audio.currentTime = startTime;
-    audio.play().then(() => {
-      setIsPlaying(true);
-      setPlayProgress(0);
-      const startedAt = Date.now();
-      progressRef.current = setInterval(() => {
-        const elapsed = (Date.now() - startedAt) / 1000;
-        setPlayProgress(Math.min(elapsed / q.clipDuration, 1));
-        if (elapsed >= q.clipDuration) {
-          audio.pause();
-          setIsPlaying(false);
-          if (progressRef.current) clearInterval(progressRef.current);
-        }
-      }, 100);
-    }).catch(() => setIsPlaying(false));
+    
+    // Wait for metadata to know duration, then set a valid start time
+    const onCanPlay = () => {
+      const audioDuration = audio.duration || 120;
+      const maxStart = Math.max(0, audioDuration - q.clipDuration - 5);
+      const startTime = Math.min(10 + Math.random() * 50, maxStart);
+      audio.currentTime = startTime;
+      
+      audio.play().then(() => {
+        setIsPlaying(true);
+        setPlayProgress(0);
+        const startedAt = Date.now();
+        progressRef.current = setInterval(() => {
+          const elapsed = (Date.now() - startedAt) / 1000;
+          setPlayProgress(Math.min(elapsed / q.clipDuration, 1));
+          if (elapsed >= q.clipDuration) {
+            audio.pause();
+            setIsPlaying(false);
+            if (progressRef.current) clearInterval(progressRef.current);
+          }
+        }, 100);
+      }).catch((err) => {
+        console.error("Melody clip play failed:", err.message);
+        setIsPlaying(false);
+      });
+    };
+    
+    audio.addEventListener("canplay", onCanPlay, { once: true });
+    audio.addEventListener("error", () => {
+      console.error("Melody audio load error:", q.audioUrl);
+      setIsPlaying(false);
+    });
+    // Start loading
+    audio.load();
   };
 
   const handleAnswer = (option: string) => {
