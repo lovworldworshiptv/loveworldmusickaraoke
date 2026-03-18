@@ -117,11 +117,6 @@ const ExpandedPlayer = () => {
     }
   };
 
-  // Reset line refs when lyrics change
-  useEffect(() => {
-    lineRefs.current = [];
-  }, [lrcLines]);
-
   useEffect(() => {
     if (!lyricsContainerRef.current || activeLrcIndex < 0) return;
     const el = lineRefs.current[activeLrcIndex];

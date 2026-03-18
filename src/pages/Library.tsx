@@ -254,12 +254,9 @@ const Library = () => {
   );
 
   const SongRowItem = memo(({ song, index, songList, showDownload = true }: { song: SongRow; index: number; songList: PlayerSong[]; showDownload?: boolean }) => (
-    <div
-      role="button"
-      tabIndex={0}
+    <button
       onClick={() => playQueue(songList, index)}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); playQueue(songList, index); } }}
-      className={`flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-200 active:scale-[0.98] hover:bg-muted/60 touch-target cursor-pointer ${
+      className={`flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-200 active:scale-[0.98] hover:bg-muted/60 touch-target ${
         currentSong?.id === song.id ? "bg-muted/80 ring-1 ring-primary" : ""
       }`}
     >
@@ -323,7 +320,7 @@ const Library = () => {
           </div>
         )}
       </div>
-    </div>
+    </button>
   ));
 
   return (

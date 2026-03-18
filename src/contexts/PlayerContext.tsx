@@ -241,16 +241,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       };
 
       audio.addEventListener("loadedmetadata", () => setDuration(audio.duration));
-      audio.addEventListener("error", (e) => {
-        console.error("Audio load error:", audio.error?.message, audio.error?.code, url);
-      });
-      audio.play().then(() => { setIsPlaying(true); startInterval(); resetAutoPauseTimer(); }).catch((err) => {
-        console.error("Audio play failed:", err.name, err.message, url);
-        // If autoplay blocked, still set playing state so user can tap again
-        if (err.name === "NotAllowedError") {
-          setIsPlaying(false);
-        }
-      });
+      audio.play().then(() => { setIsPlaying(true); startInterval(); resetAutoPauseTimer(); }).catch(() => {});
     } else {
       setDuration(song.durationSeconds || 240);
       setIsPlaying(true);
