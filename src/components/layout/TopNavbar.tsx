@@ -1,10 +1,11 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { ChevronLeft, Search } from "lucide-react";
+import { ChevronLeft, Search, Crown } from "lucide-react";
 import logo from "@/assets/logo.png";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
 import ProfileMenu from "@/components/layout/ProfileMenu";
 import GlobalSearch from "@/components/search/GlobalSearch";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsPremium } from "@/hooks/useIsPremium";
 import { useState } from "react";
 
 const TopNavbar = () => {
