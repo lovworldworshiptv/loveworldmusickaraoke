@@ -19,7 +19,12 @@ serve(async (req) => {
       });
     }
 
-    const resp = await fetch(url);
+    const resp = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; LoveworldMusic/1.0)",
+        "Accept": "*/*",
+      },
+    });
     if (!resp.ok) {
       return new Response(JSON.stringify({ error: `Upstream ${resp.status}` }), {
         status: 502,
