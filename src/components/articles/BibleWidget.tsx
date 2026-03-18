@@ -1,9 +1,19 @@
 import { useState } from "react";
 import { BookOpen, Search, X, ChevronLeft } from "lucide-react";
 
+const VERSIONS = [
+  { id: "kjv", label: "KJV" },
+  { id: "web", label: "WEB" },
+  { id: "bbe", label: "BBE" },
+  { id: "oeb-us", label: "OEB" },
+  { id: "clementine", label: "Clementine (Latin)" },
+  { id: "almeida", label: "Almeida (Portuguese)" },
+];
+
 const BibleWidget = () => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [version, setVersion] = useState("kjv");
   const [passage, setPassage] = useState<{ reference: string; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -14,7 +24,7 @@ const BibleWidget = () => {
     setError("");
     setPassage(null);
     try {
-      const res = await fetch(`https://bible-api.com/${encodeURIComponent(query.trim())}?translation=kjv`);
+      const res = await fetch(`https://bible-api.com/${encodeURIComponent(query.trim())}?translation=${version}`);
       if (!res.ok) throw new Error("Passage not found");
       const data = await res.json();
       if (data.error) throw new Error(data.error);
