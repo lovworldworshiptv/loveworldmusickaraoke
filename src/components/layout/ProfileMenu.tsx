@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useTheme, ThemeName } from "@/contexts/ThemeContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsPremium } from "@/hooks/useIsPremium";
 
 const adminItems = [
   { icon: Music2, label: "Manage Songs", path: "/admin/songs" },
