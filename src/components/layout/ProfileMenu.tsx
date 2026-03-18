@@ -33,6 +33,7 @@ const ProfileMenu = () => {
   const [view, setView] = useState<"main" | "settings">("main");
   const { theme, setTheme, themes } = useTheme();
   const [role, setRole] = useState<string>("free");
+  const { isPremium, isTrial, loading: premiumLoading } = useIsPremium();
 
   useEffect(() => {
     if (user) {
@@ -40,6 +41,9 @@ const ProfileMenu = () => {
         .then(({ data }) => { if (data) setRole(data.role); });
     }
   }, [user]);
+
+  const subLabel = isTrial ? "Trial" : isPremium ? "Premium" : "Free";
+  const SubIcon = isTrial ? Clock : isPremium ? Crown : User;
 
   const handleOpenChange = (v: boolean) => {
     setOpen(v);
