@@ -47,6 +47,14 @@ const TopNavbar = () => {
       </div>
     </header>
     <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
+    {isFreeUser && (
+      <button
+        onClick={() => navigate("/subscription")}
+        className="sticky top-[57px] z-30 w-full lg:ml-64 flex items-center justify-center gap-2 px-4 py-2 gradient-gold text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity"
+      >
+        <Crown className="w-3.5 h-3.5" /> Upgrade to Premium — Unlock downloads, karaoke & more
+      </button>
+    )}
     </>
   );
 };

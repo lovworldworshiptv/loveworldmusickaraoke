@@ -92,7 +92,7 @@ const BibleWidget = () => {
 
       {passage && (
         <div className="bg-muted/50 rounded-lg p-4 border border-border">
-          <p className="text-xs font-semibold text-gold mb-2 uppercase tracking-wider">{passage.reference} (KJV)</p>
+          <p className="text-xs font-semibold text-gold mb-2 uppercase tracking-wider">{passage.reference} ({VERSIONS.find(v => v.id === version)?.label || version.toUpperCase()})</p>
           <p className="text-sm text-foreground/90 leading-relaxed font-serif whitespace-pre-line">{passage.text}</p>
         </div>
       )}

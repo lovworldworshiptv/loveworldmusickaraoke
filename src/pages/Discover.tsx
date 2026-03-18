@@ -155,7 +155,7 @@ const Discover = () => {
             <button
               key={tab.id}
               onClick={() => navigate(tab.path)}
-              className="glass-card p-5 flex items-center gap-4 hover:glow-gold transition-all duration-300 group text-left"
+              className={`glass-card p-5 flex items-center gap-4 hover:glow-gold transition-all duration-300 group text-left ${(tab as any).mobileOnly ? "lg:hidden" : ""}`}
               style={{ animationDelay: `${i * 100}ms` }}
             >
               <div className="w-12 h-12 rounded-xl gradient-gold flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
@@ -163,11 +163,7 @@ const Discover = () => {
               </div>
               <div>
                 <h3 className="text-base font-semibold text-foreground">{tab.label}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {tab.id === "articles" && "Read inspiring articles and devotionals"}
-                  {tab.id === "music" && "Browse and play songs, karaoke, and more"}
-                  {tab.id === "games" && "Test your knowledge with trivia games"}
-                </p>
+                <p className="text-xs text-muted-foreground">{tab.desc}</p>
               </div>
             </button>
           ))}

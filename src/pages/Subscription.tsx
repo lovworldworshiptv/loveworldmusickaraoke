@@ -23,7 +23,7 @@ const GIFT_PLANS = PLANS.filter(p => p.id !== "3_day_trial");
 
 const Subscription = () => {
   const { user, username, kingschatHandle } = useAuth();
-  const { isPremium, subscriptionExpiry } = useIsPremium();
+  const { isPremium, isTrial, subscriptionExpiry } = useIsPremium();
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showGiftForm, setShowGiftForm] = useState(false);
