@@ -61,11 +61,18 @@ const BibleWidget = () => {
       </div>
 
       <div className="flex gap-2 mb-3">
+        <select
+          value={version}
+          onChange={e => setVersion(e.target.value)}
+          className="px-2 py-2 rounded-lg bg-muted border border-border text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          {VERSIONS.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
+        </select>
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="e.g. John 3:16, Psalm 23, Romans 8:28-30"
+            placeholder="e.g. John 3:16, Psalm 23"
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={e => e.key === "Enter" && searchPassage()}
