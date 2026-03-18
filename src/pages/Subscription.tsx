@@ -200,9 +200,16 @@ const Subscription = () => {
           </div>
           <h1 className="text-2xl font-serif font-bold text-foreground">Premium Subscription</h1>
           <p className="text-sm text-muted-foreground mt-1">Unlock offline playback, karaoke mode & more</p>
-          {isPremium && subscriptionExpiry && (
-            <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold/20 text-gold text-xs font-semibold">
-              <Check className="w-3.5 h-3.5" /> Active until {new Date(subscriptionExpiry).toLocaleDateString()}
+          {isPremium && (
+            <div className="mt-3 space-y-2">
+              <p className="text-sm font-bold text-gold uppercase tracking-wide">
+                YOU ARE CURRENTLY A {isTrial ? "TRIAL" : "PREMIUM"} USER
+              </p>
+              {subscriptionExpiry && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold/20 text-gold text-xs font-semibold">
+                  <Check className="w-3.5 h-3.5" /> Active until {new Date(subscriptionExpiry).toLocaleDateString()}
+                </div>
+              )}
             </div>
           )}
         </div>
