@@ -1,21 +1,18 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { ChevronLeft, Search, Crown } from "lucide-react";
+import { ChevronLeft, Search } from "lucide-react";
 import logo from "@/assets/logo.png";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
 import ProfileMenu from "@/components/layout/ProfileMenu";
 import GlobalSearch from "@/components/search/GlobalSearch";
 import { useAuth } from "@/contexts/AuthContext";
-import { useIsPremium } from "@/hooks/useIsPremium";
 import { useState } from "react";
 
 const TopNavbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isHome = location.pathname === "/";
-  const { username, user } = useAuth();
-  const { isPremium, isTrial } = useIsPremium();
+  const { username } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
-  const isFreeUser = user && !isPremium && !isTrial;
 
   return (
     <>
@@ -47,14 +44,6 @@ const TopNavbar = () => {
       </div>
     </header>
     <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
-    {isFreeUser && (
-      <button
-        onClick={() => navigate("/subscription")}
-        className="sticky top-[57px] z-30 w-full lg:ml-64 flex items-center justify-center gap-2 px-4 py-2 gradient-gold text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity"
-      >
-        <Crown className="w-3.5 h-3.5" /> Upgrade to Premium — Unlock downloads, karaoke & more
-      </button>
-    )}
     </>
   );
 };

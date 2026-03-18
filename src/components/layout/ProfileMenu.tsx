@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { User, Settings, ChevronRight, LogOut, Crown, Shield, Palette, AtSign, Music2, Disc3, List, Newspaper, Grid3X3, Image, Gamepad2, MessageSquare, Sparkles, Users, BarChart3, Bell, Mic2, Clock } from "lucide-react";
+import { User, Settings, ChevronRight, LogOut, Crown, Shield, Palette, AtSign, Music2, Disc3, List, Newspaper, Grid3X3, Image, Gamepad2, MessageSquare, Sparkles, Users, BarChart3, Bell, Mic2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useTheme, ThemeName } from "@/contexts/ThemeContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsPremium } from "@/hooks/useIsPremium";
 
 const adminItems = [
   { icon: Music2, label: "Manage Songs", path: "/admin/songs" },
@@ -33,7 +32,6 @@ const ProfileMenu = () => {
   const [view, setView] = useState<"main" | "settings">("main");
   const { theme, setTheme, themes } = useTheme();
   const [role, setRole] = useState<string>("free");
-  const { isPremium, isTrial, loading: premiumLoading } = useIsPremium();
 
   useEffect(() => {
     if (user) {
@@ -41,9 +39,6 @@ const ProfileMenu = () => {
         .then(({ data }) => { if (data) setRole(data.role); });
     }
   }, [user]);
-
-  const subLabel = isTrial ? "Trial" : isPremium ? "Premium" : "Free";
-  const SubIcon = isTrial ? Clock : isPremium ? Crown : User;
 
   const handleOpenChange = (v: boolean) => {
     setOpen(v);
@@ -83,13 +78,8 @@ const ProfileMenu = () => {
                     ) : null}
                   </div>
                 </div>
-                <div className="mt-2 flex items-center gap-2 flex-wrap">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-xs font-semibold text-primary">
-                    <RoleIcon className="w-3 h-3" /> {roleLabel}
-                  </span>
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${isPremium || isTrial ? "bg-gold/20 text-gold" : "bg-muted text-muted-foreground"}`}>
-                    <SubIcon className="w-3 h-3" /> {subLabel}
-                  </span>
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-xs font-semibold text-primary">
+                  <RoleIcon className="w-3 h-3" /> {roleLabel}
                 </div>
               </div>
 

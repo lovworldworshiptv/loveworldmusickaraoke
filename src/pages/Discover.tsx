@@ -1,17 +1,15 @@
 import { useState, useMemo } from "react";
 import AppLayout from "@/components/layout/AppLayout";
-import { Search, BookOpen, Music2, Gamepad2, Music, ArrowDownAZ, ArrowUpZA, Bell, MessageSquare } from "lucide-react";
+import { Search, BookOpen, Music2, Gamepad2, Music, ArrowDownAZ, ArrowUpZA } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 
 const tabs = [
-  { id: "articles", label: "Articles", icon: BookOpen, path: "/articles", desc: "Read inspiring articles and devotionals" },
-  { id: "music", label: "Music", icon: Music2, path: "/", desc: "Browse and play songs, karaoke, and more" },
-  { id: "games", label: "Games", icon: Gamepad2, path: "/games", desc: "Test your knowledge with trivia games" },
-  { id: "reminders", label: "Reminders", icon: Bell, path: "/reminders", desc: "Set prayer & study time reminders", mobileOnly: true },
-  { id: "feedback", label: "Feedback", icon: MessageSquare, path: "/feedback", desc: "Share your feedback with us", mobileOnly: true },
+  { id: "articles", label: "Articles", icon: BookOpen, path: "/articles" },
+  { id: "music", label: "Music", icon: Music2, path: "/" },
+  { id: "games", label: "Games", icon: Gamepad2, path: "/games" },
 ];
 
 const Discover = () => {
@@ -155,7 +153,7 @@ const Discover = () => {
             <button
               key={tab.id}
               onClick={() => navigate(tab.path)}
-              className={`glass-card p-5 flex items-center gap-4 hover:glow-gold transition-all duration-300 group text-left ${(tab as any).mobileOnly ? "lg:hidden" : ""}`}
+              className="glass-card p-5 flex items-center gap-4 hover:glow-gold transition-all duration-300 group text-left"
               style={{ animationDelay: `${i * 100}ms` }}
             >
               <div className="w-12 h-12 rounded-xl gradient-gold flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
@@ -163,7 +161,11 @@ const Discover = () => {
               </div>
               <div>
                 <h3 className="text-base font-semibold text-foreground">{tab.label}</h3>
-                <p className="text-xs text-muted-foreground">{tab.desc}</p>
+                <p className="text-xs text-muted-foreground">
+                  {tab.id === "articles" && "Read inspiring articles and devotionals"}
+                  {tab.id === "music" && "Browse and play songs, karaoke, and more"}
+                  {tab.id === "games" && "Test your knowledge with trivia games"}
+                </p>
               </div>
             </button>
           ))}
