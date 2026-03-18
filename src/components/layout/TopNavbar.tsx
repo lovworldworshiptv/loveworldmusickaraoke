@@ -12,8 +12,10 @@ const TopNavbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isHome = location.pathname === "/";
-  const { username } = useAuth();
+  const { username, user } = useAuth();
+  const { isPremium, isTrial } = useIsPremium();
   const [searchOpen, setSearchOpen] = useState(false);
+  const isFreeUser = user && !isPremium && !isTrial;
 
   return (
     <>
