@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import AppLayout from "@/components/layout/AppLayout";
-import { Search, BookOpen, Music2, Gamepad2, Music, ArrowDownAZ, ArrowUpZA } from "lucide-react";
+import { Search, BookOpen, Music2, Gamepad2, Music, ArrowDownAZ, ArrowUpZA, Bell, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
