@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { title, message, image_url, deep_link, segment, scheduled_at, target_user_ids } = await req.json();
+    const { title, message, image_url, deep_link, action_url, segment, scheduled_at, target_user_ids } = await req.json();
 
     if (!title || !message || !segment) {
       return new Response(JSON.stringify({ error: "title, message, segment are required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     const status = scheduled_at ? "scheduled" : "pending";
 
     // 1. Save notification to DB
-    const insertData: any = { title, message, image_url, deep_link, segment, scheduled_at, status, created_by: userId };
+    const insertData: any = { title, message, image_url, deep_link, action_url, segment, scheduled_at, status, created_by: userId };
     if (segment === "direct" && target_user_ids) {
       insertData.target_user_ids = target_user_ids;
     }

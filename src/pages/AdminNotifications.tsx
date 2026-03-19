@@ -23,6 +23,7 @@ const AdminNotifications = () => {
   const [message, setMessage] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [deepLink, setDeepLink] = useState("");
+  const [actionUrl, setActionUrl] = useState("");
   const [segment, setSegment] = useState("all");
   const [scheduledAt, setScheduledAt] = useState("");
 
@@ -45,6 +46,7 @@ const AdminNotifications = () => {
       const body: any = { title, message, segment };
       if (imageUrl) body.image_url = imageUrl;
       if (deepLink) body.deep_link = deepLink;
+      if (actionUrl) body.action_url = actionUrl;
       if (scheduledAt) body.scheduled_at = new Date(scheduledAt).toISOString();
 
       const { data, error } = await supabase.functions.invoke("send-notification", {
@@ -60,6 +62,7 @@ const AdminNotifications = () => {
       setMessage("");
       setImageUrl("");
       setDeepLink("");
+      setActionUrl("");
       setScheduledAt("");
       queryClient.invalidateQueries({ queryKey: ["admin-notifications"] });
     },
@@ -98,6 +101,7 @@ const AdminNotifications = () => {
             <Textarea placeholder="Message" value={message} onChange={(e) => setMessage(e.target.value)} rows={3} />
             <ImageUploadPicker bucket="notification-images" label="Notification Image (optional)" value={imageUrl} onChange={setImageUrl} />
             <Input placeholder="Deep Link (optional, e.g. /albums)" value={deepLink} onChange={(e) => setDeepLink(e.target.value)} />
+            <Input placeholder="Action URL (optional, opens in new tab when clicked)" value={actionUrl} onChange={(e) => setActionUrl(e.target.value)} />
 
             <div className="flex gap-4 flex-wrap">
               <div className="flex-1 min-w-[150px]">

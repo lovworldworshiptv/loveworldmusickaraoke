@@ -60,15 +60,24 @@ const BibleWidget = () => {
         </button>
       </div>
 
-      <div className="flex gap-2 mb-3">
-        <select
-          value={version}
-          onChange={e => setVersion(e.target.value)}
-          className="px-2 py-2 rounded-lg bg-muted border border-border text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          {VERSIONS.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
-        </select>
-        <div className="relative flex-1">
+      <div className="flex flex-col gap-2 mb-3">
+        <div className="flex gap-2">
+          <select
+            value={version}
+            onChange={e => setVersion(e.target.value)}
+            className="px-2 py-2 rounded-lg bg-muted border border-border text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary shrink-0"
+          >
+            {VERSIONS.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
+          </select>
+          <button
+            onClick={searchPassage}
+            disabled={loading || !query.trim()}
+            className="px-4 py-2 rounded-lg gradient-gold text-primary-foreground text-sm font-semibold disabled:opacity-50 shrink-0"
+          >
+            {loading ? "..." : "Search"}
+          </button>
+        </div>
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
@@ -79,13 +88,6 @@ const BibleWidget = () => {
             className="w-full pl-9 pr-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
-        <button
-          onClick={searchPassage}
-          disabled={loading || !query.trim()}
-          className="px-4 py-2 rounded-lg gradient-gold text-primary-foreground text-sm font-semibold disabled:opacity-50"
-        >
-          {loading ? "..." : "Search"}
-        </button>
       </div>
 
       {error && <p className="text-xs text-destructive mb-2">{error}</p>}

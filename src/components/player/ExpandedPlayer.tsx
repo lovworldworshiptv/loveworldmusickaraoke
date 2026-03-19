@@ -1,5 +1,5 @@
 import { usePlayer, RepeatMode } from "@/contexts/PlayerContext";
-import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3, Square } from "lucide-react";
+import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3, Square, Volume2, VolumeX, ListMusic, MoreVertical } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsPremium } from "@/hooks/useIsPremium";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { isDownloaded as checkDownloaded, saveDownload } from "@/lib/downloadManager";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { Crown } from "lucide-react";
 import KaraokeRecorder from "@/components/karaoke/KaraokeRecorder";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import { ListPlus } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 const formatTime = (s: number) => {
   const m = Math.floor(s / 60);
@@ -53,6 +55,7 @@ const ExpandedPlayer = () => {
     currentSong, isPlaying, isKaraoke, progress, duration, currentTime,
     lrcLines, activeLrcIndex, togglePlay, toggleKaraoke, toggleExpanded, seekTo,
     skipNext, skipPrev, repeatMode, cycleRepeat, shuffleOn, toggleShuffle,
+    volume, setVolume, queue, queueIndex,
   } = usePlayer();
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
@@ -60,6 +63,9 @@ const ExpandedPlayer = () => {
   const [showRecorder, setShowRecorder] = useState(false);
   const [isRecordingActive, setIsRecordingActive] = useState(false);
   const [recordFeatureEnabled, setRecordFeatureEnabled] = useState(true);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showQueue, setShowQueue] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     supabase.from("app_settings" as any).select("value").eq("key", "karaoke_record_enabled").single()
@@ -78,6 +84,7 @@ const ExpandedPlayer = () => {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
   const canDl = isPremium;
+  const VolumeIcon = volume === 0 ? VolumeX : Volume2;
 
   useEffect(() => {
     if (!currentSong) { setDlState("none"); return; }
@@ -160,27 +167,56 @@ const ExpandedPlayer = () => {
             <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-medium">Now Playing</p>
           </div>
           <div className="flex items-center gap-3">
-            {user && (
-              <button onClick={() => setShowAddToPlaylist(true)} className="text-muted-foreground hover:text-foreground p-1">
-                <ListPlus className="w-5 h-5" />
-              </button>
-            )}
-            {currentSong?.audioUrl && (
-              dlState === "done" ? (
-                <span className="text-green-500 p-1"><Check className="w-5 h-5" /></span>
-              ) : canDl ? (
-                <button onClick={handleDl} disabled={dlState === "downloading"} className="text-muted-foreground hover:text-foreground p-1">
-                  <Download className={`w-5 h-5 ${dlState === "downloading" ? "animate-pulse text-gold" : ""}`} />
+            {/* Desktop: show all action buttons inline */}
+            {!isMobile && (
+              <>
+                {user && (
+                  <button onClick={() => setShowAddToPlaylist(true)} className="text-muted-foreground hover:text-foreground p-1" title="Add to Playlist">
+                    <ListPlus className="w-5 h-5" />
+                  </button>
+                )}
+                {currentSong?.audioUrl && (
+                  dlState === "done" ? (
+                    <span className="text-green-500 p-1"><Check className="w-5 h-5" /></span>
+                  ) : canDl ? (
+                    <button onClick={handleDl} disabled={dlState === "downloading"} className="text-muted-foreground hover:text-foreground p-1" title="Download">
+                      <Download className={`w-5 h-5 ${dlState === "downloading" ? "animate-pulse text-gold" : ""}`} />
+                    </button>
+                  ) : (
+                    <button onClick={() => setShowUpgrade(true)} className="text-gold/50 p-1" title="Download (Premium)">
+                      <Lock className="w-5 h-5" />
+                    </button>
+                  )
+                )}
+                {recordFeatureEnabled && (isPremium ? (
+                  <button onClick={() => { if (!isKaraoke) toggleKaraoke(); setShowRecorder(true); }} className="text-destructive/70 hover:text-destructive p-1" title="Record Karaoke">
+                    <Disc3 className={`w-5 h-5 ${isRecordingActive ? "animate-spin" : ""}`} />
+                  </button>
+                ) : (
+                  <button onClick={() => setShowUpgrade(true)} className="text-gold/50 p-1" title="Record (Premium)">
+                    <Crown className="w-4 h-4" />
+                  </button>
+                ))}
+                <button onClick={() => setShowQueue(q => !q)} className={`p-1 transition-colors ${showQueue ? "text-gold" : "text-muted-foreground hover:text-foreground"}`} title="Queue">
+                  <ListMusic className="w-5 h-5" />
                 </button>
-              ) : (
-                <button onClick={() => setShowUpgrade(true)} className="text-gold/50 p-1">
-                  <Lock className="w-5 h-5" />
-                </button>
-              )
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => setVolume(volume === 0 ? 0.7 : 0)} className="p-1 text-muted-foreground hover:text-foreground">
+                    <VolumeIcon className="w-5 h-5" />
+                  </button>
+                  <Slider value={[volume * 100]} onValueChange={([v]) => setVolume(v / 100)} max={100} step={1} className="w-20" />
+                </div>
+              </>
             )}
             <button onClick={toggleFavorite} className={`transition-colors p-1 ${isFav ? "text-gold" : "text-muted-foreground hover:text-gold"}`}>
               <Heart className="w-5 h-5" fill={isFav ? "currentColor" : "none"} />
             </button>
+            {/* Mobile: 3-dot menu */}
+            {isMobile && (
+              <button onClick={() => setShowMobileMenu(true)} className="text-muted-foreground hover:text-foreground p-1">
+                <MoreVertical className="w-5 h-5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -357,6 +393,91 @@ const ExpandedPlayer = () => {
     </Dialog>
     {currentSong && (
       <AddToPlaylistModal open={showAddToPlaylist} onOpenChange={setShowAddToPlaylist} songId={currentSong.id} songTitle={currentSong.title} />
+    )}
+
+    {/* Mobile 3-dot Menu Sheet */}
+    <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
+      <SheetContent side="bottom" className="rounded-t-2xl">
+        <SheetHeader>
+          <SheetTitle className="text-sm">Player Options</SheetTitle>
+        </SheetHeader>
+        <nav className="py-2 space-y-1">
+          {/* Download */}
+          <button
+            onClick={() => { setShowMobileMenu(false); currentSong?.audioUrl && (canDl ? handleDl() : setShowUpgrade(true)); }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors text-foreground"
+          >
+            {dlState === "done" ? <Check className="w-5 h-5 text-green-500" /> : canDl ? <Download className={`w-5 h-5 ${dlState === "downloading" ? "animate-pulse text-gold" : ""}`} /> : <Lock className="w-5 h-5 text-gold/50" />}
+            {dlState === "done" ? "Downloaded" : dlState === "downloading" ? "Downloading..." : "Download"}
+          </button>
+          {/* Record */}
+          {recordFeatureEnabled && (
+            <button
+              onClick={() => { setShowMobileMenu(false); if (isPremium) { if (!isKaraoke) toggleKaraoke(); setShowRecorder(true); } else setShowUpgrade(true); }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors text-foreground"
+            >
+              <Disc3 className={`w-5 h-5 ${isRecordingActive ? "animate-spin text-destructive" : "text-destructive/70"}`} />
+              Record Karaoke
+              {!isPremium && <Crown className="w-3.5 h-3.5 text-gold ml-auto" />}
+            </button>
+          )}
+          {/* Karaoke Toggle */}
+          <button
+            onClick={() => { setShowMobileMenu(false); toggleKaraoke(); }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors text-foreground"
+          >
+            <Mic2 className={`w-5 h-5 ${isKaraoke ? "text-gold" : ""}`} />
+            {isKaraoke ? "Switch to Full Song" : "Switch to Karaoke"}
+          </button>
+          {/* Queue */}
+          <button
+            onClick={() => { setShowMobileMenu(false); setShowQueue(q => !q); }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors text-foreground"
+          >
+            <ListMusic className="w-5 h-5" />
+            Queue ({queue.length})
+          </button>
+          {/* Volume */}
+          <div className="flex items-center gap-3 px-4 py-3">
+            <button onClick={() => setVolume(volume === 0 ? 0.7 : 0)} className="text-muted-foreground">
+              <VolumeIcon className="w-5 h-5" />
+            </button>
+            <Slider value={[volume * 100]} onValueChange={([v]) => setVolume(v / 100)} max={100} step={1} className="flex-1" />
+          </div>
+          {/* Add to Playlist */}
+          {user && (
+            <button
+              onClick={() => { setShowMobileMenu(false); setShowAddToPlaylist(true); }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors text-foreground"
+            >
+              <ListPlus className="w-5 h-5" />
+              Add to Playlist
+            </button>
+          )}
+        </nav>
+      </SheetContent>
+    </Sheet>
+
+    {/* Queue Panel */}
+    {showQueue && (
+      <div className="fixed bottom-0 left-0 right-0 z-[60] h-[50vh] rounded-t-xl border-t border-border bg-card shadow-2xl overflow-hidden animate-fade-in-up">
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <h4 className="text-sm font-semibold text-foreground">Queue</h4>
+          <button onClick={() => setShowQueue(false)} className="text-muted-foreground hover:text-foreground"><MoreVertical className="w-4 h-4 rotate-90" /></button>
+        </div>
+        <div className="overflow-y-auto h-[calc(50vh-48px)] scrollbar-hide">
+          {queue.map((song, i) => (
+            <div key={`${song.id}-${i}`} className={`flex items-center gap-3 px-4 py-2.5 text-sm ${i === queueIndex ? "bg-gold/10 text-gold" : "text-foreground hover:bg-muted/40"}`}>
+              <span className="w-5 text-xs text-muted-foreground text-right">{i + 1}</span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm">{song.title}</p>
+                <p className="truncate text-xs text-muted-foreground">{song.artist}</p>
+              </div>
+            </div>
+          ))}
+          {queue.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">Queue is empty</p>}
+        </div>
+      </div>
     )}
     </>
   );

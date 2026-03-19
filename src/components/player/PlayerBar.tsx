@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, VolumeX, Mic2, ListMusic, ChevronUp, X, Download, Check, Lock, Crown, Disc3 } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, VolumeX, Mic2, ListMusic, ChevronUp, X, Download, Check, Lock, Crown, Disc3, MoreVertical } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -131,30 +131,10 @@ const PlayerBar = () => {
 
           {/* Controls */}
           <div className="flex items-center gap-2 md:gap-4">
-            {/* Mobile record karaoke icon */}
-            {recordFeatureEnabled && (
-            <div className="md:hidden">
-              <button onClick={() => { if (!isExpanded) toggleExpanded(); }} className="text-destructive/70 hover:text-destructive transition-colors">
-                <Disc3 className="w-4 h-4" />
-              </button>
-            </div>
-            )}
-            {/* Mobile download button */}
-            <div className="md:hidden">
-              {currentSong?.audioUrl && (
-                downloaded ? (
-                  <span className="text-green-500"><Check className="w-4 h-4" /></span>
-                ) : canDownload ? (
-                  <button onClick={handleDownload} disabled={downloading} className="text-muted-foreground">
-                    <Download className={`w-4 h-4 ${downloading ? "animate-pulse text-gold" : ""}`} />
-                  </button>
-                ) : (
-                  <button onClick={() => toast.info("Upgrade to Premium to download")} className="text-gold/50">
-                    <Lock className="w-3.5 h-3.5" />
-                  </button>
-                )
-              )}
-            </div>
+            {/* Mobile 3-dot menu */}
+            <button onClick={toggleExpanded} className="md:hidden text-muted-foreground hover:text-foreground transition-colors">
+              <MoreVertical className="w-5 h-5" />
+            </button>
             <button onClick={toggleShuffle} className={`hidden md:block transition-colors ${shuffleOn ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               <Shuffle className="w-4 h-4" />
             </button>

@@ -29,6 +29,7 @@ const SendMessageModal = ({ open, onOpenChange, targetUser }: SendMessageModalPr
   const [message, setMessage] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [deepLink, setDeepLink] = useState("");
+  const [actionUrl, setActionUrl] = useState("");
   const [sending, setSending] = useState(false);
 
   // Multi-user search
@@ -48,6 +49,7 @@ const SendMessageModal = ({ open, onOpenChange, targetUser }: SendMessageModalPr
       setMessage("");
       setImageUrl("");
       setDeepLink("");
+      setActionUrl("");
       setSearch("");
       setSearchResults([]);
       setSelectedUsers([]);
@@ -95,6 +97,7 @@ const SendMessageModal = ({ open, onOpenChange, targetUser }: SendMessageModalPr
           message: message.trim(),
           image_url: imageUrl.trim() || undefined,
           deep_link: deepLink.trim() || undefined,
+          action_url: actionUrl.trim() || undefined,
           segment: "direct",
           target_user_ids: targetIds,
         },
@@ -212,7 +215,12 @@ const SendMessageModal = ({ open, onOpenChange, targetUser }: SendMessageModalPr
 
           <div className="space-y-1.5">
             <Label htmlFor="msg-link">Deep Link (optional)</Label>
-            <Input id="msg-link" placeholder="https://..." value={deepLink} onChange={(e) => setDeepLink(e.target.value)} />
+            <Input id="msg-link" placeholder="/albums or /subscription" value={deepLink} onChange={(e) => setDeepLink(e.target.value)} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="msg-action-url">Action URL (optional, opens in new tab)</Label>
+            <Input id="msg-action-url" placeholder="https://example.com" value={actionUrl} onChange={(e) => setActionUrl(e.target.value)} />
           </div>
 
           <Button onClick={handleSend} disabled={sending || !title.trim() || !message.trim() || selectedUsers.length === 0} className="w-full">

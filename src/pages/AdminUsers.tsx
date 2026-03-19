@@ -70,7 +70,12 @@ const AdminUsers = () => {
     (roles || []).forEach((r: any) => roleMap.set(r.user_id, r.role));
 
     const subMap = new Map<string, { subscription: string; expiry: string | null }>();
-    (subs || []).forEach((s: any) => subMap.set(s.user_id, { subscription: s.subscription, expiry: s.subscription_expiry_date }));
+    (subs || []).forEach((s: any) => {
+      // Auto-detect expired subscriptions that haven't been reverted yet
+      const isExpired = s.subscription_expiry_date && new Date(s.subscription_expiry_date) < new Date();
+      const effectiveSub = (s.subscription === "premium" || s.subscription === "trial") && isExpired ? "free" : s.subscription;
+      subMap.set(s.user_id, { subscription: effectiveSub, expiry: s.subscription_expiry_date });
+    });
 
     const merged: UserRow[] = profiles.map((p: any) => ({
       user_id: p.user_id,

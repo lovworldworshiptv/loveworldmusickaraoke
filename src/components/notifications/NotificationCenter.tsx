@@ -55,6 +55,11 @@ const NotificationCenter = () => {
 
   const handleNotificationClick = (n: any) => {
     if (!n.is_read) markRead.mutate(n.id);
+    // If action_url exists, open in new tab
+    if (n.notification?.action_url) {
+      window.open(n.notification.action_url, "_blank", "noopener,noreferrer");
+      return;
+    }
     if (n.notification?.deep_link) {
       setOpen(false);
       navigate(n.notification.deep_link);
@@ -101,9 +106,9 @@ const NotificationCenter = () => {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{n.notification?.title}</p>
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.notification?.message}</p>
-                    {n.notification?.deep_link && (
+                    {(n.notification?.deep_link || n.notification?.action_url) && (
                       <span className="inline-flex items-center gap-1 text-[10px] text-primary mt-1">
-                        <ExternalLink className="w-3 h-3" /> Open
+                        <ExternalLink className="w-3 h-3" /> {n.notification?.action_url ? "Open Link" : "Open"}
                       </span>
                     )}
                     <p className="text-[10px] text-muted-foreground mt-1">

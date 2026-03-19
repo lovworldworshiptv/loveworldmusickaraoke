@@ -622,6 +622,7 @@ export type Database = {
       }
       notifications: {
         Row: {
+          action_url: string | null
           created_at: string
           created_by: string
           deep_link: string | null
@@ -637,6 +638,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          action_url?: string | null
           created_at?: string
           created_by: string
           deep_link?: string | null
@@ -652,6 +654,7 @@ export type Database = {
           title: string
         }
         Update: {
+          action_url?: string | null
           created_at?: string
           created_by?: string
           deep_link?: string | null
