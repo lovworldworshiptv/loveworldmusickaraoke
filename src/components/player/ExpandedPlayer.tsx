@@ -55,6 +55,7 @@ const ExpandedPlayer = () => {
     currentSong, isPlaying, isKaraoke, progress, duration, currentTime,
     lrcLines, activeLrcIndex, togglePlay, toggleKaraoke, toggleExpanded, seekTo,
     skipNext, skipPrev, repeatMode, cycleRepeat, shuffleOn, toggleShuffle,
+    volume, setVolume, queue, queueIndex,
   } = usePlayer();
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
@@ -62,6 +63,9 @@ const ExpandedPlayer = () => {
   const [showRecorder, setShowRecorder] = useState(false);
   const [isRecordingActive, setIsRecordingActive] = useState(false);
   const [recordFeatureEnabled, setRecordFeatureEnabled] = useState(true);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showQueue, setShowQueue] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     supabase.from("app_settings" as any).select("value").eq("key", "karaoke_record_enabled").single()
@@ -80,6 +84,7 @@ const ExpandedPlayer = () => {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
   const canDl = isPremium;
+  const VolumeIcon = volume === 0 ? VolumeX : Volume2;
 
   useEffect(() => {
     if (!currentSong) { setDlState("none"); return; }
