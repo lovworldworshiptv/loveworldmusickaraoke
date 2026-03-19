@@ -96,6 +96,7 @@ const SendMessageModal = ({ open, onOpenChange, targetUser }: SendMessageModalPr
           message: message.trim(),
           image_url: imageUrl.trim() || undefined,
           deep_link: deepLink.trim() || undefined,
+          action_url: actionUrl.trim() || undefined,
           segment: "direct",
           target_user_ids: targetIds,
         },
