@@ -62,6 +62,7 @@ const AdminNotifications = () => {
       setMessage("");
       setImageUrl("");
       setDeepLink("");
+      setActionUrl("");
       setScheduledAt("");
       queryClient.invalidateQueries({ queryKey: ["admin-notifications"] });
     },
