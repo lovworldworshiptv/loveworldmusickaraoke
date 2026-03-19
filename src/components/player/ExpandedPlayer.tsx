@@ -167,27 +167,56 @@ const ExpandedPlayer = () => {
             <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-medium">Now Playing</p>
           </div>
           <div className="flex items-center gap-3">
-            {user && (
-              <button onClick={() => setShowAddToPlaylist(true)} className="text-muted-foreground hover:text-foreground p-1">
-                <ListPlus className="w-5 h-5" />
-              </button>
-            )}
-            {currentSong?.audioUrl && (
-              dlState === "done" ? (
-                <span className="text-green-500 p-1"><Check className="w-5 h-5" /></span>
-              ) : canDl ? (
-                <button onClick={handleDl} disabled={dlState === "downloading"} className="text-muted-foreground hover:text-foreground p-1">
-                  <Download className={`w-5 h-5 ${dlState === "downloading" ? "animate-pulse text-gold" : ""}`} />
+            {/* Desktop: show all action buttons inline */}
+            {!isMobile && (
+              <>
+                {user && (
+                  <button onClick={() => setShowAddToPlaylist(true)} className="text-muted-foreground hover:text-foreground p-1" title="Add to Playlist">
+                    <ListPlus className="w-5 h-5" />
+                  </button>
+                )}
+                {currentSong?.audioUrl && (
+                  dlState === "done" ? (
+                    <span className="text-green-500 p-1"><Check className="w-5 h-5" /></span>
+                  ) : canDl ? (
+                    <button onClick={handleDl} disabled={dlState === "downloading"} className="text-muted-foreground hover:text-foreground p-1" title="Download">
+                      <Download className={`w-5 h-5 ${dlState === "downloading" ? "animate-pulse text-gold" : ""}`} />
+                    </button>
+                  ) : (
+                    <button onClick={() => setShowUpgrade(true)} className="text-gold/50 p-1" title="Download (Premium)">
+                      <Lock className="w-5 h-5" />
+                    </button>
+                  )
+                )}
+                {recordFeatureEnabled && (isPremium ? (
+                  <button onClick={() => { if (!isKaraoke) toggleKaraoke(); setShowRecorder(true); }} className="text-destructive/70 hover:text-destructive p-1" title="Record Karaoke">
+                    <Disc3 className={`w-5 h-5 ${isRecordingActive ? "animate-spin" : ""}`} />
+                  </button>
+                ) : (
+                  <button onClick={() => setShowUpgrade(true)} className="text-gold/50 p-1" title="Record (Premium)">
+                    <Crown className="w-4 h-4" />
+                  </button>
+                ))}
+                <button onClick={() => setShowQueue(q => !q)} className={`p-1 transition-colors ${showQueue ? "text-gold" : "text-muted-foreground hover:text-foreground"}`} title="Queue">
+                  <ListMusic className="w-5 h-5" />
                 </button>
-              ) : (
-                <button onClick={() => setShowUpgrade(true)} className="text-gold/50 p-1">
-                  <Lock className="w-5 h-5" />
-                </button>
-              )
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => setVolume(volume === 0 ? 0.7 : 0)} className="p-1 text-muted-foreground hover:text-foreground">
+                    <VolumeIcon className="w-5 h-5" />
+                  </button>
+                  <Slider value={[volume * 100]} onValueChange={([v]) => setVolume(v / 100)} max={100} step={1} className="w-20" />
+                </div>
+              </>
             )}
             <button onClick={toggleFavorite} className={`transition-colors p-1 ${isFav ? "text-gold" : "text-muted-foreground hover:text-gold"}`}>
               <Heart className="w-5 h-5" fill={isFav ? "currentColor" : "none"} />
             </button>
+            {/* Mobile: 3-dot menu */}
+            {isMobile && (
+              <button onClick={() => setShowMobileMenu(true)} className="text-muted-foreground hover:text-foreground p-1">
+                <MoreVertical className="w-5 h-5" />
+              </button>
+            )}
           </div>
         </div>
 
