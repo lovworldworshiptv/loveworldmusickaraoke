@@ -29,6 +29,7 @@ const SendMessageModal = ({ open, onOpenChange, targetUser }: SendMessageModalPr
   const [message, setMessage] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [deepLink, setDeepLink] = useState("");
+  const [actionUrl, setActionUrl] = useState("");
   const [sending, setSending] = useState(false);
 
   // Multi-user search
