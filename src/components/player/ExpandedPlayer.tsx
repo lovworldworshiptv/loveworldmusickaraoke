@@ -394,6 +394,91 @@ const ExpandedPlayer = () => {
     {currentSong && (
       <AddToPlaylistModal open={showAddToPlaylist} onOpenChange={setShowAddToPlaylist} songId={currentSong.id} songTitle={currentSong.title} />
     )}
+
+    {/* Mobile 3-dot Menu Sheet */}
+    <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
+      <SheetContent side="bottom" className="rounded-t-2xl">
+        <SheetHeader>
+          <SheetTitle className="text-sm">Player Options</SheetTitle>
+        </SheetHeader>
+        <nav className="py-2 space-y-1">
+          {/* Download */}
+          <button
+            onClick={() => { setShowMobileMenu(false); currentSong?.audioUrl && (canDl ? handleDl() : setShowUpgrade(true)); }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors text-foreground"
+          >
+            {dlState === "done" ? <Check className="w-5 h-5 text-green-500" /> : canDl ? <Download className={`w-5 h-5 ${dlState === "downloading" ? "animate-pulse text-gold" : ""}`} /> : <Lock className="w-5 h-5 text-gold/50" />}
+            {dlState === "done" ? "Downloaded" : dlState === "downloading" ? "Downloading..." : "Download"}
+          </button>
+          {/* Record */}
+          {recordFeatureEnabled && (
+            <button
+              onClick={() => { setShowMobileMenu(false); if (isPremium) { if (!isKaraoke) toggleKaraoke(); setShowRecorder(true); } else setShowUpgrade(true); }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors text-foreground"
+            >
+              <Disc3 className={`w-5 h-5 ${isRecordingActive ? "animate-spin text-destructive" : "text-destructive/70"}`} />
+              Record Karaoke
+              {!isPremium && <Crown className="w-3.5 h-3.5 text-gold ml-auto" />}
+            </button>
+          )}
+          {/* Karaoke Toggle */}
+          <button
+            onClick={() => { setShowMobileMenu(false); toggleKaraoke(); }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors text-foreground"
+          >
+            <Mic2 className={`w-5 h-5 ${isKaraoke ? "text-gold" : ""}`} />
+            {isKaraoke ? "Switch to Full Song" : "Switch to Karaoke"}
+          </button>
+          {/* Queue */}
+          <button
+            onClick={() => { setShowMobileMenu(false); setShowQueue(q => !q); }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors text-foreground"
+          >
+            <ListMusic className="w-5 h-5" />
+            Queue ({queue.length})
+          </button>
+          {/* Volume */}
+          <div className="flex items-center gap-3 px-4 py-3">
+            <button onClick={() => setVolume(volume === 0 ? 0.7 : 0)} className="text-muted-foreground">
+              <VolumeIcon className="w-5 h-5" />
+            </button>
+            <Slider value={[volume * 100]} onValueChange={([v]) => setVolume(v / 100)} max={100} step={1} className="flex-1" />
+          </div>
+          {/* Add to Playlist */}
+          {user && (
+            <button
+              onClick={() => { setShowMobileMenu(false); setShowAddToPlaylist(true); }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors text-foreground"
+            >
+              <ListPlus className="w-5 h-5" />
+              Add to Playlist
+            </button>
+          )}
+        </nav>
+      </SheetContent>
+    </Sheet>
+
+    {/* Queue Panel */}
+    {showQueue && (
+      <div className="fixed bottom-0 left-0 right-0 z-[60] h-[50vh] rounded-t-xl border-t border-border bg-card shadow-2xl overflow-hidden animate-fade-in-up">
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <h4 className="text-sm font-semibold text-foreground">Queue</h4>
+          <button onClick={() => setShowQueue(false)} className="text-muted-foreground hover:text-foreground"><MoreVertical className="w-4 h-4 rotate-90" /></button>
+        </div>
+        <div className="overflow-y-auto h-[calc(50vh-48px)] scrollbar-hide">
+          {queue.map((song, i) => (
+            <div key={`${song.id}-${i}`} className={`flex items-center gap-3 px-4 py-2.5 text-sm ${i === queueIndex ? "bg-gold/10 text-gold" : "text-foreground hover:bg-muted/40"}`}>
+              <span className="w-5 text-xs text-muted-foreground text-right">{i + 1}</span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm">{song.title}</p>
+                <p className="truncate text-xs text-muted-foreground">{song.artist}</p>
+              </div>
+            </div>
+          ))}
+          {queue.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">Queue is empty</p>}
+        </div>
+      </div>
+    )}
     </>
   );
 };
