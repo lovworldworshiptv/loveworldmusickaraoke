@@ -101,6 +101,7 @@ const AdminNotifications = () => {
             <Textarea placeholder="Message" value={message} onChange={(e) => setMessage(e.target.value)} rows={3} />
             <ImageUploadPicker bucket="notification-images" label="Notification Image (optional)" value={imageUrl} onChange={setImageUrl} />
             <Input placeholder="Deep Link (optional, e.g. /albums)" value={deepLink} onChange={(e) => setDeepLink(e.target.value)} />
+            <Input placeholder="Action URL (optional, opens in new tab when clicked)" value={actionUrl} onChange={(e) => setActionUrl(e.target.value)} />
 
             <div className="flex gap-4 flex-wrap">
               <div className="flex-1 min-w-[150px]">
