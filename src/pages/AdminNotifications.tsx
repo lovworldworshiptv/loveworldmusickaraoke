@@ -23,6 +23,7 @@ const AdminNotifications = () => {
   const [message, setMessage] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [deepLink, setDeepLink] = useState("");
+  const [actionUrl, setActionUrl] = useState("");
   const [segment, setSegment] = useState("all");
   const [scheduledAt, setScheduledAt] = useState("");
 
