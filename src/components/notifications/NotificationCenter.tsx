@@ -55,6 +55,11 @@ const NotificationCenter = () => {
 
   const handleNotificationClick = (n: any) => {
     if (!n.is_read) markRead.mutate(n.id);
+    // If action_url exists, open in new tab
+    if (n.notification?.action_url) {
+      window.open(n.notification.action_url, "_blank", "noopener,noreferrer");
+      return;
+    }
     if (n.notification?.deep_link) {
       setOpen(false);
       navigate(n.notification.deep_link);
