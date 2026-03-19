@@ -49,6 +49,7 @@ const SendMessageModal = ({ open, onOpenChange, targetUser }: SendMessageModalPr
       setMessage("");
       setImageUrl("");
       setDeepLink("");
+      setActionUrl("");
       setSearch("");
       setSearchResults([]);
       setSelectedUsers([]);
