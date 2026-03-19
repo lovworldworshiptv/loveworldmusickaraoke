@@ -46,6 +46,7 @@ const AdminNotifications = () => {
       const body: any = { title, message, segment };
       if (imageUrl) body.image_url = imageUrl;
       if (deepLink) body.deep_link = deepLink;
+      if (actionUrl) body.action_url = actionUrl;
       if (scheduledAt) body.scheduled_at = new Date(scheduledAt).toISOString();
 
       const { data, error } = await supabase.functions.invoke("send-notification", {
