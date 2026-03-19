@@ -214,7 +214,12 @@ const SendMessageModal = ({ open, onOpenChange, targetUser }: SendMessageModalPr
 
           <div className="space-y-1.5">
             <Label htmlFor="msg-link">Deep Link (optional)</Label>
-            <Input id="msg-link" placeholder="https://..." value={deepLink} onChange={(e) => setDeepLink(e.target.value)} />
+            <Input id="msg-link" placeholder="/albums or /subscription" value={deepLink} onChange={(e) => setDeepLink(e.target.value)} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="msg-action-url">Action URL (optional, opens in new tab)</Label>
+            <Input id="msg-action-url" placeholder="https://example.com" value={actionUrl} onChange={(e) => setActionUrl(e.target.value)} />
           </div>
 
           <Button onClick={handleSend} disabled={sending || !title.trim() || !message.trim() || selectedUsers.length === 0} className="w-full">
