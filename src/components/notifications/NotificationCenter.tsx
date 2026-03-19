@@ -57,7 +57,11 @@ const NotificationCenter = () => {
     if (!n.is_read) markRead.mutate(n.id);
     // If action_url exists, open in new tab
     if (n.notification?.action_url) {
-      window.open(n.notification.action_url, "_blank", "noopener,noreferrer");
+      let url = n.notification.action_url.trim();
+      if (!/^https?:\/\//i.test(url)) {
+        url = "https://" + url;
+      }
+      window.open(url, "_blank", "noopener,noreferrer");
       return;
     }
     if (n.notification?.deep_link) {
