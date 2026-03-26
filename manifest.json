@@ -3,7 +3,7 @@
   "background_color": "#000000",
   "description": "Sing along and discover Loveworld Music — hymns, worship, and praise songs.",
   "dir": "ltr",
-  "display": "fullscreen",
+  "display": "standalone",
   "name": "Loveworld Music Karaoke+",
   "orientation": "any",
   "scope": "https://accounts.kingsch.at/",
@@ -27,7 +27,7 @@
 
   "screenshots": [
     {
-      "src": "screenshots/home.jpg",
+      "src": "home.jpg",
       "sizes": "1080x1976",
       "type": "image/jpg",
       "form_factor": "wide"
