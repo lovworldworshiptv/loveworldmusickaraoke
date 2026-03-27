@@ -3,11 +3,14 @@ import { Share2, Mail, Copy, Check } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { nativeShare, openExternal, isMedianApp } from "@/lib/median";
+import kingschatLogo from "@/assets/kingschat_logo.png";
 
 interface ShareMenuProps {
   url: string;
   title: string;
   text?: string;
+  /** Optional image URL for social previews */
+  imageUrl?: string;
   /** Show KingsChat as first option */
   kingschatFirst?: boolean;
   /** Custom trigger element; defaults to a Share button */
@@ -15,13 +18,6 @@ interface ShareMenuProps {
 }
 
 const DOMAIN = "https://loveworldmusickaraoke.com";
-
-// SVG icons
-const KingsChatIcon = () => (
-  <svg className="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.38 5.07L2 22l4.93-1.38A9.94 9.94 0 0012 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm4.5 13.5c-.2.56-1.16 1.08-1.6 1.12-.42.04-.81.2-2.73-.57-2.32-.93-3.8-3.3-3.92-3.45-.11-.16-.93-1.24-.93-2.36s.59-1.67.8-1.9c.21-.23.46-.28.61-.28h.44c.14 0 .33-.05.52.4.2.46.67 1.64.73 1.76.06.11.1.25.02.4-.08.16-.12.25-.23.39-.11.13-.24.3-.34.4-.11.11-.23.23-.1.46.13.22.59.98 1.27 1.58.87.78 1.6 1.02 1.83 1.13.22.11.36.1.49-.06.13-.16.56-.65.71-.88.15-.22.3-.18.51-.11.2.07 1.29.61 1.51.72.22.11.37.17.42.26.06.1.06.56-.14 1.12z"/>
-  </svg>
-);
 
 const WhatsAppIcon = () => (
   <svg className="w-4 h-4 text-green-500" viewBox="0 0 24 24" fill="currentColor">
@@ -46,7 +42,7 @@ export function buildShareUrl(path: string) {
   return `${DOMAIN}${path}`;
 }
 
-const ShareMenu = ({ url, title, text, kingschatFirst = false, trigger }: ShareMenuProps) => {
+const ShareMenu = ({ url, title, text, imageUrl, kingschatFirst = false, trigger }: ShareMenuProps) => {
   const [copied, setCopied] = useState(false);
 
   const shareText = text || title;
@@ -63,7 +59,6 @@ const ShareMenu = ({ url, title, text, kingschatFirst = false, trigger }: ShareM
   };
 
   const open = (link: string) => {
-    // On mobile apps, use native intent URLs when possible
     if (isMedianApp()) {
       openExternal(link);
     } else {
@@ -73,9 +68,20 @@ const ShareMenu = ({ url, title, text, kingschatFirst = false, trigger }: ShareM
 
   const handleKingsChat = () => open(`https://m.kingsch.at/?share=${encodedUrl}&text=${encodedText}`);
   const handleWhatsApp = () => open(`https://wa.me/?text=${encodedText}%0A${encodedUrl}`);
-  const handleTwitter = () => open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`);
-  const handleFacebook = () => open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`);
-  const handleEmail = () => open(`mailto:?subject=${emailSubject}&body=${emailBody}`);
+  const handleTwitter = () => {
+    // X/Twitter doesn't support image in intent, but text + url works
+    open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`);
+  };
+  const handleFacebook = () => {
+    // Facebook uses OG tags from the URL; we pass the URL
+    open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`);
+  };
+  const handleEmail = () => {
+    const body = imageUrl
+      ? encodeURIComponent(`${shareText}\n\n${url}\n\n${imageUrl}`)
+      : emailBody;
+    open(`mailto:?subject=${emailSubject}&body=${body}`);
+  };
 
   const handleNative = () => {
     if (nativeShare(url, shareText)) return;
@@ -84,23 +90,25 @@ const ShareMenu = ({ url, title, text, kingschatFirst = false, trigger }: ShareM
     }
   };
 
+  const btnClass = "flex items-center gap-2.5 w-full px-2 py-2 rounded-md text-sm text-foreground hover:bg-accent transition-colors";
+
   const kcBtn = (
-    <button key="kc" onClick={handleKingsChat} className="flex items-center gap-2.5 w-full px-2 py-2 rounded-md text-sm text-foreground hover:bg-accent transition-colors">
-      <KingsChatIcon /> KingsChat
+    <button key="kc" onClick={handleKingsChat} className={btnClass}>
+      <img src={kingschatLogo} alt="KingsChat" className="w-4 h-4 rounded-sm" /> KingsChat
     </button>
   );
 
   const socialBtns = [
-    <button key="wa" onClick={handleWhatsApp} className="flex items-center gap-2.5 w-full px-2 py-2 rounded-md text-sm text-foreground hover:bg-accent transition-colors">
+    <button key="wa" onClick={handleWhatsApp} className={btnClass}>
       <WhatsAppIcon /> WhatsApp
     </button>,
-    <button key="x" onClick={handleTwitter} className="flex items-center gap-2.5 w-full px-2 py-2 rounded-md text-sm text-foreground hover:bg-accent transition-colors">
+    <button key="x" onClick={handleTwitter} className={btnClass}>
       <XIcon /> X (Twitter)
     </button>,
-    <button key="fb" onClick={handleFacebook} className="flex items-center gap-2.5 w-full px-2 py-2 rounded-md text-sm text-foreground hover:bg-accent transition-colors">
+    <button key="fb" onClick={handleFacebook} className={btnClass}>
       <FacebookIcon /> Facebook
     </button>,
-    <button key="em" onClick={handleEmail} className="flex items-center gap-2.5 w-full px-2 py-2 rounded-md text-sm text-foreground hover:bg-accent transition-colors">
+    <button key="em" onClick={handleEmail} className={btnClass}>
       <Mail className="w-4 h-4 text-gold" /> Email
     </button>,
   ];
@@ -117,11 +125,17 @@ const ShareMenu = ({ url, title, text, kingschatFirst = false, trigger }: ShareM
         )}
       </PopoverTrigger>
       <PopoverContent className="w-56 p-2" align="end">
-        <p className="text-xs font-semibold text-foreground px-2 py-1.5">Share</p>
+        {imageUrl && (
+          <div className="px-2 pb-2">
+            <img src={imageUrl} alt={title} className="w-full h-20 object-cover rounded-md" />
+            <p className="text-xs font-semibold text-foreground mt-1 truncate">{title}</p>
+          </div>
+        )}
+        {!imageUrl && <p className="text-xs font-semibold text-foreground px-2 py-1.5">Share</p>}
         <div className="space-y-0.5">
           {orderedBtns}
           <div className="border-t border-border my-1" />
-          <button onClick={handleCopy} className="flex items-center gap-2.5 w-full px-2 py-2 rounded-md text-sm text-foreground hover:bg-accent transition-colors">
+          <button onClick={handleCopy} className={btnClass}>
             {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
             {copied ? "Copied!" : "Copy Link"}
           </button>

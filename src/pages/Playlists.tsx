@@ -130,6 +130,7 @@ const Playlists = () => {
               url={buildShareUrl(`/playlists?id=${pl.id}`)}
               title={pl.name}
               text={`Check out this playlist: ${pl.name}`}
+              imageUrl={pl.cover_url || (songs[0]?.coverUrl ? songs[0].coverUrl : undefined)}
             />
             {songs.length > 0 && (
               <>

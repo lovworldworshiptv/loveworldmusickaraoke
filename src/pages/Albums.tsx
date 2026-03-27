@@ -91,6 +91,7 @@ const Albums = () => {
                   url={buildShareUrl(`/albums?id=${selectedAlbum.id}`)}
                   title={selectedAlbum.title}
                   text={`Listen to "${selectedAlbum.title}" by ${selectedAlbum.artist}`}
+                  imageUrl={selectedAlbum.cover_url || undefined}
                 />
               </div>
             </div>
