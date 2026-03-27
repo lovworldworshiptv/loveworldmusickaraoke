@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "co.median.android.zpbdneo",
+      "sha256_cert_fingerprints": [
+        "21:E0:B0:E1:85:A6:B8:B0:86:4F:5C:DC:21:A9:17:EC:89:42:CB:D3:B8:EE:1B:04:15:95:62:AC:49:E6:80:88"
+      ]
+    }
+  }
+]
