@@ -11,11 +11,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { SongRowSkeleton, EmptyState } from "@/components/ui/loading-skeleton";
 import { toast } from "sonner";
 import ShareMenu, { buildShareUrl } from "@/components/share/ShareMenu";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { SongRowSkeleton, EmptyState } from "@/components/ui/loading-skeleton";
-import { toast } from "sonner";
 
 const Playlists = () => {
   const { user } = useAuth();
