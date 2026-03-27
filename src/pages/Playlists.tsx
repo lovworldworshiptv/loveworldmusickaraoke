@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ListMusic, Plus, Trash2, Play, Music, Shuffle, Pencil, Check, X, Minus } from "lucide-react";
+import { ListMusic, Plus, Trash2, Play, Music, Shuffle, Pencil, Check, X, Minus, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -20,6 +20,15 @@ const Playlists = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [expandedPlaylists, setExpandedPlaylists] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (id: string) => {
+    setExpandedPlaylists(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   const { data: myPlaylists = [], isLoading } = useQuery({
     queryKey: ["playlists-page", user?.id],
@@ -108,14 +117,16 @@ const Playlists = () => {
     const songs = playlistSongs.map((ps: any) => toPlayerSong(ps.songs));
     const isEditing = editingId === pl.id;
     const requiresAuth = !user && !isOwn;
+    const isExpanded = expandedPlaylists.has(pl.id);
 
     return (
       <div key={pl.id} className="rounded-xl border border-border p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div className="flex items-center justify-between">
+          <button onClick={() => toggleExpanded(pl.id)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
+            <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-0" : "-rotate-90"}`} />
             <ListMusic className="w-5 h-5 text-primary shrink-0" />
             {isEditing ? (
-              <form onSubmit={(e) => { e.preventDefault(); renamePlaylist(pl.id, editName); }} className="flex items-center gap-1 flex-1">
+              <form onSubmit={(e) => { e.preventDefault(); renamePlaylist(pl.id, editName); }} className="flex items-center gap-1 flex-1" onClick={e => e.stopPropagation()}>
                 <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-7 text-sm" autoFocus />
                 <button type="submit" className="p-1 text-green-500 hover:text-green-600"><Check className="w-4 h-4" /></button>
                 <button type="button" onClick={() => setEditingId(null)} className="p-1 text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
@@ -127,7 +138,7 @@ const Playlists = () => {
                 {!isOwn && <span className="text-[10px] font-semibold uppercase tracking-wider text-gold bg-gold/10 px-2 py-0.5 rounded-full shrink-0">Official</span>}
               </>
             )}
-          </div>
+          </button>
           <div className="flex gap-1 shrink-0">
             <ShareMenu
               url={buildShareUrl(`/playlists?id=${pl.id}`)}
@@ -157,43 +168,47 @@ const Playlists = () => {
             )}
           </div>
         </div>
-        {requiresAuth ? (
-          <div className="text-center py-4">
-            <p className="text-sm text-muted-foreground mb-2">Sign in to view tracks in this playlist</p>
-            <Button size="sm" variant="outline" onClick={() => window.location.href = "/auth"} className="gap-1.5">
-              Sign In
-            </Button>
-          </div>
-        ) : songs.length > 0 ? (
-          <div className="space-y-1">
-            {playlistSongs.map((ps: any, i: number) => {
-              const song = toPlayerSong(ps.songs);
-              const isActive = currentSong?.id === song.id;
-              return (
-                <div key={ps.id} className={`flex items-center gap-3 w-full p-2 rounded-lg transition-colors ${isActive ? "bg-muted/80" : "hover:bg-muted/40"}`}>
-                  <button onClick={() => playQueue(songs, i)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
-                    {song.coverUrl ? (
-                      <img src={song.coverUrl} alt="" className="w-10 h-10 rounded object-cover" />
-                    ) : (
-                      <div className="w-10 h-10 rounded bg-primary/20 flex items-center justify-center"><Music className="w-4 h-4 text-primary" /></div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm truncate text-foreground">{song.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+        {isExpanded && (
+          <div className="mt-3">
+            {requiresAuth ? (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground mb-2">Sign in to view tracks in this playlist</p>
+                <Button size="sm" variant="outline" onClick={() => window.location.href = "/auth"} className="gap-1.5">
+                  Sign In
+                </Button>
+              </div>
+            ) : songs.length > 0 ? (
+              <div className="space-y-1">
+                {playlistSongs.map((ps: any, i: number) => {
+                  const song = toPlayerSong(ps.songs);
+                  const isActive = currentSong?.id === song.id;
+                  return (
+                    <div key={ps.id} className={`flex items-center gap-3 w-full p-2 rounded-lg transition-colors ${isActive ? "bg-muted/80" : "hover:bg-muted/40"}`}>
+                      <button onClick={() => playQueue(songs, i)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                        {song.coverUrl ? (
+                          <img src={song.coverUrl} alt="" className="w-10 h-10 rounded object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 rounded bg-primary/20 flex items-center justify-center"><Music className="w-4 h-4 text-primary" /></div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm truncate text-foreground">{song.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{formatDuration(song.durationSeconds || 0)}</span>
+                      </button>
+                      {isOwn && (
+                        <button onClick={() => removeSongFromPlaylist(ps.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors shrink-0">
+                          <Minus className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
-                    <span className="text-xs text-muted-foreground">{formatDuration(song.durationSeconds || 0)}</span>
-                  </button>
-                  {isOwn && (
-                    <button onClick={() => removeSongFromPlaylist(ps.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors shrink-0">
-                      <Minus className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">No songs in this playlist</p>
+            )}
           </div>
-        ) : (
-          <p className="text-xs text-muted-foreground">No songs in this playlist</p>
         )}
       </div>
     );
