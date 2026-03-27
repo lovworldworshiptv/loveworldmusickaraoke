@@ -66,7 +66,7 @@ const ShareMenu = ({ url, title, text, imageUrl, kingschatFirst = false, trigger
     }
   };
 
-  const handleKingsChat = () => open(`https://m.kingsch.at/?share=${encodedUrl}&text=${encodedText}`);
+  const handleKingsChat = () => open(`https://kingschat.online/?share=${encodedUrl}&text=${encodedText}`);
   const handleWhatsApp = () => open(`https://wa.me/?text=${encodedText}%0A${encodedUrl}`);
   const handleTwitter = () => {
     // X/Twitter doesn't support image in intent, but text + url works
