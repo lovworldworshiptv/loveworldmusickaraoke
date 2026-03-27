@@ -41,9 +41,13 @@ const Playlists = () => {
       const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
       if (!adminRoles || adminRoles.length === 0) return [];
       const adminIds = adminRoles.map(r => r.user_id);
+      // Fetch playlist metadata + songs only if authenticated
+      const selectFields = user
+        ? "id, name, cover_url, created_at, user_id, playlist_songs(id, song_id, sort_order, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album))"
+        : "id, name, cover_url, created_at, user_id";
       const { data, error } = await supabase
         .from("playlists")
-        .select("id, name, cover_url, created_at, user_id, playlist_songs(id, song_id, sort_order, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album))")
+        .select(selectFields)
         .in("user_id", adminIds)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -105,6 +109,7 @@ const Playlists = () => {
     const playlistSongs = (pl.playlist_songs || []).filter((ps: any) => ps.songs);
     const songs = playlistSongs.map((ps: any) => toPlayerSong(ps.songs));
     const isEditing = editingId === pl.id;
+    const requiresAuth = !user && !isOwn;
 
     return (
       <div key={pl.id} className="rounded-xl border border-border p-4">
@@ -154,7 +159,14 @@ const Playlists = () => {
             )}
           </div>
         </div>
-        {songs.length > 0 ? (
+        {requiresAuth ? (
+          <div className="text-center py-4">
+            <p className="text-sm text-muted-foreground mb-2">Sign in to view tracks in this playlist</p>
+            <Button size="sm" variant="outline" onClick={() => window.location.href = "/auth"} className="gap-1.5">
+              Sign In
+            </Button>
+          </div>
+        ) : songs.length > 0 ? (
           <div className="space-y-1">
             {playlistSongs.map((ps: any, i: number) => {
               const song = toPlayerSong(ps.songs);
