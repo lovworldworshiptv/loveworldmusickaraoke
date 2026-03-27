@@ -55,6 +55,13 @@ const AdminPlaylists = () => {
   }, []);
 
   const fetchPlaylists = async () => {
+    // Fetch admin user IDs so we only show admin-created (global) playlists
+    const { data: adminRoles } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "admin");
+    const adminUserIds = new Set((adminRoles || []).map((r) => r.user_id));
+
     const { data: playlistData } = await supabase
       .from("playlists")
       .select("id, name, user_id, cover_url, created_at, is_visible_on_homepage")
@@ -65,7 +72,10 @@ const AdminPlaylists = () => {
       return;
     }
 
-    const userIds = [...new Set(playlistData.map((p) => p.user_id))];
+    // Only show playlists created by admin users
+    const adminPlaylists = playlistData.filter((p) => adminUserIds.has(p.user_id));
+
+    const userIds = [...new Set(adminPlaylists.map((p) => p.user_id))];
     const { data: profiles } = await supabase
       .from("profiles")
       .select("user_id, username")
@@ -76,7 +86,7 @@ const AdminPlaylists = () => {
       profileMap[p.user_id] = p.username;
     });
 
-    const playlistIds = playlistData.map((p) => p.id);
+    const playlistIds = adminPlaylists.map((p) => p.id);
     const { data: songCounts } = await supabase
       .from("playlist_songs")
       .select("playlist_id")
@@ -88,7 +98,7 @@ const AdminPlaylists = () => {
     });
 
     setPlaylists(
-      playlistData.map((p) => ({
+      adminPlaylists.map((p) => ({
         ...p,
         profile_username: profileMap[p.user_id] || "Unknown",
         song_count: countMap[p.id] || 0,
