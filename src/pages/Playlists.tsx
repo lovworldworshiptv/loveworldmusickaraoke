@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ListMusic, Plus, Trash2, Play, Music, Shuffle, Pencil, Check, X, Minus, ChevronDown } from "lucide-react";
+import { ListMusic, Plus, Trash2, Play, Music, Shuffle, Pencil, Check, X, Minus, ChevronDown, Search, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
