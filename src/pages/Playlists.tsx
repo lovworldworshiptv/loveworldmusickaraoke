@@ -36,21 +36,19 @@ const Playlists = () => {
   });
 
   const { data: adminPlaylists = [] } = useQuery({
-    queryKey: ["admin-playlists"],
+    queryKey: ["admin-playlists", user?.id],
     queryFn: async () => {
-      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-      if (!adminRoles || adminRoles.length === 0) return [];
-      const adminIds = adminRoles.map(r => r.user_id);
-      // Fetch playlist metadata + songs only if authenticated
+      // RLS policy "All users can view admin playlists" handles visibility
+      // Fetch all playlists — RLS will return own + admin playlists for regular users
       const selectFields = user
         ? "id, name, cover_url, created_at, user_id, playlist_songs(id, song_id, sort_order, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album))"
         : "id, name, cover_url, created_at, user_id";
       const { data, error } = await supabase
         .from("playlists")
         .select(selectFields)
-        .in("user_id", adminIds)
         .order("created_at", { ascending: false });
       if (error) throw error;
+      // Filter out current user's own playlists (shown separately)
       return (data as any[]).filter(p => p.user_id !== user?.id);
     },
   });
