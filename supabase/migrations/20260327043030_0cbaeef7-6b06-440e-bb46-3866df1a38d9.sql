@@ -1,0 +1,1 @@
+ALTER TABLE public.user_roles ALTER COLUMN role SET DEFAULT 'user'::app_role;
