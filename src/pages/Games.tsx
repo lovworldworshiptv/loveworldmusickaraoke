@@ -1,7 +1,8 @@
 import AppLayout from "@/components/layout/AppLayout";
 import { useNavigate } from "react-router-dom";
-import { Music, BookOpen, Lock, Trophy, Gamepad2, Star, Target } from "lucide-react";
+import { Music, BookOpen, Lock, Trophy, Gamepad2, Star, Target, Share2 } from "lucide-react";
 import { useGameStats, ACHIEVEMENTS } from "@/hooks/useGameStats";
+import ShareMenu, { buildShareUrl } from "@/components/share/ShareMenu";
 
 const Games = () => {
   const navigate = useNavigate();
@@ -63,8 +64,22 @@ const Games = () => {
                 <span className="flex items-center gap-1"><Star className="w-3 h-3" /> {stats.totalPoints} pts</span>
               </div>
             )}
-            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium group-hover:opacity-90 transition-opacity">
-              Play Now
+            <div className="flex items-center gap-2">
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium group-hover:opacity-90 transition-opacity">
+                Play Now
+              </div>
+              <div onClick={(e) => e.stopPropagation()}>
+                <ShareMenu
+                  url={buildShareUrl("/games/songmatch")}
+                  title="SongMatch Challenge"
+                  text="I challenge you to play SongMatch! Test your music knowledge on Loveworld Music Karaoke+"
+                  trigger={
+                    <button className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-border text-foreground text-sm font-medium hover:bg-accent transition-colors">
+                      <Share2 className="w-4 h-4" /> Invite
+                    </button>
+                  }
+                />
+              </div>
             </div>
           </button>
 
