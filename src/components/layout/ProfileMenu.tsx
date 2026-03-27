@@ -32,7 +32,7 @@ const ProfileMenu = () => {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"main" | "settings">("main");
   const { theme, setTheme, themes } = useTheme();
-  const [role, setRole] = useState<string>("free");
+  const [role, setRole] = useState<string>("user");
   const { isPremium, isTrial, loading: premiumLoading } = useIsPremium();
 
   useEffect(() => {
@@ -52,8 +52,8 @@ const ProfileMenu = () => {
 
   const [adminSheetOpen, setAdminSheetOpen] = useState(false);
 
-  const roleLabel = role === "admin" ? "Admin" : role === "premium" ? "Premium" : "Free";
-  const RoleIcon = role === "admin" ? Shield : role === "premium" ? Crown : User;
+  const roleLabel = role === "admin" ? "Admin" : role === "editor" ? "Editor" : "User";
+  const RoleIcon = role === "admin" ? Shield : role === "editor" ? Crown : User;
 
   return (
     <>
