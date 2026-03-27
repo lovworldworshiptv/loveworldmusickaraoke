@@ -10,6 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { SongRowSkeleton, EmptyState } from "@/components/ui/loading-skeleton";
 import { toast } from "sonner";
+import ShareMenu, { buildShareUrl } from "@/components/share/ShareMenu";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { SongRowSkeleton, EmptyState } from "@/components/ui/loading-skeleton";
+import { toast } from "sonner";
 
 const Playlists = () => {
   const { user } = useAuth();
@@ -125,6 +131,11 @@ const Playlists = () => {
             )}
           </div>
           <div className="flex gap-1 shrink-0">
+            <ShareMenu
+              url={buildShareUrl(`/playlists?id=${pl.id}`)}
+              title={pl.name}
+              text={`Check out this playlist: ${pl.name}`}
+            />
             {songs.length > 0 && (
               <>
                 <button onClick={() => playQueue(songs)} className="w-8 h-8 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_2px_12px_hsl(43_70%_53%/0.4)] ring-1 ring-white/20 hover:scale-110 transition-transform">

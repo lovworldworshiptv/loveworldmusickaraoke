@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Disc3, Play, Shuffle, ChevronLeft, Music, Search } from "lucide-react";
 import { SongRowSkeleton, EmptyState } from "@/components/ui/loading-skeleton";
 import { useSearchParams } from "react-router-dom";
+import ShareMenu, { buildShareUrl } from "@/components/share/ShareMenu";
 
 const Albums = () => {
   const { playSong, playQueue, currentSong, isPlaying, toggleShuffle, shuffleOn } = usePlayer();
@@ -86,6 +87,11 @@ const Albums = () => {
                   className="px-4 py-2 rounded-full border border-border text-foreground text-xs font-semibold flex items-center gap-1.5 hover:bg-muted transition-colors">
                   <Shuffle className="w-3.5 h-3.5" /> Shuffle
                 </button>
+                <ShareMenu
+                  url={buildShareUrl(`/albums?id=${selectedAlbum.id}`)}
+                  title={selectedAlbum.title}
+                  text={`Listen to "${selectedAlbum.title}" by ${selectedAlbum.artist}`}
+                />
               </div>
             </div>
           </div>
