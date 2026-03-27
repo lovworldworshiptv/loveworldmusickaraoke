@@ -22,6 +22,12 @@ const Playlists = () => {
   const [editName, setEditName] = useState("");
   const [expandedPlaylists, setExpandedPlaylists] = useState<Set<string>>(new Set());
 
+  // Manage songs state
+  const [managingSongsPlaylistId, setManagingSongsPlaylistId] = useState<string | null>(null);
+  const [allSongs, setAllSongs] = useState<any[]>([]);
+  const [playlistSongIds, setPlaylistSongIds] = useState<Set<string>>(new Set());
+  const [songSearch, setSongSearch] = useState("");
+
   const toggleExpanded = (id: string) => {
     setExpandedPlaylists(prev => {
       const next = new Set(prev);
@@ -47,8 +53,6 @@ const Playlists = () => {
   const { data: adminPlaylists = [] } = useQuery({
     queryKey: ["admin-playlists", user?.id],
     queryFn: async () => {
-      // RLS policy "All users can view admin playlists" handles visibility
-      // Fetch all playlists — RLS will return own + admin playlists for regular users
       const selectFields = user
         ? "id, name, cover_url, created_at, user_id, playlist_songs(id, song_id, sort_order, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album))"
         : "id, name, cover_url, created_at, user_id";
@@ -57,7 +61,6 @@ const Playlists = () => {
         .select(selectFields)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      // Filter out current user's own playlists (shown separately)
       return (data as any[]).filter(p => p.user_id !== user?.id);
     },
   });
@@ -102,6 +105,36 @@ const Playlists = () => {
     queryClient.invalidateQueries({ queryKey: ["library-playlists"] });
     toast.success("Song removed from playlist");
   };
+
+  const openManageSongs = async (playlistId: string) => {
+    setManagingSongsPlaylistId(playlistId);
+    setSongSearch("");
+    const [{ data: songs }, { data: existing }] = await Promise.all([
+      supabase.from("songs").select("id, title, artist, cover_url").order("title"),
+      supabase.from("playlist_songs").select("song_id").eq("playlist_id", playlistId),
+    ]);
+    setAllSongs(songs || []);
+    setPlaylistSongIds(new Set((existing || []).map((e) => e.song_id)));
+  };
+
+  const toggleSongInPlaylist = async (songId: string) => {
+    if (!managingSongsPlaylistId) return;
+    if (playlistSongIds.has(songId)) {
+      await supabase.from("playlist_songs").delete().eq("playlist_id", managingSongsPlaylistId).eq("song_id", songId);
+      setPlaylistSongIds(prev => { const next = new Set(prev); next.delete(songId); return next; });
+    } else {
+      const { error } = await supabase.from("playlist_songs").insert({
+        playlist_id: managingSongsPlaylistId, song_id: songId, sort_order: playlistSongIds.size,
+      });
+      if (error) { toast.error(error.message); return; }
+      setPlaylistSongIds(prev => new Set(prev).add(songId));
+    }
+  };
+
+  const filteredSongs = allSongs.filter(s =>
+    s.title.toLowerCase().includes(songSearch.toLowerCase()) ||
+    s.artist.toLowerCase().includes(songSearch.toLowerCase())
+  );
 
   const toPlayerSong = (s: any): PlayerSong => ({
     id: s.id, title: s.title, artist: s.artist, album: s.album || undefined,
@@ -158,6 +191,9 @@ const Playlists = () => {
             )}
             {isOwn && !isEditing && (
               <>
+                <button onClick={() => openManageSongs(pl.id)} className="p-2 text-muted-foreground hover:text-primary transition-colors" title="Manage songs">
+                  <Settings2 className="w-4 h-4" />
+                </button>
                 <button onClick={() => { setEditingId(pl.id); setEditName(pl.name); }} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
                   <Pencil className="w-4 h-4" />
                 </button>
@@ -259,6 +295,55 @@ const Playlists = () => {
           </div>
         ) : null}
       </div>
+
+      {/* Manage Songs Dialog */}
+      <Dialog open={!!managingSongsPlaylistId} onOpenChange={() => {
+        setManagingSongsPlaylistId(null);
+        queryClient.invalidateQueries({ queryKey: ["playlists-page"] });
+        queryClient.invalidateQueries({ queryKey: ["library-playlists"] });
+      }}>
+        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Manage Songs in Playlist</DialogTitle>
+          </DialogHeader>
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search songs..."
+              value={songSearch}
+              onChange={(e) => setSongSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 rounded-lg bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-1">
+            {filteredSongs.map((song) => {
+              const inPlaylist = playlistSongIds.has(song.id);
+              return (
+                <button
+                  key={song.id}
+                  onClick={() => toggleSongInPlaylist(song.id)}
+                  className={`w-full flex items-center gap-3 p-2.5 rounded-lg transition-colors text-left ${inPlaylist ? "bg-primary/10 ring-1 ring-primary" : "hover:bg-muted/60"}`}
+                >
+                  {song.cover_url ? (
+                    <img src={song.cover_url} alt="" className="w-10 h-10 rounded object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 rounded bg-primary/20 flex items-center justify-center"><Music className="w-4 h-4 text-primary" /></div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm truncate text-foreground">{song.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+                  </div>
+                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${inPlaylist ? "bg-primary border-primary" : "border-muted-foreground"}`}>
+                    {inPlaylist && <span className="text-primary-foreground text-xs">✓</span>}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="h-8" />
     </AppLayout>
   );
