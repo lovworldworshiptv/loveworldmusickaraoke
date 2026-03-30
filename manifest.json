@@ -6,7 +6,7 @@
   "display": "standalone",
   "name": "Loveworld Music Karaoke+",
   "orientation": "any",
-  "scope": "https://accounts.kingsch.at/",
+  "scope": "/",
   "short_name": "Loveworld Music Karaoke+",
   "start_url": "/",
   "theme_color": "#e7b002",
