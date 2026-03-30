@@ -12,7 +12,9 @@ const median = (window as any).median;
 
 /** True when running inside a Median native wrapper */
 export const isMedianApp = (): boolean => {
-  return typeof median !== "undefined" && !!median;
+  if (typeof median !== "undefined" && !!median) return true;
+  const ua = navigator.userAgent.toLowerCase();
+  return ua.includes("median") || ua.includes("gonative");
 };
 
 /** Set the native status-bar style */

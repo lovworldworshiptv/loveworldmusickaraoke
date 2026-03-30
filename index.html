@@ -23,7 +23,8 @@
       // Only load OneSignal Web SDK when NOT inside a Median native wrapper.
       // Median handles OneSignal push natively; the web SDK would block the
       // native permission prompt and cause conflicts.
-      if (typeof window.median === 'undefined' && !navigator.userAgent.includes('median') && !navigator.userAgent.includes('gonative')) {
+      var ua = navigator.userAgent.toLowerCase();
+      if (typeof window.median === 'undefined' && !ua.includes('median') && !ua.includes('gonative')) {
         var s = document.createElement('script');
         s.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
         s.defer = true;
