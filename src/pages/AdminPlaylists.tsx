@@ -51,8 +51,8 @@ const AdminPlaylists = () => {
   const [songSearch, setSongSearch] = useState("");
 
   useEffect(() => {
-    fetchPlaylists();
-  }, []);
+    if (isAdmin) fetchPlaylists();
+  }, [isAdmin]);
 
   const fetchPlaylists = async () => {
     // Fetch admin user IDs so we only show admin-created (global) playlists
