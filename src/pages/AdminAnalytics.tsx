@@ -3,7 +3,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, Users, Music, Play, Download, Heart, TrendingUp, Calendar } from "lucide-react";
+import { BarChart3, Users, Music, Play, Download, Heart, TrendingUp, Calendar, Crown, Mic2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 
 const COLORS = ["hsl(43 70% 53%)", "hsl(258 70% 55%)", "hsl(170 60% 45%)", "hsl(350 65% 55%)", "hsl(210 60% 50%)"];
@@ -69,6 +69,26 @@ const AdminAnalytics = () => {
     },
   });
 
+  // Total downloads
+  const { data: totalDownloads = 0 } = useQuery({
+    queryKey: ["analytics-total-downloads"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { count } = await supabase.from("downloads").select("id", { count: "exact", head: true });
+      return count || 0;
+    },
+  });
+
+  // Total karaoke recordings
+  const { data: totalKaraoke = 0 } = useQuery({
+    queryKey: ["analytics-total-karaoke"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { count } = await supabase.from("karaoke_recordings").select("id", { count: "exact", head: true });
+      return count || 0;
+    },
+  });
+
   // Role distribution
   const { data: roleData = [] } = useQuery({
     queryKey: ["analytics-roles"],
@@ -82,12 +102,29 @@ const AdminAnalytics = () => {
     },
   });
 
+  // Subscription distribution
+  const { data: subData = [] } = useQuery({
+    queryKey: ["analytics-subscriptions"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data } = await supabase.from("user_subscriptions").select("subscription, subscription_expiry_date");
+      if (!data) return [];
+      const counts: Record<string, number> = {};
+      data.forEach((s: any) => {
+        const isExpired = s.subscription_expiry_date && new Date(s.subscription_expiry_date) < new Date();
+        const effective = (s.subscription === "premium" || s.subscription === "trial") && isExpired ? "free" : s.subscription;
+        counts[effective] = (counts[effective] || 0) + 1;
+      });
+      return Object.entries(counts).map(([name, value]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), value }));
+    },
+  });
+
   // Top played songs
   const { data: topSongs = [] } = useQuery({
     queryKey: ["analytics-top-songs", range],
     enabled: isAdmin,
     queryFn: async () => {
-      const { data } = await supabase.from("recently_played").select("song_id, songs(title)").gte("played_at", rangeDate).limit(500);
+      const { data } = await supabase.from("recently_played").select("song_id, songs(title)").gte("played_at", rangeDate).limit(1000);
       if (!data) return [];
       const counts: Record<string, { title: string; count: number }> = {};
       data.forEach((r: any) => {
@@ -105,7 +142,7 @@ const AdminAnalytics = () => {
     enabled: isAdmin,
     queryFn: async () => {
       const since = new Date(Date.now() - 30 * 86400000).toISOString();
-      const { data } = await supabase.from("recently_played").select("played_at").gte("played_at", since).order("played_at");
+      const { data } = await supabase.from("recently_played").select("played_at").gte("played_at", since).order("played_at").limit(1000);
       if (!data) return [];
       const days: Record<string, number> = {};
       data.forEach(r => {
@@ -122,7 +159,7 @@ const AdminAnalytics = () => {
     enabled: isAdmin,
     queryFn: async () => {
       const since = new Date(Date.now() - 30 * 86400000).toISOString();
-      const { data } = await supabase.from("profiles").select("created_at").gte("created_at", since).order("created_at");
+      const { data } = await supabase.from("profiles").select("created_at").gte("created_at", since).order("created_at").limit(1000);
       if (!data) return [];
       const days: Record<string, number> = {};
       data.forEach(r => {
@@ -160,6 +197,16 @@ const AdminAnalytics = () => {
     },
   });
 
+  // Total feedback
+  const { data: totalFeedback = 0 } = useQuery({
+    queryKey: ["analytics-total-feedback"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { count } = await supabase.from("feedback").select("id", { count: "exact", head: true });
+      return count || 0;
+    },
+  });
+
   if (adminLoading) return <AppLayout><div className="p-6 text-center text-muted-foreground">Loading...</div></AppLayout>;
   if (!isAdmin) return <AppLayout><div className="p-6 text-center text-muted-foreground">Admin access required.</div></AppLayout>;
 
@@ -184,11 +231,17 @@ const AdminAnalytics = () => {
         </div>
 
         {/* Stat cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
           <StatCard icon={Users} label="Total Users" value={totalUsers} />
           <StatCard icon={Music} label="Total Songs" value={totalSongs} />
           <StatCard icon={Play} label="Total Plays" value={totalPlays} sub={range === "all" ? "all time" : `last ${range}`} />
           <StatCard icon={Heart} label="Total Favorites" value={totalFavorites} />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+          <StatCard icon={Download} label="Total Downloads" value={totalDownloads} />
+          <StatCard icon={Mic2} label="Karaoke Recordings" value={totalKaraoke} />
+          <StatCard icon={Crown} label="Total Feedback" value={totalFeedback} />
+          <StatCard icon={TrendingUp} label="Total Articles" value={totalArticles} />
         </div>
 
         {/* Charts row */}
@@ -247,8 +300,25 @@ const AdminAnalytics = () => {
             </div>
           </div>
 
+          {/* Subscription distribution */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Crown className="w-4 h-4 text-gold" /> Subscription Tiers
+            </h3>
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={subData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
+                    {subData.map((_, i) => <Cell key={i} fill={COLORS[(i + 2) % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
           {/* Top played songs */}
-          <div className="rounded-xl border border-border bg-card p-4 lg:col-span-2">
+          <div className="rounded-xl border border-border bg-card p-4">
             <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
               <Music className="w-4 h-4 text-gold" /> Top Played Songs
             </h3>
@@ -304,6 +374,18 @@ const AdminAnalytics = () => {
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Total Favorites</span>
                 <span className="font-semibold text-foreground">{totalFavorites}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total Downloads</span>
+                <span className="font-semibold text-foreground">{totalDownloads}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Karaoke Recordings</span>
+                <span className="font-semibold text-foreground">{totalKaraoke}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">User Feedback</span>
+                <span className="font-semibold text-foreground">{totalFeedback}</span>
               </div>
             </div>
           </div>
