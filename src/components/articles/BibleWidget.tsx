@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { BookOpen, Search, X, Sparkles, Copy, Check, ChevronDown, Share2, Bookmark } from "lucide-react";
+import { BookOpen, Search, X, Sparkles, Copy, Check, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 
 const VERSIONS = [
   { id: "kjv", label: "KJV", full: "King James Version" },
@@ -8,6 +8,32 @@ const VERSIONS = [
   { id: "oeb-us", label: "OEB", full: "Open English Bible" },
   { id: "clementine", label: "Latin", full: "Clementine (Latin)" },
   { id: "almeida", label: "PT", full: "Almeida (Portuguese)" },
+];
+
+// Bible book order with max chapters for navigation
+const BIBLE_BOOKS = [
+  { name: "Genesis", chapters: 50 }, { name: "Exodus", chapters: 40 }, { name: "Leviticus", chapters: 27 },
+  { name: "Numbers", chapters: 36 }, { name: "Deuteronomy", chapters: 34 }, { name: "Joshua", chapters: 24 },
+  { name: "Judges", chapters: 21 }, { name: "Ruth", chapters: 4 }, { name: "1 Samuel", chapters: 31 },
+  { name: "2 Samuel", chapters: 24 }, { name: "1 Kings", chapters: 22 }, { name: "2 Kings", chapters: 25 },
+  { name: "1 Chronicles", chapters: 29 }, { name: "2 Chronicles", chapters: 36 }, { name: "Ezra", chapters: 10 },
+  { name: "Nehemiah", chapters: 13 }, { name: "Esther", chapters: 10 }, { name: "Job", chapters: 42 },
+  { name: "Psalms", chapters: 150 }, { name: "Proverbs", chapters: 31 }, { name: "Ecclesiastes", chapters: 12 },
+  { name: "Song of Solomon", chapters: 8 }, { name: "Isaiah", chapters: 66 }, { name: "Jeremiah", chapters: 52 },
+  { name: "Lamentations", chapters: 5 }, { name: "Ezekiel", chapters: 48 }, { name: "Daniel", chapters: 12 },
+  { name: "Hosea", chapters: 14 }, { name: "Joel", chapters: 3 }, { name: "Amos", chapters: 9 },
+  { name: "Obadiah", chapters: 1 }, { name: "Jonah", chapters: 4 }, { name: "Micah", chapters: 7 },
+  { name: "Nahum", chapters: 3 }, { name: "Habakkuk", chapters: 3 }, { name: "Zephaniah", chapters: 3 },
+  { name: "Haggai", chapters: 2 }, { name: "Zechariah", chapters: 14 }, { name: "Malachi", chapters: 4 },
+  { name: "Matthew", chapters: 28 }, { name: "Mark", chapters: 16 }, { name: "Luke", chapters: 24 },
+  { name: "John", chapters: 21 }, { name: "Acts", chapters: 28 }, { name: "Romans", chapters: 16 },
+  { name: "1 Corinthians", chapters: 16 }, { name: "2 Corinthians", chapters: 13 }, { name: "Galatians", chapters: 6 },
+  { name: "Ephesians", chapters: 6 }, { name: "Philippians", chapters: 4 }, { name: "Colossians", chapters: 4 },
+  { name: "1 Thessalonians", chapters: 5 }, { name: "2 Thessalonians", chapters: 3 }, { name: "1 Timothy", chapters: 6 },
+  { name: "2 Timothy", chapters: 4 }, { name: "Titus", chapters: 3 }, { name: "Philemon", chapters: 1 },
+  { name: "Hebrews", chapters: 13 }, { name: "James", chapters: 5 }, { name: "1 Peter", chapters: 5 },
+  { name: "2 Peter", chapters: 3 }, { name: "1 John", chapters: 5 }, { name: "2 John", chapters: 1 },
+  { name: "3 John", chapters: 1 }, { name: "Jude", chapters: 1 }, { name: "Revelation", chapters: 22 },
 ];
 
 interface BibleVerse {
@@ -35,6 +61,7 @@ const BibleWidget = () => {
   const [showVersions, setShowVersions] = useState(false);
   const [highlightedVerse, setHighlightedVerse] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open && inputRef.current) {
@@ -42,46 +69,99 @@ const BibleWidget = () => {
     }
   }, [open]);
 
-  const searchPassage = async () => {
-    if (!query.trim()) return;
+  const fetchPassage = async (passageQuery: string) => {
     setLoading(true);
     setError("");
     setResult(null);
     setHighlightedVerse(null);
     try {
-      const res = await fetch(`https://bible-api.com/${encodeURIComponent(query.trim())}?translation=${version}`);
+      const res = await fetch(`https://bible-api.com/${encodeURIComponent(passageQuery.trim())}?translation=${version}`);
       if (!res.ok) throw new Error("Passage not found");
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setResult(data);
+      setQuery(passageQuery);
+      scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: any) {
-      setError(err.message || "Could not find that passage. Try e.g. 'John 3:16' or 'Psalm 23'");
+      setError(err.message || "Could not find that passage.");
     } finally {
       setLoading(false);
     }
   };
 
+  const searchPassage = () => {
+    if (!query.trim()) return;
+    fetchPassage(query.trim());
+  };
+
+  // Compute prev/next chapter references
+  const getNavigation = () => {
+    if (!result || !result.verses.length) return { prev: null, next: null, prevLabel: "", nextLabel: "" };
+
+    const bookName = result.verses[0].book_name;
+    const chapter = result.verses[0].chapter;
+
+    // Find book in our list (fuzzy match)
+    const bookIdx = BIBLE_BOOKS.findIndex(b =>
+      b.name.toLowerCase() === bookName.toLowerCase() ||
+      bookName.toLowerCase().startsWith(b.name.toLowerCase()) ||
+      b.name.toLowerCase().startsWith(bookName.toLowerCase())
+    );
+
+    let prev: string | null = null;
+    let next: string | null = null;
+    let prevLabel = "";
+    let nextLabel = "";
+
+    if (bookIdx >= 0) {
+      const book = BIBLE_BOOKS[bookIdx];
+
+      // Previous chapter
+      if (chapter > 1) {
+        prev = `${bookName} ${chapter - 1}`;
+        prevLabel = `${bookName} ${chapter - 1}`;
+      } else if (bookIdx > 0) {
+        const prevBook = BIBLE_BOOKS[bookIdx - 1];
+        prev = `${prevBook.name} ${prevBook.chapters}`;
+        prevLabel = `${prevBook.name} ${prevBook.chapters}`;
+      }
+
+      // Next chapter
+      if (chapter < book.chapters) {
+        next = `${bookName} ${chapter + 1}`;
+        nextLabel = `${bookName} ${chapter + 1}`;
+      } else if (bookIdx < BIBLE_BOOKS.length - 1) {
+        const nextBook = BIBLE_BOOKS[bookIdx + 1];
+        next = `${nextBook.name} 1`;
+        nextLabel = `${nextBook.name} 1`;
+      }
+    }
+
+    return { prev, next, prevLabel, nextLabel };
+  };
+
   const copyPassage = () => {
     if (!result) return;
-    const selectedVersion = VERSIONS.find(v => v.id === version);
+    const selVersion = VERSIONS.find(v => v.id === version);
     const versesText = result.verses
       .map(v => `${v.verse} ${v.text.trim()}`)
       .join("\n");
-    const text = `${result.reference} (${selectedVersion?.label || version.toUpperCase()})\n\n${versesText}`;
+    const text = `${result.reference} (${selVersion?.label || version.toUpperCase()})\n\n${versesText}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const copyVerse = (verse: BibleVerse) => {
-    const selectedVersion = VERSIONS.find(v => v.id === version);
-    const text = `${verse.text.trim()}\n— ${verse.book_name} ${verse.chapter}:${verse.verse} (${selectedVersion?.label})`;
+    const selVersion = VERSIONS.find(v => v.id === version);
+    const text = `${verse.text.trim()}\n— ${verse.book_name} ${verse.chapter}:${verse.verse} (${selVersion?.label})`;
     navigator.clipboard.writeText(text);
     setHighlightedVerse(verse.verse);
     setTimeout(() => setHighlightedVerse(null), 1500);
   };
 
   const selectedVersion = VERSIONS.find(v => v.id === version);
+  const { prev, next, prevLabel, nextLabel } = getNavigation();
 
   if (!open) {
     return (
@@ -140,7 +220,7 @@ const BibleWidget = () => {
           </button>
         </div>
 
-        {/* Search bar — YouVersion style with book/version selectors */}
+        {/* Search bar */}
         <div className="flex items-center gap-2 mb-3">
           <button
             onClick={() => setShowVersions(!showVersions)}
@@ -214,7 +294,7 @@ const BibleWidget = () => {
           </div>
         )}
 
-        {/* Loading shimmer — YouVersion style */}
+        {/* Loading shimmer */}
         {loading && (
           <div className="py-6 space-y-4 animate-in fade-in duration-300">
             {[1, 2, 3, 4].map(i => (
@@ -229,9 +309,9 @@ const BibleWidget = () => {
           </div>
         )}
 
-        {/* Scripture display — YouVersion style */}
+        {/* Scripture display */}
         {result && (
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <div ref={scrollRef} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
             {/* Reference header bar */}
             <div className="flex items-center justify-between px-1 mb-4">
               <div>
@@ -256,7 +336,7 @@ const BibleWidget = () => {
             {/* Divider */}
             <div className="h-px bg-gradient-to-r from-transparent via-border/50 to-transparent mb-5" />
 
-            {/* Verses — YouVersion reading style */}
+            {/* Verses */}
             <div className="px-1 sm:px-4 pb-2">
               {result.verses.map((verse, idx) => (
                 <span
@@ -281,11 +361,43 @@ const BibleWidget = () => {
               Tap any verse to copy it
             </p>
 
-            {/* Bottom divider */}
-            <div className="h-px bg-gradient-to-r from-transparent via-border/30 to-transparent mt-3 mb-2" />
+            {/* Chapter navigation arrows — YouVersion style */}
+            <div className="h-px bg-gradient-to-r from-transparent via-border/30 to-transparent mt-4 mb-3" />
+            
+            <div className="flex items-center justify-between px-1">
+              {prev ? (
+                <button
+                  onClick={() => fetchPassage(prev)}
+                  disabled={loading}
+                  className="group/nav flex items-center gap-1.5 px-3 py-2 rounded-xl
+                    bg-muted/20 hover:bg-primary/10 border border-border/20 hover:border-primary/25
+                    text-muted-foreground hover:text-primary
+                    transition-all duration-300 active:scale-95 disabled:opacity-40
+                    max-w-[45%]"
+                >
+                  <ChevronLeft className="w-4 h-4 shrink-0 group-hover/nav:-translate-x-0.5 transition-transform duration-300" />
+                  <span className="text-[11px] font-medium truncate">{prevLabel}</span>
+                </button>
+              ) : <div />}
 
-            {/* Copyright / attribution */}
-            <p className="text-[9px] text-muted-foreground/40 text-center leading-relaxed">
+              {next ? (
+                <button
+                  onClick={() => fetchPassage(next)}
+                  disabled={loading}
+                  className="group/nav flex items-center gap-1.5 px-3 py-2 rounded-xl
+                    bg-muted/20 hover:bg-primary/10 border border-border/20 hover:border-primary/25
+                    text-muted-foreground hover:text-primary
+                    transition-all duration-300 active:scale-95 disabled:opacity-40
+                    max-w-[45%]"
+                >
+                  <span className="text-[11px] font-medium truncate">{nextLabel}</span>
+                  <ChevronRight className="w-4 h-4 shrink-0 group-hover/nav:translate-x-0.5 transition-transform duration-300" />
+                </button>
+              ) : <div />}
+            </div>
+
+            {/* Attribution */}
+            <p className="text-[9px] text-muted-foreground/40 text-center leading-relaxed mt-3">
               {result.translation_name || selectedVersion?.full}
             </p>
           </div>
