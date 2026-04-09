@@ -170,7 +170,7 @@ const WaveformVisualizer = ({ audioUrl, isPlaying, progress }: { audioUrl: strin
 };
 
 /* ─── Main Recorder ─── */
-const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, onClose, onRecordingStateChange }: KaraokeRecorderProps) => {
+const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, onClose, onRecordingStateChange, onMinimize }: KaraokeRecorderProps) => {
   const { user } = useAuth();
   const { isPlaying, togglePlay } = usePlayer();
   const [recording, setRecording] = useState(false);
@@ -442,9 +442,16 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
             <p className="text-[10px] text-muted-foreground truncate max-w-[180px]">{songTitle}</p>
           </div>
         </div>
-        <button onClick={onClose} className="w-7 h-7 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors">
-          <X className="w-3.5 h-3.5 text-muted-foreground" />
-        </button>
+        <div className="flex items-center gap-1">
+          {recording && onMinimize && (
+            <button onClick={onMinimize} className="w-7 h-7 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors" title="Minimize to see lyrics">
+              <Minimize2 className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+          )}
+          <button onClick={onClose} className="w-7 h-7 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors">
+            <X className="w-3.5 h-3.5 text-muted-foreground" />
+          </button>
+        </div>
       </div>
 
       <div className="p-4 space-y-4">
