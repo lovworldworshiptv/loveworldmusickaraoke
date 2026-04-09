@@ -63,6 +63,7 @@ const ExpandedPlayer = () => {
   const [showRecorder, setShowRecorder] = useState(false);
   const [isRecordingActive, setIsRecordingActive] = useState(false);
   const [recorderMinimized, setRecorderMinimized] = useState(false);
+  const recorderStopRef = useRef<(() => void) | null>(null);
   const [recordFeatureEnabled, setRecordFeatureEnabled] = useState(true);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
