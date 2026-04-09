@@ -59,6 +59,7 @@ interface KaraokeRecorderProps {
   onRecordingStateChange?: (recording: boolean) => void;
   onMinimize?: () => void;
   isMinimized?: boolean;
+  externalStopRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 /* ─── Real-time Level Meter ─── */
