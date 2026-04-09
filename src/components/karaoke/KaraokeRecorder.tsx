@@ -344,14 +344,22 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
     }
   }, [instrumentalUrl, isPlaying, togglePlay, onRecordingStateChange, instrumentalVolume]);
 
-  const stopRecording = () => {
+  const stopRecording = useCallback(() => {
     mediaRecorderRef.current?.stop();
     instrumentalStopRef.current?.();
     instrumentalStopRef.current = null;
     instrumentalGainRef.current = null;
     setRecording(false);
     onRecordingStateChange?.(false);
-  };
+  }, [onRecordingStateChange]);
+
+  // Expose stop to parent via ref
+  useEffect(() => {
+    if (externalStopRef) {
+      externalStopRef.current = recording ? stopRecording : null;
+    }
+    return () => { if (externalStopRef) externalStopRef.current = null; };
+  }, [recording, stopRecording, externalStopRef]);
 
   const playRecording = () => {
     if (!recordedUrl) return;
