@@ -307,7 +307,7 @@ const ExpandedPlayer = () => {
                   onClose={() => { setShowRecorder(false); setIsRecordingActive(false); setRecorderMinimized(false); }}
                   onRecordingStateChange={(active) => setIsRecordingActive(active)}
                   onMinimize={() => setRecorderMinimized(true)}
-                  isMinimized={false}
+                  externalStopRef={recorderStopRef}
                 />
               </div>
             )}
@@ -353,7 +353,7 @@ const ExpandedPlayer = () => {
                 </button>
                 <button
                   onClick={() => {
-                    // Trigger stop via the recorder's external stop
+                    recorderStopRef.current?.();
                     setRecorderMinimized(false);
                   }}
                   className="w-9 h-9 rounded-full bg-destructive flex items-center justify-center shadow-lg"
