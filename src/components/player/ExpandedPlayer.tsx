@@ -62,6 +62,7 @@ const ExpandedPlayer = () => {
   const [showLyrics, setShowLyrics] = useState(true);
   const [showRecorder, setShowRecorder] = useState(false);
   const [isRecordingActive, setIsRecordingActive] = useState(false);
+  const [recorderMinimized, setRecorderMinimized] = useState(false);
   const [recordFeatureEnabled, setRecordFeatureEnabled] = useState(true);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
@@ -294,16 +295,18 @@ const ExpandedPlayer = () => {
               ))}
             </div>
 
-            {/* Karaoke Recorder Panel - below toggle, not covering lyrics */}
-            {showRecorder && isPremium && currentSong && (
+            {/* Karaoke Recorder Panel - minimizable */}
+            {showRecorder && isPremium && currentSong && !recorderMinimized && (
               <div className="px-6 mb-3 flex-shrink-0">
                 <KaraokeRecorder
                   songId={currentSong.id}
                   songTitle={currentSong.title}
                   instrumentalUrl={currentSong.instrumentalUrl}
                   isKaraokeMode={isKaraoke}
-                  onClose={() => { setShowRecorder(false); setIsRecordingActive(false); }}
+                  onClose={() => { setShowRecorder(false); setIsRecordingActive(false); setRecorderMinimized(false); }}
                   onRecordingStateChange={(active) => setIsRecordingActive(active)}
+                  onMinimize={() => setRecorderMinimized(true)}
+                  isMinimized={false}
                 />
               </div>
             )}
