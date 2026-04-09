@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Mic2, Square, Play, Pause, Trash2, RotateCcw, Share2, X, Copy, ExternalLink, Volume2, Headphones } from "lucide-react";
+import { Mic2, Square, Play, Pause, Trash2, RotateCcw, Share2, X, Copy, ExternalLink, Volume2, Headphones, Minimize2, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -57,6 +57,9 @@ interface KaraokeRecorderProps {
   isKaraokeMode: boolean;
   onClose: () => void;
   onRecordingStateChange?: (recording: boolean) => void;
+  onMinimize?: () => void;
+  isMinimized?: boolean;
+  externalStopRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 /* ─── Real-time Level Meter ─── */
@@ -168,7 +171,7 @@ const WaveformVisualizer = ({ audioUrl, isPlaying, progress }: { audioUrl: strin
 };
 
 /* ─── Main Recorder ─── */
-const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, onClose, onRecordingStateChange }: KaraokeRecorderProps) => {
+const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, onClose, onRecordingStateChange, onMinimize, externalStopRef }: KaraokeRecorderProps) => {
   const { user } = useAuth();
   const { isPlaying, togglePlay } = usePlayer();
   const [recording, setRecording] = useState(false);
@@ -341,14 +344,22 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
     }
   }, [instrumentalUrl, isPlaying, togglePlay, onRecordingStateChange, instrumentalVolume]);
 
-  const stopRecording = () => {
+  const stopRecording = useCallback(() => {
     mediaRecorderRef.current?.stop();
     instrumentalStopRef.current?.();
     instrumentalStopRef.current = null;
     instrumentalGainRef.current = null;
     setRecording(false);
     onRecordingStateChange?.(false);
-  };
+  }, [onRecordingStateChange]);
+
+  // Expose stop to parent via ref
+  useEffect(() => {
+    if (externalStopRef) {
+      externalStopRef.current = recording ? stopRecording : null;
+    }
+    return () => { if (externalStopRef) externalStopRef.current = null; };
+  }, [recording, stopRecording, externalStopRef]);
 
   const playRecording = () => {
     if (!recordedUrl) return;
@@ -440,9 +451,16 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
             <p className="text-[10px] text-muted-foreground truncate max-w-[180px]">{songTitle}</p>
           </div>
         </div>
-        <button onClick={onClose} className="w-7 h-7 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors">
-          <X className="w-3.5 h-3.5 text-muted-foreground" />
-        </button>
+        <div className="flex items-center gap-1">
+          {recording && onMinimize && (
+            <button onClick={onMinimize} className="w-7 h-7 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors" title="Minimize to see lyrics">
+              <Minimize2 className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+          )}
+          <button onClick={onClose} className="w-7 h-7 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors">
+            <X className="w-3.5 h-3.5 text-muted-foreground" />
+          </button>
+        </div>
       </div>
 
       <div className="p-4 space-y-4">

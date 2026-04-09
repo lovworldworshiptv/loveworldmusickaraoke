@@ -1,5 +1,5 @@
 import { usePlayer, RepeatMode } from "@/contexts/PlayerContext";
-import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3, Square, Volume2, VolumeX, ListMusic, MoreVertical } from "lucide-react";
+import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3, Square, Volume2, VolumeX, ListMusic, MoreVertical, Maximize2 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -62,6 +62,8 @@ const ExpandedPlayer = () => {
   const [showLyrics, setShowLyrics] = useState(true);
   const [showRecorder, setShowRecorder] = useState(false);
   const [isRecordingActive, setIsRecordingActive] = useState(false);
+  const [recorderMinimized, setRecorderMinimized] = useState(false);
+  const recorderStopRef = useRef<(() => void) | null>(null);
   const [recordFeatureEnabled, setRecordFeatureEnabled] = useState(true);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
@@ -73,6 +75,11 @@ const ExpandedPlayer = () => {
         if (data) setRecordFeatureEnabled(data.value === true);
       });
   }, []);
+
+  // Auto-expand recorder when recording stops while minimized
+  useEffect(() => {
+    if (recorderMinimized && !isRecordingActive) setRecorderMinimized(false);
+  }, [isRecordingActive, recorderMinimized]);
 
   const dominantColor = useDominantColor(currentSong?.coverUrl);
   const { user } = useAuth();
@@ -294,16 +301,18 @@ const ExpandedPlayer = () => {
               ))}
             </div>
 
-            {/* Karaoke Recorder Panel - below toggle, not covering lyrics */}
-            {showRecorder && isPremium && currentSong && (
+            {/* Karaoke Recorder Panel - minimizable */}
+            {showRecorder && isPremium && currentSong && !recorderMinimized && (
               <div className="px-6 mb-3 flex-shrink-0">
                 <KaraokeRecorder
                   songId={currentSong.id}
                   songTitle={currentSong.title}
                   instrumentalUrl={currentSong.instrumentalUrl}
                   isKaraokeMode={isKaraoke}
-                  onClose={() => { setShowRecorder(false); setIsRecordingActive(false); }}
+                  onClose={() => { setShowRecorder(false); setIsRecordingActive(false); setRecorderMinimized(false); }}
                   onRecordingStateChange={(active) => setIsRecordingActive(active)}
+                  onMinimize={() => setRecorderMinimized(true)}
+                  externalStopRef={recorderStopRef}
                 />
               </div>
             )}
@@ -335,7 +344,34 @@ const ExpandedPlayer = () => {
           </div>
         )}
 
-        {/* Bottom Controls */}
+        {/* Floating minimized recorder bar - shows stop button over lyrics */}
+        {showRecorder && recorderMinimized && isRecordingActive && (
+          <div className="flex-shrink-0 px-6 py-2">
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-destructive/10 border border-destructive/30 animate-pulse">
+              <div className="flex items-center gap-2">
+                <Mic2 className="w-4 h-4 text-destructive" />
+                <span className="text-xs font-semibold text-destructive">Recording…</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setRecorderMinimized(false)} className="w-7 h-7 rounded-full bg-muted/60 flex items-center justify-center">
+                  <Maximize2 className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+                <button
+                  onClick={() => {
+                    recorderStopRef.current?.();
+                    setRecorderMinimized(false);
+                  }}
+                  className="w-9 h-9 rounded-full bg-destructive flex items-center justify-center shadow-lg"
+                >
+                  <Square className="w-4 h-4 text-white" fill="currentColor" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bottom Controls - hidden during active recording */}
+        {!isRecordingActive && (
         <div className="flex-shrink-0 px-6 pt-2 safe-bottom" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
           <div className="mb-4 group/progress">
             <Slider value={[progress]} onValueChange={([v]) => seekTo(v)} max={100} step={0.5}
@@ -370,6 +406,7 @@ const ExpandedPlayer = () => {
             </button>
           </div>
         </div>
+        )}
       </div>
     </div>
 
