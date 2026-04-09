@@ -1,5 +1,5 @@
 import { usePlayer, RepeatMode } from "@/contexts/PlayerContext";
-import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3, Square, Volume2, VolumeX, ListMusic, MoreVertical } from "lucide-react";
+import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3, Square, Volume2, VolumeX, ListMusic, MoreVertical, Maximize2 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
