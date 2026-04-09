@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Mic2, Square, Play, Pause, Trash2, RotateCcw, Share2, X, Copy, ExternalLink, Volume2, Headphones } from "lucide-react";
+import { Mic2, Square, Play, Pause, Trash2, RotateCcw, Share2, X, Copy, ExternalLink, Volume2, Headphones, Minimize2, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -57,6 +57,8 @@ interface KaraokeRecorderProps {
   isKaraokeMode: boolean;
   onClose: () => void;
   onRecordingStateChange?: (recording: boolean) => void;
+  onMinimize?: () => void;
+  isMinimized?: boolean;
 }
 
 /* ─── Real-time Level Meter ─── */
