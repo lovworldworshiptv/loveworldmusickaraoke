@@ -76,6 +76,11 @@ const ExpandedPlayer = () => {
       });
   }, []);
 
+  // Auto-expand recorder when recording stops while minimized
+  useEffect(() => {
+    if (recorderMinimized && !isRecordingActive) setRecorderMinimized(false);
+  }, [isRecordingActive, recorderMinimized]);
+
   const dominantColor = useDominantColor(currentSong?.coverUrl);
   const { user } = useAuth();
   const { isAdmin } = useIsAdmin();
