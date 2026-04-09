@@ -171,7 +171,7 @@ const WaveformVisualizer = ({ audioUrl, isPlaying, progress }: { audioUrl: strin
 };
 
 /* ─── Main Recorder ─── */
-const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, onClose, onRecordingStateChange, onMinimize }: KaraokeRecorderProps) => {
+const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, onClose, onRecordingStateChange, onMinimize, externalStopRef }: KaraokeRecorderProps) => {
   const { user } = useAuth();
   const { isPlaying, togglePlay } = usePlayer();
   const [recording, setRecording] = useState(false);
