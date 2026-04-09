@@ -338,7 +338,34 @@ const ExpandedPlayer = () => {
           </div>
         )}
 
-        {/* Bottom Controls */}
+        {/* Floating minimized recorder bar - shows stop button over lyrics */}
+        {showRecorder && recorderMinimized && isRecordingActive && (
+          <div className="flex-shrink-0 px-6 py-2">
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-destructive/10 border border-destructive/30 animate-pulse">
+              <div className="flex items-center gap-2">
+                <Mic2 className="w-4 h-4 text-destructive" />
+                <span className="text-xs font-semibold text-destructive">Recording…</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setRecorderMinimized(false)} className="w-7 h-7 rounded-full bg-muted/60 flex items-center justify-center">
+                  <Maximize2 className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+                <button
+                  onClick={() => {
+                    // Trigger stop via the recorder's external stop
+                    setRecorderMinimized(false);
+                  }}
+                  className="w-9 h-9 rounded-full bg-destructive flex items-center justify-center shadow-lg"
+                >
+                  <Square className="w-4 h-4 text-white" fill="currentColor" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bottom Controls - hidden during active recording */}
+        {!isRecordingActive && (
         <div className="flex-shrink-0 px-6 pt-2 safe-bottom" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
           <div className="mb-4 group/progress">
             <Slider value={[progress]} onValueChange={([v]) => seekTo(v)} max={100} step={0.5}
@@ -373,6 +400,7 @@ const ExpandedPlayer = () => {
             </button>
           </div>
         </div>
+        )}
       </div>
     </div>
 
