@@ -173,7 +173,8 @@ const WaveformVisualizer = ({ audioUrl, isPlaying, progress }: { audioUrl: strin
 /* ─── Main Recorder ─── */
 const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, onClose, onRecordingStateChange, onMinimize, externalStopRef }: KaraokeRecorderProps) => {
   const { user } = useAuth();
-  const { isPlaying, togglePlay } = usePlayer();
+  const { isPlaying, togglePlay, volume: playerVolume, setVolume: setPlayerVolume } = usePlayer();
+  const savedVolumeRef = useRef<number>(0.7);
   const [recording, setRecording] = useState(false);
   const [recorded, setRecorded] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
@@ -228,7 +229,10 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
     let audioContext: AudioContext | null = null;
 
     try {
-      if (isPlaying) togglePlay();
+      // Mute the player but keep it playing so lyrics stay synced
+      savedVolumeRef.current = playerVolume;
+      setPlayerVolume(0);
+      if (!isPlaying) togglePlay();
 
       try {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -350,8 +354,10 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
     instrumentalStopRef.current = null;
     instrumentalGainRef.current = null;
     setRecording(false);
+    // Restore player volume
+    setPlayerVolume(savedVolumeRef.current || 0.7);
     onRecordingStateChange?.(false);
-  }, [onRecordingStateChange]);
+  }, [onRecordingStateChange, setPlayerVolume]);
 
   // Expose stop to parent via ref
   useEffect(() => {
