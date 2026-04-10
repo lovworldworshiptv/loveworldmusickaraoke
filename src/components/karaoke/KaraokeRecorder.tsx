@@ -354,8 +354,10 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
     instrumentalStopRef.current = null;
     instrumentalGainRef.current = null;
     setRecording(false);
+    // Restore player volume
+    setPlayerVolume(savedVolumeRef.current || 0.7);
     onRecordingStateChange?.(false);
-  }, [onRecordingStateChange]);
+  }, [onRecordingStateChange, setPlayerVolume]);
 
   // Expose stop to parent via ref
   useEffect(() => {
