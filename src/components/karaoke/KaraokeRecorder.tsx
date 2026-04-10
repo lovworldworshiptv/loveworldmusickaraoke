@@ -229,7 +229,10 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
     let audioContext: AudioContext | null = null;
 
     try {
-      if (isPlaying) togglePlay();
+      // Mute the player but keep it playing so lyrics stay synced
+      savedVolumeRef.current = playerVolume;
+      setPlayerVolume(0);
+      if (!isPlaying) togglePlay();
 
       try {
         stream = await navigator.mediaDevices.getUserMedia({
