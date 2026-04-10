@@ -147,11 +147,11 @@ const ExpandedPlayer = () => {
 
   const getLineStyle = (index: number) => {
     const distance = Math.abs(index - activeLrcIndex);
-    if (activeLrcIndex < 0) return "text-base text-muted-foreground/60";
+    if (activeLrcIndex < 0) return "text-base text-white/60";
     if (index === activeLrcIndex) return "text-2xl font-bold text-gold scale-[1.02] opacity-100";
-    if (distance === 1) return "text-base text-foreground/60 opacity-80";
-    if (distance === 2) return "text-sm text-muted-foreground/50 opacity-60";
-    return "text-sm text-muted-foreground/30 opacity-40 blur-[0.5px]";
+    if (distance === 1) return "text-base text-white/60 opacity-80";
+    if (distance === 2) return "text-sm text-white/40 opacity-60";
+    return "text-sm text-white/30 opacity-40 blur-[0.5px]";
   };
 
   const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
@@ -301,9 +301,9 @@ const ExpandedPlayer = () => {
               ))}
             </div>
 
-            {/* Karaoke Recorder Panel - minimizable */}
-            {showRecorder && isPremium && currentSong && !recorderMinimized && (
-              <div className="px-6 mb-3 flex-shrink-0">
+            {/* Karaoke Recorder Panel - minimizable (keep mounted to preserve recording state) */}
+            {showRecorder && isPremium && currentSong && (
+              <div className={`px-6 mb-3 flex-shrink-0 ${recorderMinimized ? 'hidden' : ''}`}>
                 <KaraokeRecorder
                   songId={currentSong.id}
                   songTitle={currentSong.title}
