@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Music, Clock, Play, Pause, Trash2, Share2, Copy, ExternalLink } from "lucide-react";
+import { Music, Clock, Play, Pause, Trash2, Share2, Copy, ExternalLink, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -15,6 +15,15 @@ interface Recording {
   created_at: string;
 }
 
+interface Comment {
+  id: string;
+  comment: string;
+  created_at: string;
+  user_id: string;
+  username?: string;
+  avatar_url?: string;
+}
+
 const MyKaraoke = () => {
   const { user } = useAuth();
   const [recordings, setRecordings] = useState<Recording[]>([]);
@@ -23,6 +32,9 @@ const MyKaraoke = () => {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [shareRec, setShareRec] = useState<Recording | null>(null);
+  const [expandedComments, setExpandedComments] = useState<string | null>(null);
+  const [comments, setComments] = useState<Record<string, Comment[]>>({});
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -40,11 +52,66 @@ const MyKaraoke = () => {
       .eq("user_id", user.id)
       .gte("created_at", new Date(Date.now() - 24 * 3600000).toISOString())
       .order("created_at", { ascending: false }) as any;
-    setRecordings(data || []);
+    const recs: Recording[] = data || [];
+    setRecordings(recs);
     setLoading(false);
+
+    // Fetch comment counts for all recordings
+    if (recs.length > 0) {
+      const ids = recs.map(r => r.id);
+      const { data: allComments } = await supabase
+        .from("karaoke_comments")
+        .select("recording_id")
+        .in("recording_id", ids) as any;
+      const counts: Record<string, number> = {};
+      (allComments || []).forEach((c: any) => {
+        counts[c.recording_id] = (counts[c.recording_id] || 0) + 1;
+      });
+      setCommentCounts(counts);
+    }
   };
 
   useEffect(() => { fetchRecordings(); }, [user]);
+
+  const fetchComments = async (recordingId: string) => {
+    const { data } = await supabase
+      .from("karaoke_comments")
+      .select("*")
+      .eq("recording_id", recordingId)
+      .order("created_at", { ascending: true }) as any;
+    
+    const rawComments: any[] = data || [];
+    // Fetch usernames for commenters
+    const userIds = [...new Set(rawComments.map(c => c.user_id))];
+    let profileMap: Record<string, { username: string; avatar_url: string | null }> = {};
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, username, avatar_url")
+        .in("user_id", userIds) as any;
+      (profiles || []).forEach((p: any) => {
+        profileMap[p.user_id] = { username: p.username, avatar_url: p.avatar_url };
+      });
+    }
+
+    const enriched: Comment[] = rawComments.map(c => ({
+      ...c,
+      username: profileMap[c.user_id]?.username || "User",
+      avatar_url: profileMap[c.user_id]?.avatar_url || null,
+    }));
+    setComments(prev => ({ ...prev, [recordingId]: enriched }));
+  };
+
+  const toggleComments = (recordingId: string) => {
+    if (expandedComments === recordingId) {
+      setExpandedComments(null);
+    } else {
+      setExpandedComments(recordingId);
+      if (!comments[recordingId]) {
+        fetchComments(recordingId);
+      }
+    }
+  };
 
   const playRecording = (rec: Recording) => {
     if (playingId === rec.id) { audioRef.current?.pause(); setPlayingId(null); return; }
@@ -58,7 +125,6 @@ const MyKaraoke = () => {
 
   const deleteRecording = async (rec: Recording) => {
     await supabase.from("karaoke_recordings").delete().eq("id", rec.id) as any;
-    // Delete from storage
     const path = rec.audio_url.split("/karaoke-recordings/")[1];
     if (path) await supabase.storage.from("karaoke-recordings").remove([decodeURIComponent(path)]);
     setRecordings(r => r.filter(x => x.id !== rec.id));
@@ -76,6 +142,18 @@ const MyKaraoke = () => {
     const hrs = Math.floor(left / 3600000);
     const mins = Math.floor((left % 3600000) / 60000);
     return `${hrs}h ${mins}m left`;
+  };
+
+  const formatCommentTime = (date: string) => {
+    const d = new Date(date);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHrs = Math.floor(diffMins / 60);
+    if (diffHrs < 24) return `${diffHrs}h ago`;
+    return d.toLocaleDateString();
   };
 
   const shareText = shareRec ? `Listen to my karaoke version of ${shareRec.song_title} on Loveworld Music Karaoke.` : "";
@@ -96,36 +174,81 @@ const MyKaraoke = () => {
       </div>
       <div className="space-y-2">
         {recordings.map(rec => (
-          <div key={rec.id} className="glass-card p-3 flex items-center gap-3">
-            <button onClick={() => playRecording(rec)} className="w-10 h-10 rounded-full bg-gold/20 flex items-center justify-center flex-shrink-0">
-              {playingId === rec.id ? <Pause className="w-4 h-4 text-gold" /> : <Play className="w-4 h-4 text-gold ml-0.5" />}
-            </button>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-foreground truncate">{rec.song_title}</p>
-              <p className="text-[10px] text-muted-foreground">{timeLeft(rec.created_at)}</p>
-            </div>
-            <div className="flex items-center gap-1">
-              <button onClick={() => openShare(rec)} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
-                <Share2 className="w-4 h-4" />
+          <div key={rec.id}>
+            <div className="glass-card p-3 flex items-center gap-3">
+              <button onClick={() => playRecording(rec)} className="w-10 h-10 rounded-full bg-gold/20 flex items-center justify-center flex-shrink-0">
+                {playingId === rec.id ? <Pause className="w-4 h-4 text-gold" /> : <Play className="w-4 h-4 text-gold ml-0.5" />}
               </button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <button className="p-1.5 text-muted-foreground hover:text-destructive transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete recording?</AlertDialogTitle>
-                    <AlertDialogDescription>This karaoke recording will be permanently deleted.</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => deleteRecording(rec)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-foreground truncate">{rec.song_title}</p>
+                <p className="text-[10px] text-muted-foreground">{timeLeft(rec.created_at)}</p>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => toggleComments(rec.id)}
+                  className={`p-1.5 transition-colors flex items-center gap-0.5 ${expandedComments === rec.id ? 'text-gold' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  {(commentCounts[rec.id] || 0) > 0 && (
+                    <span className="text-[10px] font-medium">{commentCounts[rec.id]}</span>
+                  )}
+                </button>
+                <button onClick={() => openShare(rec)} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                  <Share2 className="w-4 h-4" />
+                </button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button className="p-1.5 text-muted-foreground hover:text-destructive transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete recording?</AlertDialogTitle>
+                      <AlertDialogDescription>This karaoke recording will be permanently deleted.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => deleteRecording(rec)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
+
+            {/* Comments section */}
+            {expandedComments === rec.id && (
+              <div className="ml-4 mt-1 mb-2 border-l-2 border-border/50 pl-3">
+                {!comments[rec.id] ? (
+                  <p className="text-xs text-muted-foreground py-2">Loading comments…</p>
+                ) : comments[rec.id].length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-2">No comments yet</p>
+                ) : (
+                  <div className="space-y-2 py-2">
+                    {comments[rec.id].map(c => (
+                      <div key={c.id} className="flex items-start gap-2">
+                        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {c.avatar_url ? (
+                            <img src={c.avatar_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-[10px] font-bold text-muted-foreground">
+                              {(c.username || "U")[0].toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-xs font-semibold text-foreground">{c.username}</span>
+                            <span className="text-[10px] text-muted-foreground">{formatCommentTime(c.created_at)}</span>
+                          </div>
+                          <p className="text-xs text-foreground/80 break-words">{c.comment}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
