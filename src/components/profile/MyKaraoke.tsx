@@ -81,16 +81,16 @@ const MyKaraoke = () => {
       .order("created_at", { ascending: true }) as any;
     
     const rawComments: any[] = data || [];
-    // Fetch usernames for commenters
+    // Fetch usernames for commenters using public profile RPC (bypasses RLS)
     const userIds = [...new Set(rawComments.map(c => c.user_id))];
     let profileMap: Record<string, { username: string; avatar_url: string | null }> = {};
     if (userIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, username, avatar_url")
-        .in("user_id", userIds) as any;
-      (profiles || []).forEach((p: any) => {
-        profileMap[p.user_id] = { username: p.username, avatar_url: p.avatar_url };
+      const profileResults = await Promise.all(
+        userIds.map(uid => supabase.rpc("get_public_profile", { p_user_id: uid }))
+      );
+      profileResults.forEach(({ data: profiles }) => {
+        const p = (profiles as any)?.[0];
+        if (p) profileMap[p.user_id] = { username: p.username, avatar_url: p.avatar_url };
       });
     }
 
