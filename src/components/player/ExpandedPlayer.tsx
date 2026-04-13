@@ -146,6 +146,15 @@ const ExpandedPlayer = () => {
   if (!currentSong) return null;
 
   const getLineStyle = (index: number) => {
+    // In recording mode, all lines stay gold-highlighted
+    if (isRecordingActive) {
+      if (activeLrcIndex < 0) return "text-base text-gold/70";
+      if (index === activeLrcIndex) return "text-2xl font-bold text-gold scale-[1.02] opacity-100";
+      const distance = Math.abs(index - activeLrcIndex);
+      if (distance === 1) return "text-base text-gold/70 opacity-80";
+      if (distance === 2) return "text-sm text-gold/60 opacity-60";
+      return "text-sm text-gold/50 opacity-50";
+    }
     const distance = Math.abs(index - activeLrcIndex);
     if (activeLrcIndex < 0) return "text-base text-white/60";
     if (index === activeLrcIndex) return "text-2xl font-bold text-gold scale-[1.02] opacity-100";
