@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Music, Clock, Play, Pause, Trash2, Share2, Copy, ExternalLink, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Music, Clock, Play, Pause, Trash2, Share2, Copy, ExternalLink, MessageCircle, ChevronDown, ChevronUp, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
