@@ -59,6 +59,16 @@ const Articles = () => {
     }
   }, [searchParams, articles]);
 
+  // Track article read
+  useEffect(() => {
+    if (!selectedArticle) return;
+    supabase.from("analytics_events").insert({
+      event_type: "article_read",
+      user_id: user?.id || null,
+      event_data: { article_id: selectedArticle.id, article_title: selectedArticle.title },
+    } as any);
+  }, [selectedArticle?.id]);
+
   // Show song suggestion popup after 10s of reading
   useEffect(() => {
     if (!selectedArticle) return;
