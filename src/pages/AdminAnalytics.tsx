@@ -3,7 +3,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, Users, Music, Play, Download, Heart, TrendingUp, Calendar, Crown, Mic2 } from "lucide-react";
+import { BarChart3, Users, Music, Play, Download, Heart, TrendingUp, Calendar, Crown, Mic2, Gamepad2, BookOpen, Trophy } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 
 const COLORS = ["hsl(43 70% 53%)", "hsl(258 70% 55%)", "hsl(170 60% 45%)", "hsl(350 65% 55%)", "hsl(210 60% 50%)"];
