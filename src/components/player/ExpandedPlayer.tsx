@@ -308,6 +308,16 @@ const ExpandedPlayer = () => {
                   <Crown className="w-3.5 h-3.5" /> Record
                 </button>
               ))}
+              {/* Lyrics toggle */}
+              <button
+                onClick={() => setShowLyrics(prev => !prev)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
+                  showLyrics ? "bg-secondary/80 text-foreground" : "bg-gold/10 text-gold border border-gold/20"
+                }`}
+                title={showLyrics ? "Show artwork" : "Show lyrics"}
+              >
+                <Type className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             {/* Karaoke Recorder Panel - minimizable (keep mounted to preserve recording state) */}
