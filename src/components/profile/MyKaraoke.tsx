@@ -220,6 +220,15 @@ const MyKaraoke = () => {
               </div>
               <div className="flex items-center gap-1">
                 <button
+                  onClick={() => toggleViewers(rec.id)}
+                  className={`p-1.5 transition-colors flex items-center gap-0.5 ${expandedViewers === rec.id ? 'text-gold' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <Eye className="w-4 h-4" />
+                  {(viewCounts[rec.id] || 0) > 0 && (
+                    <span className="text-[10px] font-medium">{viewCounts[rec.id]}</span>
+                  )}
+                </button>
+                <button
                   onClick={() => toggleComments(rec.id)}
                   className={`p-1.5 transition-colors flex items-center gap-0.5 ${expandedComments === rec.id ? 'text-gold' : 'text-muted-foreground hover:text-foreground'}`}
                 >
