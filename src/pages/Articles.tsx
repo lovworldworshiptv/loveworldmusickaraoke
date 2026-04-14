@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +27,7 @@ type ContentMode = "text" | "video" | "audio";
 
 const Articles = () => {
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [fontSize, setFontSize] = useState(16);
@@ -56,6 +58,16 @@ const Articles = () => {
       if (found) { setSelectedArticle(found); setContentMode("text"); }
     }
   }, [searchParams, articles]);
+
+  // Track article read
+  useEffect(() => {
+    if (!selectedArticle) return;
+    supabase.from("analytics_events").insert({
+      event_type: "article_read",
+      user_id: user?.id || null,
+      event_data: { article_id: selectedArticle.id, article_title: selectedArticle.title },
+    } as any);
+  }, [selectedArticle?.id]);
 
   // Show song suggestion popup after 10s of reading
   useEffect(() => {

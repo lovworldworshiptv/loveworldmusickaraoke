@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Music, Clock, Play, Pause, Trash2, Share2, Copy, ExternalLink, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Music, Clock, Play, Pause, Trash2, Share2, Copy, ExternalLink, MessageCircle, ChevronDown, ChevronUp, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -33,6 +33,9 @@ const MyKaraoke = () => {
   const [showShare, setShowShare] = useState(false);
   const [shareRec, setShareRec] = useState<Recording | null>(null);
   const [expandedComments, setExpandedComments] = useState<string | null>(null);
+  const [expandedViewers, setExpandedViewers] = useState<string | null>(null);
+  const [viewers, setViewers] = useState<Record<string, { username: string; avatar_url: string | null }[]>>({});
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -56,18 +59,23 @@ const MyKaraoke = () => {
     setRecordings(recs);
     setLoading(false);
 
-    // Fetch comment counts for all recordings
+    // Fetch comment counts and view counts for all recordings
     if (recs.length > 0) {
       const ids = recs.map(r => r.id);
-      const { data: allComments } = await supabase
-        .from("karaoke_comments")
-        .select("recording_id")
-        .in("recording_id", ids) as any;
+      const [commentsRes, viewsRes] = await Promise.all([
+        supabase.from("karaoke_comments").select("recording_id").in("recording_id", ids) as any,
+        supabase.from("karaoke_story_views").select("recording_id").in("recording_id", ids) as any,
+      ]);
       const counts: Record<string, number> = {};
-      (allComments || []).forEach((c: any) => {
+      (commentsRes.data || []).forEach((c: any) => {
         counts[c.recording_id] = (counts[c.recording_id] || 0) + 1;
       });
       setCommentCounts(counts);
+      const vCounts: Record<string, number> = {};
+      (viewsRes.data || []).forEach((v: any) => {
+        vCounts[v.recording_id] = (vCounts[v.recording_id] || 0) + 1;
+      });
+      setViewCounts(vCounts);
     }
   };
 
@@ -110,6 +118,33 @@ const MyKaraoke = () => {
       if (!comments[recordingId]) {
         fetchComments(recordingId);
       }
+    }
+  };
+
+  const fetchViewers = async (recordingId: string) => {
+    const { data } = await supabase
+      .from("karaoke_story_views")
+      .select("viewer_id")
+      .eq("recording_id", recordingId)
+      .order("viewed_at", { ascending: false }) as any;
+    const viewerIds = [...new Set((data || []).map((v: any) => v.viewer_id))] as string[];
+    if (viewerIds.length === 0) { setViewers(prev => ({ ...prev, [recordingId]: [] })); return; }
+    const profileResults = await Promise.all(
+      viewerIds.map(uid => supabase.rpc("get_public_profile", { p_user_id: uid }))
+    );
+    const viewerProfiles = viewerIds.map((uid, i) => {
+      const p = (profileResults[i]?.data as any)?.[0];
+      return { username: p?.username || "User", avatar_url: p?.avatar_url || null };
+    });
+    setViewers(prev => ({ ...prev, [recordingId]: viewerProfiles }));
+  };
+
+  const toggleViewers = (recordingId: string) => {
+    if (expandedViewers === recordingId) {
+      setExpandedViewers(null);
+    } else {
+      setExpandedViewers(recordingId);
+      if (!viewers[recordingId]) fetchViewers(recordingId);
     }
   };
 
@@ -185,6 +220,15 @@ const MyKaraoke = () => {
               </div>
               <div className="flex items-center gap-1">
                 <button
+                  onClick={() => toggleViewers(rec.id)}
+                  className={`p-1.5 transition-colors flex items-center gap-0.5 ${expandedViewers === rec.id ? 'text-gold' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <Eye className="w-4 h-4" />
+                  {(viewCounts[rec.id] || 0) > 0 && (
+                    <span className="text-[10px] font-medium">{viewCounts[rec.id]}</span>
+                  )}
+                </button>
+                <button
                   onClick={() => toggleComments(rec.id)}
                   className={`p-1.5 transition-colors flex items-center gap-0.5 ${expandedComments === rec.id ? 'text-gold' : 'text-muted-foreground hover:text-foreground'}`}
                 >
@@ -243,6 +287,33 @@ const MyKaraoke = () => {
                           </div>
                           <p className="text-xs text-foreground/80 break-words">{c.comment}</p>
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Viewers section */}
+            {expandedViewers === rec.id && (
+              <div className="ml-4 mt-1 mb-2 border-l-2 border-gold/30 pl-3">
+                {!viewers[rec.id] ? (
+                  <p className="text-xs text-muted-foreground py-2">Loading viewers…</p>
+                ) : viewers[rec.id].length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-2">No views yet</p>
+                ) : (
+                  <div className="space-y-1.5 py-2">
+                    <p className="text-[10px] text-muted-foreground font-medium mb-1">Viewed by {viewers[rec.id].length} {viewers[rec.id].length === 1 ? "person" : "people"}</p>
+                    {viewers[rec.id].map((v, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {v.avatar_url ? (
+                            <img src={v.avatar_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-[8px] font-bold text-muted-foreground">{v.username[0]?.toUpperCase()}</span>
+                          )}
+                        </div>
+                        <span className="text-xs text-foreground">{v.username}</span>
                       </div>
                     ))}
                   </div>

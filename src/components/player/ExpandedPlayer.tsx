@@ -1,5 +1,5 @@
 import { usePlayer, RepeatMode } from "@/contexts/PlayerContext";
-import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3, Square, Volume2, VolumeX, ListMusic, MoreVertical, Maximize2 } from "lucide-react";
+import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3, Square, Volume2, VolumeX, ListMusic, MoreVertical, Maximize2, Type } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -308,6 +308,16 @@ const ExpandedPlayer = () => {
                   <Crown className="w-3.5 h-3.5" /> Record
                 </button>
               ))}
+              {/* Lyrics toggle */}
+              <button
+                onClick={() => setShowLyrics(prev => !prev)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
+                  showLyrics ? "bg-secondary/80 text-foreground" : "bg-gold/10 text-gold border border-gold/20"
+                }`}
+                title={showLyrics ? "Show artwork" : "Show lyrics"}
+              >
+                <Type className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             {/* Karaoke Recorder Panel - minimizable (keep mounted to preserve recording state) */}

@@ -3,7 +3,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, Users, Music, Play, Download, Heart, TrendingUp, Calendar, Crown, Mic2 } from "lucide-react";
+import { BarChart3, Users, Music, Play, Download, Heart, TrendingUp, Calendar, Crown, Mic2, Gamepad2, BookOpen, Trophy } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 
 const COLORS = ["hsl(43 70% 53%)", "hsl(258 70% 55%)", "hsl(170 60% 45%)", "hsl(350 65% 55%)", "hsl(210 60% 50%)"];
@@ -207,6 +207,64 @@ const AdminAnalytics = () => {
     },
   });
 
+  // Game Analytics: total game players (distinct users)
+  const { data: gameStats = { totalPlayers: 0, totalSessions: 0 } } = useQuery({
+    queryKey: ["analytics-game-stats"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data } = await supabase.from("game_sessions").select("user_id");
+      if (!data) return { totalPlayers: 0, totalSessions: 0 };
+      const uniqueUsers = new Set(data.map((s: any) => s.user_id));
+      return { totalPlayers: uniqueUsers.size, totalSessions: data.length };
+    },
+  });
+
+  // Top game achievers
+  const { data: topAchievers = [] } = useQuery({
+    queryKey: ["analytics-top-achievers"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data: sessions } = await supabase.from("game_sessions").select("user_id, score");
+      if (!sessions) return [];
+      const userScores: Record<string, number> = {};
+      sessions.forEach((s: any) => { userScores[s.user_id] = (userScores[s.user_id] || 0) + s.score; });
+      const sorted = Object.entries(userScores).sort((a, b) => b[1] - a[1]).slice(0, 10);
+      // Fetch profiles
+      const profileResults = await Promise.all(
+        sorted.map(([uid]) => supabase.rpc("get_public_profile", { p_user_id: uid }))
+      );
+      return sorted.map(([uid, score], i) => {
+        const p = (profileResults[i]?.data as any)?.[0];
+        return { username: p?.username || "User", avatar_url: p?.avatar_url, score };
+      });
+    },
+  });
+
+  // Article analytics: total readers, reads per article
+  const { data: articleAnalytics = { totalReaders: 0, perArticle: [] as { title: string; reads: number; uniqueReaders: number }[] } } = useQuery({
+    queryKey: ["analytics-article-reads"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data } = await supabase.from("analytics_events").select("user_id, event_data").eq("event_type", "article_read");
+      if (!data) return { totalReaders: 0, perArticle: [] };
+      const allReaders = new Set(data.filter((e: any) => e.user_id).map((e: any) => e.user_id));
+      const perArticleMap: Record<string, { title: string; reads: number; readers: Set<string> }> = {};
+      data.forEach((e: any) => {
+        const ed = e.event_data as any;
+        const aid = ed?.article_id;
+        if (!aid) return;
+        if (!perArticleMap[aid]) perArticleMap[aid] = { title: ed?.article_title || "Unknown", reads: 0, readers: new Set() };
+        perArticleMap[aid].reads++;
+        if (e.user_id) perArticleMap[aid].readers.add(e.user_id);
+      });
+      const perArticle = Object.values(perArticleMap)
+        .map(a => ({ title: a.title, reads: a.reads, uniqueReaders: a.readers.size }))
+        .sort((a, b) => b.reads - a.reads)
+        .slice(0, 10);
+      return { totalReaders: allReaders.size, perArticle };
+    },
+  });
+
   if (adminLoading) return <AppLayout><div className="p-6 text-center text-muted-foreground">Loading...</div></AppLayout>;
   if (!isAdmin) return <AppLayout><div className="p-6 text-center text-muted-foreground">Admin access required.</div></AppLayout>;
 
@@ -337,7 +395,7 @@ const AdminAnalytics = () => {
         </div>
 
         {/* Category stats + summary */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <div className="rounded-xl border border-border bg-card p-4">
             <h3 className="text-sm font-semibold text-foreground mb-4">Songs by Category</h3>
             <div className="h-48">
@@ -387,6 +445,61 @@ const AdminAnalytics = () => {
                 <span className="text-muted-foreground">User Feedback</span>
                 <span className="font-semibold text-foreground">{totalFeedback}</span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Game Analytics */}
+        <h3 className="text-lg font-serif font-bold text-foreground flex items-center gap-2 mb-4">
+          <Gamepad2 className="w-5 h-5 text-gold" /> Game Analytics
+        </h3>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+          <StatCard icon={Gamepad2} label="Game Players" value={gameStats.totalPlayers} sub="unique users" />
+          <StatCard icon={Play} label="Total Game Sessions" value={gameStats.totalSessions} />
+          <StatCard icon={Trophy} label="Top Score" value={topAchievers.length > 0 ? topAchievers[0].score : 0} sub={topAchievers.length > 0 ? topAchievers[0].username : "—"} />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="rounded-xl border border-border bg-card p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-gold" /> Top Achievers
+            </h3>
+            <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-hide">
+              {topAchievers.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">No game data yet</p>
+              ) : topAchievers.map((a, i) => (
+                <div key={i} className="flex items-center gap-3 text-sm">
+                  <span className="w-5 text-right text-xs font-bold text-gold">{i + 1}</span>
+                  <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {a.avatar_url ? <img src={a.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[10px] font-bold text-muted-foreground">{a.username[0]?.toUpperCase()}</span>}
+                  </div>
+                  <div className="flex-1 min-w-0 truncate text-foreground">{a.username}</div>
+                  <span className="text-xs text-muted-foreground tabular-nums">{a.score} pts</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Article Analytics */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-gold" /> Article Reads
+            </h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              {articleAnalytics.totalReaders} unique readers across all articles
+            </p>
+            <div className="space-y-2 max-h-52 overflow-y-auto scrollbar-hide">
+              {articleAnalytics.perArticle.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">No read data yet</p>
+              ) : articleAnalytics.perArticle.map((a, i) => (
+                <div key={i} className="flex items-center gap-3 text-sm">
+                  <span className="w-5 text-right text-xs font-bold text-gold">{i + 1}</span>
+                  <div className="flex-1 min-w-0 truncate text-foreground">{a.title}</div>
+                  <div className="text-right flex-shrink-0">
+                    <span className="text-xs text-muted-foreground tabular-nums">{a.reads} reads</span>
+                    <span className="text-[10px] text-muted-foreground/60 ml-1">({a.uniqueReaders} users)</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
