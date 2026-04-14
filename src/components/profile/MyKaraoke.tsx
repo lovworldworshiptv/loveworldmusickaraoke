@@ -59,18 +59,23 @@ const MyKaraoke = () => {
     setRecordings(recs);
     setLoading(false);
 
-    // Fetch comment counts for all recordings
+    // Fetch comment counts and view counts for all recordings
     if (recs.length > 0) {
       const ids = recs.map(r => r.id);
-      const { data: allComments } = await supabase
-        .from("karaoke_comments")
-        .select("recording_id")
-        .in("recording_id", ids) as any;
+      const [commentsRes, viewsRes] = await Promise.all([
+        supabase.from("karaoke_comments").select("recording_id").in("recording_id", ids) as any,
+        supabase.from("karaoke_story_views").select("recording_id").in("recording_id", ids) as any,
+      ]);
       const counts: Record<string, number> = {};
-      (allComments || []).forEach((c: any) => {
+      (commentsRes.data || []).forEach((c: any) => {
         counts[c.recording_id] = (counts[c.recording_id] || 0) + 1;
       });
       setCommentCounts(counts);
+      const vCounts: Record<string, number> = {};
+      (viewsRes.data || []).forEach((v: any) => {
+        vCounts[v.recording_id] = (vCounts[v.recording_id] || 0) + 1;
+      });
+      setViewCounts(vCounts);
     }
   };
 
