@@ -148,6 +148,7 @@ const MyKaraoke = () => {
     }
   };
 
+  const playRecording = (rec: Recording) => {
     if (playingId === rec.id) { audioRef.current?.pause(); setPlayingId(null); return; }
     audioRef.current?.pause();
     const audio = new Audio(rec.audio_url);
