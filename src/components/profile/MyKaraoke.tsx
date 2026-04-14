@@ -121,7 +121,33 @@ const MyKaraoke = () => {
     }
   };
 
-  const playRecording = (rec: Recording) => {
+  const fetchViewers = async (recordingId: string) => {
+    const { data } = await supabase
+      .from("karaoke_story_views")
+      .select("viewer_id")
+      .eq("recording_id", recordingId)
+      .order("viewed_at", { ascending: false }) as any;
+    const viewerIds = [...new Set((data || []).map((v: any) => v.viewer_id))] as string[];
+    if (viewerIds.length === 0) { setViewers(prev => ({ ...prev, [recordingId]: [] })); return; }
+    const profileResults = await Promise.all(
+      viewerIds.map(uid => supabase.rpc("get_public_profile", { p_user_id: uid }))
+    );
+    const viewerProfiles = viewerIds.map((uid, i) => {
+      const p = (profileResults[i]?.data as any)?.[0];
+      return { username: p?.username || "User", avatar_url: p?.avatar_url || null };
+    });
+    setViewers(prev => ({ ...prev, [recordingId]: viewerProfiles }));
+  };
+
+  const toggleViewers = (recordingId: string) => {
+    if (expandedViewers === recordingId) {
+      setExpandedViewers(null);
+    } else {
+      setExpandedViewers(recordingId);
+      if (!viewers[recordingId]) fetchViewers(recordingId);
+    }
+  };
+
     if (playingId === rec.id) { audioRef.current?.pause(); setPlayingId(null); return; }
     audioRef.current?.pause();
     const audio = new Audio(rec.audio_url);
