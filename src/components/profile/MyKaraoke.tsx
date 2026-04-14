@@ -33,6 +33,9 @@ const MyKaraoke = () => {
   const [showShare, setShowShare] = useState(false);
   const [shareRec, setShareRec] = useState<Recording | null>(null);
   const [expandedComments, setExpandedComments] = useState<string | null>(null);
+  const [expandedViewers, setExpandedViewers] = useState<string | null>(null);
+  const [viewers, setViewers] = useState<Record<string, { username: string; avatar_url: string | null }[]>>({});
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const audioRef = useRef<HTMLAudioElement | null>(null);
