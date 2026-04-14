@@ -293,6 +293,33 @@ const MyKaraoke = () => {
                 )}
               </div>
             )}
+
+            {/* Viewers section */}
+            {expandedViewers === rec.id && (
+              <div className="ml-4 mt-1 mb-2 border-l-2 border-gold/30 pl-3">
+                {!viewers[rec.id] ? (
+                  <p className="text-xs text-muted-foreground py-2">Loading viewers…</p>
+                ) : viewers[rec.id].length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-2">No views yet</p>
+                ) : (
+                  <div className="space-y-1.5 py-2">
+                    <p className="text-[10px] text-muted-foreground font-medium mb-1">Viewed by {viewers[rec.id].length} {viewers[rec.id].length === 1 ? "person" : "people"}</p>
+                    {viewers[rec.id].map((v, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {v.avatar_url ? (
+                            <img src={v.avatar_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-[8px] font-bold text-muted-foreground">{v.username[0]?.toUpperCase()}</span>
+                          )}
+                        </div>
+                        <span className="text-xs text-foreground">{v.username}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
