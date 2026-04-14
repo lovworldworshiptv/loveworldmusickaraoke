@@ -27,6 +27,7 @@ type ContentMode = "text" | "video" | "audio";
 
 const Articles = () => {
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [fontSize, setFontSize] = useState(16);
