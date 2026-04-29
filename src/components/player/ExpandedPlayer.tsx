@@ -295,7 +295,7 @@ const ExpandedPlayer = () => {
             }`}
             title={showLyrics ? "Show artwork" : "Show lyrics"}
           >
-            <Type className="w-3.5 h-3.5" />
+            {showLyrics ? <Disc3 className="w-3.5 h-3.5" /> : <Type className="w-3.5 h-3.5" />}
           </button>
         </div>
 
