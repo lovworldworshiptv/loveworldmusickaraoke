@@ -236,7 +236,86 @@ const ExpandedPlayer = () => {
           </div>
         </div>
 
-        {/* Toggle: Album Art / Lyrics */}
+        {/* Song header (always visible) */}
+        <div className="px-6 pb-3 flex-shrink-0">
+          <button onClick={() => setShowLyrics(prev => !prev)} className="flex items-center gap-3 w-full">
+            <div className="w-12 h-12 rounded-xl gradient-purple flex-shrink-0 flex items-center justify-center glow-gold overflow-hidden">
+              {currentSong.coverUrl ? (
+                <img src={currentSong.coverUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <Music className="w-6 h-6 text-gold/40" />
+              )}
+            </div>
+            <div className="text-left min-w-0">
+              <h2 className="text-base font-serif font-bold text-foreground truncate">{currentSong.title}</h2>
+              <p className="text-xs text-muted-foreground">{currentSong.artist}</p>
+            </div>
+          </button>
+        </div>
+
+        {/* Karaoke + Record Toggle Row (always visible) */}
+        <div className="flex justify-center gap-1.5 mb-3 px-6 flex-shrink-0 flex-wrap">
+          <button
+            onClick={() => { if (isKaraoke) toggleKaraoke(); }}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
+              !isKaraoke ? "gradient-gold text-primary-foreground shadow-lg" : "bg-secondary/60 text-muted-foreground hover:text-foreground"
+            }`}>
+            <Music className="w-3.5 h-3.5" /> Full Song
+          </button>
+          <button
+            onClick={() => { if (!isKaraoke) toggleKaraoke(); }}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
+              isKaraoke ? "gradient-gold text-primary-foreground shadow-lg" : "bg-secondary/60 text-muted-foreground hover:text-foreground"
+            }`}>
+            <Mic2 className="w-3.5 h-3.5" /> Karaoke
+          </button>
+          {recordFeatureEnabled && (isPremium ? (
+            <button
+              onClick={() => { if (!isKaraoke) toggleKaraoke(); setShowRecorder(true); setShowLyrics(true); }}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
+                isRecordingActive
+                  ? "bg-destructive text-destructive-foreground shadow-[0_0_12px_hsl(var(--destructive)/0.5)] animate-pulse border border-destructive/40"
+                  : "bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30"
+              }`}
+            >
+              <Disc3 className={`w-3.5 h-3.5 ${isRecordingActive ? "animate-spin" : ""}`} /> Record
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowUpgrade(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-gold/10 text-gold/70 border border-gold/20"
+            >
+              <Crown className="w-3.5 h-3.5" /> Record
+            </button>
+          ))}
+          <button
+            onClick={() => setShowLyrics(prev => !prev)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
+              showLyrics ? "bg-secondary/80 text-foreground" : "bg-gold/10 text-gold border border-gold/20"
+            }`}
+            title={showLyrics ? "Show artwork" : "Show lyrics"}
+          >
+            <Type className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Karaoke Recorder Panel - minimizable */}
+        {showRecorder && isPremium && currentSong && (
+          <div className={`px-6 mb-3 flex-shrink-0 ${recorderMinimized ? 'hidden' : ''}`}>
+            <KaraokeRecorder
+              songId={currentSong.id}
+              songTitle={currentSong.title}
+              instrumentalUrl={currentSong.instrumentalUrl}
+              isKaraokeMode={isKaraoke}
+              onClose={() => { setShowRecorder(false); setIsRecordingActive(false); setRecorderMinimized(false); }}
+              onRecordingStateChange={(active) => setIsRecordingActive(active)}
+              onMinimize={() => setRecorderMinimized(true)}
+              externalStopRef={recorderStopRef}
+            />
+          </div>
+        )}
+
+        {/* Main view: artwork or synced lyrics */}
         {!showLyrics ? (
           <div className="flex-1 flex flex-col items-center justify-center px-8 min-h-0">
             <button onClick={() => setShowLyrics(true)} className="w-full max-w-[280px] aspect-square">
@@ -248,118 +327,33 @@ const ExpandedPlayer = () => {
                 )}
               </div>
             </button>
-            <div className="mt-8 text-center w-full px-4">
-              <h2 className="text-2xl font-serif font-bold text-foreground truncate">{currentSong.title}</h2>
-              <p className="text-base text-muted-foreground mt-1">{currentSong.artist}</p>
+            <div className="mt-6 text-center w-full px-4">
               {currentSong.album && <p className="text-xs text-muted-foreground/60 mt-0.5">{currentSong.album}</p>}
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className="px-6 pb-3 flex-shrink-0">
-              <button onClick={() => setShowLyrics(false)} className="flex items-center gap-3 w-full">
-                <div className="w-12 h-12 rounded-xl gradient-purple flex-shrink-0 flex items-center justify-center glow-gold overflow-hidden">
-                  {currentSong.coverUrl ? (
-                    <img src={currentSong.coverUrl} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <Music className="w-6 h-6 text-gold/40" />
-                  )}
+          <div ref={lyricsContainerRef} className="flex-1 overflow-y-auto scrollbar-hide px-6 relative min-h-0">
+            {lrcLines.length > 0 ? (
+              <div className="py-[40vh] space-y-5">
+                {lrcLines.map((line, i) => (
+                  <p
+                    key={i}
+                    ref={(el) => { lineRefs.current[i] = el; }}
+                    onClick={() => { if (duration > 0) seekTo((line.time / duration) * 100); }}
+                    className={`text-center font-serif leading-relaxed transition-all duration-500 ease-out cursor-pointer hover:opacity-100 ${getLineStyle(i)}`}
+                  >
+                    {line.text || "♪"}
+                  </p>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <Music className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-muted-foreground text-sm">No lyrics available</p>
                 </div>
-                <div className="text-left min-w-0">
-                  <h2 className="text-base font-serif font-bold text-foreground truncate">{currentSong.title}</h2>
-                  <p className="text-xs text-muted-foreground">{currentSong.artist}</p>
-                </div>
-              </button>
-            </div>
-
-            {/* Karaoke + Record Toggle Row */}
-            <div className="flex justify-center gap-1.5 mb-3 px-6 flex-shrink-0">
-              <button
-                onClick={() => { if (isKaraoke) toggleKaraoke(); }}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
-                  !isKaraoke ? "gradient-gold text-primary-foreground shadow-lg" : "bg-secondary/60 text-muted-foreground hover:text-foreground"
-                }`}>
-                <Music className="w-3.5 h-3.5" /> Full Song
-              </button>
-              <button
-                onClick={() => { if (!isKaraoke) toggleKaraoke(); }}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
-                  isKaraoke ? "gradient-gold text-primary-foreground shadow-lg" : "bg-secondary/60 text-muted-foreground hover:text-foreground"
-                }`}>
-                <Mic2 className="w-3.5 h-3.5" /> Karaoke
-              </button>
-              {/* Record Karaoke Button - only when enabled by admin */}
-              {recordFeatureEnabled && (isPremium ? (
-                <button
-                  onClick={() => { if (!isKaraoke) toggleKaraoke(); setShowRecorder(true); }}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
-                    isRecordingActive
-                      ? "bg-destructive text-destructive-foreground shadow-[0_0_12px_hsl(var(--destructive)/0.5)] animate-pulse border border-destructive/40"
-                      : "bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30"
-                  }`}
-                >
-                  <Disc3 className={`w-3.5 h-3.5 ${isRecordingActive ? "animate-spin" : ""}`} /> Record
-                </button>
-              ) : (
-                <button
-                  onClick={() => setShowUpgrade(true)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-gold/10 text-gold/70 border border-gold/20"
-                >
-                  <Crown className="w-3.5 h-3.5" /> Record
-                </button>
-              ))}
-              {/* Lyrics toggle */}
-              <button
-                onClick={() => setShowLyrics(prev => !prev)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
-                  showLyrics ? "bg-secondary/80 text-foreground" : "bg-gold/10 text-gold border border-gold/20"
-                }`}
-                title={showLyrics ? "Show artwork" : "Show lyrics"}
-              >
-                <Type className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* Karaoke Recorder Panel - minimizable (keep mounted to preserve recording state) */}
-            {showRecorder && isPremium && currentSong && (
-              <div className={`px-6 mb-3 flex-shrink-0 ${recorderMinimized ? 'hidden' : ''}`}>
-                <KaraokeRecorder
-                  songId={currentSong.id}
-                  songTitle={currentSong.title}
-                  instrumentalUrl={currentSong.instrumentalUrl}
-                  isKaraokeMode={isKaraoke}
-                  onClose={() => { setShowRecorder(false); setIsRecordingActive(false); setRecorderMinimized(false); }}
-                  onRecordingStateChange={(active) => setIsRecordingActive(active)}
-                  onMinimize={() => setRecorderMinimized(true)}
-                  externalStopRef={recorderStopRef}
-                />
               </div>
             )}
-
-            {/* Synced Lyrics */}
-            <div ref={lyricsContainerRef} className="flex-1 overflow-y-auto scrollbar-hide px-6 relative">
-              {lrcLines.length > 0 ? (
-                <div className="py-[40vh] space-y-5">
-                  {lrcLines.map((line, i) => (
-                    <p
-                      key={i}
-                      ref={(el) => { lineRefs.current[i] = el; }}
-                      onClick={() => { if (duration > 0) seekTo((line.time / duration) * 100); }}
-                      className={`text-center font-serif leading-relaxed transition-all duration-500 ease-out cursor-pointer hover:opacity-100 ${getLineStyle(i)}`}
-                    >
-                      {line.text || "♪"}
-                    </p>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <Music className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                    <p className="text-muted-foreground text-sm">No lyrics available</p>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         )}
 
