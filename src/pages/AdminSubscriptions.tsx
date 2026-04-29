@@ -251,7 +251,19 @@ const AdminSubscriptions = () => {
                       variant="ghost"
                       size="sm"
                       className="h-7 text-xs"
-                      onClick={() => setProofUrl(req.proof_url)}
+                      onClick={async () => {
+                        const url = req.proof_url!;
+                        // Extract path after /payment-proofs/
+                        const match = url.match(/\/payment-proofs\/(.+)$/);
+                        if (match) {
+                          const { data } = await supabase.storage
+                            .from("payment-proofs")
+                            .createSignedUrl(decodeURIComponent(match[1]), 3600);
+                          setProofUrl(data?.signedUrl || url);
+                        } else {
+                          setProofUrl(url);
+                        }
+                      }}
                     >
                       <Eye className="w-3.5 h-3.5 mr-1" /> View
                     </Button>
@@ -261,7 +273,7 @@ const AdminSubscriptions = () => {
                 </TableCell>
                 <TableCell>
                   <span className="text-xs text-muted-foreground">
-                    {new Date(req.created_at).toLocaleDateString()}
+                    {new Date(req.created_at).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </TableCell>
                 {showActions && (
