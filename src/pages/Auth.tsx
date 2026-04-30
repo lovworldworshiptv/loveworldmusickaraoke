@@ -6,7 +6,7 @@ import { ArrowLeft, Eye, EyeOff, MessageCircle } from "lucide-react";
 import MusicBackground from "@/components/auth/MusicBackground";
 import kingsChatWebSdk from "kingschat-web-sdk";
 import { supabase } from "@/integrations/supabase/client";
-import logoFull from "@/assets/logo-full.png";
+import logoFull from "@/assets/logo-mic-heart.png";
 
 const KINGSCHAT_CLIENT_ID = "5d4c8670-fd28-4be8-8484-55302b8c3bb6";
 
