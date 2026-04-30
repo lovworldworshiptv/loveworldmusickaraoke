@@ -85,11 +85,16 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
+    <div className="min-h-screen bg-background flex flex-col relative">
       <MusicBackground />
-      <button onClick={() => navigate(-1)} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="w-5 h-5" />
-      </button>
+      <header className="sticky top-0 z-40 glass border-b border-border px-4 py-3 flex items-center gap-3">
+        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors active:scale-95">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <img src={logoFull} alt="Loveworld Music Karaoke+" className="h-9 w-auto" />
+      </header>
+      <div className="flex-1 flex items-center justify-center p-4">
+
       <div className="w-full max-w-md glass-card p-8">
         <img
           src={logoFull}
