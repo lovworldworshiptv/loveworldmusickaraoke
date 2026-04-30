@@ -6,6 +6,7 @@ import { ArrowLeft, Eye, EyeOff, MessageCircle } from "lucide-react";
 import MusicBackground from "@/components/auth/MusicBackground";
 import kingsChatWebSdk from "kingschat-web-sdk";
 import { supabase } from "@/integrations/supabase/client";
+import logoFull from "@/assets/logo-full.png";
 
 const KINGSCHAT_CLIENT_ID = "5d4c8670-fd28-4be8-8484-55302b8c3bb6";
 
@@ -90,7 +91,12 @@ const Auth = () => {
         <ArrowLeft className="w-5 h-5" />
       </button>
       <div className="w-full max-w-md glass-card p-8">
-        <h1 className="text-2xl font-serif gradient-gold-text font-bold text-center mb-2">Loveworld Music Karaoke+</h1>
+        <img
+          src={logoFull}
+          alt="Loveworld Music Karaoke+ logo"
+          className="mx-auto mb-4 h-20 w-auto object-contain drop-shadow-[0_4px_24px_hsl(43_70%_53%/0.35)]"
+        />
+        <h1 className="text-2xl font-serif gradient-gold-text font-bold text-center mb-6">Loveworld Music Karaoke+</h1>
 
         {/* KingsChat Login Button */}
         <button
