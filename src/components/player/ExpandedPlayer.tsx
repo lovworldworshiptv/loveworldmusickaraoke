@@ -53,7 +53,7 @@ function useDominantColor(imageUrl?: string) {
 const ExpandedPlayer = () => {
   const {
     currentSong, isPlaying, isKaraoke, progress, duration, currentTime,
-    lrcLines, activeLrcIndex, togglePlay, toggleKaraoke, toggleExpanded, seekTo,
+    lrcLines, staticLyrics, activeLrcIndex, togglePlay, toggleKaraoke, toggleExpanded, seekTo,
     skipNext, skipPrev, repeatMode, cycleRepeat, shuffleOn, toggleShuffle,
     volume, setVolume, queue, queueIndex,
   } = usePlayer();
@@ -345,6 +345,10 @@ const ExpandedPlayer = () => {
                     {line.text || "♪"}
                   </p>
                 ))}
+              </div>
+            ) : staticLyrics ? (
+              <div className="py-12 px-2 whitespace-pre-line text-center font-serif text-lg sm:text-xl leading-relaxed text-foreground/90">
+                {staticLyrics}
               </div>
             ) : (
               <div className="flex items-center justify-center h-full">

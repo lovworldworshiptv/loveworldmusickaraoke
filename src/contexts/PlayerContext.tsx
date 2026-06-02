@@ -12,6 +12,7 @@ export interface PlayerSong {
   audioUrl?: string;
   instrumentalUrl?: string;
   lyricsLrc?: string;
+  lyricsText?: string;
   durationSeconds?: number;
 }
 
@@ -31,6 +32,7 @@ interface PlayerContextType {
   duration: number;
   currentTime: number;
   lrcLines: LrcLine[];
+  staticLyrics: string;
   activeLrcIndex: number;
   repeatMode: RepeatMode;
   shuffleOn: boolean;
@@ -101,6 +103,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [lrcLines, setLrcLines] = useState<LrcLine[]>([]);
+  const [staticLyrics, setStaticLyrics] = useState<string>("");
   const [activeLrcIndex, setActiveLrcIndex] = useState(-1);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
   const [shuffleOn, setShuffleOn] = useState(false);
@@ -193,9 +196,26 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     setActiveLrcIndex(-1);
 
     if (song.lyricsLrc) {
-      setLrcLines(parseLrc(song.lyricsLrc));
+      const parsed = parseLrc(song.lyricsLrc);
+      setLrcLines(parsed);
+      // If LRC text has no timestamps, treat its raw content as static fallback
+      if (parsed.length === 0) {
+        setStaticLyrics(song.lyricsText || song.lyricsLrc);
+      } else {
+        setStaticLyrics(song.lyricsText || "");
+      }
     } else {
       setLrcLines([]);
+      setStaticLyrics(song.lyricsText || "");
+    }
+
+    // Fetch static lyrics fallback from DB if missing
+    if (!song.lyricsText) {
+      supabase.from("songs").select("lyrics_text").eq("id", song.id).maybeSingle().then(({ data }: any) => {
+        if (data?.lyrics_text) {
+          setStaticLyrics((prev) => prev || data.lyrics_text);
+        }
+      });
     }
 
     const url = toDirectUrl(karaokeMode ? song.instrumentalUrl : song.audioUrl);
@@ -415,7 +435,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   return (
     <PlayerContext.Provider value={{
       currentSong, isPlaying, isKaraoke, isExpanded, progress, duration,
-      currentTime, lrcLines, activeLrcIndex, repeatMode, shuffleOn,
+      currentTime, lrcLines, staticLyrics, activeLrcIndex, repeatMode, shuffleOn,
       queue, queueIndex, volume, trackEndCount, playSong, playQueue, togglePlay,
       toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev,
       cycleRepeat, toggleShuffle, setVolume,
