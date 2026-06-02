@@ -18,6 +18,7 @@ interface Song {
   instrumental_url: string | null;
   cover_url: string | null;
   lyrics_lrc: string | null;
+  lyrics_text: string | null;
   duration_seconds: number;
   is_featured: boolean;
   is_top: boolean;
@@ -131,6 +132,7 @@ const AdminSongs = () => {
   const [editingSong, setEditingSong] = useState<Song | null>(null);
   const [editMode, setEditMode] = useState<"lrc" | "sync" | "details">("lrc");
   const [lrcText, setLrcText] = useState("");
+  const [staticLyricsText, setStaticLyricsText] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", playlist_id: "", duration_seconds: 240,
@@ -194,7 +196,10 @@ const AdminSongs = () => {
 
   const handleSaveLyrics = async () => {
     if (!editingSong) return;
-    const { error } = await supabase.from("songs").update({ lyrics_lrc: lrcText }).eq("id", editingSong.id);
+    const { error } = await supabase.from("songs").update({
+      lyrics_lrc: lrcText,
+      lyrics_text: staticLyricsText || null,
+    } as any).eq("id", editingSong.id);
     if (error) { toast.error("Failed to save lyrics"); return; }
     toast.success("Lyrics saved!");
     setEditingSong(null);
@@ -397,6 +402,7 @@ const AdminSongs = () => {
     setEditMode(mode);
     if (mode === "lrc") {
       setLrcText(song.lyrics_lrc || "");
+      setStaticLyricsText((song as any).lyrics_text || "");
     } else {
       setEditForm({
         title: song.title, artist: song.artist, album: song.album || "",
@@ -502,7 +508,7 @@ const AdminSongs = () => {
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium ${editMode === "details" ? "gradient-gold text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                     Details
                   </button>
-                  <button onClick={() => { setEditMode("lrc"); setLrcText(editingSong.lyrics_lrc || ""); }}
+                  <button onClick={() => { setEditMode("lrc"); setLrcText(editingSong.lyrics_lrc || ""); setStaticLyricsText((editingSong as any).lyrics_text || ""); }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium ${editMode === "lrc" ? "gradient-gold text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                     Lyrics
                   </button>
@@ -582,8 +588,18 @@ const AdminSongs = () => {
                     value={lrcText}
                     onChange={e => setLrcText(e.target.value)}
                     placeholder="Enter lyrics line by line...&#10;Amazing grace how sweet the sound&#10;That saved a wretch like me"
-                    className="flex-1 min-h-[300px] px-4 py-3 rounded-lg bg-muted border border-border text-foreground font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="min-h-[220px] px-4 py-3 rounded-lg bg-muted border border-border text-foreground font-mono text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary"
                   />
+                  <div className="mt-4">
+                    <label className="block text-xs font-semibold text-foreground mb-1">Static Lyrics (fallback)</label>
+                    <p className="text-[11px] text-muted-foreground mb-2">Shown when no synced timestamps exist. Paste full lyrics here.</p>
+                    <textarea
+                      value={staticLyricsText}
+                      onChange={e => setStaticLyricsText(e.target.value)}
+                      placeholder="Paste full lyrics here..."
+                      className="w-full min-h-[180px] px-4 py-3 rounded-lg bg-muted border border-border text-foreground text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
                   <Button onClick={handleSaveLyrics} className="mt-4 gradient-gold text-primary-foreground gap-2 self-end">
                     <Save className="w-4 h-4" /> Save Lyrics
                   </Button>
