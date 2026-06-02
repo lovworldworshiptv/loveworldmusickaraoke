@@ -196,9 +196,26 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     setActiveLrcIndex(-1);
 
     if (song.lyricsLrc) {
-      setLrcLines(parseLrc(song.lyricsLrc));
+      const parsed = parseLrc(song.lyricsLrc);
+      setLrcLines(parsed);
+      // If LRC text has no timestamps, treat its raw content as static fallback
+      if (parsed.length === 0) {
+        setStaticLyrics(song.lyricsText || song.lyricsLrc);
+      } else {
+        setStaticLyrics(song.lyricsText || "");
+      }
     } else {
       setLrcLines([]);
+      setStaticLyrics(song.lyricsText || "");
+    }
+
+    // Fetch static lyrics fallback from DB if missing
+    if (!song.lyricsText) {
+      supabase.from("songs").select("lyrics_text").eq("id", song.id).maybeSingle().then(({ data }: any) => {
+        if (data?.lyrics_text) {
+          setStaticLyrics((prev) => prev || data.lyrics_text);
+        }
+      });
     }
 
     const url = toDirectUrl(karaokeMode ? song.instrumentalUrl : song.audioUrl);
