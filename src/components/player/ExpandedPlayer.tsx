@@ -346,6 +346,10 @@ const ExpandedPlayer = () => {
                   </p>
                 ))}
               </div>
+            ) : staticLyrics ? (
+              <div className="py-12 px-2 whitespace-pre-line text-center font-serif text-lg sm:text-xl leading-relaxed text-foreground/90">
+                {staticLyrics}
+              </div>
             ) : (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
