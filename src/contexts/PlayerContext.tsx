@@ -12,6 +12,7 @@ export interface PlayerSong {
   audioUrl?: string;
   instrumentalUrl?: string;
   lyricsLrc?: string;
+  lyricsText?: string;
   durationSeconds?: number;
 }
 
