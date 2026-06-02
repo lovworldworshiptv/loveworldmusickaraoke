@@ -237,8 +237,8 @@ const ExpandedPlayer = () => {
         </div>
 
         {/* Song header (always visible) */}
-        <div className="px-6 pb-3 flex-shrink-0">
-          <button onClick={() => setShowLyrics(prev => !prev)} className="flex items-center gap-3 w-full">
+        <div className="px-6 pb-3 flex-shrink-0 flex items-center gap-3">
+          <button onClick={() => setShowLyrics(prev => !prev)} className="flex items-center gap-3 flex-1 min-w-0">
             <div className="w-12 h-12 rounded-xl gradient-purple flex-shrink-0 flex items-center justify-center glow-gold overflow-hidden">
               {currentSong.coverUrl ? (
                 <img src={currentSong.coverUrl} alt="" className="w-full h-full object-cover" />
@@ -251,7 +251,19 @@ const ExpandedPlayer = () => {
               <p className="text-xs text-muted-foreground">{currentSong.artist}</p>
             </div>
           </button>
+          {/* Artwork / Lyrics toggle — always visible in every view */}
+          <button
+            onClick={() => setShowLyrics(prev => !prev)}
+            className={`flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full transition-all duration-300 ${
+              showLyrics ? "bg-secondary/80 text-foreground hover:bg-secondary" : "bg-gold/15 text-gold border border-gold/30"
+            }`}
+            title={showLyrics ? "Show artwork" : "Show lyrics"}
+            aria-label={showLyrics ? "Show artwork" : "Show lyrics"}
+          >
+            {showLyrics ? <Disc3 className="w-4 h-4" /> : <Type className="w-4 h-4" />}
+          </button>
         </div>
+
 
         {/* Karaoke + Record Toggle Row (always visible) */}
         <div className="flex justify-center gap-1.5 mb-3 px-6 flex-shrink-0 flex-wrap">
