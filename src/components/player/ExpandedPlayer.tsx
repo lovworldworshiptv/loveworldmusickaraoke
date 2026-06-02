@@ -367,9 +367,9 @@ const ExpandedPlayer = () => {
                 ))}
               </div>
             ) : staticLyrics ? (
-              <div className="py-[20vh] px-2">
+              <div className="py-[15vh] sm:py-[20vh] px-2 max-w-2xl mx-auto">
                 <p className="text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 mb-4">Static Lyrics</p>
-                <div className="whitespace-pre-line text-center font-serif text-lg leading-relaxed text-white/85">
+                <div className="whitespace-pre-line break-words text-center font-serif text-base sm:text-lg md:text-xl leading-relaxed text-white/85">
                   {staticLyrics}
                 </div>
               </div>
