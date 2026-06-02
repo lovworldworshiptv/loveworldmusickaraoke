@@ -104,9 +104,16 @@ const ExpandedPlayer = () => {
     if (!currentSong) { setStaticLyrics(null); return; }
     if (lrcLines.length > 0) { setStaticLyrics(null); return; }
     let cancelled = false;
-    supabase.from("songs").select("lyrics_text" as any).eq("id", currentSong.id).maybeSingle()
-      .then(({ data }: any) => {
-        if (!cancelled) setStaticLyrics(data?.lyrics_text || null);
+    supabase
+      .from("songs")
+      .select("lyrics_text")
+      .eq("id", currentSong.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) { setStaticLyrics(null); return; }
+        const txt = (data?.lyrics_text || "").trim();
+        setStaticLyrics(txt ? txt : null);
       });
     return () => { cancelled = true; };
   }, [currentSong?.id, lrcLines.length]);
