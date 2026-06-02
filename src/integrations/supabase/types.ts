@@ -1232,7 +1232,81 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      homepage_popup_public: {
+        Row: {
+          bg_color: string | null
+          border_radius: string | null
+          button_color: string | null
+          button_text_color: string | null
+          delay_seconds: number | null
+          description: string | null
+          enabled: boolean | null
+          homepage_only: boolean | null
+          id: string | null
+          image_position: string | null
+          image_url: string | null
+          max_width: string | null
+          primary_button_new_tab: boolean | null
+          primary_button_text: string | null
+          primary_button_url: string | null
+          secondary_button_new_tab: boolean | null
+          secondary_button_text: string | null
+          secondary_button_url: string | null
+          show_frequency: string | null
+          target_segment: string | null
+          text_color: string | null
+          title: string | null
+        }
+        Insert: {
+          bg_color?: string | null
+          border_radius?: string | null
+          button_color?: string | null
+          button_text_color?: string | null
+          delay_seconds?: number | null
+          description?: string | null
+          enabled?: boolean | null
+          homepage_only?: boolean | null
+          id?: string | null
+          image_position?: string | null
+          image_url?: string | null
+          max_width?: string | null
+          primary_button_new_tab?: boolean | null
+          primary_button_text?: string | null
+          primary_button_url?: string | null
+          secondary_button_new_tab?: boolean | null
+          secondary_button_text?: string | null
+          secondary_button_url?: string | null
+          show_frequency?: string | null
+          target_segment?: string | null
+          text_color?: string | null
+          title?: string | null
+        }
+        Update: {
+          bg_color?: string | null
+          border_radius?: string | null
+          button_color?: string | null
+          button_text_color?: string | null
+          delay_seconds?: number | null
+          description?: string | null
+          enabled?: boolean | null
+          homepage_only?: boolean | null
+          id?: string | null
+          image_position?: string | null
+          image_url?: string | null
+          max_width?: string | null
+          primary_button_new_tab?: boolean | null
+          primary_button_text?: string | null
+          primary_button_url?: string | null
+          secondary_button_new_tab?: boolean | null
+          secondary_button_text?: string | null
+          secondary_button_url?: string | null
+          show_frequency?: string | null
+          target_segment?: string | null
+          text_color?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_public_karaoke: {
