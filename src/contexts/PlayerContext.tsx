@@ -32,6 +32,7 @@ interface PlayerContextType {
   duration: number;
   currentTime: number;
   lrcLines: LrcLine[];
+  staticLyrics: string;
   activeLrcIndex: number;
   repeatMode: RepeatMode;
   shuffleOn: boolean;
