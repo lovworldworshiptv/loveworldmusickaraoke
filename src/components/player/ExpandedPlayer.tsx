@@ -53,7 +53,7 @@ function useDominantColor(imageUrl?: string) {
 const ExpandedPlayer = () => {
   const {
     currentSong, isPlaying, isKaraoke, progress, duration, currentTime,
-    lrcLines, activeLrcIndex, togglePlay, toggleKaraoke, toggleExpanded, seekTo,
+    lrcLines, staticLyrics, activeLrcIndex, togglePlay, toggleKaraoke, toggleExpanded, seekTo,
     skipNext, skipPrev, repeatMode, cycleRepeat, shuffleOn, toggleShuffle,
     volume, setVolume, queue, queueIndex,
   } = usePlayer();
