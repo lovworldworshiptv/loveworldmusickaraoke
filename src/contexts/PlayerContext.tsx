@@ -435,7 +435,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   return (
     <PlayerContext.Provider value={{
       currentSong, isPlaying, isKaraoke, isExpanded, progress, duration,
-      currentTime, lrcLines, activeLrcIndex, repeatMode, shuffleOn,
+      currentTime, lrcLines, staticLyrics, activeLrcIndex, repeatMode, shuffleOn,
       queue, queueIndex, volume, trackEndCount, playSong, playQueue, togglePlay,
       toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev,
       cycleRepeat, toggleShuffle, setVolume,
