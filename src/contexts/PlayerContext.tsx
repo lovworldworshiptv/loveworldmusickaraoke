@@ -103,6 +103,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [lrcLines, setLrcLines] = useState<LrcLine[]>([]);
+  const [staticLyrics, setStaticLyrics] = useState<string>("");
   const [activeLrcIndex, setActiveLrcIndex] = useState(-1);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
   const [shuffleOn, setShuffleOn] = useState(false);
