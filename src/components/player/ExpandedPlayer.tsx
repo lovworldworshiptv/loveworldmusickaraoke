@@ -67,7 +67,6 @@ const ExpandedPlayer = () => {
   const [recordFeatureEnabled, setRecordFeatureEnabled] = useState(true);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
-  const [staticLyrics, setStaticLyrics] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -98,25 +97,6 @@ const ExpandedPlayer = () => {
     if (!currentSong) { setDlState("none"); return; }
     checkDownloaded(currentSong.id).then(d => setDlState(d ? "done" : "none"));
   }, [currentSong?.id]);
-
-  // Fetch static lyrics fallback when no synced LRC is available
-  useEffect(() => {
-    if (!currentSong) { setStaticLyrics(null); return; }
-    if (lrcLines.length > 0) { setStaticLyrics(null); return; }
-    let cancelled = false;
-    supabase
-      .from("songs")
-      .select("lyrics_text")
-      .eq("id", currentSong.id)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) { setStaticLyrics(null); return; }
-        const txt = (data?.lyrics_text || "").trim();
-        setStaticLyrics(txt ? txt : null);
-      });
-    return () => { cancelled = true; };
-  }, [currentSong?.id, lrcLines.length]);
 
   const handleDl = useCallback(async () => {
     if (!currentSong?.audioUrl) return;
@@ -365,13 +345,6 @@ const ExpandedPlayer = () => {
                     {line.text || "♪"}
                   </p>
                 ))}
-              </div>
-            ) : staticLyrics ? (
-              <div className="py-[15vh] sm:py-[20vh] px-2 max-w-2xl mx-auto">
-                <p className="text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 mb-4">Static Lyrics</p>
-                <div className="whitespace-pre-line break-words text-center font-serif text-base sm:text-lg md:text-xl leading-relaxed text-white/85">
-                  {staticLyrics}
-                </div>
               </div>
             ) : (
               <div className="flex items-center justify-center h-full">

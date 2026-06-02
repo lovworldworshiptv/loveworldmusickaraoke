@@ -984,7 +984,6 @@ export type Database = {
           is_free_download: boolean
           is_top: boolean
           lyrics_lrc: string | null
-          lyrics_text: string | null
           play_count: number
           title: string
         }
@@ -1003,7 +1002,6 @@ export type Database = {
           is_free_download?: boolean
           is_top?: boolean
           lyrics_lrc?: string | null
-          lyrics_text?: string | null
           play_count?: number
           title: string
         }
@@ -1022,7 +1020,6 @@ export type Database = {
           is_free_download?: boolean
           is_top?: boolean
           lyrics_lrc?: string | null
-          lyrics_text?: string | null
           play_count?: number
           title?: string
         }
