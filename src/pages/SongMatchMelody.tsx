@@ -142,7 +142,7 @@ const SongMatchMelody = () => {
 
     const audio = new Audio(q.audioUrl);
     audioRef.current = audio;
-    const startTime = 10 + Math.random() * 50;
+    const startTime = q.startTime;
     audio.currentTime = startTime;
     audio.play().then(() => {
       setIsPlaying(true);
