@@ -1,0 +1,107 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return json({ error: "Not authenticated" }, 401);
+
+    const url = Deno.env.get("SUPABASE_URL")!;
+    const svc = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const userClient = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: uerr } = await userClient.auth.getUser();
+    if (uerr || !user) return json({ error: "Invalid token" }, 401);
+
+    const { challenge_id, payment_proof_url, referred_by_user_id } = await req.json();
+    if (!challenge_id) return json({ error: "challenge_id required" }, 400);
+
+    const { data: ch, error: cerr } = await svc.from("challenges").select("*").eq("id", challenge_id).single();
+    if (cerr || !ch) return json({ error: "Challenge not found" }, 404);
+    if (ch.status !== "active") return json({ error: "Challenge is not active" }, 400);
+    if (new Date(ch.end_date) < new Date()) return json({ error: "Challenge has ended" }, 400);
+
+    // Check premium
+    const { data: sub } = await svc.from("user_subscriptions")
+      .select("subscription, subscription_expiry_date").eq("user_id", user.id).maybeSingle();
+    const expired = sub?.subscription_expiry_date && new Date(sub.subscription_expiry_date) < new Date();
+    const isPremium = !expired && (sub?.subscription === "premium" || sub?.subscription === "trial");
+
+    // Existing entry?
+    const { data: existing } = await svc.from("challenge_entries")
+      .select("id, status").eq("challenge_id", challenge_id).eq("user_id", user.id).maybeSingle();
+    if (existing) return json({ error: "You already have an entry", entry: existing }, 400);
+
+    // Validate referrer (no self)
+    const validReferrer = referred_by_user_id && referred_by_user_id !== user.id ? referred_by_user_id : null;
+
+    const status = isPremium ? "approved" : "pending";
+    const paid_amount = isPremium ? 0 : Number(ch.entry_fee);
+
+    const { data: entry, error: ierr } = await svc.from("challenge_entries").insert({
+      challenge_id, user_id: user.id, status, paid_amount,
+      is_premium_free: isPremium, payment_proof_url: payment_proof_url ?? null,
+      referred_by_user_id: validReferrer,
+      approved_by: isPremium ? user.id : null,
+      approved_at: isPremium ? new Date().toISOString() : null,
+    }).select().single();
+    if (ierr) throw ierr;
+
+    if (status === "approved") {
+      await svc.from("challenge_scores").upsert({ challenge_id, user_id: user.id }, { onConflict: "challenge_id,user_id" });
+      if (validReferrer) {
+        await awardReferral(svc, challenge_id, validReferrer, user.id, ch.max_referrals_per_user);
+      }
+    }
+
+    return json({ success: true, entry });
+  } catch (e: any) {
+    return json({ error: e.message }, 500);
+  }
+});
+
+async function awardReferral(svc: any, challenge_id: string, referrer: string, referred: string, cap: number | null) {
+  const { data: existing } = await svc.from("challenge_referrals")
+    .select("id").eq("challenge_id", challenge_id).eq("referred_user_id", referred).maybeSingle();
+  if (existing) return;
+  if (cap && cap > 0) {
+    const { count } = await svc.from("challenge_referrals")
+      .select("id", { count: "exact", head: true })
+      .eq("challenge_id", challenge_id).eq("referrer_user_id", referrer);
+    if ((count ?? 0) >= cap) {
+      await svc.from("challenge_referrals").insert({ challenge_id, referrer_user_id: referrer, referred_user_id: referred, awarded: false });
+      return;
+    }
+  }
+  await svc.from("challenge_referrals").insert({ challenge_id, referrer_user_id: referrer, referred_user_id: referred, awarded: true });
+  // +50 points to referrer
+  await svc.from("challenge_bonuses_awarded").insert({
+    challenge_id, user_id: referrer, bonus_key: `referral_${referred}`, points: 50,
+  });
+  await recalcScore(svc, challenge_id, referrer);
+}
+
+async function recalcScore(svc: any, challenge_id: string, user_id: string) {
+  const { data: logs } = await svc.from("challenge_game_logs")
+    .select("score, counted_toward_score").eq("challenge_id", challenge_id).eq("user_id", user_id);
+  const { data: bonuses } = await svc.from("challenge_bonuses_awarded")
+    .select("points").eq("challenge_id", challenge_id).eq("user_id", user_id);
+  const logTotal = (logs || []).filter((l: any) => l.counted_toward_score).reduce((s: number, l: any) => s + (l.score || 0), 0);
+  const bonusTotal = (bonuses || []).reduce((s: number, b: any) => s + (b.points || 0), 0);
+  await svc.from("challenge_scores").upsert(
+    { challenge_id, user_id, total_score: logTotal + bonusTotal },
+    { onConflict: "challenge_id,user_id" }
+  );
+}
+
+function json(body: any, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
