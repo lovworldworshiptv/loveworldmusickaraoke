@@ -16,6 +16,7 @@ interface MelodyQuestion {
   artist: string;
   points: number;
   clipDuration: number;
+  startTime: number;
 }
 
 interface AnswerRecord {
