@@ -1,4 +1,4 @@
-import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3, List, Image, Gamepad2, Sparkles, Users, BarChart3, Bell, Crown, Compass, Mic2, AlarmClock } from "lucide-react";
+import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3, List, Image, Gamepad2, Sparkles, Users, BarChart3, Bell, Crown, Compass, Mic2, AlarmClock, Trophy } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
