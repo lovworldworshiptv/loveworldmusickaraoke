@@ -16,6 +16,7 @@ interface MelodyQuestion {
   artist: string;
   points: number;
   clipDuration: number;
+  startTime: number;
 }
 
 interface AnswerRecord {
@@ -28,7 +29,7 @@ interface AnswerRecord {
 const DIFFICULTY_CONFIG = {
   easy: { label: "Easy", points: 10, clipDuration: 15, color: "bg-green-500", emoji: "🌱", speedThreshold: 10 },
   medium: { label: "Medium", points: 15, clipDuration: 8, color: "bg-amber-500", emoji: "🔥", speedThreshold: 7 },
-  hard: { label: "Hard", points: 25, clipDuration: 4, color: "bg-red-500", emoji: "⚡", speedThreshold: 5 },
+  hard: { label: "Hard", points: 25, clipDuration: 5, color: "bg-red-500", emoji: "⚡", speedThreshold: 5 },
 };
 
 const OPTION_COUNT = 4;
@@ -58,7 +59,7 @@ function generateMelodyQuestions(
 
     const options = [song.title, ...otherSongs].sort(() => Math.random() - 0.5);
     usedSongs.add(song.title);
-    questions.push({ audioUrl: song.audio_url, correctTitle: song.title, options, artist: song.artist, points: config.points, clipDuration: config.clipDuration });
+    questions.push({ audioUrl: song.audio_url, correctTitle: song.title, options, artist: song.artist, points: config.points, clipDuration: config.clipDuration, startTime: 10 + Math.random() * 50 });
   }
 
   return questions.sort(() => Math.random() - 0.5);
@@ -141,7 +142,7 @@ const SongMatchMelody = () => {
 
     const audio = new Audio(q.audioUrl);
     audioRef.current = audio;
-    const startTime = 10 + Math.random() * 50;
+    const startTime = q.startTime;
     audio.currentTime = startTime;
     audio.play().then(() => {
       setIsPlaying(true);
