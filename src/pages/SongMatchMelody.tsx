@@ -59,7 +59,7 @@ function generateMelodyQuestions(
 
     const options = [song.title, ...otherSongs].sort(() => Math.random() - 0.5);
     usedSongs.add(song.title);
-    questions.push({ audioUrl: song.audio_url, correctTitle: song.title, options, artist: song.artist, points: config.points, clipDuration: config.clipDuration });
+    questions.push({ audioUrl: song.audio_url, correctTitle: song.title, options, artist: song.artist, points: config.points, clipDuration: config.clipDuration, startTime: 10 + Math.random() * 50 });
   }
 
   return questions.sort(() => Math.random() - 0.5);
