@@ -28,7 +28,7 @@ interface AnswerRecord {
 const DIFFICULTY_CONFIG = {
   easy: { label: "Easy", points: 10, clipDuration: 15, color: "bg-green-500", emoji: "🌱", speedThreshold: 10 },
   medium: { label: "Medium", points: 15, clipDuration: 8, color: "bg-amber-500", emoji: "🔥", speedThreshold: 7 },
-  hard: { label: "Hard", points: 25, clipDuration: 4, color: "bg-red-500", emoji: "⚡", speedThreshold: 5 },
+  hard: { label: "Hard", points: 25, clipDuration: 5, color: "bg-red-500", emoji: "⚡", speedThreshold: 5 },
 };
 
 const OPTION_COUNT = 4;
