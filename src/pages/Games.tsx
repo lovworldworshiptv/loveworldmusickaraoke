@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Music, BookOpen, Lock, Trophy, Gamepad2, Star, Target, Share2 } from "lucide-react";
 import { useGameStats, ACHIEVEMENTS } from "@/hooks/useGameStats";
 import ShareMenu, { buildShareUrl } from "@/components/share/ShareMenu";
+import ChallengeBanner from "@/components/games/ChallengeBanner";
 
 const Games = () => {
   const navigate = useNavigate();
@@ -13,6 +14,9 @@ const Games = () => {
   return (
     <AppLayout>
       <div className="px-4 lg:px-6 pt-6 lg:pt-10 pb-8 max-w-3xl mx-auto">
+        {/* Song Match Challenge - placed first for maximum visibility */}
+        <ChallengeBanner />
+
         {/* Header */}
         <div className="text-center mb-6">
           <h1 className="text-3xl lg:text-4xl font-serif font-bold text-foreground mb-2">
