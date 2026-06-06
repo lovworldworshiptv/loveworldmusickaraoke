@@ -161,6 +161,283 @@ export type Database = {
         }
         Relationships: []
       }
+      challenge_bonuses_awarded: {
+        Row: {
+          awarded_at: string
+          bonus_key: string
+          challenge_id: string
+          id: string
+          points: number
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          bonus_key: string
+          challenge_id: string
+          id?: string
+          points: number
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string
+          bonus_key?: string
+          challenge_id?: string
+          id?: string
+          points?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_bonuses_awarded_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenge_entries: {
+        Row: {
+          admin_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          challenge_id: string
+          created_at: string
+          id: string
+          is_premium_free: boolean
+          paid_amount: number
+          payment_proof_url: string | null
+          referred_by_user_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          challenge_id: string
+          created_at?: string
+          id?: string
+          is_premium_free?: boolean
+          paid_amount?: number
+          payment_proof_url?: string | null
+          referred_by_user_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          challenge_id?: string
+          created_at?: string
+          id?: string
+          is_premium_free?: boolean
+          paid_amount?: number
+          payment_proof_url?: string | null
+          referred_by_user_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_entries_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenge_game_logs: {
+        Row: {
+          challenge_id: string
+          completed_at: string
+          counted_toward_score: boolean
+          difficulty: string | null
+          id: string
+          mode: string
+          score: number
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          completed_at?: string
+          counted_toward_score?: boolean
+          difficulty?: string | null
+          id?: string
+          mode: string
+          score?: number
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          completed_at?: string
+          counted_toward_score?: boolean
+          difficulty?: string | null
+          id?: string
+          mode?: string
+          score?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_game_logs_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenge_referrals: {
+        Row: {
+          awarded: boolean
+          challenge_id: string
+          created_at: string
+          id: string
+          referred_user_id: string
+          referrer_user_id: string
+        }
+        Insert: {
+          awarded?: boolean
+          challenge_id: string
+          created_at?: string
+          id?: string
+          referred_user_id: string
+          referrer_user_id: string
+        }
+        Update: {
+          awarded?: boolean
+          challenge_id?: string
+          created_at?: string
+          id?: string
+          referred_user_id?: string
+          referrer_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_referrals_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenge_scores: {
+        Row: {
+          category_points: number
+          challenge_id: string
+          created_at: string
+          final_rank: number | null
+          games_played: number
+          id: string
+          lyrics_points: number
+          melody_points: number
+          prize_awarded: number
+          qualified: boolean
+          total_score: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_points?: number
+          challenge_id: string
+          created_at?: string
+          final_rank?: number | null
+          games_played?: number
+          id?: string
+          lyrics_points?: number
+          melody_points?: number
+          prize_awarded?: number
+          qualified?: boolean
+          total_score?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category_points?: number
+          challenge_id?: string
+          created_at?: string
+          final_rank?: number | null
+          games_played?: number
+          id?: string
+          lyrics_points?: number
+          melody_points?: number
+          prize_awarded?: number
+          qualified?: boolean
+          total_score?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_scores_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenges: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_date: string
+          entry_fee: number
+          id: string
+          max_daily_scoring_games: number | null
+          max_referrals_per_user: number | null
+          name: string
+          prize_distribution: Json
+          prize_pool: number
+          qualification_min_games: number
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date: string
+          entry_fee?: number
+          id?: string
+          max_daily_scoring_games?: number | null
+          max_referrals_per_user?: number | null
+          name: string
+          prize_distribution?: Json
+          prize_pool?: number
+          qualification_min_games?: number
+          start_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string
+          entry_fee?: number
+          id?: string
+          max_daily_scoring_games?: number | null
+          max_referrals_per_user?: number | null
+          name?: string
+          prize_distribution?: Json
+          prize_pool?: number
+          qualification_min_games?: number
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       downloads: {
         Row: {
           downloaded_at: string
@@ -815,6 +1092,7 @@ export type Database = {
           church: string | null
           created_at: string
           email: string | null
+          espees_balance: number
           id: string
           kingschat_handle: string | null
           profile_completed: boolean
@@ -829,6 +1107,7 @@ export type Database = {
           church?: string | null
           created_at?: string
           email?: string | null
+          espees_balance?: number
           id?: string
           kingschat_handle?: string | null
           profile_completed?: boolean
@@ -843,6 +1122,7 @@ export type Database = {
           church?: string | null
           created_at?: string
           email?: string | null
+          espees_balance?: number
           id?: string
           kingschat_handle?: string | null
           profile_completed?: boolean

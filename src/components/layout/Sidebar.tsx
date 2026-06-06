@@ -1,4 +1,4 @@
-import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3, List, Image, Gamepad2, Sparkles, Users, BarChart3, Bell, Crown, Compass, Mic2, AlarmClock } from "lucide-react";
+import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3, List, Image, Gamepad2, Sparkles, Users, BarChart3, Bell, Crown, Compass, Mic2, AlarmClock, Trophy } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -32,6 +32,7 @@ const adminItems = [
   { icon: Sparkles, label: "Premium Ads", path: "/admin/premium-ads" },
   { icon: Users, label: "Manage Users", path: "/admin/users" },
   { icon: Crown, label: "Pending Subscriptions", path: "/admin/subscriptions" },
+  { icon: Trophy, label: "Challenges", path: "/admin/challenges" },
   { icon: Bell, label: "Homepage Popup", path: "/admin/popup" },
   { icon: Bell, label: "Notifications", path: "/admin/notifications" },
   { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },

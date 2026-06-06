@@ -288,7 +288,9 @@ const SongMatchLyrics = () => {
         if (user?.id && difficulty) {
           const correctCount = [...answers, { correct }].filter((a) => a.correct).length;
           const maxScore = questions.reduce((sum, q) => sum + q.points, 0);
-          saveGameSession(user.id, "lyrics", difficulty, score + (correct ? pointsEarned : 0), maxScore, correctCount, questions.length, Math.max(bestStreak, correct ? streak + 1 : bestStreak));
+          const finalScore = score + (correct ? pointsEarned : 0);
+          saveGameSession(user.id, "lyrics", difficulty, finalScore, maxScore, correctCount, questions.length, Math.max(bestStreak, correct ? streak + 1 : bestStreak));
+          import("@/hooks/useChallenge").then(({ recordChallengeGame }) => recordChallengeGame("lyrics", difficulty, finalScore));
           if (gameStats) {
             const updatedStats = {
               ...gameStats,

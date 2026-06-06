@@ -150,6 +150,7 @@ const SongMatchCategory = () => {
           const finalScore = score + (correct ? pointsEarned : 0);
           const finalStreak = Math.max(bestStreak, correct ? streak + 1 : bestStreak);
           saveGameSession(user.id, "category", difficulty, finalScore, maxScore, correctCount, questions.length, finalStreak);
+          import("@/hooks/useChallenge").then(({ recordChallengeGame }) => recordChallengeGame("category", difficulty, finalScore));
           if (gameStats) {
             checkAndAwardAchievements(user.id, { ...gameStats, totalGamesPlayed: gameStats.totalGamesPlayed + 1, totalPoints: gameStats.totalPoints + finalScore, categoryGames: gameStats.categoryGames + 1, categoryPoints: gameStats.categoryPoints + finalScore, categoryBestStreak: Math.max(gameStats.categoryBestStreak, finalStreak) });
           }

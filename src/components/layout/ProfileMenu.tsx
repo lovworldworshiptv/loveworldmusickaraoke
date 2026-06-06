@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { User, Settings, ChevronRight, LogOut, Crown, Shield, Palette, AtSign, Music2, Disc3, List, Newspaper, Grid3X3, Image, Gamepad2, MessageSquare, Sparkles, Users, BarChart3, Bell, Mic2, Clock } from "lucide-react";
+import { User, Settings, ChevronRight, LogOut, Crown, Shield, Palette, AtSign, Music2, Disc3, List, Newspaper, Grid3X3, Image, Gamepad2, MessageSquare, Sparkles, Users, BarChart3, Bell, Mic2, Clock, Trophy } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useTheme, ThemeName } from "@/contexts/ThemeContext";
@@ -21,6 +21,7 @@ const adminItems = [
   { icon: Sparkles, label: "Premium Ads", path: "/admin/premium-ads" },
   { icon: Users, label: "Manage Users", path: "/admin/users" },
   { icon: Crown, label: "Pending Subscriptions", path: "/admin/subscriptions" },
+  { icon: Trophy, label: "Challenges", path: "/admin/challenges" },
   { icon: Bell, label: "Homepage Popup", path: "/admin/popup" },
   { icon: Bell, label: "Notifications", path: "/admin/notifications" },
   { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
