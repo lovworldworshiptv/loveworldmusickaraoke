@@ -27,6 +27,27 @@ const AdminChallenges = () => {
     },
   });
 
+  const { data: pendingEntries = [] } = useQuery({
+    queryKey: ["admin-pending-entries"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("challenge_entries" as any)
+        .select("*, challenges(name)")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      return (data as any[]) || [];
+    },
+    refetchInterval: 30_000,
+  });
+
+  const reviewPending = async (entry_id: string, action: "approve" | "reject") => {
+    const { data, error } = await supabase.functions.invoke("approve-challenge-entry", { body: { entry_id, action } });
+    if (error || (data as any)?.error) { toast.error((data as any)?.error || error?.message); return; }
+    toast.success(`${action}d`);
+    qc.invalidateQueries({ queryKey: ["admin-pending-entries"] });
+    qc.invalidateQueries({ queryKey: ["admin-entries"] });
+  };
+
   if (loading) return <AppLayout><div className="p-6 text-sm">Loading...</div></AppLayout>;
   if (!isAdmin) return <Navigate to="/" replace />;
 
