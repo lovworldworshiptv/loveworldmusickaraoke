@@ -1,6 +1,6 @@
-import { Trophy, Crown, Users } from "lucide-react";
+import { Trophy, Crown, Users, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useActiveChallenge, useMyEntry, useParticipantCount } from "@/hooks/useChallenge";
+import { useActiveChallenge, useMyEntry, useParticipantCount, isChallengeClosed } from "@/hooks/useChallenge";
 import ChallengeCountdown from "./ChallengeCountdown";
 
 export default function ChallengeBanner() {
@@ -12,8 +12,11 @@ export default function ChallengeBanner() {
 
   const dist = ch.prize_distribution || {};
   const ranks = Object.keys(dist).map(Number).sort((a, b) => a - b);
+  const closed = isChallengeClosed(ch);
 
-  const ctaLabel = !entry
+  const ctaLabel = closed
+    ? "Challenge Ended"
+    : !entry
     ? `Enter Challenge — ${ch.entry_fee} Espee${Number(ch.entry_fee) === 1 ? "" : "s"}`
     : entry.status === "pending"
     ? "Entry Pending Approval"
@@ -25,9 +28,14 @@ export default function ChallengeBanner() {
     <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-amber-700/20 border border-amber-500/30 p-5 sm:p-6 mb-6 shadow-[0_8px_40px_-12px_rgba(251,191,36,0.4)]">
       <div className="absolute top-0 right-0 -mt-8 -mr-8 w-40 h-40 rounded-full bg-amber-400/10 blur-3xl pointer-events-none" />
       <div className="relative">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
           <Trophy className="w-5 h-5 text-amber-400" />
           <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Song Match Challenge</span>
+          {closed && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40">
+              <CheckCircle2 className="w-3 h-3" /> Completed
+            </span>
+          )}
         </div>
         <h2 className="text-2xl sm:text-3xl font-serif font-bold text-foreground mb-1">{ch.name}</h2>
         {ch.description && <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{ch.description}</p>}
@@ -60,14 +68,14 @@ export default function ChallengeBanner() {
         </div>
 
         <div className="mb-4">
-          <p className="text-xs text-muted-foreground text-center mb-2">Ends In</p>
-          <ChallengeCountdown endDate={ch.end_date} />
+          <p className="text-xs text-muted-foreground text-center mb-2">{closed ? "Challenge Ended" : "Ends In"}</p>
+          {!closed && <ChallengeCountdown endDate={ch.end_date} />}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2">
           <button
             onClick={() => navigate(entry?.status === "approved" ? "/games/challenge" : "/games/challenge/enter")}
-            disabled={entry?.status === "pending"}
+            disabled={closed || entry?.status === "pending"}
             className="flex-1 py-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
           >
             <Crown className="w-4 h-4" /> {ctaLabel}

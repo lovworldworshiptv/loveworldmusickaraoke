@@ -22,13 +22,10 @@ export const useActiveChallenge = () => {
   return useQuery<Challenge | null>({
     queryKey: ["active-challenge"],
     queryFn: async () => {
-      const now = new Date().toISOString();
       const { data, error } = await supabase
         .from("challenges" as any)
         .select("*")
-        .eq("status", "active")
-        .lte("start_date", now)
-        .gte("end_date", now)
+        .in("status", ["active", "completed"])
         .order("start_date", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -37,6 +34,11 @@ export const useActiveChallenge = () => {
     },
     staleTime: 60_000,
   });
+};
+
+export const isChallengeClosed = (ch: Challenge | null | undefined) => {
+  if (!ch) return false;
+  return ch.status === "completed" || ch.status === "cancelled" || new Date(ch.end_date) < new Date();
 };
 
 export const useMyEntry = (challengeId?: string) => {

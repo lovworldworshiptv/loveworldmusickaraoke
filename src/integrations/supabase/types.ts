@@ -203,8 +203,10 @@ export type Database = {
           approved_by: string | null
           challenge_id: string
           created_at: string
+          full_name: string | null
           id: string
           is_premium_free: boolean
+          kingschat_username: string | null
           paid_amount: number
           payment_proof_url: string | null
           referred_by_user_id: string | null
@@ -218,8 +220,10 @@ export type Database = {
           approved_by?: string | null
           challenge_id: string
           created_at?: string
+          full_name?: string | null
           id?: string
           is_premium_free?: boolean
+          kingschat_username?: string | null
           paid_amount?: number
           payment_proof_url?: string | null
           referred_by_user_id?: string | null
@@ -233,8 +237,10 @@ export type Database = {
           approved_by?: string | null
           challenge_id?: string
           created_at?: string
+          full_name?: string | null
           id?: string
           is_premium_free?: boolean
+          kingschat_username?: string | null
           paid_amount?: number
           payment_proof_url?: string | null
           referred_by_user_id?: string | null

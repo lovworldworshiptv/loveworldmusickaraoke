@@ -27,6 +27,27 @@ const AdminChallenges = () => {
     },
   });
 
+  const { data: pendingEntries = [] } = useQuery({
+    queryKey: ["admin-pending-entries"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("challenge_entries" as any)
+        .select("*, challenges(name)")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      return (data as any[]) || [];
+    },
+    refetchInterval: 30_000,
+  });
+
+  const reviewPending = async (entry_id: string, action: "approve" | "reject") => {
+    const { data, error } = await supabase.functions.invoke("approve-challenge-entry", { body: { entry_id, action } });
+    if (error || (data as any)?.error) { toast.error((data as any)?.error || error?.message); return; }
+    toast.success(`${action}d`);
+    qc.invalidateQueries({ queryKey: ["admin-pending-entries"] });
+    qc.invalidateQueries({ queryKey: ["admin-entries"] });
+  };
+
   if (loading) return <AppLayout><div className="p-6 text-sm">Loading...</div></AppLayout>;
   if (!isAdmin) return <Navigate to="/" replace />;
 
@@ -125,6 +146,45 @@ const AdminChallenges = () => {
             </div>
           </div>
         )}
+
+        {pendingEntries.length > 0 && (
+          <div className="glass-card p-5 mb-5 border-amber-500/30">
+            <h3 className="font-bold mb-3 flex items-center gap-2 text-amber-400">
+              <CheckCircle className="w-4 h-4" /> Pending Entry Payments
+              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20">{pendingEntries.length}</span>
+            </h3>
+            <div className="space-y-2">
+              {pendingEntries.map((e: any) => (
+                <div key={e.id} className="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-background/50 text-xs">
+                  <div className="flex-1 min-w-[200px]">
+                    <p className="font-semibold text-foreground text-sm">{e.full_name || "—"}</p>
+                    <p className="text-muted-foreground">
+                      {e.kingschat_username && <span>KC: {e.kingschat_username} · </span>}
+                      {e.challenges?.name || "Challenge"} · {Number(e.paid_amount)} ESP
+                    </p>
+                    <p className="text-muted-foreground/70 text-[10px] mt-0.5">
+                      {new Date(e.created_at).toLocaleString()} · <span className="font-mono">{e.user_id.slice(0, 8)}</span>
+                    </p>
+                  </div>
+                  {e.payment_proof_url && (
+                    <a
+                      href={`https://qphlczkvepcxzgqagsmx.supabase.co/storage/v1/object/sign/payment-proofs/${e.payment_proof_url}`}
+                      target="_blank" rel="noreferrer"
+                      className="px-2.5 py-1 rounded bg-primary/15 text-primary text-xs"
+                    >
+                      View Proof
+                    </a>
+                  )}
+                  <div className="flex gap-1">
+                    <button onClick={() => reviewPending(e.id, "approve")} className="p-2 rounded bg-green-500/20 text-green-400"><CheckCircle className="w-4 h-4" /></button>
+                    <button onClick={() => reviewPending(e.id, "reject")} className="p-2 rounded bg-destructive/20 text-destructive"><XCircle className="w-4 h-4" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
 
         <div className="space-y-3">
           {challenges.map((c: any) => (
