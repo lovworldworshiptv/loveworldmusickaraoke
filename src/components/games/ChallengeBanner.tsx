@@ -1,6 +1,6 @@
-import { Trophy, Crown, Users } from "lucide-react";
+import { Trophy, Crown, Users, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useActiveChallenge, useMyEntry, useParticipantCount } from "@/hooks/useChallenge";
+import { useActiveChallenge, useMyEntry, useParticipantCount, isChallengeClosed } from "@/hooks/useChallenge";
 import ChallengeCountdown from "./ChallengeCountdown";
 
 export default function ChallengeBanner() {
