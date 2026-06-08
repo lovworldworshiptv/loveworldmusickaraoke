@@ -28,9 +28,14 @@ export default function ChallengeBanner() {
     <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-amber-700/20 border border-amber-500/30 p-5 sm:p-6 mb-6 shadow-[0_8px_40px_-12px_rgba(251,191,36,0.4)]">
       <div className="absolute top-0 right-0 -mt-8 -mr-8 w-40 h-40 rounded-full bg-amber-400/10 blur-3xl pointer-events-none" />
       <div className="relative">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
           <Trophy className="w-5 h-5 text-amber-400" />
           <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Song Match Challenge</span>
+          {closed && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40">
+              <CheckCircle2 className="w-3 h-3" /> Completed
+            </span>
+          )}
         </div>
         <h2 className="text-2xl sm:text-3xl font-serif font-bold text-foreground mb-1">{ch.name}</h2>
         {ch.description && <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{ch.description}</p>}
