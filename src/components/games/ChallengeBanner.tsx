@@ -68,14 +68,14 @@ export default function ChallengeBanner() {
         </div>
 
         <div className="mb-4">
-          <p className="text-xs text-muted-foreground text-center mb-2">Ends In</p>
-          <ChallengeCountdown endDate={ch.end_date} />
+          <p className="text-xs text-muted-foreground text-center mb-2">{closed ? "Challenge Ended" : "Ends In"}</p>
+          {!closed && <ChallengeCountdown endDate={ch.end_date} />}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2">
           <button
             onClick={() => navigate(entry?.status === "approved" ? "/games/challenge" : "/games/challenge/enter")}
-            disabled={entry?.status === "pending"}
+            disabled={closed || entry?.status === "pending"}
             className="flex-1 py-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
           >
             <Crown className="w-4 h-4" /> {ctaLabel}
