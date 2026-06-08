@@ -48,6 +48,8 @@ Deno.serve(async (req) => {
       challenge_id, user_id: user.id, status, paid_amount,
       is_premium_free: isPremium, payment_proof_url: payment_proof_url ?? null,
       referred_by_user_id: validReferrer,
+      full_name: full_name ?? null,
+      kingschat_username: kingschat_username ?? null,
       approved_by: isPremium ? user.id : null,
       approved_at: isPremium ? new Date().toISOString() : null,
     }).select().single();
