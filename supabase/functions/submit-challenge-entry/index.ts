@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: uerr } = await userClient.auth.getUser();
     if (uerr || !user) return json({ error: "Invalid token" }, 401);
 
-    const { challenge_id, payment_proof_url, referred_by_user_id } = await req.json();
+    const { challenge_id, payment_proof_url, referred_by_user_id, full_name, kingschat_username } = await req.json();
     if (!challenge_id) return json({ error: "challenge_id required" }, 400);
 
     const { data: ch, error: cerr } = await svc.from("challenges").select("*").eq("id", challenge_id).single();
