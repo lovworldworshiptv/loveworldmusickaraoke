@@ -12,8 +12,11 @@ export default function ChallengeBanner() {
 
   const dist = ch.prize_distribution || {};
   const ranks = Object.keys(dist).map(Number).sort((a, b) => a - b);
+  const closed = isChallengeClosed(ch);
 
-  const ctaLabel = !entry
+  const ctaLabel = closed
+    ? "Challenge Ended"
+    : !entry
     ? `Enter Challenge — ${ch.entry_fee} Espee${Number(ch.entry_fee) === 1 ? "" : "s"}`
     : entry.status === "pending"
     ? "Entry Pending Approval"
