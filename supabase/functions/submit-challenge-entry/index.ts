@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: uerr } = await userClient.auth.getUser();
     if (uerr || !user) return json({ error: "Invalid token" }, 401);
 
-    const { challenge_id, payment_proof_url, referred_by_user_id, full_name, kingschat_username } = await req.json();
+    const { challenge_id, payment_proof_url, referred_by_user_id, full_name, kingschat_username, zone } = await req.json();
     if (!challenge_id) return json({ error: "challenge_id required" }, 400);
 
     const { data: ch, error: cerr } = await svc.from("challenges").select("*").eq("id", challenge_id).single();
@@ -32,6 +32,10 @@ Deno.serve(async (req) => {
       .select("subscription, subscription_expiry_date").eq("user_id", user.id).maybeSingle();
     const expired = sub?.subscription_expiry_date && new Date(sub.subscription_expiry_date) < new Date();
     const isPremium = !expired && (sub?.subscription === "premium" || sub?.subscription === "trial");
+
+    if (!isPremium && (!zone || !String(zone).trim())) {
+      return json({ error: "Zone is required" }, 400);
+    }
 
     // Existing entry?
     const { data: existing } = await svc.from("challenge_entries")
@@ -50,6 +54,7 @@ Deno.serve(async (req) => {
       referred_by_user_id: validReferrer,
       full_name: full_name ?? null,
       kingschat_username: kingschat_username ?? null,
+      zone: zone ?? null,
       approved_by: isPremium ? user.id : null,
       approved_at: isPremium ? new Date().toISOString() : null,
     }).select().single();
@@ -60,6 +65,24 @@ Deno.serve(async (req) => {
       if (validReferrer) {
         await awardReferral(svc, challenge_id, validReferrer, user.id, ch.max_referrals_per_user);
       }
+    } else {
+      // Notify admins of pending entry payment
+      try {
+        const { data: admins } = await svc.from("user_roles").select("user_id").eq("role", "admin");
+        if (admins && admins.length > 0) {
+          const title = "New Challenge Entry Submission";
+          const message = `${full_name || kingschat_username || "A user"} submitted a Song Match Challenge entry${zone ? ` (Zone: ${zone})` : ""} for "${ch.name}" — ${paid_amount} ESP. Review it now.`;
+          const { data: notification } = await svc.from("notifications").insert({
+            title, message, segment: "admins", status: "sent",
+            sent_at: new Date().toISOString(), created_by: user.id, deep_link: "/admin/challenges",
+          }).select("id").single();
+          if (notification) {
+            await svc.from("user_notifications").insert(
+              admins.map((a: any) => ({ user_id: a.user_id, notification_id: notification.id }))
+            );
+          }
+        }
+      } catch (e) { console.warn("notify admins failed", e); }
     }
 
     return json({ success: true, entry });
@@ -82,7 +105,6 @@ async function awardReferral(svc: any, challenge_id: string, referrer: string, r
     }
   }
   await svc.from("challenge_referrals").insert({ challenge_id, referrer_user_id: referrer, referred_user_id: referred, awarded: true });
-  // +50 points to referrer
   await svc.from("challenge_bonuses_awarded").insert({
     challenge_id, user_id: referrer, bonus_key: `referral_${referred}`, points: 50,
   });
