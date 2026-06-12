@@ -4,7 +4,7 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trophy, Plus, CheckCircle, XCircle, Play, Square } from "lucide-react";
+import { Trophy, Plus, CheckCircle, XCircle, Play, Square, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const AdminChallenges = () => {
@@ -35,15 +35,35 @@ const AdminChallenges = () => {
         .select("*, challenges(name)")
         .eq("status", "pending")
         .order("created_at", { ascending: false });
-      return (data as any[]) || [];
+      const rows = (data as any[]) || [];
+      const ids = Array.from(new Set(rows.map((r) => r.user_id)));
+      if (ids.length === 0) return rows;
+      const { data: profs } = await supabase.from("profiles").select("user_id, username").in("user_id", ids);
+      const map = new Map((profs || []).map((p: any) => [p.user_id, p.username]));
+      return rows.map((r) => ({ ...r, _username: map.get(r.user_id) || null }));
     },
     refetchInterval: 30_000,
   });
+
+  const openProof = async (path: string) => {
+    const { data, error } = await supabase.storage.from("payment-proofs").createSignedUrl(path, 600);
+    if (error || !data?.signedUrl) { toast.error(error?.message || "Could not open proof"); return; }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  };
 
   const reviewPending = async (entry_id: string, action: "approve" | "reject") => {
     const { data, error } = await supabase.functions.invoke("approve-challenge-entry", { body: { entry_id, action } });
     if (error || (data as any)?.error) { toast.error((data as any)?.error || error?.message); return; }
     toast.success(`${action}d`);
+    qc.invalidateQueries({ queryKey: ["admin-pending-entries"] });
+    qc.invalidateQueries({ queryKey: ["admin-entries"] });
+  };
+
+  const removeEntry = async (entry_id: string) => {
+    if (!confirm("Remove this user from the challenge? This deletes their entry and score.")) return;
+    const { data, error } = await supabase.functions.invoke("approve-challenge-entry", { body: { entry_id, action: "remove" } });
+    if (error || (data as any)?.error) { toast.error((data as any)?.error || error?.message); return; }
+    toast.success("Removed");
     qc.invalidateQueries({ queryKey: ["admin-pending-entries"] });
     qc.invalidateQueries({ queryKey: ["admin-entries"] });
   };
@@ -157,27 +177,26 @@ const AdminChallenges = () => {
               {pendingEntries.map((e: any) => (
                 <div key={e.id} className="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-background/50 text-xs">
                   <div className="flex-1 min-w-[200px]">
-                    <p className="font-semibold text-foreground text-sm">{e.full_name || "—"}</p>
+                    <p className="font-semibold text-foreground text-sm">{e.full_name || e._username || "—"}</p>
                     <p className="text-muted-foreground">
+                      {e._username && <span>@{e._username} · </span>}
                       {e.kingschat_username && <span>KC: {e.kingschat_username} · </span>}
+                      {e.zone && <span>Zone: {e.zone} · </span>}
                       {e.challenges?.name || "Challenge"} · {Number(e.paid_amount)} ESP
                     </p>
                     <p className="text-muted-foreground/70 text-[10px] mt-0.5">
-                      {new Date(e.created_at).toLocaleString()} · <span className="font-mono">{e.user_id.slice(0, 8)}</span>
+                      {new Date(e.created_at).toLocaleString()}
                     </p>
                   </div>
                   {e.payment_proof_url && (
-                    <a
-                      href={`https://qphlczkvepcxzgqagsmx.supabase.co/storage/v1/object/sign/payment-proofs/${e.payment_proof_url}`}
-                      target="_blank" rel="noreferrer"
-                      className="px-2.5 py-1 rounded bg-primary/15 text-primary text-xs"
-                    >
+                    <button onClick={() => openProof(e.payment_proof_url)} className="px-2.5 py-1 rounded bg-primary/15 text-primary text-xs">
                       View Proof
-                    </a>
+                    </button>
                   )}
                   <div className="flex gap-1">
-                    <button onClick={() => reviewPending(e.id, "approve")} className="p-2 rounded bg-green-500/20 text-green-400"><CheckCircle className="w-4 h-4" /></button>
-                    <button onClick={() => reviewPending(e.id, "reject")} className="p-2 rounded bg-destructive/20 text-destructive"><XCircle className="w-4 h-4" /></button>
+                    <button onClick={() => reviewPending(e.id, "approve")} className="p-2 rounded bg-green-500/20 text-green-400" title="Approve"><CheckCircle className="w-4 h-4" /></button>
+                    <button onClick={() => reviewPending(e.id, "reject")} className="p-2 rounded bg-destructive/20 text-destructive" title="Reject"><XCircle className="w-4 h-4" /></button>
+                    <button onClick={() => removeEntry(e.id)} className="p-2 rounded bg-muted text-muted-foreground" title="Remove entry"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
               ))}
@@ -188,7 +207,7 @@ const AdminChallenges = () => {
 
         <div className="space-y-3">
           {challenges.map((c: any) => (
-            <ChallengeRow key={c.id} c={c} onEdit={openEdit} onStatus={setStatus} onFinalize={finalize} />
+            <ChallengeRow key={c.id} c={c} onEdit={openEdit} onStatus={setStatus} onFinalize={finalize} onOpenProof={openProof} onRemove={removeEntry} />
           ))}
           {challenges.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No challenges yet.</p>}
         </div>
@@ -204,7 +223,7 @@ const Input = ({ label, value, onChange, type = "text" }: any) => (
   </label>
 );
 
-const ChallengeRow = ({ c, onEdit, onStatus, onFinalize }: any) => {
+const ChallengeRow = ({ c, onEdit, onStatus, onFinalize, onOpenProof, onRemove }: any) => {
   const qc = useQueryClient();
   const [showEntries, setShowEntries] = useState(false);
   const { data: entries = [] } = useQuery({
@@ -213,7 +232,12 @@ const ChallengeRow = ({ c, onEdit, onStatus, onFinalize }: any) => {
       if (!showEntries) return [];
       const { data } = await supabase.from("challenge_entries" as any)
         .select("*").eq("challenge_id", c.id).order("created_at", { ascending: false });
-      return (data as any[]) || [];
+      const rows = (data as any[]) || [];
+      const ids = Array.from(new Set(rows.map((r) => r.user_id)));
+      if (ids.length === 0) return rows;
+      const { data: profs } = await supabase.from("profiles").select("user_id, username").in("user_id", ids);
+      const map = new Map((profs || []).map((p: any) => [p.user_id, p.username]));
+      return rows.map((r) => ({ ...r, _username: map.get(r.user_id) || null }));
     },
     enabled: showEntries,
   });
@@ -249,17 +273,29 @@ const ChallengeRow = ({ c, onEdit, onStatus, onFinalize }: any) => {
           {entries.map((e: any) => (
             <div key={e.id} className="flex items-center justify-between gap-2 p-2 rounded bg-background/50 text-xs">
               <div className="flex-1 truncate">
-                <span className="font-mono">{e.user_id.slice(0, 8)}</span>
+                <span className="font-medium">{e.full_name || e._username || "—"}</span>
+                {e._username && <span className="ml-1 text-muted-foreground">@{e._username}</span>}
+                {e.zone && <span className="ml-2 text-muted-foreground">· {e.zone}</span>}
                 <span className={`ml-2 px-1.5 py-0.5 rounded ${e.status === "approved" ? "bg-green-500/20 text-green-400" : e.status === "pending" ? "bg-amber-500/20 text-amber-400" : "bg-destructive/20 text-destructive"}`}>{e.status}</span>
                 {e.is_premium_free && <span className="ml-2 text-amber-400">Premium Free</span>}
-                {e.payment_proof_url && <a href={`https://qphlczkvepcxzgqagsmx.supabase.co/storage/v1/object/sign/payment-proofs/${e.payment_proof_url}`} target="_blank" rel="noreferrer" className="ml-2 text-primary underline">proof</a>}
+                {e.payment_proof_url && <button onClick={() => onOpenProof(e.payment_proof_url)} className="ml-2 text-primary underline">proof</button>}
               </div>
               {e.status === "pending" && (
-                <div className="flex gap-1">
+                <>
                   <button onClick={() => review(e.id, "approve")} className="p-1.5 rounded bg-green-500/20 text-green-400"><CheckCircle className="w-3.5 h-3.5" /></button>
                   <button onClick={() => review(e.id, "reject")} className="p-1.5 rounded bg-destructive/20 text-destructive"><XCircle className="w-3.5 h-3.5" /></button>
-                </div>
+                </>
               )}
+              <button
+                onClick={async () => {
+                  await onRemove(e.id);
+                  qc.invalidateQueries({ queryKey: ["admin-entries", c.id] });
+                }}
+                className="p-1.5 rounded bg-muted text-muted-foreground"
+                title="Remove from challenge"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
             </div>
           ))}
           {entries.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">No entries</p>}
