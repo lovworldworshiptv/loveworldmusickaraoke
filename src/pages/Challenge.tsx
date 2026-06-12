@@ -49,6 +49,20 @@ const Challenge = () => {
     toast.success("Referral link copied!");
   };
 
+  const leaveChallenge = async () => {
+    if (!entry || !ch) return;
+    if (!confirm("Leave this challenge? Your entry and progress will be removed and any entry fee is not refunded.")) return;
+    const { error } = await supabase.from("challenge_entries" as any).delete().eq("id", entry.id);
+    if (error) { toast.error(error.message); return; }
+    await supabase.from("challenge_scores" as any).delete().eq("challenge_id", ch.id).eq("user_id", user!.id);
+    toast.success("You left the challenge");
+    qc.invalidateQueries({ queryKey: ["challenge-entry", ch.id] });
+    qc.invalidateQueries({ queryKey: ["challenge-leaderboard", ch.id] });
+    qc.invalidateQueries({ queryKey: ["challenge-my-score", ch.id] });
+    refetchEntry();
+  };
+
+
   return (
     <AppLayout>
       <div className="px-4 lg:px-6 pt-4 pb-8 max-w-3xl mx-auto">
