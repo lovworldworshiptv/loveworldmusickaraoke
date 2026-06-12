@@ -149,6 +149,19 @@ const ChallengeEntry = () => {
                 />
               </label>
 
+              <label className="block mb-3">
+                <span className="text-xs font-medium text-muted-foreground mb-1.5 block">Zone <span className="text-destructive">*</span></span>
+                <input
+                  type="text"
+                  value={zone}
+                  onChange={(e) => setZone(e.target.value)}
+                  placeholder="Your Zone"
+                  className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </label>
+
+
+
               <label className="block mb-4">
                 <span className="text-xs font-medium text-muted-foreground mb-1.5 block">Proof of Transaction <span className="text-destructive">*</span></span>
                 <div className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary">
