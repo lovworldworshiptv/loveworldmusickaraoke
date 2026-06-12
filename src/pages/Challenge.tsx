@@ -4,17 +4,22 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveChallenge, useMyEntry, useMyScore, useLeaderboard, buildReferralUrl } from "@/hooks/useChallenge";
 import ChallengeCountdown from "@/components/games/ChallengeCountdown";
-import { Trophy, Copy, ArrowLeft, Crown, Target, CheckCircle } from "lucide-react";
+import { Trophy, Copy, ArrowLeft, Crown, Target, CheckCircle, LogOut } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+
 
 const Challenge = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [params] = useSearchParams();
+  const qc = useQueryClient();
   const { data: ch } = useActiveChallenge();
-  const { data: entry } = useMyEntry(ch?.id);
+  const { data: entry, refetch: refetchEntry } = useMyEntry(ch?.id);
   const { data: myScore } = useMyScore(ch?.id);
   const { data: board = [] } = useLeaderboard(ch?.id);
+
 
   // Capture ?ref= referrer to localStorage
   useEffect(() => {
@@ -43,6 +48,20 @@ const Challenge = () => {
     navigator.clipboard.writeText(refUrl);
     toast.success("Referral link copied!");
   };
+
+  const leaveChallenge = async () => {
+    if (!entry || !ch) return;
+    if (!confirm("Leave this challenge? Your entry and progress will be removed and any entry fee is not refunded.")) return;
+    const { error } = await supabase.from("challenge_entries" as any).delete().eq("id", entry.id);
+    if (error) { toast.error(error.message); return; }
+    await supabase.from("challenge_scores" as any).delete().eq("challenge_id", ch.id).eq("user_id", user!.id);
+    toast.success("You left the challenge");
+    qc.invalidateQueries({ queryKey: ["challenge-entry", ch.id] });
+    qc.invalidateQueries({ queryKey: ["challenge-leaderboard", ch.id] });
+    qc.invalidateQueries({ queryKey: ["challenge-my-score", ch.id] });
+    refetchEntry();
+  };
+
 
   return (
     <AppLayout>
@@ -87,6 +106,13 @@ const Challenge = () => {
               <button onClick={copyRef} className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs flex items-center gap-1"><Copy className="w-3 h-3" /> Copy</button>
             </div>
           </div>
+        )}
+
+        {entry && (
+          <button onClick={leaveChallenge}
+            className="w-full mb-5 py-2.5 rounded-lg border border-destructive/40 text-destructive text-xs font-semibold flex items-center justify-center gap-2 hover:bg-destructive/10">
+            <LogOut className="w-3.5 h-3.5" /> Leave Challenge
+          </button>
         )}
 
         {!entry && (

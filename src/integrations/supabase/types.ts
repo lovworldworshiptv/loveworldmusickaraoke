@@ -213,6 +213,7 @@ export type Database = {
           status: string
           updated_at: string
           user_id: string
+          zone: string | null
         }
         Insert: {
           admin_notes?: string | null
@@ -230,6 +231,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id: string
+          zone?: string | null
         }
         Update: {
           admin_notes?: string | null
@@ -247,6 +249,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+          zone?: string | null
         }
         Relationships: [
           {

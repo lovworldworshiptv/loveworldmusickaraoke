@@ -17,6 +17,7 @@ const ChallengeEntry = () => {
   const [proof, setProof] = useState<File | null>(null);
   const [fullName, setFullName] = useState("");
   const [kcUsername, setKcUsername] = useState("");
+  const [zone, setZone] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   if (!ch) {
@@ -35,6 +36,7 @@ const ChallengeEntry = () => {
     if (closed) { toast.error("This challenge has ended"); return; }
     if (!isPremium) {
       if (!fullName.trim()) { toast.error("Please enter your full name"); return; }
+      if (!zone.trim()) { toast.error("Please enter your Zone"); return; }
       if (!proof) { toast.error("Please upload your payment proof"); return; }
     }
     setSubmitting(true);
@@ -56,6 +58,7 @@ const ChallengeEntry = () => {
           referred_by_user_id: referred_by,
           full_name: fullName || null,
           kingschat_username: kcUsername || null,
+          zone: zone || null,
         },
       });
       if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);
@@ -145,6 +148,19 @@ const ChallengeEntry = () => {
                   className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
               </label>
+
+              <label className="block mb-3">
+                <span className="text-xs font-medium text-muted-foreground mb-1.5 block">Zone <span className="text-destructive">*</span></span>
+                <input
+                  type="text"
+                  value={zone}
+                  onChange={(e) => setZone(e.target.value)}
+                  placeholder="Your Zone"
+                  className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </label>
+
+
 
               <label className="block mb-4">
                 <span className="text-xs font-medium text-muted-foreground mb-1.5 block">Proof of Transaction <span className="text-destructive">*</span></span>
