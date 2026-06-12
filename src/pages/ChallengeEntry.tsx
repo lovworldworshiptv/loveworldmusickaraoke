@@ -58,6 +58,7 @@ const ChallengeEntry = () => {
           referred_by_user_id: referred_by,
           full_name: fullName || null,
           kingschat_username: kcUsername || null,
+          zone: zone || null,
         },
       });
       if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);
