@@ -23,11 +23,18 @@ Deno.serve(async (req) => {
     if (!isAdmin) return json({ error: "Not authorized" }, 403);
 
     const { entry_id, action, notes } = await req.json();
-    if (!entry_id || !["approve", "reject"].includes(action)) return json({ error: "Invalid input" }, 400);
+    if (!entry_id || !["approve", "reject", "remove"].includes(action)) return json({ error: "Invalid input" }, 400);
 
     const { data: entry, error: eerr } = await svc.from("challenge_entries")
       .select("*").eq("id", entry_id).single();
     if (eerr || !entry) return json({ error: "Entry not found" }, 404);
+
+    if (action === "remove") {
+      await svc.from("challenge_scores").delete().eq("challenge_id", entry.challenge_id).eq("user_id", entry.user_id);
+      await svc.from("challenge_entries").delete().eq("id", entry_id);
+      return json({ success: true, removed: true });
+    }
+
 
     const newStatus = action === "approve" ? "approved" : "rejected";
     const { error: uerr } = await svc.from("challenge_entries").update({
