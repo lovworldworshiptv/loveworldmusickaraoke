@@ -108,6 +108,13 @@ const Challenge = () => {
           </div>
         )}
 
+        {entry && (
+          <button onClick={leaveChallenge}
+            className="w-full mb-5 py-2.5 rounded-lg border border-destructive/40 text-destructive text-xs font-semibold flex items-center justify-center gap-2 hover:bg-destructive/10">
+            <LogOut className="w-3.5 h-3.5" /> Leave Challenge
+          </button>
+        )}
+
         {!entry && (
           <button onClick={() => navigate("/games/challenge/enter")}
             className="w-full mb-5 py-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm flex items-center justify-center gap-2">
