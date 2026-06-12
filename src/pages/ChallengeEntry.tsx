@@ -17,6 +17,7 @@ const ChallengeEntry = () => {
   const [proof, setProof] = useState<File | null>(null);
   const [fullName, setFullName] = useState("");
   const [kcUsername, setKcUsername] = useState("");
+  const [zone, setZone] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   if (!ch) {
@@ -35,6 +36,7 @@ const ChallengeEntry = () => {
     if (closed) { toast.error("This challenge has ended"); return; }
     if (!isPremium) {
       if (!fullName.trim()) { toast.error("Please enter your full name"); return; }
+      if (!zone.trim()) { toast.error("Please enter your Zone"); return; }
       if (!proof) { toast.error("Please upload your payment proof"); return; }
     }
     setSubmitting(true);
