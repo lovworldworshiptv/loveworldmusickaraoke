@@ -4,17 +4,22 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveChallenge, useMyEntry, useMyScore, useLeaderboard, buildReferralUrl } from "@/hooks/useChallenge";
 import ChallengeCountdown from "@/components/games/ChallengeCountdown";
-import { Trophy, Copy, ArrowLeft, Crown, Target, CheckCircle } from "lucide-react";
+import { Trophy, Copy, ArrowLeft, Crown, Target, CheckCircle, LogOut } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+
 
 const Challenge = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [params] = useSearchParams();
+  const qc = useQueryClient();
   const { data: ch } = useActiveChallenge();
-  const { data: entry } = useMyEntry(ch?.id);
+  const { data: entry, refetch: refetchEntry } = useMyEntry(ch?.id);
   const { data: myScore } = useMyScore(ch?.id);
   const { data: board = [] } = useLeaderboard(ch?.id);
+
 
   // Capture ?ref= referrer to localStorage
   useEffect(() => {
