@@ -1,7 +1,7 @@
 import { useState, useEffect, memo, useCallback } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Play, Heart, Plus, Music, ListMusic, Trash2, Shuffle, Download, Lock, Crown, WifiOff, ListPlus } from "lucide-react";
+import { Search, Play, Heart, Plus, Music, ListMusic, Trash2, Shuffle, Download, Lock, Crown, WifiOff, ListPlus, Disc3 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -100,6 +100,17 @@ const Library = () => {
     enabled: !!user && isOnline,
     queryFn: async () => {
       const { data, error } = await supabase.from("playlists").select("id, name, cover_url, created_at, playlist_songs(id, song_id, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album))").eq("user_id", user!.id).order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  // Fetch albums
+  const { data: albums = [], isLoading: loadingAlbums } = useQuery({
+    queryKey: ["library-albums"],
+    enabled: isOnline,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("albums").select("*").order("title");
       if (error) throw error;
       return data as any[];
     },
@@ -338,8 +349,11 @@ const Library = () => {
         </div>
 
         <Tabs defaultValue={defaultTab}>
-          <TabsList className="w-full bg-muted/50 mb-4">
+          <TabsList className="w-full bg-muted/50 mb-4 overflow-x-auto flex-nowrap justify-start lg:justify-center">
             <TabsTrigger value="all" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">All Songs</TabsTrigger>
+            <TabsTrigger value="albums" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1">
+              <Disc3 className="w-3.5 h-3.5" /> Albums
+            </TabsTrigger>
             <TabsTrigger value="favorites" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Favorites</TabsTrigger>
             <TabsTrigger value="playlists" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Playlists</TabsTrigger>
             <TabsTrigger value="downloads" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1">
@@ -373,6 +387,53 @@ const Library = () => {
               </>
             )}
           </TabsContent>
+
+          {/* Albums */}
+          <TabsContent value="albums">
+            {!isOnline ? (
+              <EmptyState icon={WifiOff} title="You're offline" description="Connect to browse albums" />
+            ) : loadingAlbums ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="aspect-square rounded-xl bg-muted mb-2" />
+                    <div className="h-3 bg-muted rounded w-3/4 mb-1" />
+                    <div className="h-2 bg-muted rounded w-1/2" />
+                  </div>
+                ))}
+              </div>
+            ) : albums.filter((a: any) => a.title.toLowerCase().includes(search.toLowerCase()) || a.artist.toLowerCase().includes(search.toLowerCase())).length === 0 ? (
+              <EmptyState icon={Disc3} title="No albums found" description={search ? "Try a different search" : "No albums available yet"} />
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {albums
+                  .filter((a: any) => a.title.toLowerCase().includes(search.toLowerCase()) || a.artist.toLowerCase().includes(search.toLowerCase()))
+                  .map((album: any) => (
+                    <button
+                      key={album.id}
+                      onClick={() => navigate(`/albums?id=${album.id}`)}
+                      className="group text-left animate-fade-in-up touch-target"
+                    >
+                      <div className="relative aspect-square rounded-xl overflow-hidden mb-2 glass-card transition-all duration-300 group-hover:shadow-[0_8px_32px_hsl(43_70%_53%/0.12)]">
+                        {album.cover_url ? (
+                          <img src={album.cover_url} alt={album.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                        ) : (
+                          <div className="w-full h-full gradient-purple flex items-center justify-center"><Disc3 className="w-10 h-10 text-gold/30" /></div>
+                        )}
+                        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_4px_20px_hsl(43_70%_53%/0.5)] ring-2 ring-white/20">
+                            <Play className="w-4 h-4 text-white ml-0.5 drop-shadow-sm" fill="currentColor" />
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-sm font-medium text-foreground truncate group-hover:text-gold transition-colors">{album.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{album.artist}</p>
+                    </button>
+                  ))}
+              </div>
+            )}
+          </TabsContent>
+
 
           {/* Favorites */}
           <TabsContent value="favorites">

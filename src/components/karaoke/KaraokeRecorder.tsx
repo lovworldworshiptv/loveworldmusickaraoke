@@ -6,8 +6,10 @@ import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsPremium } from "@/hooks/useIsPremium";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const SHARE_DOMAIN = "https://loveworldmusickaraoke.com";
 const COUNTDOWN_SECONDS = 3;
@@ -173,6 +175,8 @@ const WaveformVisualizer = ({ audioUrl, isPlaying, progress }: { audioUrl: strin
 /* ─── Main Recorder ─── */
 const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, onClose, onRecordingStateChange, onMinimize, externalStopRef }: KaraokeRecorderProps) => {
   const { user } = useAuth();
+  const { isPremium } = useIsPremium();
+  const navigate = useNavigate();
   const { isPlaying, togglePlay } = usePlayer();
   const [recording, setRecording] = useState(false);
   const [recorded, setRecorded] = useState(false);
@@ -228,6 +232,11 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
     let audioContext: AudioContext | null = null;
 
     try {
+      if (!isPremium) {
+        toast.error("Karaoke recording is a Premium feature. Please upgrade to record.");
+        navigate("/subscription");
+        return;
+      }
       if (isPlaying) togglePlay();
 
       try {

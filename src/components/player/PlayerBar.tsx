@@ -173,9 +173,15 @@ const PlayerBar = () => {
               <Mic2 className="w-4 h-4" />
             </button>
             {recordFeatureEnabled && (
-            <button onClick={() => { if (!isExpanded) toggleExpanded(); }} className="text-destructive/70 hover:text-destructive transition-colors" title="Record Karaoke">
-              <Disc3 className="w-4 h-4" />
-            </button>
+              isPremium ? (
+                <button onClick={() => { if (!isExpanded) toggleExpanded(); }} className="text-destructive/70 hover:text-destructive transition-colors" title="Record Karaoke">
+                  <Disc3 className="w-4 h-4" />
+                </button>
+              ) : (
+                <button onClick={() => setShowUpgrade(true)} className="text-gold/60 hover:text-gold transition-colors" title="Premium: Record Karaoke">
+                  <Disc3 className="w-4 h-4" />
+                </button>
+              )
             )}
             <button onClick={() => setShowQueue(q => !q)} className={`transition-colors ${showQueue ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               <ListMusic className="w-4 h-4" />
