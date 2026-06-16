@@ -105,6 +105,17 @@ const Library = () => {
     },
   });
 
+  // Fetch albums
+  const { data: albums = [], isLoading: loadingAlbums } = useQuery({
+    queryKey: ["library-albums"],
+    enabled: isOnline,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("albums").select("*").order("title");
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
   // Toggle favorite
   const toggleFav = useMutation({
     mutationFn: async (songId: string) => {
