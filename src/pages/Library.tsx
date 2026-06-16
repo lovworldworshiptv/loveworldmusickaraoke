@@ -349,8 +349,11 @@ const Library = () => {
         </div>
 
         <Tabs defaultValue={defaultTab}>
-          <TabsList className="w-full bg-muted/50 mb-4">
+          <TabsList className="w-full bg-muted/50 mb-4 overflow-x-auto flex-nowrap justify-start lg:justify-center">
             <TabsTrigger value="all" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">All Songs</TabsTrigger>
+            <TabsTrigger value="albums" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1">
+              <Disc3 className="w-3.5 h-3.5" /> Albums
+            </TabsTrigger>
             <TabsTrigger value="favorites" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Favorites</TabsTrigger>
             <TabsTrigger value="playlists" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Playlists</TabsTrigger>
             <TabsTrigger value="downloads" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1">
