@@ -6,8 +6,10 @@ import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsPremium } from "@/hooks/useIsPremium";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const SHARE_DOMAIN = "https://loveworldmusickaraoke.com";
 const COUNTDOWN_SECONDS = 3;
