@@ -232,6 +232,11 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
     let audioContext: AudioContext | null = null;
 
     try {
+      if (!isPremium) {
+        toast.error("Karaoke recording is a Premium feature. Please upgrade to record.");
+        navigate("/subscription");
+        return;
+      }
       if (isPlaying) togglePlay();
 
       try {
