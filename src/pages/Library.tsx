@@ -388,6 +388,53 @@ const Library = () => {
             )}
           </TabsContent>
 
+          {/* Albums */}
+          <TabsContent value="albums">
+            {!isOnline ? (
+              <EmptyState icon={WifiOff} title="You're offline" description="Connect to browse albums" />
+            ) : loadingAlbums ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="aspect-square rounded-xl bg-muted mb-2" />
+                    <div className="h-3 bg-muted rounded w-3/4 mb-1" />
+                    <div className="h-2 bg-muted rounded w-1/2" />
+                  </div>
+                ))}
+              </div>
+            ) : albums.filter((a: any) => a.title.toLowerCase().includes(search.toLowerCase()) || a.artist.toLowerCase().includes(search.toLowerCase())).length === 0 ? (
+              <EmptyState icon={Disc3} title="No albums found" description={search ? "Try a different search" : "No albums available yet"} />
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {albums
+                  .filter((a: any) => a.title.toLowerCase().includes(search.toLowerCase()) || a.artist.toLowerCase().includes(search.toLowerCase()))
+                  .map((album: any) => (
+                    <button
+                      key={album.id}
+                      onClick={() => navigate(`/albums?id=${album.id}`)}
+                      className="group text-left animate-fade-in-up touch-target"
+                    >
+                      <div className="relative aspect-square rounded-xl overflow-hidden mb-2 glass-card transition-all duration-300 group-hover:shadow-[0_8px_32px_hsl(43_70%_53%/0.12)]">
+                        {album.cover_url ? (
+                          <img src={album.cover_url} alt={album.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                        ) : (
+                          <div className="w-full h-full gradient-purple flex items-center justify-center"><Disc3 className="w-10 h-10 text-gold/30" /></div>
+                        )}
+                        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_4px_20px_hsl(43_70%_53%/0.5)] ring-2 ring-white/20">
+                            <Play className="w-4 h-4 text-white ml-0.5 drop-shadow-sm" fill="currentColor" />
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-sm font-medium text-foreground truncate group-hover:text-gold transition-colors">{album.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{album.artist}</p>
+                    </button>
+                  ))}
+              </div>
+            )}
+          </TabsContent>
+
+
           {/* Favorites */}
           <TabsContent value="favorites">
             {!user ? (
