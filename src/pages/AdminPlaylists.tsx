@@ -262,6 +262,30 @@ const AdminPlaylists = () => {
           <input
             type="text"
             placeholder="Search playlists or users..."
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setTab("official")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              tab === "official" ? "gradient-gold text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Official ({officialCount})
+          </button>
+          <button
+            onClick={() => setTab("user")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              tab === "user" ? "gradient-gold text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            User Playlists ({userCount})
+          </button>
+        </div>
+
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search playlists or users..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
