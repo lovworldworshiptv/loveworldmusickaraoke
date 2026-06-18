@@ -74,10 +74,10 @@ const AdminPlaylists = () => {
       return;
     }
 
-    // Only show playlists created by admin users
-    const adminPlaylists = playlistData.filter((p) => adminUserIds.has(p.user_id));
+    // Show ALL playlists; tag each as admin-owned or user-owned
+    const allPlaylists = playlistData;
 
-    const userIds = [...new Set(adminPlaylists.map((p) => p.user_id))];
+    const userIds = [...new Set(allPlaylists.map((p) => p.user_id))];
     const { data: profiles } = await supabase
       .from("profiles")
       .select("user_id, username")
@@ -88,7 +88,7 @@ const AdminPlaylists = () => {
       profileMap[p.user_id] = p.username;
     });
 
-    const playlistIds = adminPlaylists.map((p) => p.id);
+    const playlistIds = allPlaylists.map((p) => p.id);
     const { data: songCounts } = await supabase
       .from("playlist_songs")
       .select("playlist_id")
@@ -100,8 +100,9 @@ const AdminPlaylists = () => {
     });
 
     setPlaylists(
-      adminPlaylists.map((p) => ({
+      allPlaylists.map((p) => ({
         ...p,
+        is_admin_owned: adminUserIds.has(p.user_id),
         profile_username: profileMap[p.user_id] || "Unknown",
         song_count: countMap[p.id] || 0,
       })),
