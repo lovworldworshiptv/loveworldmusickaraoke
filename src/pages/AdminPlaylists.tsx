@@ -35,6 +35,7 @@ const AdminPlaylists = () => {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<"official" | "user">("official");
 
   // Create playlist
   const [showCreate, setShowCreate] = useState(false);
