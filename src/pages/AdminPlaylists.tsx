@@ -216,11 +216,16 @@ const AdminPlaylists = () => {
     setPlaylistSongIds((prev) => new Set(prev).add(songId));
   };
 
-  const filteredPlaylists = playlists.filter(
-    (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.profile_username || "").toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredPlaylists = playlists
+    .filter((p) => (tab === "official" ? p.is_admin_owned : !p.is_admin_owned))
+    .filter(
+      (p) =>
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        (p.profile_username || "").toLowerCase().includes(search.toLowerCase()),
+    );
+
+  const officialCount = playlists.filter((p) => p.is_admin_owned).length;
+  const userCount = playlists.length - officialCount;
 
   const filteredSongs = allSongs.filter(
     (s) =>
