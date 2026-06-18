@@ -21,9 +21,6 @@ interface Playlist {
   profile_username?: string;
   song_count?: number;
 }
-  profile_username?: string;
-  song_count?: number;
-}
 
 interface Song {
   id: string;
