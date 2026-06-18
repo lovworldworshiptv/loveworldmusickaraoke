@@ -17,6 +17,10 @@ interface Playlist {
   cover_url: string | null;
   created_at: string;
   is_visible_on_homepage: boolean;
+  is_admin_owned?: boolean;
+  profile_username?: string;
+  song_count?: number;
+}
   profile_username?: string;
   song_count?: number;
 }
