@@ -257,12 +257,8 @@ const AdminPlaylists = () => {
           </Button>
         </div>
 
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search playlists or users..."
         <div className="flex gap-2 mb-4">
+
           <button
             onClick={() => setTab("official")}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
