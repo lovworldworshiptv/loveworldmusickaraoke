@@ -17,6 +17,7 @@ interface Playlist {
   cover_url: string | null;
   created_at: string;
   is_visible_on_homepage: boolean;
+  is_admin_owned?: boolean;
   profile_username?: string;
   song_count?: number;
 }
@@ -34,6 +35,7 @@ const AdminPlaylists = () => {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<"official" | "user">("official");
 
   // Create playlist
   const [showCreate, setShowCreate] = useState(false);
@@ -72,10 +74,10 @@ const AdminPlaylists = () => {
       return;
     }
 
-    // Only show playlists created by admin users
-    const adminPlaylists = playlistData.filter((p) => adminUserIds.has(p.user_id));
+    // Show ALL playlists; tag each as admin-owned or user-owned
+    const allPlaylists = playlistData;
 
-    const userIds = [...new Set(adminPlaylists.map((p) => p.user_id))];
+    const userIds = [...new Set(allPlaylists.map((p) => p.user_id))];
     const { data: profiles } = await supabase
       .from("profiles")
       .select("user_id, username")
@@ -86,7 +88,7 @@ const AdminPlaylists = () => {
       profileMap[p.user_id] = p.username;
     });
 
-    const playlistIds = adminPlaylists.map((p) => p.id);
+    const playlistIds = allPlaylists.map((p) => p.id);
     const { data: songCounts } = await supabase
       .from("playlist_songs")
       .select("playlist_id")
@@ -98,8 +100,9 @@ const AdminPlaylists = () => {
     });
 
     setPlaylists(
-      adminPlaylists.map((p) => ({
+      allPlaylists.map((p) => ({
         ...p,
+        is_admin_owned: adminUserIds.has(p.user_id),
         profile_username: profileMap[p.user_id] || "Unknown",
         song_count: countMap[p.id] || 0,
       })),
@@ -213,11 +216,16 @@ const AdminPlaylists = () => {
     setPlaylistSongIds((prev) => new Set(prev).add(songId));
   };
 
-  const filteredPlaylists = playlists.filter(
-    (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.profile_username || "").toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredPlaylists = playlists
+    .filter((p) => (tab === "official" ? p.is_admin_owned : !p.is_admin_owned))
+    .filter(
+      (p) =>
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        (p.profile_username || "").toLowerCase().includes(search.toLowerCase()),
+    );
+
+  const officialCount = playlists.filter((p) => p.is_admin_owned).length;
+  const userCount = playlists.length - officialCount;
 
   const filteredSongs = allSongs.filter(
     (s) =>
@@ -247,6 +255,26 @@ const AdminPlaylists = () => {
           <Button onClick={() => setShowCreate(true)} className="gradient-gold text-primary-foreground gap-2">
             <Plus className="w-4 h-4" /> New Playlist
           </Button>
+        </div>
+
+        <div className="flex gap-2 mb-4">
+
+          <button
+            onClick={() => setTab("official")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              tab === "official" ? "gradient-gold text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Official ({officialCount})
+          </button>
+          <button
+            onClick={() => setTab("user")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              tab === "user" ? "gradient-gold text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            User Playlists ({userCount})
+          </button>
         </div>
 
         <div className="relative mb-4">
@@ -313,7 +341,14 @@ const AdminPlaylists = () => {
                   <ListMusic className="w-5 h-5 text-gold/40" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{pl.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-foreground truncate">{pl.name}</p>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wide ${
+                      pl.is_admin_owned ? "bg-gold/20 text-gold" : "bg-muted text-muted-foreground"
+                    }`}>
+                      {pl.is_admin_owned ? "Official" : "User"}
+                    </span>
+                  </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <UserCircle className="w-3 h-3" />
                     <span className="truncate">{pl.profile_username}</span>
@@ -321,13 +356,15 @@ const AdminPlaylists = () => {
                     <span>{pl.song_count} songs</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-2 py-1">
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Homepage</span>
-                  <Switch
-                    checked={pl.is_visible_on_homepage}
-                    onCheckedChange={(checked) => handleVisibilityToggle(pl.id, checked)}
-                  />
-                </div>
+                {pl.is_admin_owned && (
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-2 py-1">
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Homepage</span>
+                    <Switch
+                      checked={pl.is_visible_on_homepage}
+                      onCheckedChange={(checked) => handleVisibilityToggle(pl.id, checked)}
+                    />
+                  </div>
+                )}
                 <div className="flex gap-1">
                   <button
                     onClick={() => openAddSongs(pl.id)}
