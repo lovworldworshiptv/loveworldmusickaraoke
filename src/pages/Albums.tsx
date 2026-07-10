@@ -30,10 +30,10 @@ const Albums = () => {
       const { data, error } = await supabase
         .from("songs")
         .select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album")
-        .eq("album_id", selectedAlbumId!)
-        .order("title");
+        .eq("album_id", selectedAlbumId!);
       if (error) throw error;
-      return data;
+      const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+      return [...(data || [])].sort((a, b) => collator.compare(a.title, b.title));
     },
   });
 
