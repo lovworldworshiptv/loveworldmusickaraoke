@@ -12,5 +12,19 @@ const isMedian = typeof (window as any).median !== 'undefined'
   || ua.includes('gonative');
 
 if ('serviceWorker' in navigator && !isMedian) {
-  navigator.serviceWorker.register('/serviceworker.js');
+  if (import.meta.env.PROD) {
+    navigator.serviceWorker.register('/serviceworker.js');
+  } else {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((registration) => registration.unregister());
+    });
+
+    if ('caches' in window) {
+      caches.keys().then((keys) => {
+        keys
+          .filter((key) => key.startsWith('lmk-cache-'))
+          .forEach((key) => caches.delete(key));
+      });
+    }
+  }
 }
