@@ -48,7 +48,7 @@ const HeroBanner = () => {
       <img
         src={imageUrl}
         alt={banner?.title || "Banner"}
-        className="w-full h-full object-cover object-center md:object-bottom transition-transform duration-700 group-hover:scale-105"
+        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
         loading="lazy"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
