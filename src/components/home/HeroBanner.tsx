@@ -57,7 +57,7 @@ const HeroBanner = () => {
         loading="lazy"
       />
       <div className="absolute inset-0 z-20 bg-gradient-to-t from-background via-background/50 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-r from-background/40 to-transparent" />
+      <div className="absolute inset-0 z-20 bg-gradient-to-r from-background/40 to-transparent" />
       <div className="absolute bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-6">
         {banner?.title && (
           <h2 className="text-lg sm:text-xl md:text-3xl lg:text-4xl font-serif font-bold text-foreground mb-1 md:mb-2 animate-fade-in-up" style={{ animationDelay: "0.35s" }}>
