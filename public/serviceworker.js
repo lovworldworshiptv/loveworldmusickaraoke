@@ -1,5 +1,7 @@
-const CACHE_NAME = 'lmk-cache-v2';
+const CACHE_NAME = 'lmk-cache-v1';
 const PRECACHE_URLS = [
+  '/',
+  '/index.html',
   '/offline.html',
   '/manifest.json',
   '/favicon.ico',
@@ -23,7 +25,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
-        keys.filter((key) => key.startsWith('lmk-cache-') && key !== CACHE_NAME).map((key) => {
+        keys.filter((key) => key !== CACHE_NAME).map((key) => {
           console.log('[ServiceWorker] Removing old cache:', key);
           return caches.delete(key);
         })
@@ -36,20 +38,7 @@ self.addEventListener('activate', (event) => {
 // Fetch handler
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  if (request.method !== 'GET') return;
-
   const url = new URL(request.url);
-
-  const isViteDevRequest =
-    url.pathname.startsWith('/@vite') ||
-    url.pathname.startsWith('/@react-refresh') ||
-    url.pathname.startsWith('/node_modules/.vite/') ||
-    url.pathname.startsWith('/src/');
-
-  if (isViteDevRequest) {
-    event.respondWith(fetch(request));
-    return;
-  }
 
   // Skip audio/media streaming — do not cache
   if (
@@ -74,23 +63,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first for volatile app bundles so users never run mixed React chunks
+  // Cache-first for static assets
   if (
-    request.destination === 'script' ||
     request.destination === 'style' ||
-    url.pathname.match(/\.(css|js)$/i)
-  ) {
-    event.respondWith(
-      fetch(request).catch(() => caches.match(request))
-    );
-    return;
-  }
-
-  // Cache-first for stable static assets
-  if (
+    request.destination === 'script' ||
     request.destination === 'font' ||
     request.destination === 'image' ||
-    url.pathname.match(/\.(woff2?|ttf|eot|svg|png|jpg|jpeg|webp|ico|gif)$/i)
+    url.pathname.match(/\.(css|js|woff2?|ttf|eot|svg|png|jpg|jpeg|webp|ico|gif)$/i)
   ) {
     event.respondWith(
       caches.match(request).then((cached) => {
