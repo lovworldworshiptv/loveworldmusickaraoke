@@ -44,7 +44,7 @@ const HeroBanner = () => {
   };
 
   return (
-    <section className="relative w-full h-80 md:h-96 lg:h-[28rem] overflow-hidden rounded-2xl animate-scale-fade group">
+    <section className="relative w-full h-80 md:h-96 lg:h-[28rem] overflow-hidden rounded-none animate-scale-fade group">
       <img
         src={imageUrl}
         alt={banner?.title || "Banner"}
