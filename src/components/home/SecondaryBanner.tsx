@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Music, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useIsPremium } from "@/hooks/useIsPremium";
+import premiumBannerBg from "@/assets/premium-banner-bg.jpg";
 
 interface PremiumAd {
   id: string;
@@ -55,19 +56,26 @@ const SecondaryBanner = () => {
         className="relative w-full h-40 md:h-48 rounded-2xl overflow-hidden group cursor-pointer border border-gold/20 shadow-[0_0_24px_hsl(43_70%_53%/0.12)] hover:shadow-[0_0_32px_hsl(43_70%_53%/0.22)] transition-all duration-300"
         onClick={handleClick}
       >
-        {ad?.image_url ? (
-          <>
-            <img src={ad.image_url} alt={title} className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/60 to-background/30" />
-          </>
-        ) : (
-          <>
-            <div className="absolute inset-0 bg-gradient-to-br from-[hsl(220,80%,12%)] via-[hsl(220,60%,18%)] to-[hsl(220,55%,10%)]" />
-            <div className="absolute inset-0 bg-gradient-to-r from-gold/10 via-transparent to-gold/5" />
-            <div className="absolute top-0 right-0 w-48 h-48 bg-gold/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
-            <div className="absolute bottom-0 left-0 w-40 h-40 bg-gold/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4" />
-          </>
-        )}
+        {(() => {
+          const bgSrc = ad?.image_url || premiumBannerBg;
+          return (
+            <>
+              <img
+                src={bgSrc}
+                alt={title}
+                loading="lazy"
+                width={1536}
+                height={512}
+                className="absolute inset-0 w-full h-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = premiumBannerBg;
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/70 to-background/20" />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
+            </>
+          );
+        })()}
         <div className="relative flex items-center h-full px-5 md:px-6">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
