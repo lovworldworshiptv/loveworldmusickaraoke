@@ -52,39 +52,41 @@ const SecondaryBanner = () => {
   return (
     <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
       <div
-        className="relative w-full h-36 md:h-44 rounded-2xl overflow-hidden group cursor-pointer"
+        className="relative w-full h-40 md:h-48 rounded-2xl overflow-hidden group cursor-pointer border border-gold/20 shadow-[0_0_24px_hsl(43_70%_53%/0.12)] hover:shadow-[0_0_32px_hsl(43_70%_53%/0.22)] transition-all duration-300"
         onClick={handleClick}
       >
         {ad?.image_url ? (
           <>
             <img src={ad.image_url} alt={title} className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/50 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/60 to-background/30" />
           </>
         ) : (
           <>
-            <div className="absolute inset-0 gradient-purple" />
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-primary/10" />
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-gold/5 rounded-full blur-3xl" />
-            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-accent/10 rounded-full blur-3xl" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[hsl(220,80%,12%)] via-[hsl(220,60%,18%)] to-[hsl(220,55%,10%)]" />
+            <div className="absolute inset-0 bg-gradient-to-r from-gold/10 via-transparent to-gold/5" />
+            <div className="absolute top-0 right-0 w-48 h-48 bg-gold/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
+            <div className="absolute bottom-0 left-0 w-40 h-40 bg-gold/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4" />
           </>
         )}
-        <div className="relative flex items-center h-full px-6">
-          <div className="flex-1">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Sparkles className="w-3 h-3 text-gold" />
-              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-gold">Premium</p>
+        <div className="relative flex items-center h-full px-5 md:px-6">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gold/20">
+                <Crown className="w-3 h-3 text-gold" />
+              </div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">Premium</p>
             </div>
             <h3 className="text-lg md:text-xl font-serif font-bold text-foreground mb-1">
               {title}
             </h3>
-            <p className="text-xs text-muted-foreground mb-3 max-w-xs">
+            <p className="text-xs text-muted-foreground mb-3 max-w-xs md:max-w-sm">
               {subtitle}
             </p>
-            <span className="gradient-gold text-primary-foreground px-5 py-2 rounded-full text-xs font-semibold hover:opacity-90 transition-all duration-300 hover:shadow-[0_0_20px_hsl(43_70%_53%/0.3)] inline-block">
+            <span className="gradient-gold text-primary-foreground px-5 py-2.5 rounded-full text-xs font-semibold hover:opacity-90 transition-all duration-300 hover:shadow-[0_0_24px_hsl(43_70%_53%/0.4)] inline-block active:scale-95 touch-target">
               {ctaText}
             </span>
           </div>
-          <div className="hidden md:flex items-center justify-center w-20 h-20 rounded-full bg-gold/10 border border-gold/20 group-hover:scale-110 transition-transform duration-500">
+          <div className="hidden md:flex items-center justify-center w-20 h-20 rounded-full bg-gold/15 border border-gold/30 group-hover:scale-110 transition-transform duration-500 shadow-[0_0_20px_hsl(43_70%_53%/0.15)]">
             <Music className="w-10 h-10 text-gold" />
           </div>
         </div>
