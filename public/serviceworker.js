@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lmk-cache-v1';
+const CACHE_NAME = 'lmk-cache-v2';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
@@ -40,6 +40,20 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Never cache Vite dev/HMR modules or optimized dependency chunks.
+  // Serving stale React chunks can create multiple React instances and break hooks.
+  if (
+    url.hostname === 'localhost' ||
+    url.pathname.startsWith('/src/') ||
+    url.pathname.startsWith('/node_modules/.vite/') ||
+    url.pathname.startsWith('/@vite/') ||
+    url.pathname.includes('__hmr') ||
+    url.searchParams.has('t') ||
+    url.searchParams.has('v')
+  ) {
+    return;
+  }
+
   // Skip audio/media streaming — do not cache
   if (
     url.pathname.match(/\.(mp3|wav|ogg|m4a|aac|flac|webm|opus)$/i) ||
@@ -63,13 +77,31 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for static assets
+  // Network-first for scripts so app updates cannot mix stale JS chunks.
+  if (
+    request.destination === 'script' ||
+    url.pathname.match(/\.(js|mjs)$/i)
+  ) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200 && response.type === 'basic') {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // Cache-first for static non-script assets
   if (
     request.destination === 'style' ||
-    request.destination === 'script' ||
     request.destination === 'font' ||
     request.destination === 'image' ||
-    url.pathname.match(/\.(css|js|woff2?|ttf|eot|svg|png|jpg|jpeg|webp|ico|gif)$/i)
+    url.pathname.match(/\.(css|woff2?|ttf|eot|svg|png|jpg|jpeg|webp|ico|gif)$/i)
   ) {
     event.respondWith(
       caches.match(request).then((cached) => {
