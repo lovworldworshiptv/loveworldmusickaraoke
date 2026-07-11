@@ -11,6 +11,6 @@ const isMedian = typeof (window as any).median !== 'undefined'
   || ua.includes('median')
   || ua.includes('gonative');
 
-if ('serviceWorker' in navigator && !isMedian) {
+if ('serviceWorker' in navigator && !isMedian && import.meta.env.PROD) {
   navigator.serviceWorker.register('/serviceworker.js');
 }
