@@ -44,14 +44,19 @@ const HeroBanner = () => {
   };
 
   return (
-    <section className="relative w-full h-64 md:h-80 lg:h-96 overflow-hidden rounded-2xl mx-4 mt-4 lg:mx-6 lg:mt-6 animate-scale-fade group bg-background/95" style={{ maxWidth: 'calc(100vw - 2rem)' }}>
+    <section className="relative w-full h-64 md:h-80 lg:h-96 overflow-hidden rounded-2xl mx-4 mt-4 lg:mx-6 lg:mt-6 animate-scale-fade group" style={{ maxWidth: 'calc(100vw - 2rem)' }}>
+      <div
+        className="absolute inset-0 bg-cover bg-center blur-2xl scale-110"
+        style={{ backgroundImage: `url(${imageUrl})` }}
+        aria-hidden="true"
+      />
       <img
         src={imageUrl}
         alt={banner?.title || "Banner"}
-        className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105"
+        className="relative z-10 w-full h-full object-contain transition-transform duration-700 group-hover:scale-105"
         loading="lazy"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+      <div className="absolute inset-0 z-20 bg-gradient-to-t from-background via-background/50 to-transparent" />
       <div className="absolute inset-0 bg-gradient-to-r from-background/40 to-transparent" />
       <div className="absolute bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-6">
         {banner?.title && (
