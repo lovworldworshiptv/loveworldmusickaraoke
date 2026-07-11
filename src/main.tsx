@@ -14,3 +14,17 @@ const isMedian = typeof (window as any).median !== 'undefined'
 if ('serviceWorker' in navigator && !isMedian && import.meta.env.PROD) {
   navigator.serviceWorker.register('/serviceworker.js');
 }
+
+if ('serviceWorker' in navigator && import.meta.env.DEV) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => registration.unregister());
+  });
+
+  if ('caches' in window) {
+    caches.keys().then((keys) => {
+      keys
+        .filter((key) => key.startsWith('lmk-cache-'))
+        .forEach((key) => caches.delete(key));
+    });
+  }
+}
