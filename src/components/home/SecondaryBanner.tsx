@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Music, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useIsPremium } from "@/hooks/useIsPremium";
+import premiumBannerBg from "@/assets/premium-banner-bg.jpg";
 
 interface PremiumAd {
   id: string;
