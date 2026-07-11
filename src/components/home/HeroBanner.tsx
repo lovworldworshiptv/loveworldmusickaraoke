@@ -44,11 +44,11 @@ const HeroBanner = () => {
   };
 
   return (
-    <section className="relative w-full h-64 md:h-80 lg:h-96 overflow-hidden rounded-2xl mx-4 mt-4 lg:mx-6 lg:mt-6 animate-scale-fade group" style={{ maxWidth: 'calc(100vw - 2rem)' }}>
+    <section className="relative w-full h-64 md:h-80 lg:h-96 overflow-hidden rounded-2xl mx-4 mt-4 lg:mx-6 lg:mt-6 animate-scale-fade group bg-background/95" style={{ maxWidth: 'calc(100vw - 2rem)' }}>
       <img
         src={imageUrl}
         alt={banner?.title || "Banner"}
-        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+        className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105"
         loading="lazy"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
