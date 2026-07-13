@@ -17,6 +17,8 @@ const AdminChallenges = () => {
     prize_dist: '{"1":70,"2":20,"3":10}',
     start_date: "", end_date: "", status: "draft",
     max_daily_scoring_games: "", max_referrals_per_user: 10, qualification_min_games: 10,
+    allowed_subscriptions: ["free", "trial", "premium"] as string[],
+    referral_gate_score: "" as string, referral_gate_required_invites: 3,
   });
 
   const { data: challenges = [] } = useQuery({
@@ -73,7 +75,7 @@ const AdminChallenges = () => {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", description: "", entry_fee: 1, prize_pool: 100, prize_dist: '{"1":70,"2":20,"3":10}', start_date: "", end_date: "", status: "draft", max_daily_scoring_games: "", max_referrals_per_user: 10, qualification_min_games: 10 });
+    setForm({ name: "", description: "", entry_fee: 1, prize_pool: 100, prize_dist: '{"1":70,"2":20,"3":10}', start_date: "", end_date: "", status: "draft", max_daily_scoring_games: "", max_referrals_per_user: 10, qualification_min_games: 10, allowed_subscriptions: ["free","trial","premium"], referral_gate_score: "", referral_gate_required_invites: 3 });
     setShowForm(true);
   };
 
@@ -86,6 +88,9 @@ const AdminChallenges = () => {
       status: ch.status, max_daily_scoring_games: ch.max_daily_scoring_games ?? "",
       max_referrals_per_user: ch.max_referrals_per_user ?? 10,
       qualification_min_games: ch.qualification_min_games,
+      allowed_subscriptions: ch.allowed_subscriptions ?? ["free","trial","premium"],
+      referral_gate_score: ch.referral_gate_score != null ? String(ch.referral_gate_score) : "",
+      referral_gate_required_invites: ch.referral_gate_required_invites ?? 3,
     });
     setShowForm(true);
   };
@@ -102,6 +107,9 @@ const AdminChallenges = () => {
         max_daily_scoring_games: form.max_daily_scoring_games ? Number(form.max_daily_scoring_games) : null,
         max_referrals_per_user: form.max_referrals_per_user ? Number(form.max_referrals_per_user) : null,
         qualification_min_games: Number(form.qualification_min_games),
+        allowed_subscriptions: form.allowed_subscriptions,
+        referral_gate_score: form.referral_gate_score ? Number(form.referral_gate_score) : null,
+        referral_gate_required_invites: Number(form.referral_gate_required_invites) || 0,
       };
       if (editing) {
         await supabase.from("challenges" as any).update(payload).eq("id", editing.id);
