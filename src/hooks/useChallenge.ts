@@ -19,6 +19,7 @@ export interface Challenge {
   allowed_subscriptions?: string[];
   referral_gate_score?: number | null;
   referral_gate_required_invites?: number | null;
+  difficulty_gates?: Array<{ min_score: number; max_score: number; allowed: string[] }>;
 }
 
 export const useActiveChallenge = () => {
