@@ -28,14 +28,6 @@ const challenges = [
     path: "/games/songmatch/category",
     statKey: "category" as const,
   },
-  {
-    title: "Articles Game",
-    description: "Test your knowledge of Loveworld articles, authors and categories.",
-    icon: Newspaper,
-    color: "from-purple-500 to-violet-600",
-    path: "/games/songmatch/articles",
-    statKey: "articles" as const,
-  },
 ];
 
 const steps = [
