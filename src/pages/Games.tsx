@@ -87,25 +87,43 @@ const Games = () => {
             </div>
           </button>
 
-          {/* Build & Learn Card (Coming Soon) */}
-          <div className="glass-card p-6 text-left relative opacity-70 animate-scale-in" style={{ animationDelay: "0.1s" }}>
-            <div className="absolute top-4 right-4">
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-xs font-medium">
-                <Lock className="w-3 h-3" />
-                Coming Soon
-              </span>
+          {/* Articles Game Card */}
+          <button
+            onClick={() => navigate("/games/songmatch/articles")}
+            className="glass-card p-6 text-left hover:ring-2 hover:ring-primary/50 transition-all duration-300 group relative animate-scale-in"
+            style={{ animationDelay: "0.1s" }}
+          >
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <Newspaper className="w-7 h-7 text-white" />
             </div>
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-4 shadow-lg">
-              <BookOpen className="w-7 h-7 text-white" />
-            </div>
-            <h3 className="text-xl font-bold text-foreground mb-2">Build & Learn</h3>
-            <p className="text-sm text-muted-foreground mb-5 line-clamp-2">
-              An interactive learning experience for ministry knowledge and growth.
+            <h3 className="text-xl font-bold text-foreground mb-2">Articles Game</h3>
+            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+              Test your knowledge of Loveworld articles, authors and categories.
             </p>
-            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-muted text-muted-foreground text-sm font-medium cursor-not-allowed">
-              Coming Soon
+            {stats && ((stats as any).articlesGames ?? 0) > 0 && (
+              <div className="flex items-center gap-3 mb-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1"><Target className="w-3 h-3" /> {(stats as any).articlesGames} played</span>
+                <span className="flex items-center gap-1"><Star className="w-3 h-3" /> {(stats as any).articlesPoints ?? 0} pts</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium group-hover:opacity-90 transition-opacity">
+                Play Now
+              </div>
+              <div onClick={(e) => e.stopPropagation()}>
+                <ShareMenu
+                  url={buildShareUrl("/games/songmatch/articles")}
+                  title="Articles Game"
+                  text="I challenge you to the Articles Game on Loveworld Music Karaoke+"
+                  trigger={
+                    <button className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-border text-foreground text-sm font-medium hover:bg-accent transition-colors">
+                      <Share2 className="w-4 h-4" /> Invite
+                    </button>
+                  }
+                />
+              </div>
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Achievements Section */}
