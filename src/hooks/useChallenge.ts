@@ -203,10 +203,22 @@ export function buildReferralUrl(usernameOrId: string) {
 export async function recordChallengeGame(mode: "lyrics" | "melody" | "category" | "articles", difficulty: string | null, score: number) {
   try {
     const { data } = await supabase.functions.invoke("record-challenge-game", { body: { mode, difficulty, score } });
-    return data as {
+    const result = (data || null) as {
       skipped?: string; message?: string; remaining?: number; required?: number;
       completed?: number; allowed?: string[]; difficulty?: string; total?: number; qualified?: boolean;
     } | null;
+    if (result?.skipped === "referral_gate" && result.message) {
+      // Late import to avoid a circular dep with sonner in edge environments
+      const { toast } = await import("sonner");
+      toast.warning(result.message, {
+        action: { label: "Refer now", onClick: () => { window.location.href = "/games/challenge/referrals"; } },
+        duration: 8000,
+      });
+    } else if (result?.skipped === "difficulty_gate" && result.message) {
+      const { toast } = await import("sonner");
+      toast.warning(result.message, { duration: 7000 });
+    }
+    return result;
   } catch (e) {
     console.warn("[challenge] record failed", e);
     return null;
