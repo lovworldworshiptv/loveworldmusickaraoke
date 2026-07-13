@@ -108,11 +108,13 @@ Deno.serve(async (req) => {
     const lyrics_points = modePts("lyrics");
     const melody_points = modePts("melody");
     const category_points = modePts("category");
+    const articles_points = modePts("articles");
 
     const masteryKeys: { key: string; cond: boolean; points: number }[] = [
       { key: "lyrics_master", cond: lyrics_points >= 500, points: 50 },
       { key: "melody_master", cond: melody_points >= 500, points: 75 },
       { key: "category_master", cond: category_points >= 500, points: 50 },
+      { key: "articles_master", cond: articles_points >= 500, points: 50 },
     ];
     for (const m of masteryKeys) {
       if (m.cond) {
@@ -121,11 +123,11 @@ Deno.serve(async (req) => {
         }).then(() => {}, () => {});
       }
     }
-    // Songmatch master if all 3 mastery earned
+    // Songmatch master if all 4 mastery earned
     const { data: earned } = await svc.from("challenge_bonuses_awarded")
       .select("bonus_key").eq("challenge_id", ch.id).eq("user_id", user.id)
-      .in("bonus_key", ["lyrics_master", "melody_master", "category_master"]);
-    if ((earned || []).length === 3) {
+      .in("bonus_key", ["lyrics_master", "melody_master", "category_master", "articles_master"]);
+    if ((earned || []).length === 4) {
       await svc.from("challenge_bonuses_awarded").insert({
         challenge_id: ch.id, user_id: user.id, bonus_key: "songmatch_master", points: 200,
       }).then(() => {}, () => {});
@@ -142,7 +144,7 @@ Deno.serve(async (req) => {
     await svc.from("challenge_scores").upsert({
       challenge_id: ch.id, user_id: user.id,
       total_score: logTotal + bonusTotal,
-      games_played, lyrics_points, melody_points, category_points, qualified,
+      games_played, lyrics_points, melody_points, category_points, articles_points, qualified,
     }, { onConflict: "challenge_id,user_id" });
 
     return json({ success: true, counted, total: logTotal + bonusTotal, qualified });
