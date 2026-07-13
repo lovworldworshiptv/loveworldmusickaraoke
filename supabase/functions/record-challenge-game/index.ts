@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "Invalid token" }, 401);
 
     const { mode, difficulty, score } = await req.json();
-    if (!["lyrics", "melody", "category"].includes(mode)) return json({ error: "Invalid mode" }, 400);
+    if (!["lyrics", "melody", "category", "articles"].includes(mode)) return json({ error: "Invalid mode" }, 400);
 
     // Find user's active approved challenge
     const nowIso = new Date().toISOString();
@@ -32,6 +32,22 @@ Deno.serve(async (req) => {
       .eq("challenge_id", ch.id).eq("user_id", user.id).maybeSingle();
     if (!entry || entry.status !== "approved") return json({ skipped: "not_enrolled" });
 
+    // Referral gate: once user total_score >= gate, require N awarded referrals before games count
+    let referralGateBlocked = false;
+    const gateScore = (ch as any).referral_gate_score;
+    const gateRequired = (ch as any).referral_gate_required_invites ?? 0;
+    if (gateScore != null && gateRequired > 0) {
+      const { data: existingScore } = await svc.from("challenge_scores")
+        .select("total_score").eq("challenge_id", ch.id).eq("user_id", user.id).maybeSingle();
+      const currentTotal = existingScore?.total_score ?? 0;
+      if (currentTotal >= Number(gateScore)) {
+        const { count: refCount } = await svc.from("challenge_referrals")
+          .select("id", { count: "exact", head: true })
+          .eq("challenge_id", ch.id).eq("referrer_user_id", user.id).eq("awarded", true);
+        if ((refCount ?? 0) < gateRequired) referralGateBlocked = true;
+      }
+    }
+
     // Daily cap check
     const todayStart = new Date(); todayStart.setUTCHours(0, 0, 0, 0);
     const { data: todayLogs } = await svc.from("challenge_game_logs")
@@ -40,12 +56,17 @@ Deno.serve(async (req) => {
       .gte("completed_at", todayStart.toISOString());
     const countedToday = (todayLogs || []).filter((l: any) => l.counted_toward_score).length;
     const cap = ch.max_daily_scoring_games;
-    const counted = !cap || countedToday < cap;
+    const withinCap = !cap || countedToday < cap;
+    const counted = withinCap && !referralGateBlocked;
 
     await svc.from("challenge_game_logs").insert({
       challenge_id: ch.id, user_id: user.id, mode, difficulty: difficulty ?? null,
       score: Number(score) || 0, counted_toward_score: counted,
     });
+
+    if (referralGateBlocked) {
+      return json({ skipped: "referral_gate", required: gateRequired, gate_score: gateScore });
+    }
 
     // Award bonuses
     const ymd = todayStart.toISOString().slice(0, 10).replace(/-/g, "");
