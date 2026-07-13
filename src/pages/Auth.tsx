@@ -8,7 +8,10 @@ import kingsChatWebSdk from "kingschat-web-sdk";
 import { supabase } from "@/integrations/supabase/client";
 import logoFull from "@/assets/logo-mic-heart.png";
 
-const KINGSCHAT_CLIENT_ID = "0d2afe44-0f0b-41f6-b2ff-3ee91706f0c8";
+// NOTE: This ID must be registered on the LEGACY KingsChat portal
+// (developer.kingsch.at) — the kingschat-web-sdk popup only accepts
+// clients from that portal, NOT the new developers.kingschat.online portal.
+const KINGSCHAT_CLIENT_ID = "5d4c8670-fd28-4be8-8484-55302b8c3bb6";
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
