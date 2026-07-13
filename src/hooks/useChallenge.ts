@@ -167,6 +167,44 @@ export const useReferralGateStatus = (challengeId?: string) => {
     enabled: !!user?.id && !!challengeId,
     staleTime: 15_000,
   });
+      if (currentScore < Number(gateScore)) return { blocked: false, gateScore: Number(gateScore), required, refCount: 0, currentScore, remaining: required };
+      const { count } = await supabase
+        .from("challenge_referrals" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("challenge_id", challengeId).eq("referrer_user_id", user.id).eq("awarded", true);
+      const refCount = count || 0;
+      const remaining = Math.max(0, required - refCount);
+      return { blocked: refCount < required, gateScore: Number(gateScore), required, refCount, currentScore, remaining };
+    },
+    enabled: !!user?.id && !!challengeId,
+    staleTime: 5_000,
+    refetchInterval: 15_000,
+  });
+};
+
+/**
+ * Returns the set of difficulties currently allowed to earn score, based on
+ * the admin-configured difficulty_gates rules and the player's current score.
+ * When no rule matches or no gates configured, all difficulties are allowed.
+ */
+export const useAllowedDifficulties = () => {
+  const { user } = useAuth();
+  const { data: ch } = useActiveChallenge();
+  const { data: myScore } = useMyScore(ch?.id);
+  const gates = (ch?.difficulty_gates as any[]) || [];
+  const currentScore = (myScore as any)?.total_score ?? 0;
+  const active = !!user && !!ch && ch.status === "active" && gates.length > 0;
+  if (!active) {
+    return { active: false, allowed: new Set(["easy", "medium", "hard"]), currentScore, rules: [] as any[] };
+  }
+  const matching = gates.filter(g => currentScore >= Number(g.min_score ?? 0) && currentScore <= Number(g.max_score ?? Number.MAX_SAFE_INTEGER));
+  const allowed = new Set<string>();
+  if (matching.length === 0) {
+    ["easy", "medium", "hard"].forEach(d => allowed.add(d));
+  } else {
+    for (const g of matching) (g.allowed || []).forEach((d: string) => allowed.add(d));
+  }
+  return { active: true, allowed, currentScore, rules: matching };
 };
 
 export function buildReferralUrl(usernameOrId: string) {
