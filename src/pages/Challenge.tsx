@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveChallenge, useMyEntry, useMyScore, useLeaderboard, buildReferralUrl } from "@/hooks/useChallenge";
 import ChallengeCountdown from "@/components/games/ChallengeCountdown";
-import { Trophy, Copy, ArrowLeft, Crown, Target, CheckCircle, LogOut, AlertCircle } from "lucide-react";
+import { Trophy, Copy, ArrowLeft, Crown, Target, CheckCircle, LogOut, AlertCircle, Medal, Award } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
