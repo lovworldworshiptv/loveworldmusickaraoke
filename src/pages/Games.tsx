@@ -1,6 +1,6 @@
 import AppLayout from "@/components/layout/AppLayout";
 import { useNavigate } from "react-router-dom";
-import { Music, BookOpen, Lock, Trophy, Gamepad2, Star, Target, Share2 } from "lucide-react";
+import { Music, Newspaper, Trophy, Gamepad2, Star, Target, Share2 } from "lucide-react";
 import { useGameStats, ACHIEVEMENTS } from "@/hooks/useGameStats";
 import ShareMenu, { buildShareUrl } from "@/components/share/ShareMenu";
 import ChallengeBanner from "@/components/games/ChallengeBanner";
