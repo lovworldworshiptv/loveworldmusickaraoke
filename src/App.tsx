@@ -48,6 +48,7 @@ import Subscription from "./pages/Subscription";
 import Reminders from "./pages/Reminders";
 import Challenge from "./pages/Challenge";
 import ChallengeEntry from "./pages/ChallengeEntry";
+import ChallengeReferrals from "./pages/ChallengeReferrals";
 import AdminChallenges from "./pages/AdminChallenges";
 
 const queryClient = new QueryClient();
@@ -78,6 +79,7 @@ const App = () => (
                 <Route path="/games/songmatch/articles" element={<AuthGate><SongMatchArticles /></AuthGate>} />
                 <Route path="/games/challenge" element={<AuthGate><Challenge /></AuthGate>} />
                 <Route path="/games/challenge/enter" element={<AuthGate><ChallengeEntry /></AuthGate>} />
+                <Route path="/games/challenge/referrals" element={<AuthGate><ChallengeReferrals /></AuthGate>} />
                 <Route path="/smchallenge" element={<Challenge />} />
                 <Route path="/admin/challenges" element={<AuthGate><AdminChallenges /></AuthGate>} />
                 <Route path="/articles" element={<AuthGate><Articles /></AuthGate>} />
