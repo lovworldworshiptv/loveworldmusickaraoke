@@ -19,6 +19,7 @@ const AdminChallenges = () => {
     max_daily_scoring_games: "", max_referrals_per_user: 10, qualification_min_games: 10,
     allowed_subscriptions: ["free", "trial", "premium"] as string[],
     referral_gate_score: "" as string, referral_gate_required_invites: 3,
+    difficulty_gates: [] as Array<{ min_score: number; max_score: number; allowed: string[] }>,
   });
 
   const { data: challenges = [] } = useQuery({
