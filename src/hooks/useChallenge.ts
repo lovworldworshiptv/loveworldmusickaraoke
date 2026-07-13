@@ -136,6 +136,38 @@ export const useParticipantCount = (challengeId?: string) => {
   });
 };
 
+export const useReferralGateStatus = (challengeId?: string) => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["challenge-referral-gate", challengeId, user?.id],
+    queryFn: async () => {
+      if (!user?.id || !challengeId) return { blocked: false, gateScore: 0, required: 0, refCount: 0, currentScore: 0 };
+      const { data: ch } = await supabase
+        .from("challenges" as any)
+        .select("referral_gate_score, referral_gate_required_invites")
+        .eq("id", challengeId)
+        .maybeSingle();
+      const gateScore = (ch as any)?.referral_gate_score;
+      const required = Number((ch as any)?.referral_gate_required_invites ?? 0);
+      if (gateScore == null || required <= 0) return { blocked: false, gateScore: 0, required: 0, refCount: 0, currentScore: 0 };
+      const { data: score } = await supabase
+        .from("challenge_scores" as any)
+        .select("total_score")
+        .eq("challenge_id", challengeId).eq("user_id", user.id).maybeSingle();
+      const currentScore = (score as any)?.total_score ?? 0;
+      if (currentScore < Number(gateScore)) return { blocked: false, gateScore: Number(gateScore), required, refCount: 0, currentScore };
+      const { count } = await supabase
+        .from("challenge_referrals" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("challenge_id", challengeId).eq("referrer_user_id", user.id).eq("awarded", true);
+      const refCount = count || 0;
+      return { blocked: refCount < required, gateScore: Number(gateScore), required, refCount, currentScore };
+    },
+    enabled: !!user?.id && !!challengeId,
+    staleTime: 15_000,
+  });
+};
+
 export function buildReferralUrl(usernameOrId: string) {
   return `https://loveworldmusickaraoke.com/smchallenge?ref=${encodeURIComponent(usernameOrId)}`;
 }
