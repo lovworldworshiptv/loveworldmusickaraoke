@@ -118,7 +118,7 @@ const Challenge = () => {
         {!entry && (
           <button onClick={() => navigate("/games/challenge/enter")}
             className="w-full mb-5 py-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm flex items-center justify-center gap-2">
-            <Crown className="w-4 h-4" /> Enter Challenge — {ch.entry_fee} Espee
+            <Crown className="w-4 h-4" /> Enter Challenge — {Number(ch.entry_fee) <= 0 ? "Free" : `${ch.entry_fee} Espee${Number(ch.entry_fee) === 1 ? "" : "s"}`}
           </button>
         )}
 

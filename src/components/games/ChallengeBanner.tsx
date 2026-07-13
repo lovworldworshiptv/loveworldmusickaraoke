@@ -13,11 +13,14 @@ export default function ChallengeBanner() {
   const dist = ch.prize_distribution || {};
   const ranks = Object.keys(dist).map(Number).sort((a, b) => a - b);
   const closed = isChallengeClosed(ch);
+  const feeNum = Number(ch.entry_fee);
+  const isFree = feeNum <= 0;
+  const feeLabel = isFree ? "Free" : `${feeNum} Espee${feeNum === 1 ? "" : "s"}`;
 
   const ctaLabel = closed
     ? "Challenge Ended"
     : !entry
-    ? `Enter Challenge — ${ch.entry_fee} Espee${Number(ch.entry_fee) === 1 ? "" : "s"}`
+    ? isFree ? "Enter Challenge — Free" : `Enter Challenge — ${feeLabel}`
     : entry.status === "pending"
     ? "Entry Pending Approval"
     : entry.status === "rejected"
@@ -47,7 +50,7 @@ export default function ChallengeBanner() {
           </div>
           <div className="bg-background/30 rounded-lg p-3">
             <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Entry Fee</p>
-            <p className="text-lg font-bold text-foreground">{ch.entry_fee} Espee</p>
+            <p className={`text-lg font-bold ${isFree ? "text-green-400" : "text-foreground"}`}>{feeLabel}</p>
           </div>
           <div className="bg-background/30 rounded-lg p-3">
             <p className="text-[10px] uppercase text-muted-foreground tracking-wide flex items-center gap-1"><Users className="w-3 h-3" /> Players</p>
