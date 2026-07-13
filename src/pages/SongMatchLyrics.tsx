@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { saveGameSession, checkAndAwardAchievements, useGameStats } from "@/hooks/useGameStats";
+import { useReferralGateGuard } from "@/hooks/useReferralGateGuard";
 
 type Difficulty = "easy" | "medium" | "hard";
 type LyricsMode = "lyrics-to-title" | "title-to-lyrics" | "fill-in-blank";
