@@ -73,11 +73,11 @@ const SongMatch = () => {
 
         {/* Per-mode stats */}
         {stats && stats.totalGamesPlayed > 0 && (
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
             {challenges.map((c) => {
-              const games = stats[`${c.statKey}Games`];
-              const points = stats[`${c.statKey}Points`];
-              const bestStreak = stats[`${c.statKey}BestStreak`];
+              const games = (stats as any)[`${c.statKey}Games`] ?? 0;
+              const points = (stats as any)[`${c.statKey}Points`] ?? 0;
+              const bestStreak = (stats as any)[`${c.statKey}BestStreak`] ?? 0;
               return (
                 <div key={c.statKey} className="glass-card p-3 text-center animate-fade-in">
                   <c.icon className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
