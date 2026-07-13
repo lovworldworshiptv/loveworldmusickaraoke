@@ -156,17 +156,6 @@ export const useReferralGateStatus = (challengeId?: string) => {
         .select("total_score")
         .eq("challenge_id", challengeId).eq("user_id", user.id).maybeSingle();
       const currentScore = (score as any)?.total_score ?? 0;
-      if (currentScore < Number(gateScore)) return { blocked: false, gateScore: Number(gateScore), required, refCount: 0, currentScore };
-      const { count } = await supabase
-        .from("challenge_referrals" as any)
-        .select("id", { count: "exact", head: true })
-        .eq("challenge_id", challengeId).eq("referrer_user_id", user.id).eq("awarded", true);
-      const refCount = count || 0;
-      return { blocked: refCount < required, gateScore: Number(gateScore), required, refCount, currentScore };
-    },
-    enabled: !!user?.id && !!challengeId,
-    staleTime: 15_000,
-  });
       if (currentScore < Number(gateScore)) return { blocked: false, gateScore: Number(gateScore), required, refCount: 0, currentScore, remaining: required };
       const { count } = await supabase
         .from("challenge_referrals" as any)
