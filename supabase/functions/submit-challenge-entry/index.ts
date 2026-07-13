@@ -52,19 +52,8 @@ Deno.serve(async (req) => {
       .select("id, status").eq("challenge_id", challenge_id).eq("user_id", user.id).maybeSingle();
     if (existing) return json({ error: "You already have an entry", entry: existing }, 400);
 
-    // Resolve referrer: accept a UUID or a username. Reject self-referrals.
-    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    let validReferrer: string | null = null;
-    if (referred_by_user_id && typeof referred_by_user_id === "string") {
-      const raw = referred_by_user_id.trim();
-      if (UUID_RE.test(raw)) {
-        validReferrer = raw;
-      } else {
-        const { data: prof } = await svc.from("profiles").select("user_id").ilike("username", raw).maybeSingle();
-        if (prof?.user_id) validReferrer = prof.user_id;
-      }
-      if (validReferrer === user.id) validReferrer = null;
-    }
+    // Validate referrer (no self)
+    const validReferrer = referred_by_user_id && referred_by_user_id !== user.id ? referred_by_user_id : null;
 
     const autoApprove = isPremium || isFree;
     const status = autoApprove ? "approved" : "pending";

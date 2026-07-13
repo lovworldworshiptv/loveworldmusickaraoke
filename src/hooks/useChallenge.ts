@@ -136,8 +136,8 @@ export const useParticipantCount = (challengeId?: string) => {
   });
 };
 
-export function buildReferralUrl(usernameOrId: string) {
-  return `https://loveworldmusickaraoke.com/smchallenge?ref=${encodeURIComponent(usernameOrId)}`;
+export function buildReferralUrl(userId: string) {
+  return `https://loveworldmusickaraoke.com/smchallenge?ref=${userId}`;
 }
 
 export async function recordChallengeGame(mode: "lyrics" | "melody" | "category", difficulty: string | null, score: number) {

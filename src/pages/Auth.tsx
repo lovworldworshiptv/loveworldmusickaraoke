@@ -1,21 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Eye, EyeOff, MessageCircle } from "lucide-react";
 import MusicBackground from "@/components/auth/MusicBackground";
+import kingsChatWebSdk from "kingschat-web-sdk";
 import { supabase } from "@/integrations/supabase/client";
 import logoFull from "@/assets/logo-mic-heart.png";
 
-const KINGSCHAT_CLIENT_ID = "0d2afe44-0f0b-41f6-b2ff-3ee91706f0c8";
-const KINGSCHAT_LOGIN_URL = "https://accounts.kingschat.online/log-in";
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-
-function generateNonce() {
-  const arr = new Uint8Array(24);
-  crypto.getRandomValues(arr);
-  return Array.from(arr, (b) => b.toString(16).padStart(2, "0")).join("");
-}
+const KINGSCHAT_CLIENT_ID = "5d4c8670-fd28-4be8-8484-55302b8c3bb6";
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -27,14 +20,6 @@ const Auth = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [kcLoading, setKcLoading] = useState(false);
-  const pollRef = useRef<number | null>(null);
-  const popupRef = useRef<Window | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (pollRef.current) window.clearInterval(pollRef.current);
-    };
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,78 +36,52 @@ const Auth = () => {
     setLoading(false);
   };
 
-  const stopPolling = () => {
-    if (pollRef.current) {
-      window.clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-    setKcLoading(false);
-  };
-
-  const handleKingsChatLogin = () => {
-    if (kcLoading) return;
+  const handleKingsChatLogin = async () => {
     setKcLoading(true);
+    try {
+      const authResponse = await (kingsChatWebSdk as any).login({
+        clientId: KINGSCHAT_CLIENT_ID,
+        scopes: ["user", "send_chat_message"],
+      });
 
-    const nonce = generateNonce();
-    const loginUrl = `${KINGSCHAT_LOGIN_URL}?clientId=${KINGSCHAT_CLIENT_ID}&origin=${encodeURIComponent(nonce)}`;
+      toast.info("Authenticating with KingsChat...");
 
-    const width = 500;
-    const height = 700;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
-    const popup = window.open(
-      loginUrl,
-      "kingschat_login",
-      `width=${width},height=${height},left=${left},top=${top}`
-    );
+      // Log the full response to discover available fields
+      console.log("KingsChat full auth response:", JSON.stringify(authResponse));
 
-    if (!popup) {
-      toast.error("Popup blocked — please allow popups and try again.");
-      setKcLoading(false);
-      return;
-    }
-    popupRef.current = popup;
-    toast.info("Complete sign-in in the KingsChat window…");
+      // Call edge function with the full auth response
+      const { data, error } = await supabase.functions.invoke("kingschat-auth", {
+        body: { 
+          accessToken: authResponse.accessToken,
+          fullResponse: authResponse,
+        },
+      });
 
-    const started = Date.now();
-    const pollUrl = `${SUPABASE_URL}/functions/v1/kingschat-poll?nonce=${nonce}`;
-
-    pollRef.current = window.setInterval(async () => {
-      // Timeout after 5 minutes
-      if (Date.now() - started > 5 * 60 * 1000) {
-        stopPolling();
-        try { popup.close(); } catch { /* ignore */ }
-        toast.error("KingsChat sign-in timed out.");
+      if (error) {
+        console.error("KingsChat auth error:", error);
+        toast.error("KingsChat authentication failed");
+        setKcLoading(false);
         return;
       }
 
-      try {
-        const res = await fetch(pollUrl);
-        const data = await res.json();
-
-        if (data.status === "ready" && data.session) {
-          stopPolling();
-          try { popup.close(); } catch { /* ignore */ }
-          await supabase.auth.setSession({
-            access_token: data.session.access_token,
-            refresh_token: data.session.refresh_token,
-          });
-          toast.success(`Welcome, ${data.kingschat_profile?.username || "User"}!`);
-          navigate("/");
-        } else if (data.status === "error") {
-          stopPolling();
-          try { popup.close(); } catch { /* ignore */ }
-          toast.error(data.error || "KingsChat sign-in failed.");
-        } else if (data.status === "expired") {
-          stopPolling();
-          try { popup.close(); } catch { /* ignore */ }
-          toast.error("KingsChat sign-in expired. Please try again.");
-        }
-        // else "pending" — keep polling
-      } catch (err) {
-        console.error("KC poll error:", err);
+      if (data?.session) {
+        // Set the session in Supabase client
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+        toast.success(`Welcome, ${data.kingschat_profile?.username || "User"}!`);
+        navigate("/");
+      } else {
+        toast.error(data?.error || "Authentication failed");
       }
-    }, 2000);
+    } catch (err: any) {
+      console.error("KingsChat login error:", err);
+      if (err.message !== "error") {
+        toast.error(err.message || "KingsChat login was cancelled or failed");
+      }
+    }
+    setKcLoading(false);
   };
 
   return (
@@ -139,13 +98,14 @@ const Auth = () => {
         />
         <h1 className="text-2xl font-serif gradient-gold-text font-bold text-center mb-6">Loveworld Music Karaoke+</h1>
 
+        {/* KingsChat Login Button */}
         <button
           onClick={handleKingsChatLogin}
           disabled={kcLoading}
           className="w-full py-3 rounded-lg bg-[#0075FF] text-white font-semibold hover:bg-[#0060DD] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mb-6"
         >
           <MessageCircle className="w-5 h-5" />
-          {kcLoading ? "Waiting for KingsChat…" : "Sign in with KingsChat"}
+          {kcLoading ? "Connecting..." : "Sign in with KingsChat"}
         </button>
 
         <div className="flex items-center gap-3 mb-6">

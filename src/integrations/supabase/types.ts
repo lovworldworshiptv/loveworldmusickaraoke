@@ -918,30 +918,6 @@ export type Database = {
           },
         ]
       }
-      kingschat_auth_sessions: {
-        Row: {
-          created_at: string
-          error: string | null
-          expires_at: string
-          nonce: string
-          session_data: Json | null
-        }
-        Insert: {
-          created_at?: string
-          error?: string | null
-          expires_at?: string
-          nonce: string
-          session_data?: Json | null
-        }
-        Update: {
-          created_at?: string
-          error?: string | null
-          expires_at?: string
-          nonce?: string
-          session_data?: Json | null
-        }
-        Relationships: []
-      }
       notifications: {
         Row: {
           action_url: string | null

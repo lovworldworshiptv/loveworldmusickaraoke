@@ -12,7 +12,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const Challenge = () => {
   const navigate = useNavigate();
-  const { user, username } = useAuth();
+  const { user } = useAuth();
   const [params] = useSearchParams();
   const qc = useQueryClient();
   const { data: ch } = useActiveChallenge();
@@ -21,11 +21,11 @@ const Challenge = () => {
   const { data: board = [] } = useLeaderboard(ch?.id);
 
 
-  // Capture ?ref= referrer (username or user_id) to localStorage
+  // Capture ?ref= referrer to localStorage
   useEffect(() => {
     const ref = params.get("ref");
-    if (ref && ref !== user?.id && ref !== username) localStorage.setItem("challenge_ref", ref);
-  }, [params, user?.id, username]);
+    if (ref && ref !== user?.id) localStorage.setItem("challenge_ref", ref);
+  }, [params, user?.id]);
 
   if (!ch) {
     return (
@@ -41,7 +41,7 @@ const Challenge = () => {
   }
 
   const myRow = board.find((r: any) => r.user_id === user?.id);
-  const refUrl = user ? buildReferralUrl(username && username !== "Guest" ? username : user.id) : "";
+  const refUrl = user ? buildReferralUrl(user.id) : "";
 
   const copyRef = () => {
     if (!refUrl) return;

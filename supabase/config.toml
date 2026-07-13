@@ -15,12 +15,6 @@ verify_jwt = false
 [functions.kingschat-auth]
 verify_jwt = false
 
-[functions.kingschat-callback]
-verify_jwt = false
-
-[functions.kingschat-poll]
-verify_jwt = false
-
 [functions.process-scheduled-notifications]
 verify_jwt = false
 
