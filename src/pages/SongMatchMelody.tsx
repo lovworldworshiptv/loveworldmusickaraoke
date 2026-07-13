@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { saveGameSession, checkAndAwardAchievements, useGameStats } from "@/hooks/useGameStats";
+import { useReferralGateGuard } from "@/hooks/useReferralGateGuard";
 
 type Difficulty = "easy" | "medium" | "hard";
 
@@ -69,6 +70,7 @@ const SongMatchMelody = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  useReferralGateGuard();
   const { data: gameStats } = useGameStats();
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [questions, setQuestions] = useState<MelodyQuestion[]>([]);
