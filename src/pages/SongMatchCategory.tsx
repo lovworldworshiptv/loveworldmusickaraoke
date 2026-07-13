@@ -86,7 +86,8 @@ const SongMatchCategory = () => {
       const { data, error } = await supabase
         .from("songs")
         .select("title, artist, category_id, categories(name)")
-        .not("category_id", "is", null);
+        .not("category_id", "is", null)
+        .limit(5000);
       if (error) throw error;
       return (data || [])
         .filter((s: any) => s.categories?.name)

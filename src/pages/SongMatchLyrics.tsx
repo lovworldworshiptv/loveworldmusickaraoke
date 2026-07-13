@@ -219,7 +219,8 @@ const SongMatchLyrics = () => {
         .from("songs")
         .select("title, artist, lyrics_lrc")
         .not("lyrics_lrc", "is", null)
-        .neq("lyrics_lrc", "");
+        .neq("lyrics_lrc", "")
+        .limit(5000);
       if (error) throw error;
       return (data || []).filter((s: any) => s.lyrics_lrc && parseLrcLines(s.lyrics_lrc).length >= 3);
     },

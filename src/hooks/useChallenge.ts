@@ -16,6 +16,9 @@ export interface Challenge {
   max_daily_scoring_games: number | null;
   max_referrals_per_user: number | null;
   qualification_min_games: number;
+  allowed_subscriptions?: string[];
+  referral_gate_score?: number | null;
+  referral_gate_required_invites?: number | null;
 }
 
 export const useActiveChallenge = () => {

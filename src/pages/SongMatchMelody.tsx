@@ -93,7 +93,8 @@ const SongMatchMelody = () => {
         .from("songs")
         .select("title, artist, audio_url")
         .not("audio_url", "is", null)
-        .neq("audio_url", "");
+        .neq("audio_url", "")
+        .limit(5000);
       if (error) throw error;
       return data || [];
     },
