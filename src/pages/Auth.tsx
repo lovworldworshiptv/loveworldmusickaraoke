@@ -56,12 +56,9 @@ const Auth = () => {
     if (kcLoading) return;
     setKcLoading(true);
     try {
-      const authResp: any = await new Promise((resolve, reject) => {
-        kingsChatWebSdk.login(
-          { scopes: LEGACY_SCOPES, clientId: LEGACY_CLIENT_ID },
-          (r: any) => resolve(r),
-          (e: any) => reject(e)
-        );
+      const authResp: any = await kingsChatWebSdk.login({
+        scopes: LEGACY_SCOPES,
+        clientId: LEGACY_CLIENT_ID,
       });
 
       const accessToken = authResp?.accessToken || authResp?.access_token;
