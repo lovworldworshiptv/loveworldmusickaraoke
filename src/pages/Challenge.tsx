@@ -139,21 +139,38 @@ const Challenge = () => {
             <p className="text-sm text-muted-foreground text-center py-6">No players yet. Be the first!</p>
           ) : (
             <div className="space-y-1.5">
-              {board.map((r: any) => {
-                const isMe = r.user_id === user?.id;
-                return (
-                  <div key={r.user_id}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${isMe ? "bg-amber-500/15 ring-1 ring-amber-500/40" : "bg-background/30"}`}>
-                    <span className="w-8 text-center font-bold text-muted-foreground">#{r.rank}</span>
-                    {r.avatar_url
-                      ? <img src={r.avatar_url} className="w-7 h-7 rounded-full object-cover" alt="" />
-                      : <div className="w-7 h-7 rounded-full bg-muted" />}
-                    <span className="flex-1 truncate font-medium">{isMe ? "You" : r.username}</span>
-                    {r.qualified && <CheckCircle className="w-3.5 h-3.5 text-green-500" />}
-                    <span className="font-bold text-amber-400 tabular-nums">{r.total_score.toLocaleString()}</span>
-                  </div>
-                );
-              })}
+              {(() => {
+                const dist = (ch.prize_distribution || {}) as Record<string, number>;
+                const prizeRanks = new Set(Object.keys(dist).filter(k => Number(dist[k]) > 0).map(k => Number(k)));
+                const medalFor = (rank: number) => {
+                  if (rank === 1) return <Medal className="w-5 h-5 text-amber-400" />;
+                  if (rank === 2) return <Medal className="w-5 h-5 text-slate-300" />;
+                  if (rank === 3) return <Medal className="w-5 h-5 text-orange-500" />;
+                  if (prizeRanks.has(rank)) return <Award className="w-5 h-5 text-primary" />;
+                  return null;
+                };
+                return board.map((r: any) => {
+                  const isMe = r.user_id === user?.id;
+                  const medal = medalFor(r.rank);
+                  return (
+                    <div key={r.user_id}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${isMe ? "bg-amber-500/15 ring-1 ring-amber-500/40" : "bg-background/30"}`}>
+                      <span className="w-8 flex items-center justify-center font-bold text-muted-foreground">
+                        {medal ?? <span>#{r.rank}</span>}
+                      </span>
+                      {r.avatar_url
+                        ? <img src={r.avatar_url} className="w-7 h-7 rounded-full object-cover" alt="" />
+                        : <div className="w-7 h-7 rounded-full bg-muted" />}
+                      <span className="flex-1 truncate font-medium">
+                        {isMe ? "You" : r.username}
+                        {medal && <span className="ml-1.5 text-[10px] text-muted-foreground font-normal">#{r.rank}</span>}
+                      </span>
+                      {r.qualified && <CheckCircle className="w-3.5 h-3.5 text-green-500" />}
+                      <span className="font-bold text-amber-400 tabular-nums">{r.total_score.toLocaleString()}</span>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           )}
         </div>
