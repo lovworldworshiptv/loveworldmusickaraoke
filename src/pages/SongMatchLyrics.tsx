@@ -198,6 +198,7 @@ function generateFillInBlankQuestions(
 const SongMatchLyrics = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  useReferralGateGuard();
   const queryClient = useQueryClient();
   const { data: gameStats } = useGameStats();
   const [lyricsMode, setLyricsMode] = useState<LyricsMode | null>(null);
