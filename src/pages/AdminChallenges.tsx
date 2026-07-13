@@ -290,7 +290,7 @@ const ChallengeRow = ({ c, onEdit, onStatus, onFinalize, onOpenProof, onRemove }
             <span className={`text-xs px-2 py-0.5 rounded-full ${c.status === "active" ? "bg-green-500/20 text-green-400" : c.status === "completed" ? "bg-blue-500/20 text-blue-400" : "bg-muted text-muted-foreground"}`}>{c.status}</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            {new Date(c.start_date).toLocaleDateString()} → {new Date(c.end_date).toLocaleDateString()} · Fee {c.entry_fee} ESP · Pool {c.prize_pool} ESP
+            {new Date(c.start_date).toLocaleDateString()} → {new Date(c.end_date).toLocaleDateString()} · Fee {Number(c.entry_fee) <= 0 ? "Free" : `${c.entry_fee} ESP`} · Pool {c.prize_pool} ESP
           </p>
         </div>
         <div className="flex gap-1">
