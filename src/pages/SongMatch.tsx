@@ -1,6 +1,6 @@
 import AppLayout from "@/components/layout/AppLayout";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, BookOpen, Music2, FolderOpen, Play, Flame, Trophy, Target, Zap } from "lucide-react";
+import { ArrowLeft, BookOpen, Music2, FolderOpen, Play, Flame, Trophy, Target, Zap, Newspaper } from "lucide-react";
 import { useGameStats } from "@/hooks/useGameStats";
 
 const challenges = [
@@ -27,6 +27,14 @@ const challenges = [
     color: "from-emerald-500 to-teal-600",
     path: "/games/songmatch/category",
     statKey: "category" as const,
+  },
+  {
+    title: "Articles Game",
+    description: "Test your knowledge of Loveworld articles, authors and categories.",
+    icon: Newspaper,
+    color: "from-purple-500 to-violet-600",
+    path: "/games/songmatch/articles",
+    statKey: "articles" as const,
   },
 ];
 
@@ -87,7 +95,7 @@ const SongMatch = () => {
 
         {/* Challenge Cards */}
         <h2 className="text-lg font-semibold text-foreground mb-4">Choose Your Challenge</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {challenges.map((c, i) => (
             <button
               key={c.title}
