@@ -33,7 +33,7 @@ export default function ChallengeBanner() {
       <div className="relative">
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           <Trophy className="w-5 h-5 text-amber-400" />
-          <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Song Match Challenge</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Song Master Challenge</span>
           {closed && (
             <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40">
               <CheckCircle2 className="w-3 h-3" /> Completed

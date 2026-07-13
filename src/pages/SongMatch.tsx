@@ -1,6 +1,6 @@
 import AppLayout from "@/components/layout/AppLayout";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, BookOpen, Music2, FolderOpen, Play, Flame, Trophy, Target, Zap, Newspaper } from "lucide-react";
+import { ArrowLeft, BookOpen, Music2, FolderOpen, Play, Flame, Trophy, Target, Zap } from "lucide-react";
 import { useGameStats } from "@/hooks/useGameStats";
 
 const challenges = [
@@ -27,14 +27,6 @@ const challenges = [
     color: "from-emerald-500 to-teal-600",
     path: "/games/songmatch/category",
     statKey: "category" as const,
-  },
-  {
-    title: "Articles Game",
-    description: "Test your knowledge of Loveworld articles, authors and categories.",
-    icon: Newspaper,
-    color: "from-purple-500 to-violet-600",
-    path: "/games/songmatch/articles",
-    statKey: "articles" as const,
   },
 ];
 
