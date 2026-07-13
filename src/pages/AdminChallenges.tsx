@@ -76,7 +76,7 @@ const AdminChallenges = () => {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", description: "", entry_fee: 1, prize_pool: 100, prize_dist: '{"1":70,"2":20,"3":10}', start_date: "", end_date: "", status: "draft", max_daily_scoring_games: "", max_referrals_per_user: 10, qualification_min_games: 10, allowed_subscriptions: ["free","trial","premium"], referral_gate_score: "", referral_gate_required_invites: 3 });
+    setForm({ name: "", description: "", entry_fee: 1, prize_pool: 100, prize_dist: '{"1":70,"2":20,"3":10}', start_date: "", end_date: "", status: "draft", max_daily_scoring_games: "", max_referrals_per_user: 10, qualification_min_games: 10, allowed_subscriptions: ["free","trial","premium"], referral_gate_score: "", referral_gate_required_invites: 3, difficulty_gates: [] });
     setShowForm(true);
   };
 
@@ -92,6 +92,7 @@ const AdminChallenges = () => {
       allowed_subscriptions: ch.allowed_subscriptions ?? ["free","trial","premium"],
       referral_gate_score: ch.referral_gate_score != null ? String(ch.referral_gate_score) : "",
       referral_gate_required_invites: ch.referral_gate_required_invites ?? 3,
+      difficulty_gates: Array.isArray(ch.difficulty_gates) ? ch.difficulty_gates : [],
     });
     setShowForm(true);
   };
@@ -111,6 +112,11 @@ const AdminChallenges = () => {
         allowed_subscriptions: form.allowed_subscriptions,
         referral_gate_score: form.referral_gate_score ? Number(form.referral_gate_score) : null,
         referral_gate_required_invites: Number(form.referral_gate_required_invites) || 0,
+        difficulty_gates: (form.difficulty_gates || []).map(g => ({
+          min_score: Number(g.min_score) || 0,
+          max_score: Number(g.max_score) || 0,
+          allowed: Array.isArray(g.allowed) ? g.allowed : [],
+        })),
       };
       if (editing) {
         await supabase.from("challenges" as any).update(payload).eq("id", editing.id);
@@ -186,6 +192,76 @@ const AdminChallenges = () => {
               <Input label="Invites required at gate" type="number" value={String(form.referral_gate_required_invites)} onChange={(v) => setForm({ ...form, referral_gate_required_invites: Number(v) })} />
             </div>
             <p className="text-[10px] text-muted-foreground -mt-1">When a player reaches this score, they must invite this many new players before more games count toward their score.</p>
+
+            <p className="text-[10px] text-muted-foreground -mt-1">When a player reaches this score, they must invite this many new players before more games count toward their score.</p>
+
+            <div className="pt-2 border-t border-border">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="text-xs font-semibold text-foreground">Difficulty Gates by Score Range</p>
+                  <p className="text-[10px] text-muted-foreground">Restrict which difficulties count for score at different score bands. Add multiple rules; when none matches, all are open.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, difficulty_gates: [...form.difficulty_gates, { min_score: 0, max_score: 1000, allowed: ["easy","medium","hard"] }] })}
+                  className="px-2.5 py-1.5 rounded-lg bg-primary/15 text-primary text-xs flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" /> Add rule
+                </button>
+              </div>
+              <div className="space-y-2">
+                {form.difficulty_gates.map((g, idx) => (
+                  <div key={idx} className="p-3 rounded-lg bg-background/50 border border-border space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="block">
+                        <span className="text-[10px] text-muted-foreground">Min score</span>
+                        <input type="number" value={g.min_score} onChange={(e) => {
+                          const next = [...form.difficulty_gates];
+                          next[idx] = { ...next[idx], min_score: Number(e.target.value) };
+                          setForm({ ...form, difficulty_gates: next });
+                        }} className="w-full mt-0.5 px-2 py-1.5 rounded bg-background border border-border text-xs" />
+                      </label>
+                      <label className="block">
+                        <span className="text-[10px] text-muted-foreground">Max score</span>
+                        <input type="number" value={g.max_score} onChange={(e) => {
+                          const next = [...form.difficulty_gates];
+                          next[idx] = { ...next[idx], max_score: Number(e.target.value) };
+                          setForm({ ...form, difficulty_gates: next });
+                        }} className="w-full mt-0.5 px-2 py-1.5 rounded bg-background border border-border text-xs" />
+                      </label>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-wrap gap-1.5">
+                        {(["easy","medium","hard"] as const).map(d => {
+                          const on = g.allowed.includes(d);
+                          return (
+                            <button key={d} type="button" onClick={() => {
+                              const next = [...form.difficulty_gates];
+                              next[idx] = { ...next[idx], allowed: on ? g.allowed.filter(x => x !== d) : [...g.allowed, d] };
+                              setForm({ ...form, difficulty_gates: next });
+                            }} className={`px-2.5 py-1 rounded-full text-[10px] font-medium capitalize border ${on ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}>
+                              {d}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <button type="button" onClick={() => {
+                        const next = form.difficulty_gates.filter((_, i) => i !== idx);
+                        setForm({ ...form, difficulty_gates: next });
+                      }} className="p-1.5 rounded bg-destructive/15 text-destructive">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Score {g.min_score}–{g.max_score}: {g.allowed.length ? g.allowed.join(", ") : "no difficulties count"}
+                    </p>
+                  </div>
+                ))}
+                {form.difficulty_gates.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground italic">No difficulty gates — all difficulties count at every score.</p>
+                )}
+              </div>
+            </div>
 
             <label className="block">
               <span className="text-xs text-muted-foreground">Status</span>
