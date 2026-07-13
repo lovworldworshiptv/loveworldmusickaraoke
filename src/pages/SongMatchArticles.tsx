@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { saveGameSession, checkAndAwardAchievements, useGameStats } from "@/hooks/useGameStats";
+import { useReferralGateGuard } from "@/hooks/useReferralGateGuard";
 
 type Difficulty = "easy" | "medium" | "hard";
 type ArticlesMode = "excerpt-to-title" | "excerpt-to-author" | "title-to-category";
@@ -131,6 +132,7 @@ const SongMatchArticles = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  useReferralGateGuard();
   const { data: gameStats } = useGameStats();
   const [mode, setMode] = useState<ArticlesMode | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
