@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
     const countedToday = (todayLogs || []).filter((l: any) => l.counted_toward_score).length;
     const cap = ch.max_daily_scoring_games;
     const withinCap = !cap || countedToday < cap;
-    const counted = withinCap && !referralGateBlocked;
+    const counted = withinCap && !referralGateBlocked && !difficultyGateBlocked;
 
     await svc.from("challenge_game_logs").insert({
       challenge_id: ch.id, user_id: user.id, mode, difficulty: difficulty ?? null,
@@ -84,7 +84,23 @@ Deno.serve(async (req) => {
     });
 
     if (referralGateBlocked) {
-      return json({ skipped: "referral_gate", required: gateRequired, gate_score: gateScore });
+      const remaining = Math.max(0, gateRequired - referralRefCount);
+      return json({
+        skipped: "referral_gate",
+        required: gateRequired,
+        completed: referralRefCount,
+        remaining,
+        gate_score: gateScore,
+        message: `You've reached the ${gateScore}-point invite gate. Refer ${remaining} more player${remaining === 1 ? "" : "s"} (${referralRefCount}/${gateRequired}) to keep scoring.`,
+      });
+    }
+    if (difficultyGateBlocked) {
+      return json({
+        skipped: "difficulty_gate",
+        difficulty,
+        allowed: difficultyAllowed,
+        message: `The "${difficulty}" difficulty is locked at your current score. Allowed: ${(difficultyAllowed || []).join(", ") || "none"}.`,
+      });
     }
 
     // Award bonuses
