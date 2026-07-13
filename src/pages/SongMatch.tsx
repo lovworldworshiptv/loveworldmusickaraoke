@@ -1,6 +1,6 @@
 import AppLayout from "@/components/layout/AppLayout";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, BookOpen, Music2, FolderOpen, Play, Flame, Trophy, Target, Zap } from "lucide-react";
+import { ArrowLeft, BookOpen, Music2, FolderOpen, Play, Flame, Trophy, Target, Zap, Newspaper } from "lucide-react";
 import { useGameStats } from "@/hooks/useGameStats";
 
 const challenges = [
@@ -27,6 +27,14 @@ const challenges = [
     color: "from-emerald-500 to-teal-600",
     path: "/games/songmatch/category",
     statKey: "category" as const,
+  },
+  {
+    title: "Articles Game",
+    description: "Test your knowledge of Loveworld articles, authors and categories.",
+    icon: Newspaper,
+    color: "from-purple-500 to-violet-600",
+    path: "/games/songmatch/articles",
+    statKey: "articles" as const,
   },
 ];
 
@@ -65,11 +73,11 @@ const SongMatch = () => {
 
         {/* Per-mode stats */}
         {stats && stats.totalGamesPlayed > 0 && (
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
             {challenges.map((c) => {
-              const games = stats[`${c.statKey}Games`];
-              const points = stats[`${c.statKey}Points`];
-              const bestStreak = stats[`${c.statKey}BestStreak`];
+              const games = (stats as any)[`${c.statKey}Games`] ?? 0;
+              const points = (stats as any)[`${c.statKey}Points`] ?? 0;
+              const bestStreak = (stats as any)[`${c.statKey}BestStreak`] ?? 0;
               return (
                 <div key={c.statKey} className="glass-card p-3 text-center animate-fade-in">
                   <c.icon className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
@@ -87,7 +95,7 @@ const SongMatch = () => {
 
         {/* Challenge Cards */}
         <h2 className="text-lg font-semibold text-foreground mb-4">Choose Your Challenge</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {challenges.map((c, i) => (
             <button
               key={c.title}

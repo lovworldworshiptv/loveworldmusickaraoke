@@ -27,13 +27,23 @@ Deno.serve(async (req) => {
     if (ch.status !== "active") return json({ error: "Challenge is not active" }, 400);
     if (new Date(ch.end_date) < new Date()) return json({ error: "Challenge has ended" }, 400);
 
-    // Check premium
+    // Check subscription
     const { data: sub } = await svc.from("user_subscriptions")
       .select("subscription, subscription_expiry_date").eq("user_id", user.id).maybeSingle();
     const expired = sub?.subscription_expiry_date && new Date(sub.subscription_expiry_date) < new Date();
-    const isPremium = !expired && (sub?.subscription === "premium" || sub?.subscription === "trial");
+    const effectiveTier = expired ? "free" : (sub?.subscription || "free");
+    const isPremium = effectiveTier === "premium" || effectiveTier === "trial";
+    const isFree = Number(ch.entry_fee) <= 0;
 
-    if (!isPremium && (!zone || !String(zone).trim())) {
+    // Tier gating
+    const allowed: string[] = Array.isArray((ch as any).allowed_subscriptions) && (ch as any).allowed_subscriptions.length
+      ? (ch as any).allowed_subscriptions
+      : ["free", "trial", "premium"];
+    if (!allowed.includes(effectiveTier)) {
+      return json({ error: `This challenge is only open to: ${allowed.join(", ")} subscribers.` }, 403);
+    }
+
+    if (!isPremium && !isFree && (!zone || !String(zone).trim())) {
       return json({ error: "Zone is required" }, 400);
     }
 
@@ -45,18 +55,19 @@ Deno.serve(async (req) => {
     // Validate referrer (no self)
     const validReferrer = referred_by_user_id && referred_by_user_id !== user.id ? referred_by_user_id : null;
 
-    const status = isPremium ? "approved" : "pending";
-    const paid_amount = isPremium ? 0 : Number(ch.entry_fee);
+    const autoApprove = isPremium || isFree;
+    const status = autoApprove ? "approved" : "pending";
+    const paid_amount = autoApprove ? 0 : Number(ch.entry_fee);
 
     const { data: entry, error: ierr } = await svc.from("challenge_entries").insert({
       challenge_id, user_id: user.id, status, paid_amount,
-      is_premium_free: isPremium, payment_proof_url: payment_proof_url ?? null,
+      is_premium_free: autoApprove, payment_proof_url: payment_proof_url ?? null,
       referred_by_user_id: validReferrer,
       full_name: full_name ?? null,
       kingschat_username: kingschat_username ?? null,
       zone: zone ?? null,
-      approved_by: isPremium ? user.id : null,
-      approved_at: isPremium ? new Date().toISOString() : null,
+      approved_by: autoApprove ? user.id : null,
+      approved_at: autoApprove ? new Date().toISOString() : null,
     }).select().single();
     if (ierr) throw ierr;
 

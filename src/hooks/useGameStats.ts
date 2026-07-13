@@ -14,6 +14,9 @@ export interface GameStats {
   categoryGames: number;
   categoryPoints: number;
   categoryBestStreak: number;
+  articlesGames: number;
+  articlesPoints: number;
+  articlesBestStreak: number;
   achievements: string[];
 }
 
@@ -48,6 +51,7 @@ export function useGameStats() {
       const lyr = byMode("lyrics");
       const mel = byMode("melody");
       const cat = byMode("category");
+      const art = byMode("articles");
 
       return {
         totalGamesPlayed: sessions.length,
@@ -61,6 +65,9 @@ export function useGameStats() {
         categoryGames: cat.length,
         categoryPoints: cat.reduce((sum, s) => sum + s.score, 0),
         categoryBestStreak: Math.max(0, ...cat.map((s) => s.best_streak)),
+        articlesGames: art.length,
+        articlesPoints: art.reduce((sum, s) => sum + s.score, 0),
+        articlesBestStreak: Math.max(0, ...art.map((s) => s.best_streak)),
         achievements,
       };
     },

@@ -4,10 +4,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveChallenge, useMyEntry, useMyScore, useLeaderboard, buildReferralUrl } from "@/hooks/useChallenge";
 import ChallengeCountdown from "@/components/games/ChallengeCountdown";
-import { Trophy, Copy, ArrowLeft, Crown, Target, CheckCircle, LogOut } from "lucide-react";
+import { Trophy, Copy, ArrowLeft, Crown, Target, CheckCircle, LogOut, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 
 const Challenge = () => {
@@ -97,6 +97,17 @@ const Challenge = () => {
           </div>
         )}
 
+        {entry?.status === "approved" && ch.referral_gate_score != null && (ch.referral_gate_required_invites ?? 0) > 0 && (
+          <ReferralGateCard
+            challengeId={ch.id}
+            userId={user!.id}
+            currentScore={myScore?.total_score ?? 0}
+            gateScore={Number(ch.referral_gate_score)}
+            required={Number(ch.referral_gate_required_invites)}
+            refUrl={refUrl}
+          />
+        )}
+
         {entry?.status === "approved" && (
           <div className="glass-card p-5 mb-5">
             <h3 className="font-bold mb-2">Your Referral Link</h3>
@@ -118,7 +129,7 @@ const Challenge = () => {
         {!entry && (
           <button onClick={() => navigate("/games/challenge/enter")}
             className="w-full mb-5 py-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm flex items-center justify-center gap-2">
-            <Crown className="w-4 h-4" /> Enter Challenge — {ch.entry_fee} Espee
+            <Crown className="w-4 h-4" /> Enter Challenge — {Number(ch.entry_fee) <= 0 ? "Free" : `${ch.entry_fee} Espee${Number(ch.entry_fee) === 1 ? "" : "s"}`}
           </button>
         )}
 
@@ -150,5 +161,55 @@ const Challenge = () => {
     </AppLayout>
   );
 };
+
+function ReferralGateCard({ challengeId, userId, currentScore, gateScore, required, refUrl }: {
+  challengeId: string; userId: string; currentScore: number; gateScore: number; required: number; refUrl: string;
+}) {
+  const { data: refCount = 0 } = useQuery({
+    queryKey: ["challenge-my-referrals", challengeId, userId],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("challenge_referrals" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("challenge_id", challengeId)
+        .eq("referrer_user_id", userId)
+        .eq("awarded", true);
+      return count || 0;
+    },
+  });
+  const gateReached = currentScore >= gateScore;
+  const met = refCount >= required;
+  if (!gateReached) {
+    return (
+      <div className="glass-card p-4 mb-5 border border-amber-500/20">
+        <p className="text-xs text-muted-foreground flex items-center gap-2">
+          <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+          Invite gate at <span className="font-semibold text-foreground">{gateScore} pts</span> — you'll need <span className="font-semibold text-foreground">{required}</span> referrals to keep scoring past it.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className={`glass-card p-5 mb-5 border ${met ? "border-green-500/40" : "border-amber-500/50 bg-amber-500/5"}`}>
+      <div className="flex items-center gap-2 mb-2">
+        <AlertCircle className={`w-4 h-4 ${met ? "text-green-500" : "text-amber-400"}`} />
+        <h3 className="font-bold text-sm">{met ? "Invite Gate Cleared" : "Invite to Keep Scoring"}</h3>
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">
+        {met
+          ? `You've cleared the ${gateScore}-point gate with ${refCount}/${required} referrals. Your future games count normally.`
+          : `You've reached ${currentScore} points. Games won't count until you refer ${required - refCount} more player${required - refCount === 1 ? "" : "s"} (${refCount}/${required}).`}
+      </p>
+      {!met && (
+        <div className="flex gap-2">
+          <input readOnly value={refUrl} className="flex-1 px-3 py-2 rounded-lg bg-background border border-border text-xs font-mono" />
+          <button onClick={() => { navigator.clipboard.writeText(refUrl); toast.success("Referral link copied!"); }} className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs flex items-center gap-1">
+            <Copy className="w-3 h-3" /> Copy
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default Challenge;

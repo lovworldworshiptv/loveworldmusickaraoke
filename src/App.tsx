@@ -14,6 +14,7 @@ import SongMatch from "./pages/SongMatch";
 import SongMatchLyrics from "./pages/SongMatchLyrics";
 import SongMatchMelody from "./pages/SongMatchMelody";
 import SongMatchCategory from "./pages/SongMatchCategory";
+import SongMatchArticles from "./pages/SongMatchArticles";
 import Auth from "./pages/Auth";
 import Articles from "./pages/Articles";
 import AdminSongs from "./pages/AdminSongs";
@@ -74,6 +75,7 @@ const App = () => (
                 <Route path="/games/songmatch/lyrics" element={<AuthGate><SongMatchLyrics /></AuthGate>} />
                 <Route path="/games/songmatch/melody" element={<AuthGate><SongMatchMelody /></AuthGate>} />
                 <Route path="/games/songmatch/category" element={<AuthGate><SongMatchCategory /></AuthGate>} />
+                <Route path="/games/songmatch/articles" element={<AuthGate><SongMatchArticles /></AuthGate>} />
                 <Route path="/games/challenge" element={<AuthGate><Challenge /></AuthGate>} />
                 <Route path="/games/challenge/enter" element={<AuthGate><ChallengeEntry /></AuthGate>} />
                 <Route path="/smchallenge" element={<Challenge />} />
