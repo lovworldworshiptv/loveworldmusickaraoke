@@ -11,7 +11,7 @@ import { toast } from "sonner";
 const ChallengeEntry = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isPremium } = useIsPremium();
+  const { isPremium, isTrial } = useIsPremium();
   const { data: ch } = useActiveChallenge();
   const { data: entry, refetch } = useMyEntry(ch?.id);
   const [proof, setProof] = useState<File | null>(null);
@@ -26,10 +26,40 @@ const ChallengeEntry = () => {
 
   const closed = isChallengeClosed(ch);
   const isFree = Number(ch.entry_fee) <= 0;
+  const userTier = isPremium ? (isTrial ? "trial" : "premium") : "free";
+  const allowedTiers = Array.isArray(ch.allowed_subscriptions) && ch.allowed_subscriptions.length
+    ? ch.allowed_subscriptions
+    : ["free", "trial", "premium"];
+  const tierAllowed = allowedTiers.includes(userTier);
 
   if (entry?.status === "approved") {
     navigate("/games/challenge", { replace: true });
     return null;
+  }
+
+  if (!tierAllowed) {
+    return (
+      <AppLayout>
+        <div className="px-4 lg:px-6 pt-4 pb-8 max-w-md mx-auto">
+          <button onClick={() => navigate("/games")} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4 text-sm">
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          <div className="glass-card p-6 text-center">
+            <Crown className="w-12 h-12 text-amber-400 mx-auto mb-3" />
+            <h1 className="text-xl font-serif font-bold mb-2">Premium Challenge</h1>
+            <p className="text-sm text-muted-foreground mb-5">
+              "{ch.name}" is only open to {allowedTiers.join(", ")} subscribers. Upgrade to enter.
+            </p>
+            <button
+              onClick={() => navigate("/subscription")}
+              className="w-full py-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm"
+            >
+              Upgrade to Premium
+            </button>
+          </div>
+        </div>
+      </AppLayout>
+    );
   }
 
   const submit = async () => {
