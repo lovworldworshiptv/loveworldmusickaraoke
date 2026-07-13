@@ -14,7 +14,7 @@ const Games = () => {
   return (
     <AppLayout>
       <div className="px-4 lg:px-6 pt-6 lg:pt-10 pb-8 max-w-3xl mx-auto">
-        {/* Song Match Challenge - placed first for maximum visibility */}
+        {/* Song Master Challenge - placed first for maximum visibility */}
         <ChallengeBanner />
 
         {/* Header */}
@@ -75,7 +75,7 @@ const Games = () => {
               <div onClick={(e) => e.stopPropagation()}>
                 <ShareMenu
                   url={buildShareUrl("/games/songmatch")}
-                  title="SongMatch Challenge"
+                  title="Song Master Challenge"
                   text="I challenge you to play SongMatch! Test your music knowledge on Loveworld Music Karaoke+"
                   trigger={
                     <button className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-border text-foreground text-sm font-medium hover:bg-accent transition-colors">

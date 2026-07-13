@@ -33,7 +33,7 @@ const Challenge = () => {
         <div className="px-4 lg:px-6 pt-6 pb-8 max-w-2xl mx-auto text-center">
           <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
           <h1 className="text-2xl font-serif font-bold mb-2">No Active Challenge</h1>
-          <p className="text-muted-foreground text-sm mb-6">There's no Song Match Challenge running right now. Check back soon!</p>
+          <p className="text-muted-foreground text-sm mb-6">There's no Song Master Challenge running right now. Check back soon!</p>
           <button onClick={() => navigate("/games")} className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm">Back to Games</button>
         </div>
       </AppLayout>
@@ -73,7 +73,7 @@ const Challenge = () => {
         <div className="glass-card p-5 mb-5">
           <div className="flex items-center gap-2 mb-2">
             <Trophy className="w-5 h-5 text-amber-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Song Match Challenge</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Song Master Challenge</span>
           </div>
           <h1 className="text-2xl font-serif font-bold mb-1">{ch.name}</h1>
           {ch.description && <p className="text-sm text-muted-foreground mb-4">{ch.description}</p>}

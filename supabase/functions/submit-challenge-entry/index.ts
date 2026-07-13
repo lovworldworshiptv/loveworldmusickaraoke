@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
         const { data: admins } = await svc.from("user_roles").select("user_id").eq("role", "admin");
         if (admins && admins.length > 0) {
           const title = "New Challenge Entry Submission";
-          const message = `${full_name || kingschat_username || "A user"} submitted a Song Match Challenge entry${zone ? ` (Zone: ${zone})` : ""} for "${ch.name}" — ${paid_amount} ESP. Review it now.`;
+          const message = `${full_name || kingschat_username || "A user"} submitted a Song Master Challenge entry${zone ? ` (Zone: ${zone})` : ""} for "${ch.name}" — ${paid_amount} ESP. Review it now.`;
           const { data: notification } = await svc.from("notifications").insert({
             title, message, segment: "admins", status: "sent",
             sent_at: new Date().toISOString(), created_by: user.id, deep_link: "/admin/challenges",
