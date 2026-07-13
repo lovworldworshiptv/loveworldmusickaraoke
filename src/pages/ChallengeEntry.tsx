@@ -25,6 +25,7 @@ const ChallengeEntry = () => {
   }
 
   const closed = isChallengeClosed(ch);
+  const isFree = Number(ch.entry_fee) <= 0;
 
   if (entry?.status === "approved") {
     navigate("/games/challenge", { replace: true });
@@ -34,7 +35,7 @@ const ChallengeEntry = () => {
   const submit = async () => {
     if (!user) return;
     if (closed) { toast.error("This challenge has ended"); return; }
-    if (!isPremium) {
+    if (!isPremium && !isFree) {
       if (!fullName.trim()) { toast.error("Please enter your full name"); return; }
       if (!zone.trim()) { toast.error("Please enter your Zone"); return; }
       if (!proof) { toast.error("Please upload your payment proof"); return; }
@@ -62,7 +63,7 @@ const ChallengeEntry = () => {
         },
       });
       if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);
-      toast.success(isPremium ? "You're in! Premium free entry." : "Entry submitted — awaiting approval");
+      toast.success(isPremium || isFree ? "You're in!" : "Entry submitted — awaiting approval");
       localStorage.removeItem("challenge_ref");
       await refetch();
       navigate("/games/challenge");
@@ -102,12 +103,12 @@ const ChallengeEntry = () => {
             </div>
           )}
 
-          {isPremium ? (
+          {isPremium || isFree ? (
             <div className="p-4 rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-sm mb-4 flex items-start gap-2">
               <Crown className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-foreground">Premium Free Entry</p>
-                <p className="text-xs text-muted-foreground">As a Premium member, your entry is free.</p>
+                <p className="font-semibold text-foreground">{isFree ? "Free Entry" : "Premium Free Entry"}</p>
+                <p className="text-xs text-muted-foreground">{isFree ? "This challenge is free to enter." : "As a Premium member, your entry is free."}</p>
               </div>
             </div>
           ) : (
@@ -177,7 +178,7 @@ const ChallengeEntry = () => {
 
           <button onClick={submit} disabled={submitting || closed}
             className="w-full py-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm disabled:opacity-60">
-            {submitting ? "Submitting..." : closed ? "Challenge Ended" : isPremium ? "Enter Challenge (Free)" : "Submit Entry"}
+            {submitting ? "Submitting..." : closed ? "Challenge Ended" : (isPremium || isFree) ? "Enter Challenge (Free)" : "Submit Entry"}
           </button>
         </div>
       </div>
