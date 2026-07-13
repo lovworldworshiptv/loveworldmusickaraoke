@@ -8,7 +8,7 @@ import kingsChatWebSdk from "kingschat-web-sdk";
 import { supabase } from "@/integrations/supabase/client";
 import logoFull from "@/assets/logo-mic-heart.png";
 
-const KINGSCHAT_CLIENT_ID = "5d4c8670-fd28-4be8-8484-55302b8c3bb6";
+const KINGSCHAT_CLIENT_ID = "0d2afe44-0f0b-41f6-b2ff-3ee91706f0c8";
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
