@@ -4,10 +4,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveChallenge, useMyEntry, useMyScore, useLeaderboard, buildReferralUrl } from "@/hooks/useChallenge";
 import ChallengeCountdown from "@/components/games/ChallengeCountdown";
-import { Trophy, Copy, ArrowLeft, Crown, Target, CheckCircle, LogOut } from "lucide-react";
+import { Trophy, Copy, ArrowLeft, Crown, Target, CheckCircle, LogOut, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 
 const Challenge = () => {
@@ -95,6 +95,17 @@ const Challenge = () => {
                 : <span className="text-xs text-muted-foreground">Participating — {Math.max(0, (ch.qualification_min_games - (myScore?.games_played || 0)))} more games to qualify</span>}
             </div>
           </div>
+        )}
+
+        {entry?.status === "approved" && ch.referral_gate_score != null && (ch.referral_gate_required_invites ?? 0) > 0 && (
+          <ReferralGateCard
+            challengeId={ch.id}
+            userId={user!.id}
+            currentScore={myScore?.total_score ?? 0}
+            gateScore={Number(ch.referral_gate_score)}
+            required={Number(ch.referral_gate_required_invites)}
+            refUrl={refUrl}
+          />
         )}
 
         {entry?.status === "approved" && (
