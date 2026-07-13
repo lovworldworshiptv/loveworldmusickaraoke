@@ -34,6 +34,7 @@ Deno.serve(async (req) => {
 
     // Referral gate: once user total_score >= gate, require N awarded referrals before games count
     let referralGateBlocked = false;
+    let referralRefCount = 0;
     const gateScore = (ch as any).referral_gate_score;
     const gateRequired = (ch as any).referral_gate_required_invites ?? 0;
     if (gateScore != null && gateRequired > 0) {
@@ -44,7 +45,25 @@ Deno.serve(async (req) => {
         const { count: refCount } = await svc.from("challenge_referrals")
           .select("id", { count: "exact", head: true })
           .eq("challenge_id", ch.id).eq("referrer_user_id", user.id).eq("awarded", true);
-        if ((refCount ?? 0) < gateRequired) referralGateBlocked = true;
+        referralRefCount = refCount ?? 0;
+        if (referralRefCount < gateRequired) referralGateBlocked = true;
+      }
+    }
+
+    // Difficulty gate: admin can restrict which difficulties count at specific score bands.
+    let difficultyGateBlocked = false;
+    let difficultyAllowed: string[] | null = null;
+    const gates = Array.isArray((ch as any).difficulty_gates) ? (ch as any).difficulty_gates : [];
+    if (gates.length > 0 && difficulty) {
+      const { data: scoreRow } = await svc.from("challenge_scores")
+        .select("total_score").eq("challenge_id", ch.id).eq("user_id", user.id).maybeSingle();
+      const currentTotal = scoreRow?.total_score ?? 0;
+      const matching = gates.filter((g: any) => currentTotal >= Number(g.min_score ?? 0) && currentTotal <= Number(g.max_score ?? Number.MAX_SAFE_INTEGER));
+      if (matching.length > 0) {
+        const allowed = new Set<string>();
+        for (const g of matching) (g.allowed || []).forEach((d: string) => allowed.add(d));
+        difficultyAllowed = Array.from(allowed);
+        if (!allowed.has(difficulty)) difficultyGateBlocked = true;
       }
     }
 
@@ -57,7 +76,7 @@ Deno.serve(async (req) => {
     const countedToday = (todayLogs || []).filter((l: any) => l.counted_toward_score).length;
     const cap = ch.max_daily_scoring_games;
     const withinCap = !cap || countedToday < cap;
-    const counted = withinCap && !referralGateBlocked;
+    const counted = withinCap && !referralGateBlocked && !difficultyGateBlocked;
 
     await svc.from("challenge_game_logs").insert({
       challenge_id: ch.id, user_id: user.id, mode, difficulty: difficulty ?? null,
@@ -65,7 +84,23 @@ Deno.serve(async (req) => {
     });
 
     if (referralGateBlocked) {
-      return json({ skipped: "referral_gate", required: gateRequired, gate_score: gateScore });
+      const remaining = Math.max(0, gateRequired - referralRefCount);
+      return json({
+        skipped: "referral_gate",
+        required: gateRequired,
+        completed: referralRefCount,
+        remaining,
+        gate_score: gateScore,
+        message: `You've reached the ${gateScore}-point invite gate. Refer ${remaining} more player${remaining === 1 ? "" : "s"} (${referralRefCount}/${gateRequired}) to keep scoring.`,
+      });
+    }
+    if (difficultyGateBlocked) {
+      return json({
+        skipped: "difficulty_gate",
+        difficulty,
+        allowed: difficultyAllowed,
+        message: `The "${difficulty}" difficulty is locked at your current score. Allowed: ${(difficultyAllowed || []).join(", ") || "none"}.`,
+      });
     }
 
     // Award bonuses

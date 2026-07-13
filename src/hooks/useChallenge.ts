@@ -19,6 +19,7 @@ export interface Challenge {
   allowed_subscriptions?: string[];
   referral_gate_score?: number | null;
   referral_gate_required_invites?: number | null;
+  difficulty_gates?: Array<{ min_score: number; max_score: number; allowed: string[] }>;
 }
 
 export const useActiveChallenge = () => {
@@ -155,27 +156,71 @@ export const useReferralGateStatus = (challengeId?: string) => {
         .select("total_score")
         .eq("challenge_id", challengeId).eq("user_id", user.id).maybeSingle();
       const currentScore = (score as any)?.total_score ?? 0;
-      if (currentScore < Number(gateScore)) return { blocked: false, gateScore: Number(gateScore), required, refCount: 0, currentScore };
+      if (currentScore < Number(gateScore)) return { blocked: false, gateScore: Number(gateScore), required, refCount: 0, currentScore, remaining: required };
       const { count } = await supabase
         .from("challenge_referrals" as any)
         .select("id", { count: "exact", head: true })
         .eq("challenge_id", challengeId).eq("referrer_user_id", user.id).eq("awarded", true);
       const refCount = count || 0;
-      return { blocked: refCount < required, gateScore: Number(gateScore), required, refCount, currentScore };
+      const remaining = Math.max(0, required - refCount);
+      return { blocked: refCount < required, gateScore: Number(gateScore), required, refCount, currentScore, remaining };
     },
     enabled: !!user?.id && !!challengeId,
-    staleTime: 15_000,
+    staleTime: 5_000,
+    refetchInterval: 15_000,
   });
+};
+
+/**
+ * Returns the set of difficulties currently allowed to earn score, based on
+ * the admin-configured difficulty_gates rules and the player's current score.
+ * When no rule matches or no gates configured, all difficulties are allowed.
+ */
+export const useAllowedDifficulties = () => {
+  const { user } = useAuth();
+  const { data: ch } = useActiveChallenge();
+  const { data: myScore } = useMyScore(ch?.id);
+  const gates = (ch?.difficulty_gates as any[]) || [];
+  const currentScore = (myScore as any)?.total_score ?? 0;
+  const active = !!user && !!ch && ch.status === "active" && gates.length > 0;
+  if (!active) {
+    return { active: false, allowed: new Set(["easy", "medium", "hard"]), currentScore, rules: [] as any[] };
+  }
+  const matching = gates.filter(g => currentScore >= Number(g.min_score ?? 0) && currentScore <= Number(g.max_score ?? Number.MAX_SAFE_INTEGER));
+  const allowed = new Set<string>();
+  if (matching.length === 0) {
+    ["easy", "medium", "hard"].forEach(d => allowed.add(d));
+  } else {
+    for (const g of matching) (g.allowed || []).forEach((d: string) => allowed.add(d));
+  }
+  return { active: true, allowed, currentScore, rules: matching };
 };
 
 export function buildReferralUrl(usernameOrId: string) {
   return `https://loveworldmusickaraoke.com/smchallenge?ref=${encodeURIComponent(usernameOrId)}`;
 }
 
-export async function recordChallengeGame(mode: "lyrics" | "melody" | "category", difficulty: string | null, score: number) {
+export async function recordChallengeGame(mode: "lyrics" | "melody" | "category" | "articles", difficulty: string | null, score: number) {
   try {
-    await supabase.functions.invoke("record-challenge-game", { body: { mode, difficulty, score } });
+    const { data } = await supabase.functions.invoke("record-challenge-game", { body: { mode, difficulty, score } });
+    const result = (data || null) as {
+      skipped?: string; message?: string; remaining?: number; required?: number;
+      completed?: number; allowed?: string[]; difficulty?: string; total?: number; qualified?: boolean;
+    } | null;
+    if (result?.skipped === "referral_gate" && result.message) {
+      // Late import to avoid a circular dep with sonner in edge environments
+      const { toast } = await import("sonner");
+      toast.warning(result.message, {
+        action: { label: "Refer now", onClick: () => { window.location.href = "/games/challenge/referrals"; } },
+        duration: 8000,
+      });
+    } else if (result?.skipped === "difficulty_gate" && result.message) {
+      const { toast } = await import("sonner");
+      toast.warning(result.message, { duration: 7000 });
+    }
+    return result;
   } catch (e) {
     console.warn("[challenge] record failed", e);
+    return null;
   }
 }

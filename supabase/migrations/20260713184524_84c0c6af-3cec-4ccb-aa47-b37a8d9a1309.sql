@@ -1,0 +1,2 @@
+ALTER TABLE public.challenges ADD COLUMN IF NOT EXISTS difficulty_gates JSONB NOT NULL DEFAULT '[]'::jsonb;
+COMMENT ON COLUMN public.challenges.difficulty_gates IS 'Array of {min_score:number,max_score:number,allowed:string[]} rules restricting which difficulties count for score at different score bands.';
