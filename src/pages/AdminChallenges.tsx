@@ -149,7 +149,7 @@ const AdminChallenges = () => {
             <Input label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
             <Input label="Description" value={form.description} onChange={(v) => setForm({ ...form, description: v })} />
             <div className="grid grid-cols-2 gap-3">
-              <Input label="Entry Fee (ESP)" type="number" value={String(form.entry_fee)} onChange={(v) => setForm({ ...form, entry_fee: Number(v) })} />
+              <Input label="Entry Fee (ESP) — 0 = Free" type="number" value={String(form.entry_fee)} onChange={(v) => setForm({ ...form, entry_fee: Number(v) })} />
               <Input label="Prize Pool (ESP)" type="number" value={String(form.prize_pool)} onChange={(v) => setForm({ ...form, prize_pool: Number(v) })} />
             </div>
             <Input label='Prize Distribution JSON (e.g. {"1":70,"2":20,"3":10})' value={form.prize_dist} onChange={(v) => setForm({ ...form, prize_dist: v })} />
@@ -162,6 +162,30 @@ const AdminChallenges = () => {
               <Input label="Max referrals/user" type="number" value={String(form.max_referrals_per_user)} onChange={(v) => setForm({ ...form, max_referrals_per_user: Number(v) })} />
               <Input label="Min games to qualify" type="number" value={String(form.qualification_min_games)} onChange={(v) => setForm({ ...form, qualification_min_games: Number(v) })} />
             </div>
+
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5">Who can enter this challenge?</p>
+              <div className="flex flex-wrap gap-2">
+                {(["free","trial","premium"] as const).map((tier) => {
+                  const on = form.allowed_subscriptions.includes(tier);
+                  return (
+                    <button key={tier} type="button"
+                      onClick={() => setForm({ ...form, allowed_subscriptions: on ? form.allowed_subscriptions.filter((t) => t !== tier) : [...form.allowed_subscriptions, tier] })}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium capitalize border ${on ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}>
+                      {tier}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">Selected tiers can enter. Leave all off to block entries.</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input label="Referral gate at score (blank = off)" type="number" value={form.referral_gate_score} onChange={(v) => setForm({ ...form, referral_gate_score: v })} />
+              <Input label="Invites required at gate" type="number" value={String(form.referral_gate_required_invites)} onChange={(v) => setForm({ ...form, referral_gate_required_invites: Number(v) })} />
+            </div>
+            <p className="text-[10px] text-muted-foreground -mt-1">When a player reaches this score, they must invite this many new players before more games count toward their score.</p>
+
             <label className="block">
               <span className="text-xs text-muted-foreground">Status</span>
               <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="w-full mt-1 px-3 py-2 rounded-lg bg-background border border-border text-sm">
