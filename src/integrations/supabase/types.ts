@@ -339,6 +339,7 @@ export type Database = {
       }
       challenge_scores: {
         Row: {
+          articles_points: number
           category_points: number
           challenge_id: string
           created_at: string
@@ -354,6 +355,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          articles_points?: number
           category_points?: number
           challenge_id: string
           created_at?: string
@@ -369,6 +371,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          articles_points?: number
           category_points?: number
           challenge_id?: string
           created_at?: string
@@ -395,6 +398,7 @@ export type Database = {
       }
       challenges: {
         Row: {
+          allowed_subscriptions: string[]
           created_at: string
           created_by: string | null
           description: string | null
@@ -407,11 +411,14 @@ export type Database = {
           prize_distribution: Json
           prize_pool: number
           qualification_min_games: number
+          referral_gate_required_invites: number
+          referral_gate_score: number | null
           start_date: string
           status: string
           updated_at: string
         }
         Insert: {
+          allowed_subscriptions?: string[]
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -424,11 +431,14 @@ export type Database = {
           prize_distribution?: Json
           prize_pool?: number
           qualification_min_games?: number
+          referral_gate_required_invites?: number
+          referral_gate_score?: number | null
           start_date: string
           status?: string
           updated_at?: string
         }
         Update: {
+          allowed_subscriptions?: string[]
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -441,6 +451,8 @@ export type Database = {
           prize_distribution?: Json
           prize_pool?: number
           qualification_min_games?: number
+          referral_gate_required_invites?: number
+          referral_gate_score?: number | null
           start_date?: string
           status?: string
           updated_at?: string
