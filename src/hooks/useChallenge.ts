@@ -200,10 +200,15 @@ export function buildReferralUrl(usernameOrId: string) {
   return `https://loveworldmusickaraoke.com/smchallenge?ref=${encodeURIComponent(usernameOrId)}`;
 }
 
-export async function recordChallengeGame(mode: "lyrics" | "melody" | "category", difficulty: string | null, score: number) {
+export async function recordChallengeGame(mode: "lyrics" | "melody" | "category" | "articles", difficulty: string | null, score: number) {
   try {
-    await supabase.functions.invoke("record-challenge-game", { body: { mode, difficulty, score } });
+    const { data } = await supabase.functions.invoke("record-challenge-game", { body: { mode, difficulty, score } });
+    return data as {
+      skipped?: string; message?: string; remaining?: number; required?: number;
+      completed?: number; allowed?: string[]; difficulty?: string; total?: number; qualified?: boolean;
+    } | null;
   } catch (e) {
     console.warn("[challenge] record failed", e);
+    return null;
   }
 }
