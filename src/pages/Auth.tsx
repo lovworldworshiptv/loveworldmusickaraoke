@@ -6,22 +6,28 @@ import { ArrowLeft, Eye, EyeOff, MessageCircle } from "lucide-react";
 import MusicBackground from "@/components/auth/MusicBackground";
 import { supabase } from "@/integrations/supabase/client";
 import logoFull from "@/assets/logo-mic-heart.png";
-// @ts-ignore - legacy SDK has no types
-import kingsChatWebSdk from "kingschat-web-sdk";
 
 // ---------------------------------------------------------------------------
-// LEGACY KingsChat auth (restored). The new authorization-code flow lives in
-// supabase/functions/kingschat-callback + kingschat-poll and src/pages/Auth
-// history — keep those files untouched so we can switch over later by:
-//   1. swapping LEGACY_CLIENT_ID for the new client id
-//   2. replacing handleKingsChatLogin below with the popup + poll flow
+// KingsChat OAuth (authorization-code flow via popup + poll).
+// The legacy SDK-based flow was removed in favor of the redirect-based flow
+// that pairs with supabase/functions/kingschat-callback + kingschat-poll and
+// src/pages/KingsChatCallback.tsx.
 // ---------------------------------------------------------------------------
-const LEGACY_CLIENT_ID = "5d4c8670-fd28-4be8-8484-55302b8c3bb6";
-const LEGACY_SCOPES = ["send_chat_message"];
+const KINGSCHAT_CLIENT_ID = "a8c5d32f-1ff1-4217-97b3-382f928f7b1e";
+const KINGSCHAT_LOGIN_URL = "https://accounts.kingschat.online/log-in";
+const KINGSCHAT_SCOPES = ["send_chat_message"];
 
-// NEW-flow constants kept for future switch-over (unused right now):
-// const NEW_KINGSCHAT_CLIENT_ID = "0d2afe44-0f0b-41f6-b2ff-3ee91706f0c8";
-// const NEW_KINGSCHAT_LOGIN_URL = "https://accounts.kingschat.online/log-in";
+const buildKcAuthUrl = (nonce: string) => {
+  const redirectUri = `${window.location.origin}/auth/kingschat-callback`;
+  const params = new URLSearchParams({
+    client_id: KINGSCHAT_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: "code",
+    scope: KINGSCHAT_SCOPES.join(" "),
+    state: nonce,
+  });
+  return `${KINGSCHAT_LOGIN_URL}?${params.toString()}`;
+};
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -55,33 +61,95 @@ const Auth = () => {
   const handleKingsChatLogin = async () => {
     if (kcLoading) return;
     setKcLoading(true);
-    try {
-      const authResp: any = await kingsChatWebSdk.login({
-        scopes: LEGACY_SCOPES,
-        clientId: LEGACY_CLIENT_ID,
-      });
 
-      const accessToken = authResp?.accessToken || authResp?.access_token;
-      if (!accessToken) throw new Error("No access token returned from KingsChat");
-
-      const { data, error } = await supabase.functions.invoke("kingschat-auth", {
-        body: { accessToken },
-      });
-      if (error) throw error;
-      if (!data?.session) throw new Error("No session returned");
-
-      await supabase.auth.setSession({
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
-      });
-      toast.success(`Welcome, ${data.kingschat_profile?.username || "User"}!`);
-      navigate("/");
-    } catch (err: any) {
-      console.error("KC login error:", err);
-      toast.error(err?.message || "KingsChat sign-in failed.");
-    } finally {
-      if (!cancelRef.current) setKcLoading(false);
+    const nonce = crypto.randomUUID();
+    const authUrl = buildKcAuthUrl(nonce);
+    const popup = window.open(authUrl, "kingschat_auth", "width=520,height=680");
+    if (!popup) {
+      toast.error("Please allow popups to sign in with KingsChat.");
+      setKcLoading(false);
+      return;
     }
+
+    const started = Date.now();
+    const timeoutMs = 3 * 60 * 1000;
+    let done = false;
+
+    const poll = async () => {
+      if (done || cancelRef.current) return;
+      if (Date.now() - started > timeoutMs) {
+        done = true;
+        toast.error("KingsChat sign-in timed out. Please try again.");
+        setKcLoading(false);
+        try { popup.close(); } catch {}
+        return;
+      }
+      try {
+        const { data, error } = await supabase.functions.invoke("kingschat-poll", {
+          method: "GET" as any,
+          body: undefined,
+          headers: {},
+          // @ts-ignore - allow query params via URL
+        });
+        // supabase.functions.invoke doesn't support query params cleanly,
+        // fall back to fetch with the nonce query.
+        if (error || !data) throw error || new Error("poll failed");
+      } catch {
+        // Use direct fetch to include ?nonce=
+      }
+      try {
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kingschat-poll?nonce=${encodeURIComponent(nonce)}`;
+        const res = await fetch(url, {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        });
+        const json = await res.json();
+        if (json?.status === "ready" && json?.session) {
+          done = true;
+          await supabase.auth.setSession({
+            access_token: json.session.access_token,
+            refresh_token: json.session.refresh_token,
+          });
+          toast.success(`Welcome, ${json.kingschat_profile?.username || "User"}!`);
+          try { popup.close(); } catch {}
+          if (!cancelRef.current) setKcLoading(false);
+          navigate("/");
+          return;
+        }
+        if (json?.status === "error") {
+          done = true;
+          toast.error(json.error || "KingsChat sign-in failed.");
+          try { popup.close(); } catch {}
+          if (!cancelRef.current) setKcLoading(false);
+          return;
+        }
+        if (json?.status === "expired") {
+          done = true;
+          toast.error("KingsChat sign-in expired. Please try again.");
+          try { popup.close(); } catch {}
+          if (!cancelRef.current) setKcLoading(false);
+          return;
+        }
+      } catch (e) {
+        // network hiccup — keep polling
+      }
+
+      if (popup.closed && !done) {
+        // Keep polling briefly in case callback finished right before close
+        setTimeout(() => {
+          if (!done) {
+            done = true;
+            if (!cancelRef.current) setKcLoading(false);
+          }
+        }, 2500);
+      }
+
+      setTimeout(poll, 1500);
+    };
+
+    poll();
   };
 
   return (
