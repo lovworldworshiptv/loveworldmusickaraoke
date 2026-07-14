@@ -44,11 +44,8 @@ const Challenge = () => {
   const myRow = board.find((r: any) => r.user_id === user?.id);
   const refUrl = user ? buildReferralUrl(username && username !== "Guest" ? username : user.id) : "";
 
-  const copyRef = () => {
-    if (!refUrl) return;
-    navigator.clipboard.writeText(refUrl);
-    toast.success("Referral link copied!");
-  };
+
+
 
   const leaveChallenge = async () => {
     if (!entry || !ch) return;
