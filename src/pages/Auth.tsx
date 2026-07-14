@@ -15,21 +15,16 @@ import logoFull from "@/assets/logo-mic-heart.png";
 // ---------------------------------------------------------------------------
 const KINGSCHAT_CLIENT_ID = "a8c5d32f-1ff1-4217-97b3-382f928f7b1e";
 const KINGSCHAT_LOGIN_URL = "https://accounts.kingschat.online/log-in";
-const KINGSCHAT_SCOPES = ["send_chat_message"];
 
 const buildKcAuthUrl = (nonce: string) => {
-  const redirectUri = `${window.location.origin}/auth/kingschat-callback`;
   const params = new URLSearchParams({
-    client_id: KINGSCHAT_CLIENT_ID,
-    redirect_uri: redirectUri,
-    response_type: "code",
-    scope: KINGSCHAT_SCOPES.join(" "),
-    state: nonce,
-    prompt: "login",
-    max_age: "0",
+    clientId: KINGSCHAT_CLIENT_ID,
+    origin: nonce,
+    forceLogin: "true",
   });
   return `${KINGSCHAT_LOGIN_URL}?${params.toString()}`;
 };
+
 
 
 const Auth = () => {
