@@ -188,8 +188,8 @@ const AdminChallenges = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Input label="Referral gate at score (blank = off)" type="number" value={form.referral_gate_score} onChange={(v) => setForm({ ...form, referral_gate_score: v })} />
-              <Input label="Invites required at gate" type="number" value={String(form.referral_gate_required_invites)} onChange={(v) => setForm({ ...form, referral_gate_required_invites: Number(v) })} />
+              <Input label="Milestone Advancement Score (blank = off)" type="number" value={form.referral_gate_score} onChange={(v) => setForm({ ...form, referral_gate_score: v })} />
+              <Input label="Invites required at milestone" type="number" value={String(form.referral_gate_required_invites)} onChange={(v) => setForm({ ...form, referral_gate_required_invites: Number(v) })} />
             </div>
             <p className="text-[10px] text-muted-foreground -mt-1">When a player reaches this score, they must invite this many new players before more games count toward their score.</p>
 
