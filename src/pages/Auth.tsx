@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -8,24 +8,40 @@ import { supabase } from "@/integrations/supabase/client";
 import logoFull from "@/assets/logo-mic-heart.png";
 
 // ---------------------------------------------------------------------------
-// KingsChat OAuth (authorization-code flow via popup + poll).
-// The legacy SDK-based flow was removed in favor of the redirect-based flow
-// that pairs with supabase/functions/kingschat-callback + kingschat-poll and
-// src/pages/KingsChatCallback.tsx.
+// KingsChat legacy SDK flow (popup + postMessage). We open the KingsChat
+// hosted login, receive the access token via postMessage, then hand it to
+// the kingschat-auth edge function to mint a Supabase session.
 // ---------------------------------------------------------------------------
 const KINGSCHAT_CLIENT_ID = "a8c5d32f-1ff1-4217-97b3-382f928f7b1e";
-const KINGSCHAT_LOGIN_URL = "https://accounts.kingschat.online/log-in";
+const KC_SDK_URL = "https://cdn.kingsch.at/sdk/web/kingschat-web-sdk.min.js";
 
-const buildKcAuthUrl = (nonce: string) => {
-  const params = new URLSearchParams({
-    clientId: KINGSCHAT_CLIENT_ID,
-    origin: nonce,
-    forceLogin: "true",
+declare global {
+  interface Window {
+    kingschat?: {
+      login: (opts: {
+        scopes: string[];
+        clientId: string;
+      }) => Promise<{ accessToken: string; expiresInMillis: number; refreshToken?: string }>;
+    };
+  }
+}
+
+const loadKcSdk = (): Promise<void> =>
+  new Promise((resolve, reject) => {
+    if (window.kingschat) return resolve();
+    const existing = document.querySelector<HTMLScriptElement>(`script[src="${KC_SDK_URL}"]`);
+    if (existing) {
+      existing.addEventListener("load", () => resolve());
+      existing.addEventListener("error", () => reject(new Error("Failed to load KingsChat SDK")));
+      return;
+    }
+    const s = document.createElement("script");
+    s.src = KC_SDK_URL;
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("Failed to load KingsChat SDK"));
+    document.head.appendChild(s);
   });
-  return `${KINGSCHAT_LOGIN_URL}?${params.toString()}`;
-};
-
-
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -37,9 +53,6 @@ const Auth = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [kcLoading, setKcLoading] = useState(false);
-  const cancelRef = useRef(false);
-
-  useEffect(() => () => { cancelRef.current = true; }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,83 +72,35 @@ const Auth = () => {
   const handleKingsChatLogin = async () => {
     if (kcLoading) return;
     setKcLoading(true);
+    try {
+      await loadKcSdk();
+      if (!window.kingschat?.login) throw new Error("KingsChat SDK unavailable");
 
-    const nonce = crypto.randomUUID();
-    const authUrl = buildKcAuthUrl(nonce);
-    const popup = window.open(authUrl, "kingschat_auth", "width=520,height=680");
-    if (!popup) {
-      toast.error("Please allow popups to sign in with KingsChat.");
+      const result = await window.kingschat.login({
+        scopes: ["send_chat_message"],
+        clientId: KINGSCHAT_CLIENT_ID,
+      });
+
+      if (!result?.accessToken) throw new Error("No access token from KingsChat");
+
+      const { data, error } = await supabase.functions.invoke("kingschat-auth", {
+        body: { accessToken: result.accessToken },
+      });
+      if (error) throw error;
+      if (!data?.session) throw new Error("No session returned");
+
+      await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      });
+      toast.success(`Welcome, ${data.kingschat_profile?.username || "User"}!`);
+      navigate("/");
+    } catch (err: any) {
+      console.error("KingsChat login error", err);
+      toast.error(err?.message || "KingsChat sign-in failed.");
+    } finally {
       setKcLoading(false);
-      return;
     }
-
-    const started = Date.now();
-    const timeoutMs = 3 * 60 * 1000;
-    let done = false;
-
-    const poll = async () => {
-      if (done || cancelRef.current) return;
-      if (Date.now() - started > timeoutMs) {
-        done = true;
-        toast.error("KingsChat sign-in timed out. Please try again.");
-        setKcLoading(false);
-        try { popup.close(); } catch {}
-        return;
-      }
-      try {
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kingschat-poll?nonce=${encodeURIComponent(nonce)}`;
-        const res = await fetch(url, {
-          headers: {
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-        });
-        const json = await res.json();
-
-        if (json?.status === "ready" && json?.session) {
-          done = true;
-          await supabase.auth.setSession({
-            access_token: json.session.access_token,
-            refresh_token: json.session.refresh_token,
-          });
-          toast.success(`Welcome, ${json.kingschat_profile?.username || "User"}!`);
-          try { popup.close(); } catch {}
-          if (!cancelRef.current) setKcLoading(false);
-          navigate("/");
-          return;
-        }
-        if (json?.status === "error") {
-          done = true;
-          toast.error(json.error || "KingsChat sign-in failed.");
-          try { popup.close(); } catch {}
-          if (!cancelRef.current) setKcLoading(false);
-          return;
-        }
-        if (json?.status === "expired") {
-          done = true;
-          toast.error("KingsChat sign-in expired. Please try again.");
-          try { popup.close(); } catch {}
-          if (!cancelRef.current) setKcLoading(false);
-          return;
-        }
-      } catch (e) {
-        // network hiccup — keep polling
-      }
-
-      if (popup.closed && !done) {
-        // Keep polling briefly in case callback finished right before close
-        setTimeout(() => {
-          if (!done) {
-            done = true;
-            if (!cancelRef.current) setKcLoading(false);
-          }
-        }, 2500);
-      }
-
-      setTimeout(poll, 1500);
-    };
-
-    poll();
   };
 
   return (
