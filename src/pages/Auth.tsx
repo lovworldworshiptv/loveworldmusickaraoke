@@ -25,9 +25,12 @@ const buildKcAuthUrl = (nonce: string) => {
     response_type: "code",
     scope: KINGSCHAT_SCOPES.join(" "),
     state: nonce,
+    prompt: "login",
+    max_age: "0",
   });
   return `${KINGSCHAT_LOGIN_URL}?${params.toString()}`;
 };
+
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
