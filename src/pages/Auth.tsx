@@ -15,21 +15,16 @@ import logoFull from "@/assets/logo-mic-heart.png";
 // ---------------------------------------------------------------------------
 const KINGSCHAT_CLIENT_ID = "a8c5d32f-1ff1-4217-97b3-382f928f7b1e";
 const KINGSCHAT_LOGIN_URL = "https://accounts.kingschat.online/log-in";
-const KINGSCHAT_SCOPES = ["send_chat_message"];
 
 const buildKcAuthUrl = (nonce: string) => {
-  const redirectUri = `${window.location.origin}/auth/kingschat-callback`;
   const params = new URLSearchParams({
-    client_id: KINGSCHAT_CLIENT_ID,
-    redirect_uri: redirectUri,
-    response_type: "code",
-    scope: KINGSCHAT_SCOPES.join(" "),
-    state: nonce,
-    prompt: "login",
-    max_age: "0",
+    clientId: KINGSCHAT_CLIENT_ID,
+    origin: nonce,
+    forceLogin: "true",
   });
   return `${KINGSCHAT_LOGIN_URL}?${params.toString()}`;
 };
+
 
 
 const Auth = () => {
@@ -88,19 +83,6 @@ const Auth = () => {
         return;
       }
       try {
-        const { data, error } = await supabase.functions.invoke("kingschat-poll", {
-          method: "GET" as any,
-          body: undefined,
-          headers: {},
-          // @ts-ignore - allow query params via URL
-        });
-        // supabase.functions.invoke doesn't support query params cleanly,
-        // fall back to fetch with the nonce query.
-        if (error || !data) throw error || new Error("poll failed");
-      } catch {
-        // Use direct fetch to include ?nonce=
-      }
-      try {
         const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kingschat-poll?nonce=${encodeURIComponent(nonce)}`;
         const res = await fetch(url, {
           headers: {
@@ -109,6 +91,7 @@ const Auth = () => {
           },
         });
         const json = await res.json();
+
         if (json?.status === "ready" && json?.session) {
           done = true;
           await supabase.auth.setSession({
