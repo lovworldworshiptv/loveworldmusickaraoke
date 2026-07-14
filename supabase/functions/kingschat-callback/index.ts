@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const KINGSCHAT_CLIENT_ID = "0d2afe44-0f0b-41f6-b2ff-3ee91706f0c8";
+const KINGSCHAT_CLIENT_ID = "a8c5d32f-1ff1-4217-97b3-382f928f7b1e";
 const KC_TOKEN_URL = "https://connect.kingsch.at/developer/api/oauth2/token";
 const KC_API = "https://connect.kingsch.at";
 
