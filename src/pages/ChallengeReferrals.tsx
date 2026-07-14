@@ -63,12 +63,12 @@ const ChallengeReferrals = () => {
             {complete ? <CheckCircle2 className="w-8 h-8 text-green-500" /> : <Users className="w-8 h-8 text-amber-400" />}
           </div>
           <h1 className="text-2xl font-serif font-bold mb-1">
-            {complete ? "Invite Gate Cleared!" : "Refer Players to Continue"}
+            {complete ? "Milestone Advancement Cleared!" : "Refer Players to Advance"}
           </h1>
           <p className="text-sm text-muted-foreground mb-5">
             {complete
               ? "You've completed the required invites. Your games will now count toward your score."
-              : `You crossed the ${gateScore}-point mark (${currentScore} pts). Invite ${remaining} more player${remaining === 1 ? "" : "s"} to keep scoring in the challenge.`}
+              : `You've reached the Milestone Advancement Score of ${gateScore} pts (${currentScore} pts). Invite ${remaining} more player${remaining === 1 ? "" : "s"} to advance past this milestone.`}
           </p>
 
           <div className="mb-4">
