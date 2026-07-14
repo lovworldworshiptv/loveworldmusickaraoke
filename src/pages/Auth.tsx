@@ -83,19 +83,6 @@ const Auth = () => {
         return;
       }
       try {
-        const { data, error } = await supabase.functions.invoke("kingschat-poll", {
-          method: "GET" as any,
-          body: undefined,
-          headers: {},
-          // @ts-ignore - allow query params via URL
-        });
-        // supabase.functions.invoke doesn't support query params cleanly,
-        // fall back to fetch with the nonce query.
-        if (error || !data) throw error || new Error("poll failed");
-      } catch {
-        // Use direct fetch to include ?nonce=
-      }
-      try {
         const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kingschat-poll?nonce=${encodeURIComponent(nonce)}`;
         const res = await fetch(url, {
           headers: {
@@ -104,6 +91,7 @@ const Auth = () => {
           },
         });
         const json = await res.json();
+
         if (json?.status === "ready" && json?.session) {
           done = true;
           await supabase.auth.setSession({
