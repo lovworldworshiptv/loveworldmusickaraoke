@@ -190,7 +190,7 @@ function ReferralGateCard({ challengeId, userId, currentScore, gateScore, requir
       <div className="glass-card p-4 mb-5 border border-amber-500/20">
         <p className="text-xs text-muted-foreground flex items-center gap-2">
           <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
-          Invite gate at <span className="font-semibold text-foreground">{gateScore} pts</span> — you'll need <span className="font-semibold text-foreground">{required}</span> referrals to keep playing and scoring.
+          Milestone Advancement Score at <span className="font-semibold text-foreground">{gateScore} pts</span> — you'll need <span className="font-semibold text-foreground">{required}</span> referrals to advance past this milestone and keep playing.
         </p>
       </div>
     );
