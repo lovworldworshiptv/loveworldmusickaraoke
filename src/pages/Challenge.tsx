@@ -3,8 +3,9 @@ import AppLayout from "@/components/layout/AppLayout";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveChallenge, useMyEntry, useMyScore, useLeaderboard, buildReferralUrl } from "@/hooks/useChallenge";
+import { CHALLENGE_RESUME_KEY } from "@/hooks/useReferralGateGuard";
 import ChallengeCountdown from "@/components/games/ChallengeCountdown";
-import { Trophy, Copy, ArrowLeft, Crown, Target, CheckCircle, LogOut, AlertCircle, Medal, Award } from "lucide-react";
+import { Trophy, Copy, ArrowLeft, Crown, Target, CheckCircle, LogOut, AlertCircle, Medal, Award, Play } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -108,16 +109,7 @@ const Challenge = () => {
           />
         )}
 
-        {entry?.status === "approved" && (
-          <div className="glass-card p-5 mb-5">
-            <h3 className="font-bold mb-2">Your Referral Link</h3>
-            <p className="text-xs text-muted-foreground mb-3">Earn +50 points for each new player who joins through your link.</p>
-            <div className="flex gap-2">
-              <input readOnly value={refUrl} className="flex-1 px-3 py-2 rounded-lg bg-background border border-border text-xs font-mono" />
-              <button onClick={copyRef} className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs flex items-center gap-1"><Copy className="w-3 h-3" /> Copy</button>
-            </div>
-          </div>
-        )}
+        {/* Referral link card removed per product request; +50pts per referral logic still active. */}
 
         {entry && (
           <button onClick={leaveChallenge}
@@ -201,11 +193,14 @@ function ReferralGateCard({ challengeId, userId, currentScore, gateScore, requir
       <div className="glass-card p-4 mb-5 border border-amber-500/20">
         <p className="text-xs text-muted-foreground flex items-center gap-2">
           <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
-          Invite gate at <span className="font-semibold text-foreground">{gateScore} pts</span> — you'll need <span className="font-semibold text-foreground">{required}</span> referrals to keep scoring past it.
+          Invite gate at <span className="font-semibold text-foreground">{gateScore} pts</span> — you'll need <span className="font-semibold text-foreground">{required}</span> referrals to keep playing and scoring.
         </p>
       </div>
     );
   }
+  const resumePath = (() => {
+    try { return localStorage.getItem(CHALLENGE_RESUME_KEY); } catch { return null; }
+  })();
   return (
     <div className={`glass-card p-5 mb-5 border ${met ? "border-green-500/40" : "border-amber-500/50 bg-amber-500/5"}`}>
       <div className="flex items-center gap-2 mb-2">
@@ -217,7 +212,9 @@ function ReferralGateCard({ challengeId, userId, currentScore, gateScore, requir
           ? `You've cleared the ${gateScore}-point gate with ${refCount}/${required} referrals. Your future games count normally.`
           : `You've reached ${currentScore} points. Games won't count until you refer ${required - refCount} more player${required - refCount === 1 ? "" : "s"} (${refCount}/${required}).`}
       </p>
-      {!met && (
+      {met ? (
+        <ContinuePlayingButton resumePath={resumePath} />
+      ) : (
         <div className="flex gap-2">
           <input readOnly value={refUrl} className="flex-1 px-3 py-2 rounded-lg bg-background border border-border text-xs font-mono" />
           <button onClick={() => { navigator.clipboard.writeText(refUrl); toast.success("Referral link copied!"); }} className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs flex items-center gap-1">
@@ -226,6 +223,23 @@ function ReferralGateCard({ challengeId, userId, currentScore, gateScore, requir
         </div>
       )}
     </div>
+  );
+}
+
+function ContinuePlayingButton({ resumePath }: { resumePath: string | null }) {
+  const navigate = useNavigate();
+  const go = () => {
+    const target = resumePath && resumePath !== "/games/challenge" ? resumePath : "/games/songmatch";
+    try { localStorage.removeItem(CHALLENGE_RESUME_KEY); } catch {}
+    navigate(target);
+  };
+  return (
+    <button
+      onClick={go}
+      className="w-full py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold text-xs flex items-center justify-center gap-2"
+    >
+      <Play className="w-3.5 h-3.5" /> Continue Playing
+    </button>
   );
 }
 
