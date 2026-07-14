@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
         completed: referralRefCount,
         remaining,
         gate_score: gateScore,
-        message: `You've reached the ${gateScore}-point invite gate. Refer ${remaining} more player${remaining === 1 ? "" : "s"} (${referralRefCount}/${gateRequired}) to keep scoring.`,
+        message: `You've reached the ${gateScore}-point Milestone Advancement Score. Refer ${remaining} more player${remaining === 1 ? "" : "s"} (${referralRefCount}/${gateRequired}) to advance past this milestone.`,
       });
     }
     if (difficultyGateBlocked) {
