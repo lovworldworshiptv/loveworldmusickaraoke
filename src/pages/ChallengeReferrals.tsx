@@ -112,10 +112,10 @@ const ChallengeReferrals = () => {
         </div>
 
         <div className="glass-card p-4 text-xs text-muted-foreground">
-          <p className="font-semibold text-foreground mb-1">How the invite gate works</p>
+          <p className="font-semibold text-foreground mb-1">How the Milestone Advancement Score works</p>
           <ul className="space-y-1 list-disc pl-4">
-            <li>You cross the invite gate at <span className="text-foreground">{gateScore} pts</span>.</li>
-            <li>Games you play afterwards don't count until you refer <span className="text-foreground">{required}</span> new player{required === 1 ? "" : "s"}.</li>
+            <li>You reach the Milestone Advancement Score at <span className="text-foreground">{gateScore} pts</span>.</li>
+            <li>Games you play afterwards don't count until you refer <span className="text-foreground">{required}</span> new player{required === 1 ? "" : "s"} to advance past the milestone.</li>
             <li>Once your invites are complete, we send you straight back to the game you were playing.</li>
           </ul>
         </div>
