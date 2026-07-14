@@ -190,7 +190,7 @@ function ReferralGateCard({ challengeId, userId, currentScore, gateScore, requir
       <div className="glass-card p-4 mb-5 border border-amber-500/20">
         <p className="text-xs text-muted-foreground flex items-center gap-2">
           <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
-          Invite gate at <span className="font-semibold text-foreground">{gateScore} pts</span> — you'll need <span className="font-semibold text-foreground">{required}</span> referrals to keep playing and scoring.
+          Milestone Advancement Score at <span className="font-semibold text-foreground">{gateScore} pts</span> — you'll need <span className="font-semibold text-foreground">{required}</span> referrals to advance past this milestone and keep playing.
         </p>
       </div>
     );
@@ -202,12 +202,12 @@ function ReferralGateCard({ challengeId, userId, currentScore, gateScore, requir
     <div className={`glass-card p-5 mb-5 border ${met ? "border-green-500/40" : "border-amber-500/50 bg-amber-500/5"}`}>
       <div className="flex items-center gap-2 mb-2">
         <AlertCircle className={`w-4 h-4 ${met ? "text-green-500" : "text-amber-400"}`} />
-        <h3 className="font-bold text-sm">{met ? "Invite Gate Cleared" : "Invite to Keep Scoring"}</h3>
+        <h3 className="font-bold text-sm">{met ? "Milestone Advancement Cleared" : "Refer to Advance Past Milestone"}</h3>
       </div>
       <p className="text-xs text-muted-foreground mb-3">
         {met
-          ? `You've cleared the ${gateScore}-point gate with ${refCount}/${required} referrals. Your future games count normally.`
-          : `You've reached ${currentScore} points. Games won't count until you refer ${required - refCount} more player${required - refCount === 1 ? "" : "s"} (${refCount}/${required}).`}
+          ? `You've cleared the ${gateScore}-point Milestone Advancement Score with ${refCount}/${required} referrals. Your future games count normally.`
+          : `You've reached the Milestone Advancement Score of ${currentScore} points. Games won't count until you refer ${required - refCount} more player${required - refCount === 1 ? "" : "s"} (${refCount}/${required}).`}
       </p>
       {met ? (
         <ContinuePlayingButton resumePath={resumePath} />

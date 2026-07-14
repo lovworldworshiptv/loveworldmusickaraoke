@@ -63,12 +63,12 @@ const ChallengeReferrals = () => {
             {complete ? <CheckCircle2 className="w-8 h-8 text-green-500" /> : <Users className="w-8 h-8 text-amber-400" />}
           </div>
           <h1 className="text-2xl font-serif font-bold mb-1">
-            {complete ? "Invite Gate Cleared!" : "Refer Players to Continue"}
+            {complete ? "Milestone Advancement Cleared!" : "Refer Players to Advance"}
           </h1>
           <p className="text-sm text-muted-foreground mb-5">
             {complete
               ? "You've completed the required invites. Your games will now count toward your score."
-              : `You crossed the ${gateScore}-point mark (${currentScore} pts). Invite ${remaining} more player${remaining === 1 ? "" : "s"} to keep scoring in the challenge.`}
+              : `You've reached the Milestone Advancement Score of ${gateScore} pts (${currentScore} pts). Invite ${remaining} more player${remaining === 1 ? "" : "s"} to advance past this milestone.`}
           </p>
 
           <div className="mb-4">
@@ -112,10 +112,10 @@ const ChallengeReferrals = () => {
         </div>
 
         <div className="glass-card p-4 text-xs text-muted-foreground">
-          <p className="font-semibold text-foreground mb-1">How the invite gate works</p>
+          <p className="font-semibold text-foreground mb-1">How the Milestone Advancement Score works</p>
           <ul className="space-y-1 list-disc pl-4">
-            <li>You cross the invite gate at <span className="text-foreground">{gateScore} pts</span>.</li>
-            <li>Games you play afterwards don't count until you refer <span className="text-foreground">{required}</span> new player{required === 1 ? "" : "s"}.</li>
+            <li>You reach the Milestone Advancement Score at <span className="text-foreground">{gateScore} pts</span>.</li>
+            <li>Games you play afterwards don't count until you refer <span className="text-foreground">{required}</span> new player{required === 1 ? "" : "s"} to advance past the milestone.</li>
             <li>Once your invites are complete, we send you straight back to the game you were playing.</li>
           </ul>
         </div>
