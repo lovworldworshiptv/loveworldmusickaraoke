@@ -282,7 +282,8 @@ const Subscription = () => {
                   <div className="bg-muted/50 rounded-xl p-4 text-sm space-y-2">
                     <p className="font-semibold text-foreground">Payment Details</p>
                     <div className="space-y-1 text-muted-foreground">
-                      <p><span className="font-medium text-foreground">Espees Merchant Code:</span> LMM01</p>
+                      <p><span className="font-medium text-foreground">Espees Username:</span> @loveworldmusic.org</p>
+                      <p><span className="font-medium text-foreground">Wallet address:</span> <span className="break-all">0x39576aec39d7f73bfa8f64f0bfa5a8e930921c34</span></p>
                       <p className="font-semibold text-foreground mt-2">Bank Transfer:</p>
                       <p><span className="font-medium text-foreground">Account No:</span> 1000316347</p>
                       <p><span className="font-medium text-foreground">Account Name:</span> LMAM - Music App</p>
