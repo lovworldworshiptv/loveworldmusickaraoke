@@ -16,7 +16,7 @@ import logoFull from "@/assets/logo-mic-heart.png";
 // 3. Browser polls kingschat-poll?nonce=<nonce> until status=ready, then
 //    calls supabase.auth.setSession() to establish the session locally.
 // ---------------------------------------------------------------------------
-const KINGSCHAT_CLIENT_ID = "35769f15-f514-4838-83cd-a393dea6fa03";
+const KINGSCHAT_CLIENT_ID = "293783ec-cb7d-48f4-9d09-927c04739909";
 const KC_LOGIN_URL = "https://accounts.kingschat.online/log-in";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const POLL_INTERVAL_MS = 1500;

@@ -1,7 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const KINGSCHAT_CLIENT_ID = "35769f15-f514-4838-83cd-a393dea6fa03";
-const KC_TOKEN_URL = "https://connect.kingsch.at/developer/api/oauth2/token";
+const KINGSCHAT_CLIENT_ID = "293783ec-cb7d-48f4-9d09-927c04739909";
+const KC_TOKEN_URLS = [
+  "https://connect.kingsch.at/oauth2/token",
+  "https://connect.kingsch.at/developer/api/oauth2/token",
+];
 const KC_API = "https://connect.kingsch.at";
 
 const corsHeaders = {
@@ -94,6 +97,33 @@ async function fetchKcProfile(accessToken: string, userId: string) {
   return null;
 }
 
+async function exchangeKingsChatCode(code: string) {
+  let lastError = "invalid code";
+
+  for (const tokenUrl of KC_TOKEN_URLS) {
+    const tokenRes = await fetch(tokenUrl, {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({
+        grant_type: "code",
+        client_id: KINGSCHAT_CLIENT_ID,
+        code,
+      }),
+    });
+
+    const tokenText = await tokenRes.text();
+    let tokens: any = null;
+    try { tokens = JSON.parse(tokenText); } catch { /* keep text error */ }
+
+    if (tokenRes.ok && tokens?.access_token) return tokens;
+
+    lastError = tokenText || `${tokenRes.status} ${tokenRes.statusText}`;
+    console.error("KC token exchange failed:", tokenUrl, tokenRes.status, tokenText.substring(0, 300));
+  }
+
+  throw new Error(`Token exchange failed: ${lastError.substring(0, 200)}`);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -177,33 +207,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Exchange code for tokens
-    const tokenRes = await fetch(KC_TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        grant_type: "code",
-        client_id: KINGSCHAT_CLIENT_ID,
-        code,
-      }),
-    });
-
-    const tokenText = await tokenRes.text();
-    if (!tokenRes.ok) {
-      console.error("KC token exchange failed:", tokenRes.status, tokenText);
-      if (nonce) {
-        await supabase.from("kingschat_auth_sessions").upsert({
-          nonce,
-          error: `Token exchange failed: ${tokenText.substring(0, 200)}`,
-        });
-      }
-      return new Response(JSON.stringify({ error: "Token exchange failed" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const tokens = JSON.parse(tokenText);
+    // Exchange code for tokens. KingsChat's current login posts a one-time
+    // code for the exact clientId to the registered redirect URL.
+    const tokens = await exchangeKingsChatCode(code);
     const accessToken = tokens.access_token;
     const jwtPayload = decodeJwtPayload(accessToken);
     const kcUserId = jwtPayload?.sub || "";
