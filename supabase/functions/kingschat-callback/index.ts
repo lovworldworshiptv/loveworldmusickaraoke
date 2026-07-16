@@ -75,9 +75,32 @@ Deno.serve(async (req) => {
 
   let nonce = "";
   try {
-    const body = await req.json();
-    const code = body.code;
-    nonce = body.origin || "";
+    // KingsChat may POST as JSON, form-encoded, or as query params. Handle all.
+    let code = "";
+    const url = new URL(req.url);
+    code = url.searchParams.get("code") || "";
+    nonce = url.searchParams.get("origin") || url.searchParams.get("state") || "";
+
+    if (!code && (req.method === "POST" || req.method === "PUT")) {
+      const ct = req.headers.get("content-type") || "";
+      const raw = await req.text();
+      if (raw) {
+        if (ct.includes("application/json")) {
+          try {
+            const j = JSON.parse(raw);
+            code = j.code || "";
+            nonce = nonce || j.origin || j.state || "";
+          } catch { /* fall through */ }
+        }
+        if (!code) {
+          try {
+            const params = new URLSearchParams(raw);
+            code = params.get("code") || code;
+            nonce = nonce || params.get("origin") || params.get("state") || "";
+          } catch { /* ignore */ }
+        }
+      }
+    }
 
     console.log(`KC callback: code=${code?.substring(0, 8)}... nonce=${nonce}`);
 
