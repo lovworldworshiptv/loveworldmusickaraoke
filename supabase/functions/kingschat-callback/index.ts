@@ -9,6 +9,36 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function decodeBase64Url(value: string) {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), "=");
+  return atob(padded);
+}
+
+function parseReturnToken(value: string | null) {
+  if (!value) return { nonce: "", appOrigin: "" };
+  try {
+    const parsed = JSON.parse(decodeBase64Url(value));
+    if (parsed && typeof parsed.nonce === "string") {
+      return {
+        nonce: parsed.nonce,
+        appOrigin: typeof parsed.appOrigin === "string" ? parsed.appOrigin : "",
+      };
+    }
+  } catch { /* plain nonce fallback */ }
+  return { nonce: value, appOrigin: "" };
+}
+
+function popupCompleteHtml(nonce: string, appOrigin: string) {
+  const safeNonce = JSON.stringify(nonce);
+  const safeOrigin = JSON.stringify(appOrigin || "*");
+  const callbackUrl = appOrigin
+    ? JSON.stringify(`${appOrigin}/auth/kingschat-callback?nonce=${encodeURIComponent(nonce)}`)
+    : "null";
+
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Signing in…</title></head><body style="font-family:system-ui;background:#0b1020;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="width:36px;height:36px;border:3px solid #f5c451;border-top-color:transparent;border-radius:50%;animation:s 1s linear infinite;margin:0 auto 12px"></div><p>Signed in. Returning to Loveworld Music Karaoke+…</p></div><style>@keyframes s{to{transform:rotate(360deg)}}</style><script>var n=${safeNonce};var o=${safeOrigin};var u=${callbackUrl};try{if(window.opener&&!window.opener.closed){window.opener.postMessage({type:"KC_AUTH_COMPLETE",nonce:n},o);}}catch(e){}function c(){try{window.close();}catch(e){}}c();setTimeout(c,300);setTimeout(function(){if(u){try{window.location.replace(u);}catch(e){}}},900);</script></body></html>`;
+}
+
 function decodeJwtPayload(token: string) {
   try {
     const parts = token.split(".");
@@ -74,31 +104,41 @@ Deno.serve(async (req) => {
   });
 
   let nonce = "";
+  let appOrigin = "";
   try {
     // KingsChat may POST as JSON, form-encoded, or as query params. Handle all.
     let code = "";
     const url = new URL(req.url);
     code = url.searchParams.get("code") || "";
-    nonce = url.searchParams.get("origin") || url.searchParams.get("state") || "";
+    const applyReturnToken = (token: string | null) => {
+      const parsed = parseReturnToken(token);
+      if (!nonce && parsed.nonce) nonce = parsed.nonce;
+      if (!appOrigin && parsed.appOrigin) appOrigin = parsed.appOrigin;
+    };
+    applyReturnToken(url.searchParams.get("origin"));
+    applyReturnToken(url.searchParams.get("state"));
+    applyReturnToken(url.searchParams.get("nonce"));
 
-    if (!code && (req.method === "POST" || req.method === "PUT")) {
+    if (req.method === "POST" || req.method === "PUT") {
       const ct = req.headers.get("content-type") || "";
       const raw = await req.text();
       if (raw) {
         if (ct.includes("application/json")) {
           try {
             const j = JSON.parse(raw);
-            code = j.code || "";
-            nonce = nonce || j.origin || j.state || "";
+            code = code || j.code || "";
+            applyReturnToken(j.origin || null);
+            applyReturnToken(j.state || null);
+            applyReturnToken(j.nonce || null);
           } catch { /* fall through */ }
         }
-        if (!code) {
-          try {
-            const params = new URLSearchParams(raw);
-            code = params.get("code") || code;
-            nonce = nonce || params.get("origin") || params.get("state") || "";
-          } catch { /* ignore */ }
-        }
+        try {
+          const params = new URLSearchParams(raw);
+          code = code || params.get("code") || "";
+          applyReturnToken(params.get("origin"));
+          applyReturnToken(params.get("state"));
+          applyReturnToken(params.get("nonce"));
+        } catch { /* ignore */ }
       }
     }
 
@@ -110,6 +150,8 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    if (!nonce) throw new Error("Missing KingsChat return token");
 
     // Exchange code for tokens
     const tokenRes = await fetch(KC_TOKEN_URL, {
@@ -205,21 +247,27 @@ Deno.serve(async (req) => {
     }).eq("user_id", userId);
 
     // Stash session for browser to pick up
-    if (nonce) {
-      await supabase.from("kingschat_auth_sessions").upsert({
-        nonce,
-        session_data: {
-          session: signInData!.session,
-          kingschat_profile: { username: kcUsername, avatar_url: kcAvatar, handle: kcHandle },
-        },
-        error: null,
-      });
+    const { error: sessionWriteError } = await supabase.from("kingschat_auth_sessions").upsert({
+      nonce,
+      session_data: {
+        session: signInData!.session,
+        kingschat_profile: { username: kcUsername, avatar_url: kcAvatar, handle: kcHandle },
+      },
+      error: null,
+      expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+    });
+
+    if (sessionWriteError) {
+      console.error("KC session handoff write failed:", sessionWriteError.message);
+      throw new Error("Could not complete KingsChat sign-in handoff");
     }
 
-    // If browser (popup) called us via GET redirect, return HTML that closes the popup.
-    if (req.method === "GET") {
-      const html = `<!doctype html><html><head><meta charset="utf-8"><title>Signing in…</title></head><body style="font-family:system-ui;background:#0b1020;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="width:36px;height:36px;border:3px solid #f5c451;border-top-color:transparent;border-radius:50%;animation:s 1s linear infinite;margin:0 auto 12px"></div><p>Signed in. You can close this window.</p></div><style>@keyframes s{to{transform:rotate(360deg)}}</style><script>try{window.close();}catch(e){}setTimeout(function(){try{window.close();}catch(e){}},300);</script></body></html>`;
-      return new Response(html, {
+    const wantsHtml = req.method === "GET"
+      || (req.headers.get("accept") || "").includes("text/html")
+      || req.headers.get("sec-fetch-dest") === "document";
+
+    if (wantsHtml) {
+      return new Response(popupCompleteHtml(nonce, appOrigin), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
       });

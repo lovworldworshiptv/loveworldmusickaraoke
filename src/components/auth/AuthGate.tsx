@@ -18,6 +18,7 @@ const AuthGate = ({ children }: AuthGateProps) => {
 
   // Allow downloads page when offline
   const isDownloadsPage = location.pathname === "/library" && location.search.includes("tab=downloads");
+  const signInPath = `/auth?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`;
 
   if (!isOnline && !isDownloadsPage) {
     return (
@@ -66,14 +67,14 @@ const AuthGate = ({ children }: AuthGateProps) => {
 
             <div className="flex flex-col gap-3">
               <button
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate(signInPath)}
                 className="w-full py-3.5 rounded-xl bg-gradient-to-r from-gold via-gold-light to-gold text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-[0_4px_24px_hsl(43_70%_53%/0.4)] hover:shadow-[0_6px_32px_hsl(43_70%_53%/0.55)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <LogIn className="w-4 h-4" />
                 Sign In
               </button>
               <button
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate(signInPath)}
                 className="w-full py-3.5 rounded-xl border border-border text-foreground font-semibold text-sm flex items-center justify-center gap-2 hover:bg-muted/60 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <UserPlus className="w-4 h-4" />
