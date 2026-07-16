@@ -32,7 +32,7 @@ const Auth = () => {
   const nextPath = getSafeNextPath(location.search);
 
   useEffect(() => {
-    loadKingsChatSdk().catch((e) => console.warn("KC SDK preload failed", e));
+    // SDK is now bundled via npm; nothing to preload.
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,15 +54,13 @@ const Auth = () => {
     if (kcLoading) return;
     setKcLoading(true);
     try {
-      await loadKingsChatSdk();
-      if (!window.kingschat) throw new Error("KingsChat SDK not available");
-
-      const result = await window.kingschat.login({
+      const result = await kingsChatWebSdk.login({
         clientId: KINGSCHAT_CLIENT_ID,
-        scopes: KC_SCOPES,
+        scopes: KC_SCOPES as any,
       });
 
       if (!result?.accessToken) throw new Error("No access token returned from KingsChat");
+
 
       const { data, error } = await supabase.functions.invoke("kingschat-auth", {
         body: { accessToken: result.accessToken },
