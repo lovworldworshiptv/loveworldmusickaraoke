@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -8,19 +8,26 @@ import { supabase } from "@/integrations/supabase/client";
 import logoFull from "@/assets/logo-mic-heart.png";
 
 // ---------------------------------------------------------------------------
-// KingsChat OAuth2 Authorization Code flow.
-// 1. Open popup to https://accounts.kingschat.online/log-in?clientId=...&origin=<nonce>&forceLogin=true
-// 2. KingsChat POSTs {code, origin} server-to-server to our edge function
-//    (kingschat-callback), which exchanges the code for tokens, provisions/
-//    signs in the user, and stashes the Supabase session keyed by nonce.
-// 3. Browser polls kingschat-poll?nonce=<nonce> until status=ready, then
-//    calls supabase.auth.setSession() to establish the session locally.
+// KingsChat login using the official KingsChat Web SDK.
+// The SDK opens its own popup, handles OAuth, and returns an access token
+// directly to the browser. We then hand that token to the kingschat-auth
+// edge function which provisions/signs in the Supabase user.
 // ---------------------------------------------------------------------------
-const KINGSCHAT_CLIENT_ID = "35769f15-f514-4838-83cd-a393dea6fa03";
-const KC_LOGIN_URL = "https://accounts.kingschat.online/log-in";
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const POLL_INTERVAL_MS = 1500;
-const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+const KINGSCHAT_CLIENT_ID = "5d4c8670-fd28-4be8-8484-55302b8c3bb6";
+const KC_SDK_URL = "https://cdn.kingsch.at/public/sdk/v3/kingschat.min.js";
+const KC_SCOPES = ["send_chat_message"];
+
+declare global {
+  interface Window {
+    kingschat?: {
+      login: (opts: { clientId: string; scopes: string[] }) => Promise<{
+        accessToken: string;
+        expiresInMillis: number;
+        refreshToken?: string;
+      }>;
+    };
+  }
+}
 
 const getSafeNextPath = (search: string) => {
   const next = new URLSearchParams(search).get("next");
@@ -28,12 +35,22 @@ const getSafeNextPath = (search: string) => {
   return next;
 };
 
-const encodeKingsChatState = (payload: { nonce: string; appOrigin: string; next: string }) => {
-  return btoa(JSON.stringify(payload))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
-};
+const loadKingsChatSdk = () =>
+  new Promise<void>((resolve, reject) => {
+    if (window.kingschat) return resolve();
+    const existing = document.querySelector<HTMLScriptElement>(`script[src="${KC_SDK_URL}"]`);
+    if (existing) {
+      existing.addEventListener("load", () => resolve());
+      existing.addEventListener("error", () => reject(new Error("Failed to load KingsChat SDK")));
+      return;
+    }
+    const s = document.createElement("script");
+    s.src = KC_SDK_URL;
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("Failed to load KingsChat SDK"));
+    document.head.appendChild(s);
+  });
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -46,17 +63,10 @@ const Auth = () => {
   const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [kcLoading, setKcLoading] = useState(false);
-  const popupRef = useRef<Window | null>(null);
-  const pollTimerRef = useRef<number | null>(null);
-  const messageHandlerRef = useRef<((event: MessageEvent) => void) | null>(null);
   const nextPath = getSafeNextPath(location.search);
 
   useEffect(() => {
-    return () => {
-      if (pollTimerRef.current) window.clearInterval(pollTimerRef.current);
-      if (messageHandlerRef.current) window.removeEventListener("message", messageHandlerRef.current);
-      try { popupRef.current?.close(); } catch { /* ignore */ }
-    };
+    loadKingsChatSdk().catch((e) => console.warn("KC SDK preload failed", e));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,98 +84,41 @@ const Auth = () => {
     setLoading(false);
   };
 
-  const stopPolling = () => {
-    if (pollTimerRef.current) {
-      window.clearInterval(pollTimerRef.current);
-      pollTimerRef.current = null;
-    }
-    if (messageHandlerRef.current) {
-      window.removeEventListener("message", messageHandlerRef.current);
-      messageHandlerRef.current = null;
-    }
-  };
-
   const handleKingsChatLogin = async () => {
     if (kcLoading) return;
     setKcLoading(true);
+    try {
+      await loadKingsChatSdk();
+      if (!window.kingschat) throw new Error("KingsChat SDK not available");
 
-    const nonce = crypto.randomUUID();
-    const state = encodeKingsChatState({ nonce, appOrigin: window.location.origin, next: nextPath });
-    const loginUrl = `${KC_LOGIN_URL}?clientId=${encodeURIComponent(
-      KINGSCHAT_CLIENT_ID
-    )}&origin=${encodeURIComponent(state)}&state=${encodeURIComponent(nonce)}&forceLogin=true`;
+      const result = await window.kingschat.login({
+        clientId: KINGSCHAT_CLIENT_ID,
+        scopes: KC_SCOPES,
+      });
 
-    // Open popup synchronously (must be in click handler to avoid popup blockers)
-    const w = 480;
-    const h = 680;
-    const left = window.screenX + Math.max(0, (window.outerWidth - w) / 2);
-    const top = window.screenY + Math.max(0, (window.outerHeight - h) / 2);
-    popupRef.current = window.open(
-      loginUrl,
-      "kingschat_login",
-      `width=${w},height=${h},left=${left},top=${top}`
-    );
+      if (!result?.accessToken) throw new Error("No access token returned from KingsChat");
 
-    if (!popupRef.current) {
+      const { data, error } = await supabase.functions.invoke("kingschat-auth", {
+        body: { accessToken: result.accessToken },
+      });
+
+      if (error) throw new Error(error.message || "KingsChat sign-in failed");
+      if (!data?.session) throw new Error("No session returned");
+
+      await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      });
+
+      toast.success(`Welcome, ${data.kingschat_profile?.username || "User"}!`);
+      navigate(nextPath, { replace: true });
+    } catch (err: any) {
+      console.error("KingsChat login error:", err);
+      const msg = err?.message || String(err) || "KingsChat sign-in failed";
+      if (!/cancel|closed/i.test(msg)) toast.error(msg);
+    } finally {
       setKcLoading(false);
-      toast.error("Popup blocked. Please allow popups and try again.");
-      return;
     }
-
-    const startedAt = Date.now();
-    const pollUrl = `${SUPABASE_URL}/functions/v1/kingschat-poll?nonce=${encodeURIComponent(nonce)}`;
-
-    const pollForSession = async () => {
-      if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
-        stopPolling();
-        setKcLoading(false);
-        toast.error("KingsChat sign-in timed out. Please try again.");
-        try { popupRef.current?.close(); } catch { /* ignore */ }
-        return;
-      }
-
-      try {
-        const res = await fetch(pollUrl, {
-          headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string },
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-
-        if (data.status === "ready" && data.session) {
-          stopPolling();
-          try { popupRef.current?.close(); } catch { /* ignore */ }
-          await supabase.auth.setSession({
-            access_token: data.session.access_token,
-            refresh_token: data.session.refresh_token,
-          });
-          toast.success(`Welcome, ${data.kingschat_profile?.username || "User"}!`);
-          setKcLoading(false);
-          navigate(nextPath, { replace: true });
-        } else if (data.status === "error") {
-          stopPolling();
-          setKcLoading(false);
-          try { popupRef.current?.close(); } catch { /* ignore */ }
-          toast.error(data.error || "KingsChat sign-in failed.");
-        } else if (data.status === "expired") {
-          stopPolling();
-          setKcLoading(false);
-          try { popupRef.current?.close(); } catch { /* ignore */ }
-          toast.error("KingsChat sign-in expired. Please try again.");
-        }
-      } catch (err) {
-        console.warn("KC poll error", err);
-      }
-    };
-
-    messageHandlerRef.current = (event: MessageEvent) => {
-      if (event.data?.type === "KC_AUTH_COMPLETE" && event.data?.nonce === nonce) {
-        void pollForSession();
-      }
-    };
-    window.addEventListener("message", messageHandlerRef.current);
-
-    void pollForSession();
-    pollTimerRef.current = window.setInterval(pollForSession, POLL_INTERVAL_MS);
   };
 
   return (
