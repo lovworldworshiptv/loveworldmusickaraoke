@@ -17,6 +17,10 @@ const KingsChatCallback = () => {
 
       try {
         if (errorParam) throw new Error(errorParam);
+        if (!code && nonce) {
+          window.opener?.postMessage({ type: "KC_AUTH_COMPLETE", nonce }, window.location.origin);
+          return;
+        }
         if (!code) throw new Error("Missing authorization code");
         await supabase.functions.invoke("kingschat-callback", {
           body: { code, origin: nonce },

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Eye, EyeOff, MessageCircle } from "lucide-react";
 import MusicBackground from "@/components/auth/MusicBackground";
@@ -22,6 +22,19 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const POLL_INTERVAL_MS = 1500;
 const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
+const getSafeNextPath = (search: string) => {
+  const next = new URLSearchParams(search).get("next");
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return "/";
+  return next;
+};
+
+const encodeKingsChatState = (payload: { nonce: string; appOrigin: string; next: string }) => {
+  return btoa(JSON.stringify(payload))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+};
+
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
@@ -30,14 +43,18 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [kcLoading, setKcLoading] = useState(false);
   const popupRef = useRef<Window | null>(null);
   const pollTimerRef = useRef<number | null>(null);
+  const messageHandlerRef = useRef<((event: MessageEvent) => void) | null>(null);
+  const nextPath = getSafeNextPath(location.search);
 
   useEffect(() => {
     return () => {
       if (pollTimerRef.current) window.clearInterval(pollTimerRef.current);
+      if (messageHandlerRef.current) window.removeEventListener("message", messageHandlerRef.current);
       try { popupRef.current?.close(); } catch { /* ignore */ }
     };
   }, []);
@@ -52,7 +69,7 @@ const Auth = () => {
     } else {
       const { error } = await signIn(email, password);
       if (error) toast.error(error.message);
-      else navigate("/");
+      else navigate(nextPath, { replace: true });
     }
     setLoading(false);
   };
@@ -62,6 +79,10 @@ const Auth = () => {
       window.clearInterval(pollTimerRef.current);
       pollTimerRef.current = null;
     }
+    if (messageHandlerRef.current) {
+      window.removeEventListener("message", messageHandlerRef.current);
+      messageHandlerRef.current = null;
+    }
   };
 
   const handleKingsChatLogin = async () => {
@@ -69,9 +90,10 @@ const Auth = () => {
     setKcLoading(true);
 
     const nonce = crypto.randomUUID();
+    const state = encodeKingsChatState({ nonce, appOrigin: window.location.origin, next: nextPath });
     const loginUrl = `${KC_LOGIN_URL}?clientId=${encodeURIComponent(
       KINGSCHAT_CLIENT_ID
-    )}&origin=${encodeURIComponent(nonce)}&forceLogin=true`;
+    )}&origin=${encodeURIComponent(state)}&state=${encodeURIComponent(nonce)}&forceLogin=true`;
 
     // Open popup synchronously (must be in click handler to avoid popup blockers)
     const w = 480;
@@ -93,7 +115,7 @@ const Auth = () => {
     const startedAt = Date.now();
     const pollUrl = `${SUPABASE_URL}/functions/v1/kingschat-poll?nonce=${encodeURIComponent(nonce)}`;
 
-    pollTimerRef.current = window.setInterval(async () => {
+    const pollForSession = async () => {
       if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
         stopPolling();
         setKcLoading(false);
@@ -118,7 +140,7 @@ const Auth = () => {
           });
           toast.success(`Welcome, ${data.kingschat_profile?.username || "User"}!`);
           setKcLoading(false);
-          navigate("/");
+          navigate(nextPath, { replace: true });
         } else if (data.status === "error") {
           stopPolling();
           setKcLoading(false);
@@ -133,7 +155,17 @@ const Auth = () => {
       } catch (err) {
         console.warn("KC poll error", err);
       }
-    }, POLL_INTERVAL_MS);
+    };
+
+    messageHandlerRef.current = (event: MessageEvent) => {
+      if (event.data?.type === "KC_AUTH_COMPLETE" && event.data?.nonce === nonce) {
+        void pollForSession();
+      }
+    };
+    window.addEventListener("message", messageHandlerRef.current);
+
+    void pollForSession();
+    pollTimerRef.current = window.setInterval(pollForSession, POLL_INTERVAL_MS);
   };
 
   return (
