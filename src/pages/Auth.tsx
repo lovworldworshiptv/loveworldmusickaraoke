@@ -6,51 +6,17 @@ import { ArrowLeft, Eye, EyeOff, MessageCircle } from "lucide-react";
 import MusicBackground from "@/components/auth/MusicBackground";
 import { supabase } from "@/integrations/supabase/client";
 import logoFull from "@/assets/logo-mic-heart.png";
+import kingsChatWebSdk from "kingschat-web-sdk";
 
-// ---------------------------------------------------------------------------
-// KingsChat login using the official KingsChat Web SDK.
-// The SDK opens its own popup, handles OAuth, and returns an access token
-// directly to the browser. We then hand that token to the kingschat-auth
-// edge function which provisions/signs in the Supabase user.
-// ---------------------------------------------------------------------------
+// KingsChat login using the official npm SDK (no external CDN required).
 const KINGSCHAT_CLIENT_ID = "5d4c8670-fd28-4be8-8484-55302b8c3bb6";
-const KC_SDK_URL = "https://cdn.kingsch.at/public/sdk/v3/kingschat.min.js";
 const KC_SCOPES = ["send_chat_message"];
-
-declare global {
-  interface Window {
-    kingschat?: {
-      login: (opts: { clientId: string; scopes: string[] }) => Promise<{
-        accessToken: string;
-        expiresInMillis: number;
-        refreshToken?: string;
-      }>;
-    };
-  }
-}
 
 const getSafeNextPath = (search: string) => {
   const next = new URLSearchParams(search).get("next");
   if (!next || !next.startsWith("/") || next.startsWith("//")) return "/";
   return next;
 };
-
-const loadKingsChatSdk = () =>
-  new Promise<void>((resolve, reject) => {
-    if (window.kingschat) return resolve();
-    const existing = document.querySelector<HTMLScriptElement>(`script[src="${KC_SDK_URL}"]`);
-    if (existing) {
-      existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () => reject(new Error("Failed to load KingsChat SDK")));
-      return;
-    }
-    const s = document.createElement("script");
-    s.src = KC_SDK_URL;
-    s.async = true;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error("Failed to load KingsChat SDK"));
-    document.head.appendChild(s);
-  });
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -66,7 +32,7 @@ const Auth = () => {
   const nextPath = getSafeNextPath(location.search);
 
   useEffect(() => {
-    loadKingsChatSdk().catch((e) => console.warn("KC SDK preload failed", e));
+    // SDK is now bundled via npm; nothing to preload.
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,15 +54,13 @@ const Auth = () => {
     if (kcLoading) return;
     setKcLoading(true);
     try {
-      await loadKingsChatSdk();
-      if (!window.kingschat) throw new Error("KingsChat SDK not available");
-
-      const result = await window.kingschat.login({
+      const result = await kingsChatWebSdk.login({
         clientId: KINGSCHAT_CLIENT_ID,
-        scopes: KC_SCOPES,
+        scopes: KC_SCOPES as any,
       });
 
       if (!result?.accessToken) throw new Error("No access token returned from KingsChat");
+
 
       const { data, error } = await supabase.functions.invoke("kingschat-auth", {
         body: { accessToken: result.accessToken },
