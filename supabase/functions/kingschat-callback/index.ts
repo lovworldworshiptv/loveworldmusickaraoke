@@ -153,6 +153,30 @@ Deno.serve(async (req) => {
 
     if (!nonce) throw new Error("Missing KingsChat return token");
 
+    const wantsHtmlEarly = req.method === "GET"
+      || (req.headers.get("accept") || "").includes("text/html")
+      || req.headers.get("sec-fetch-dest") === "document";
+
+    // Dedupe: KingsChat codes are single-use. If this nonce already completed,
+    // just return the completion signal (browser/popup may hit this twice).
+    const { data: existing } = await supabase
+      .from("kingschat_auth_sessions")
+      .select("session_data,error")
+      .eq("nonce", nonce)
+      .maybeSingle();
+    if (existing?.session_data) {
+      if (wantsHtmlEarly) {
+        return new Response(popupCompleteHtml(nonce, appOrigin), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
+        });
+      }
+      return new Response(JSON.stringify({ ok: true, duplicate: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Exchange code for tokens
     const tokenRes = await fetch(KC_TOKEN_URL, {
       method: "POST",
