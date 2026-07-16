@@ -216,7 +216,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    // KingsChat expects a 200 OK response
+    // If browser (popup) called us via GET redirect, return HTML that closes the popup.
+    if (req.method === "GET") {
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>Signing in…</title></head><body style="font-family:system-ui;background:#0b1020;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="width:36px;height:36px;border:3px solid #f5c451;border-top-color:transparent;border-radius:50%;animation:s 1s linear infinite;margin:0 auto 12px"></div><p>Signed in. You can close this window.</p></div><style>@keyframes s{to{transform:rotate(360deg)}}</style><script>try{window.close();}catch(e){}setTimeout(function(){try{window.close();}catch(e){}},300);</script></body></html>`;
+      return new Response(html, {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
+      });
+    }
+
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
