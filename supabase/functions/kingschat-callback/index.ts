@@ -305,10 +305,17 @@ Deno.serve(async (req) => {
     console.error("KC callback error:", err);
     if (nonce) {
       try {
-        await supabase.from("kingschat_auth_sessions").upsert({
-          nonce,
-          error: err.message || "Internal error",
-        });
+        const { data: prior } = await supabase
+          .from("kingschat_auth_sessions")
+          .select("session_data")
+          .eq("nonce", nonce)
+          .maybeSingle();
+        if (!prior?.session_data) {
+          await supabase.from("kingschat_auth_sessions").upsert({
+            nonce,
+            error: err.message || "Internal error",
+          });
+        }
       } catch { /* ignore */ }
     }
     return new Response(JSON.stringify({ error: err.message || "Internal error" }), {
