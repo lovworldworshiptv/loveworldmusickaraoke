@@ -103,13 +103,11 @@ export async function checkAndAwardAchievements(userId: string, stats: GameStats
     if (stats.achievements.includes(ach.key)) continue;
     if (ach.requirement(stats)) {
       try {
-        await supabase.from("user_achievements").insert({
-          user_id: userId,
-          achievement_key: ach.key,
-        } as any);
+        await supabase.rpc("claim_achievement" as any, { _achievement_key: ach.key });
       } catch {
-        // Ignore duplicate
+        // Ignore
       }
     }
   }
 }
+
