@@ -1637,6 +1637,10 @@ export type Database = {
       }
     }
     Functions: {
+      claim_achievement: {
+        Args: { _achievement_key: string }
+        Returns: boolean
+      }
       get_public_karaoke: {
         Args: { p_user_id: string }
         Returns: {
