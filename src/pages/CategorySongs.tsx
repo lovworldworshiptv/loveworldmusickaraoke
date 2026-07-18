@@ -27,9 +27,9 @@ const CategorySongs = () => {
       const { data } = await supabase
         .from("songs")
         .select("*")
-        .eq("category_id", id!)
-        .order("title");
-      return data || [];
+        .eq("category_id", id!);
+      const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+      return (data || []).sort((a: any, b: any) => collator.compare(a.title || "", b.title || ""));
     },
   });
 
