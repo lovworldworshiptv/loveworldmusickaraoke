@@ -76,6 +76,26 @@ const Articles = () => {
     return () => clearTimeout(timer);
   }, [selectedArticle]);
 
+  useEffect(() => {
+    if (!selectedArticle) return;
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: selectedArticle.title,
+      author: { "@type": "Person", name: selectedArticle.author },
+      datePublished: selectedArticle.published_at,
+      image: selectedArticle.image_url || undefined,
+      articleSection: selectedArticle.category,
+      description: selectedArticle.excerpt || undefined,
+      url: `https://loveworldmusickaraoke.com/articles?id=${selectedArticle.id}`,
+    });
+    document.head.appendChild(script);
+    return () => { document.head.removeChild(script); };
+  }, [selectedArticle?.id]);
+
+
   const fetchArticles = async () => {
     const { data } = await supabase.from("articles").select("*").eq("is_published", true).order("published_at", { ascending: false });
     if (data) {

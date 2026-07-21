@@ -53,6 +53,32 @@ const Albums = () => {
     const urlId = searchParams.get("id");
     if (urlId && urlId !== selectedAlbumId) setSelectedAlbumId(urlId);
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!selectedAlbumId) return;
+    const album = albums.find(a => a.id === selectedAlbumId);
+    if (!album) return;
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "MusicAlbum",
+      name: album.title,
+      byArtist: { "@type": "MusicGroup", name: album.artist },
+      image: album.cover_url || undefined,
+      url: `https://loveworldmusickaraoke.com/albums?id=${album.id}`,
+      numTracks: albumSongs.length,
+      track: albumSongs.map(s => ({
+        "@type": "MusicRecording",
+        name: s.title,
+        byArtist: { "@type": "MusicGroup", name: s.artist },
+        duration: `PT${Math.floor((s.duration_seconds || 0) / 60)}M${(s.duration_seconds || 0) % 60}S`,
+      })),
+    });
+    document.head.appendChild(script);
+    return () => { document.head.removeChild(script); };
+  }, [selectedAlbumId, albums, albumSongs]);
+
   const playerSongs = albumSongs.map(toPlayerSong);
 
   const filteredAlbums = albums.filter(a =>
