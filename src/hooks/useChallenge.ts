@@ -99,22 +99,15 @@ export const useLeaderboard = (challengeId?: string) => {
     queryKey: ["challenge-leaderboard", challengeId],
     queryFn: async () => {
       if (!challengeId) return [];
-      const { data } = await supabase
-        .from("challenge_scores" as any)
-        .select("user_id, total_score, games_played, qualified, final_rank")
-        .eq("challenge_id", challengeId)
-        .order("total_score", { ascending: false })
-        .limit(500);
+      const { data } = await supabase.rpc("get_challenge_leaderboard" as any, {
+        p_challenge_id: challengeId,
+        p_limit: 500,
+      });
       const rows = (data as any[]) || [];
-      const ids = rows.map((r: any) => r.user_id);
-      if (ids.length === 0) return [];
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("user_id, username, avatar_url")
-        .in("user_id", ids);
-      const map = new Map((profs || []).map((p: any) => [p.user_id, p]));
-      return rows.map((r: any, i: number) => ({
-        ...r, rank: i + 1, username: map.get(r.user_id)?.username || "User", avatar_url: map.get(r.user_id)?.avatar_url || null,
+      const { data: { user } } = await supabase.auth.getUser();
+      return rows.map((r: any) => ({
+        ...r,
+        user_id: r.is_me ? user?.id : null,
       }));
     },
     enabled: !!challengeId,

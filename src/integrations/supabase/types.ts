@@ -1761,6 +1761,19 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_challenge_leaderboard: {
+        Args: { p_challenge_id: string; p_limit?: number }
+        Returns: {
+          avatar_url: string
+          final_rank: number
+          games_played: number
+          is_me: boolean
+          qualified: boolean
+          rank: number
+          total_score: number
+          username: string
+        }[]
+      }
       get_public_karaoke: {
         Args: { p_user_id: string }
         Returns: {
