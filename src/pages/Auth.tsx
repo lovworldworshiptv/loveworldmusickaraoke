@@ -46,28 +46,9 @@ const Auth = () => {
     if (kcLoading) return;
     setKcLoading(true);
     try {
-      const result = await kingsChatWebSdk.login({
-        clientId: KINGSCHAT_CLIENT_ID,
-        scopes: KC_SCOPES as any,
-      });
-
-      if (!result?.accessToken) throw new Error("No access token returned from KingsChat");
-
-
-      const { data, error } = await supabase.functions.invoke("kingschat-auth", {
-        body: { accessToken: result.accessToken },
-      });
-
-      if (error) throw new Error(error.message || "KingsChat sign-in failed");
-      if (!data?.session) throw new Error("No session returned");
-
-      await supabase.auth.setSession({
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
-      });
-
-      toast.success(`Welcome, ${data.kingschat_profile?.username || "User"}!`);
-      navigate(nextPath, { replace: true });
+      const { redirectPath, username: kcName } = await signInWithKingsChat(nextPath);
+      toast.success(`Welcome, ${kcName || "User"}!`);
+      navigate(redirectPath || nextPath, { replace: true });
     } catch (err: any) {
       console.error("KingsChat login error:", err);
       const msg = err?.message || String(err) || "KingsChat sign-in failed";
@@ -76,6 +57,7 @@ const Auth = () => {
       setKcLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
