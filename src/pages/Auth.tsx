@@ -1,16 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Eye, EyeOff, MessageCircle } from "lucide-react";
 import MusicBackground from "@/components/auth/MusicBackground";
-import { supabase } from "@/integrations/supabase/client";
 import logoFull from "@/assets/logo-mic-heart.png";
-import kingsChatWebSdk from "kingschat-web-sdk";
-
-// KingsChat login using the official npm SDK (no external CDN required).
-const KINGSCHAT_CLIENT_ID = "5d4c8670-fd28-4be8-8484-55302b8c3bb6";
-const KC_SCOPES = ["send_chat_message"];
+import { signInWithKingsChat } from "@/lib/kingschat";
 
 const getSafeNextPath = (search: string) => {
   const next = new URLSearchParams(search).get("next");
@@ -31,9 +26,6 @@ const Auth = () => {
   const [kcLoading, setKcLoading] = useState(false);
   const nextPath = getSafeNextPath(location.search);
 
-  useEffect(() => {
-    // SDK is now bundled via npm; nothing to preload.
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,28 +46,9 @@ const Auth = () => {
     if (kcLoading) return;
     setKcLoading(true);
     try {
-      const result = await kingsChatWebSdk.login({
-        clientId: KINGSCHAT_CLIENT_ID,
-        scopes: KC_SCOPES as any,
-      });
-
-      if (!result?.accessToken) throw new Error("No access token returned from KingsChat");
-
-
-      const { data, error } = await supabase.functions.invoke("kingschat-auth", {
-        body: { accessToken: result.accessToken },
-      });
-
-      if (error) throw new Error(error.message || "KingsChat sign-in failed");
-      if (!data?.session) throw new Error("No session returned");
-
-      await supabase.auth.setSession({
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
-      });
-
-      toast.success(`Welcome, ${data.kingschat_profile?.username || "User"}!`);
-      navigate(nextPath, { replace: true });
+      const { redirectPath, username: kcName } = await signInWithKingsChat(nextPath);
+      toast.success(`Welcome, ${kcName || "User"}!`);
+      navigate(redirectPath || nextPath, { replace: true });
     } catch (err: any) {
       console.error("KingsChat login error:", err);
       const msg = err?.message || String(err) || "KingsChat sign-in failed";
@@ -84,6 +57,7 @@ const Auth = () => {
       setKcLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">

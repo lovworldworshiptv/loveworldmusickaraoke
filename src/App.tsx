@@ -17,6 +17,7 @@ import SongMatchCategory from "./pages/SongMatchCategory";
 import SongMatchArticles from "./pages/SongMatchArticles";
 import Auth from "./pages/Auth";
 import KingsChatCallback from "./pages/KingsChatCallback";
+import KingsChatLogin from "./pages/KingsChatLogin";
 import Articles from "./pages/Articles";
 import AdminSongs from "./pages/AdminSongs";
 import AdminAlbums from "./pages/AdminAlbums";
@@ -67,7 +68,8 @@ const App = () => (
                 {/* Public routes */}
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
-                <Route path="/auth/kingschat-callback" element={<KingsChatCallback />} />
+                <Route path="/auth/kingschat/login" element={<KingsChatLogin />} />
+                <Route path="/auth/kingschat/callback" element={<KingsChatCallback />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
 
