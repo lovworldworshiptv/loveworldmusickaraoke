@@ -1010,25 +1010,64 @@ export type Database = {
       }
       kingschat_auth_sessions: {
         Row: {
+          consumed_at: string | null
           created_at: string
           error: string | null
           expires_at: string
           nonce: string
+          redirect_path: string
           session_data: Json | null
         }
         Insert: {
+          consumed_at?: string | null
           created_at?: string
           error?: string | null
           expires_at?: string
           nonce: string
+          redirect_path?: string
           session_data?: Json | null
         }
         Update: {
+          consumed_at?: string | null
           created_at?: string
           error?: string | null
           expires_at?: string
           nonce?: string
+          redirect_path?: string
           session_data?: Json | null
+        }
+        Relationships: []
+      }
+      kingschat_oauth_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string
+          id: string
+          kingschat_user_id: string | null
+          refresh_token: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          kingschat_user_id?: string | null
+          refresh_token?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          kingschat_user_id?: string | null
+          refresh_token?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
