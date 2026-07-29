@@ -1,16 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Eye, EyeOff, MessageCircle } from "lucide-react";
 import MusicBackground from "@/components/auth/MusicBackground";
-import { supabase } from "@/integrations/supabase/client";
 import logoFull from "@/assets/logo-mic-heart.png";
-import kingsChatWebSdk from "kingschat-web-sdk";
-
-// KingsChat login using the official npm SDK (no external CDN required).
-const KINGSCHAT_CLIENT_ID = "5d4c8670-fd28-4be8-8484-55302b8c3bb6";
-const KC_SCOPES = ["send_chat_message"];
+import { signInWithKingsChat } from "@/lib/kingschat";
 
 const getSafeNextPath = (search: string) => {
   const next = new URLSearchParams(search).get("next");
@@ -31,9 +26,6 @@ const Auth = () => {
   const [kcLoading, setKcLoading] = useState(false);
   const nextPath = getSafeNextPath(location.search);
 
-  useEffect(() => {
-    // SDK is now bundled via npm; nothing to preload.
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
