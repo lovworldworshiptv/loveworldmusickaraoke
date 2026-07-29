@@ -1,40 +1,19 @@
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 /**
- * OAuth redirect target for KingsChat.
- * KingsChat redirects here with ?code=...&state=<nonce>.
- * We forward {code, origin: nonce} to the kingschat-callback edge function
- * and close the popup. The opener polls kingschat-poll for the session.
+ * Browser-visible landing page for /auth/kingschat/callback.
+ *
+ * The real KingsChat callback is a server-to-server POST handled by the
+ * `kingschat-callback` edge function. If a browser ever lands here, we simply
+ * tell the user it's done and close the popup — the opener tab is polling for
+ * the session.
  */
 const KingsChatCallback = () => {
   useEffect(() => {
-    const run = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get("code");
-      const nonce = params.get("state") || params.get("nonce") || "";
-      const errorParam = params.get("error");
-
-      try {
-        if (errorParam) throw new Error(errorParam);
-        if (!code && nonce) {
-          window.opener?.postMessage({ type: "KC_AUTH_COMPLETE", nonce }, window.location.origin);
-          return;
-        }
-        if (!code) throw new Error("Missing authorization code");
-        await supabase.functions.invoke("kingschat-callback", {
-          body: { code, origin: nonce },
-        });
-      } catch (e) {
-        console.error("KC callback error", e);
-      } finally {
-        // Give the opener a moment to poll
-        setTimeout(() => {
-          try { window.close(); } catch {}
-        }, 400);
-      }
-    };
-    run();
+    const t = setTimeout(() => {
+      try { window.close(); } catch { /* ignore */ }
+    }, 600);
+    return () => clearTimeout(t);
   }, []);
 
   return (
