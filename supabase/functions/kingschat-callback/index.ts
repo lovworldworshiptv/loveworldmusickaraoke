@@ -164,7 +164,10 @@ Deno.serve(async (req) => {
       error: null,
       expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
     }).eq("nonce", origin);
-    if (handoffError) throw new Error("Could not complete KingsChat sign-in handoff");
+    if (handoffError) {
+      console.error("KC handoff update failed:", JSON.stringify(handoffError));
+      throw new Error(`Could not complete KingsChat sign-in handoff: ${handoffError.message}`);
+    }
 
     return wantsHtml
       ? new Response(closeHtml("Signed in. Returning to Loveworld Music Karaoke+…"), { headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } })
