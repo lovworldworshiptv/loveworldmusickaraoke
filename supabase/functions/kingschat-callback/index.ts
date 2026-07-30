@@ -65,14 +65,42 @@ Deno.serve(async (req) => {
     if (!attempt) throw new Error("Unknown or expired origin token");
     if (new Date(attempt.expires_at) < new Date()) throw new Error("Sign-in attempt expired");
 
-    // Codes are single-use; a duplicate delivery is a no-op success.
-    if (attempt.session_data) {
-      return wantsHtml
+    const doneResponse = () =>
+      wantsHtml
         ? new Response(closeHtml("Signed in."), { headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } })
         : new Response(JSON.stringify({ ok: true, duplicate: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    // Codes are single-use; a duplicate delivery is a no-op success.
+    if (attempt.session_data) return doneResponse();
+
+    // Single-flight claim: KingsChat can deliver the same code twice (server POST
+    // + browser GET). Only the request that wins this atomic claim exchanges it;
+    // the loser waits for the winner's session instead of burning the code.
+    const { data: claimed } = await supabase
+      .from("kingschat_auth_sessions")
+      .update({ code_claimed_at: new Date().toISOString() })
+      .eq("nonce", origin)
+      .is("code_claimed_at", null)
+      .select("nonce")
+      .maybeSingle();
+
+    if (!claimed) {
+      for (let i = 0; i < 20; i++) {
+        await new Promise((r) => setTimeout(r, 500));
+        const { data: row } = await supabase
+          .from("kingschat_auth_sessions")
+          .select("session_data, error")
+          .eq("nonce", origin)
+          .maybeSingle();
+        if (row?.session_data) return doneResponse();
+        if (row?.error) throw new Error(row.error);
+        if (!row) return doneResponse(); // poller already consumed it
+      }
+      return doneResponse();
     }
 
     const tokens = await exchangeCode(code);
+
     const kcUserId = decodeJwtPayload(tokens.access_token)?.sub || "";
     if (!kcUserId) throw new Error("No subject in KingsChat access token");
 
