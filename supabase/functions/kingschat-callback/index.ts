@@ -121,8 +121,17 @@ Deno.serve(async (req) => {
       kingschat_handle: kcHandle,
     };
 
+    // IMPORTANT: sign-in must happen on a SEPARATE client. signInWithPassword
+    // mutates the client's auth state, so reusing `supabase` would downgrade all
+    // later DB calls from service_role to the signed-in user (RLS/permission errors).
+    const authClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+
     let { data: signInData, error: signInError } =
-      await supabase.auth.signInWithPassword({ email, password });
+      await authClient.auth.signInWithPassword({ email, password });
 
     if (signInError) {
       const { error: createError } = await supabase.auth.admin.createUser({
@@ -132,7 +141,7 @@ Deno.serve(async (req) => {
         user_metadata: metadata,
       });
       if (createError) throw createError;
-      const retry = await supabase.auth.signInWithPassword({ email, password });
+      const retry = await authClient.auth.signInWithPassword({ email, password });
       if (retry.error) throw retry.error;
       signInData = retry.data;
     }
@@ -164,7 +173,10 @@ Deno.serve(async (req) => {
       error: null,
       expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
     }).eq("nonce", origin);
-    if (handoffError) throw new Error("Could not complete KingsChat sign-in handoff");
+    if (handoffError) {
+      console.error("KC handoff update failed:", JSON.stringify(handoffError));
+      throw new Error(`Could not complete KingsChat sign-in handoff: ${handoffError.message}`);
+    }
 
     return wantsHtml
       ? new Response(closeHtml("Signed in. Returning to Loveworld Music Karaoke+…"), { headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } })
