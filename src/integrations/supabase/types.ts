@@ -1010,6 +1010,7 @@ export type Database = {
       }
       kingschat_auth_sessions: {
         Row: {
+          code_claimed_at: string | null
           consumed_at: string | null
           created_at: string
           error: string | null
@@ -1019,6 +1020,7 @@ export type Database = {
           session_data: Json | null
         }
         Insert: {
+          code_claimed_at?: string | null
           consumed_at?: string | null
           created_at?: string
           error?: string | null
@@ -1028,6 +1030,7 @@ export type Database = {
           session_data?: Json | null
         }
         Update: {
+          code_claimed_at?: string | null
           consumed_at?: string | null
           created_at?: string
           error?: string | null
