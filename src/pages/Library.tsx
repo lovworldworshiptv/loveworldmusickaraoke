@@ -403,12 +403,11 @@ const Library = () => {
                   </div>
                 ))}
               </div>
-            ) : albums.filter((a: any) => a.title.toLowerCase().includes(search.toLowerCase()) || a.artist.toLowerCase().includes(search.toLowerCase())).length === 0 ? (
+            ) : filteredAlbums.length === 0 ? (
               <EmptyState icon={Disc3} title="No albums found" description={search ? "Try a different search" : "No albums available yet"} />
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {albums
-                  .filter((a: any) => a.title.toLowerCase().includes(search.toLowerCase()) || a.artist.toLowerCase().includes(search.toLowerCase()))
+                {filteredAlbums
                   .map((album: any) => (
                     <button
                       key={album.id}
