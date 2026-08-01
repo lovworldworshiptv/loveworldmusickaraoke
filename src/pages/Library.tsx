@@ -461,8 +461,9 @@ const Library = () => {
                           </div>
                         </div>
                       </div>
-                      <p className="text-sm font-medium text-foreground truncate group-hover:text-gold transition-colors">{album.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">{album.artist}</p>
+                      <p className="text-sm font-medium text-foreground truncate group-hover:text-gold transition-colors"><Highlight text={album.title} query={q} /></p>
+                      <p className="text-xs text-muted-foreground truncate"><Highlight text={album.artist} query={q} /></p>
+
                     </button>
                   ))}
               </div>
