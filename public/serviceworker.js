@@ -1,6 +1,20 @@
-const CACHE_NAME = 'lmk-cache-v3';
-const METADATA_CACHE = 'lmk-metadata-v1';
+// ---------------------------------------------------------------------------
+// Cache versioning
+// Bump CACHE_VERSION on any release that changes the app shell, the cached
+// metadata shape, or the lyrics format. Every cache name is derived from it,
+// so old caches are dropped automatically on activate.
+// ---------------------------------------------------------------------------
+const CACHE_VERSION = 'v4';
+const CACHE_PREFIX = 'lmk';
+const CACHE_NAME = `${CACHE_PREFIX}-shell-${CACHE_VERSION}`;
+const METADATA_CACHE = `${CACHE_PREFIX}-metadata-${CACHE_VERSION}`;
 const KNOWN_CACHES = [CACHE_NAME, METADATA_CACHE];
+
+// Cached metadata / lyrics older than this are considered stale and pruned.
+const METADATA_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+// Hard cap on cached metadata responses (oldest evicted first).
+const METADATA_MAX_ENTRIES = 300;
+const CACHED_AT_HEADER = 'x-lmk-cached-at';
 
 const PRECACHE_URLS = [
   '/',
@@ -31,6 +45,62 @@ const isCacheableMetadataRequest = (request, url) => {
   return CACHEABLE_TABLES.includes(table);
 };
 
+// Store a response with a timestamp header so it can be expired later.
+const putMetadata = async (request, response) => {
+  const body = await response.clone().blob();
+  const headers = new Headers(response.headers);
+  headers.set(CACHED_AT_HEADER, String(Date.now()));
+  const cache = await caches.open(METADATA_CACHE);
+  await cache.put(
+    request,
+    new Response(body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    })
+  );
+};
+
+const cachedAt = (response) => {
+  const raw = response && response.headers.get(CACHED_AT_HEADER);
+  const value = raw ? Number(raw) : NaN;
+  return Number.isFinite(value) ? value : 0;
+};
+
+const isExpired = (response) => Date.now() - cachedAt(response) > METADATA_MAX_AGE_MS;
+
+// Remove expired entries, then trim the oldest ones down to the size cap.
+const pruneMetadataCache = async () => {
+  const cache = await caches.open(METADATA_CACHE);
+  const requests = await cache.keys();
+  const entries = [];
+
+  for (const request of requests) {
+    const response = await cache.match(request);
+    if (!response || isExpired(response)) {
+      await cache.delete(request);
+      continue;
+    }
+    entries.push({ request, time: cachedAt(response) });
+  }
+
+  if (entries.length > METADATA_MAX_ENTRIES) {
+    entries.sort((a, b) => a.time - b.time);
+    const overflow = entries.slice(0, entries.length - METADATA_MAX_ENTRIES);
+    await Promise.all(overflow.map((entry) => cache.delete(entry.request)));
+  }
+};
+
+// Delete every cache that does not belong to the current version.
+const deleteOutdatedCaches = async () => {
+  const keys = await caches.keys();
+  await Promise.all(
+    keys
+      .filter((key) => key.startsWith(`${CACHE_PREFIX}-`) && !KNOWN_CACHES.includes(key))
+      .map((key) => caches.delete(key))
+  );
+};
+
 // Install: precache app shell
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -42,25 +112,38 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate: clean old caches
+// Activate: drop outdated version caches, prune stale metadata/lyrics
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => key.startsWith('lmk-') && !KNOWN_CACHES.includes(key))
-          .map((key) => caches.delete(key))
-      )
-    )
+    (async () => {
+      await deleteOutdatedCaches();
+      await pruneMetadataCache().catch(() => undefined);
+      await self.clients.claim();
+      const clients = await self.clients.matchAll({ type: 'window' });
+      clients.forEach((client) =>
+        client.postMessage({ type: 'LMK_SW_ACTIVATED', version: CACHE_VERSION })
+      );
+    })()
   );
-  self.clients.claim();
 });
 
-// Allow the app to inspect / clear the offline metadata cache
+// Periodic pruning while the worker is alive (throttled to once an hour).
+let lastPruneAt = 0;
+const maybePrune = (event) => {
+  const now = Date.now();
+  if (now - lastPruneAt < 60 * 60 * 1000) return;
+  lastPruneAt = now;
+  event.waitUntil(pruneMetadataCache().catch(() => undefined));
+};
+
+// Allow the app to inspect / clear / prune the offline metadata cache
 self.addEventListener('message', (event) => {
   const data = event.data || {};
   if (data.type === 'LMK_CLEAR_METADATA_CACHE') {
     event.waitUntil(caches.delete(METADATA_CACHE));
+  }
+  if (data.type === 'LMK_PRUNE_METADATA_CACHE') {
+    event.waitUntil(pruneMetadataCache().catch(() => undefined));
   }
   if (data.type === 'LMK_METADATA_CACHE_STATS' && event.source) {
     event.waitUntil(
@@ -71,12 +154,14 @@ self.addEventListener('message', (event) => {
           event.source.postMessage({
             type: 'LMK_METADATA_CACHE_STATS_RESULT',
             entries: keys.length,
+            version: CACHE_VERSION,
           })
         )
         .catch(() => undefined)
     );
   }
 });
+
 
 // Fetch handler
 self.addEventListener('fetch', (event) => {
@@ -109,21 +194,18 @@ self.addEventListener('fetch', (event) => {
   // Song / album / playlist / article metadata + lyrics:
   // network-first, then fall back to the last good cached copy when offline.
   if (isCacheableMetadataRequest(request, url)) {
+    maybePrune(event);
     event.respondWith(
       fetch(request)
         .then((response) => {
           if (response && response.status === 200) {
-            const clone = response.clone();
-            caches
-              .open(METADATA_CACHE)
-              .then((cache) => cache.put(request, clone))
-              .catch(() => undefined);
+            event.waitUntil(putMetadata(request, response).catch(() => undefined));
           }
           return response;
         })
         .catch(async () => {
           const cached = await caches.match(request, { cacheName: METADATA_CACHE });
-          if (cached) {
+          if (cached && !isExpired(cached)) {
             const headers = new Headers(cached.headers);
             headers.set('x-lmk-offline-cache', 'hit');
             return new Response(await cached.blob(), {
@@ -132,17 +214,23 @@ self.addEventListener('fetch', (event) => {
               headers,
             });
           }
+          if (cached) {
+            // Stale beyond the max age — drop it so it cannot resurface.
+            const cache = await caches.open(METADATA_CACHE);
+            await cache.delete(request);
+          }
           return new Response('[]', {
             status: 200,
             headers: {
               'Content-Type': 'application/json',
-              'x-lmk-offline-cache': 'miss',
+              'x-lmk-offline-cache': cached ? 'expired' : 'miss',
             },
           });
         })
     );
     return;
   }
+
 
   // Network-first for the rest of the API / auth / functions traffic
   if (
