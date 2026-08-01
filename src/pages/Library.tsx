@@ -259,11 +259,31 @@ const Library = () => {
     });
   };
 
-  const filtered = songs.filter(
-    (s) =>
-      s.title.toLowerCase().includes(search.toLowerCase()) ||
-      s.artist.toLowerCase().includes(search.toLowerCase())
+  const q = search.trim().toLowerCase();
+
+  const matchesSong = (s: any) =>
+    !q ||
+    (s.title || "").toLowerCase().includes(q) ||
+    (s.artist || "").toLowerCase().includes(q) ||
+    (s.lyrics_text || "").toLowerCase().includes(q) ||
+    (s.lyrics_lrc || "").toLowerCase().includes(q);
+
+  const filtered = songs.filter(matchesSong);
+
+  const filteredAlbums = albums.filter((a: any) => !q || (a.title || "").toLowerCase().includes(q));
+
+  const filteredPlaylists = playlists.filter((pl: any) =>
+    !q ||
+    (pl.name || "").toLowerCase().includes(q) ||
+    (pl.playlist_songs || []).some((ps: any) => ps.songs && matchesSong(ps.songs))
   );
+
+  const filteredDownloads = downloads.filter((t) =>
+    !q ||
+    (t.title || "").toLowerCase().includes(q) ||
+    (t.lyricsLrc || "").toLowerCase().includes(q)
+  );
+
 
   const SongRowItem = memo(({ song, index, songList, showDownload = true }: { song: SongRow; index: number; songList: PlayerSong[]; showDownload?: boolean }) => (
     <button
