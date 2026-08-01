@@ -5,6 +5,7 @@ import { Search, Music, Disc3, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { usePlayer } from "@/contexts/PlayerContext";
+import { sortSongsByTitle, compareTitles } from "@/lib/utils";
 
 interface GlobalSearchProps {
   open: boolean;
@@ -28,7 +29,7 @@ const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
       supabase.from("albums").select("id, title, artist, cover_url").ilike("title", `%${q}%`).limit(5),
       supabase.from("profiles").select("user_id, username, avatar_url, kingschat_handle").or(`username.ilike.%${q}%,kingschat_handle.ilike.%${q}%`).limit(5),
     ]);
-    setSongs(songsRes.data || []);
+    setSongs(sortSongsByTitle(songsRes.data || []));
     setAlbums(albumsRes.data || []);
     setUsers(usersRes.data || []);
     setLoading(false);

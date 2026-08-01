@@ -7,6 +7,7 @@ import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, Mouse
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
+import { sortSongsByTitle, compareTitles } from "@/lib/utils";
 
 interface Song {
   id: string;
@@ -188,7 +189,7 @@ const AdminSongs = () => {
 
   const fetchSongs = async () => {
     const { data } = await supabase.from("songs").select("*").order("created_at", { ascending: false });
-    if (data) setSongs(data);
+    if (data) setSongs(sortSongsByTitle(data));
     setLoading(false);
   };
 

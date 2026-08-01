@@ -19,6 +19,7 @@ import { getDownloadedMeta, getDownloadedAudioUrl, getDownloadedInstrumentalUrl,
 import { checkPlaybackAllowed, revalidateLicense, setTrackLicense } from "@/lib/offlineLicense";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
+import { sortSongsByTitle, compareTitles } from "@/lib/utils";
 
 type SongRow = {
   id: string;
@@ -68,7 +69,7 @@ const Library = () => {
     enabled: isOnline,
     queryFn: async () => {
       const { data } = await supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album, is_free_download").eq("is_free_download", true);
-      return (data || []) as SongRow[];
+      return sortSongsByTitle((data || []) as SongRow[]);
     },
   });
 
@@ -79,7 +80,7 @@ const Library = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album, is_free_download").order("title");
       if (error) throw error;
-      return data as SongRow[];
+      return sortSongsByTitle((data || []) as SongRow[]);
     },
   });
 
@@ -90,7 +91,7 @@ const Library = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("favorites").select("id, song_id, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album)").eq("user_id", user!.id);
       if (error) throw error;
-      return data as any[];
+      return (data as any[]).sort((a, b) => compareTitles(a.songs?.title, b.songs?.title));
     },
   });
 

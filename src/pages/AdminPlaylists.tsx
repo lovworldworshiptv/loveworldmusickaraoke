@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { sortSongsByTitle, compareTitles } from "@/lib/utils";
 
 interface Playlist {
   id: string;
@@ -185,7 +186,7 @@ const AdminPlaylists = () => {
       supabase.from("playlist_songs").select("song_id").eq("playlist_id", playlistId),
     ]);
 
-    setAllSongs(songs || []);
+    setAllSongs(sortSongsByTitle(songs || []));
     setPlaylistSongIds(new Set((existing || []).map((e) => e.song_id)));
   };
 
