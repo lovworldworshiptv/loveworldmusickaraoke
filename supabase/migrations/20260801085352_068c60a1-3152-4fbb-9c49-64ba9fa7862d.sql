@@ -1,0 +1,1 @@
+UPDATE public.songs SET title = regexp_replace(title, '^Medly\s', 'Medley ') WHERE title ~ '^Medly\s';
