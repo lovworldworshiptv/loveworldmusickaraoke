@@ -306,9 +306,18 @@ const Library = () => {
         </div>
       )}
       <div className="flex-1 min-w-0 text-left">
-        <p className="text-sm font-medium text-foreground truncate">{song.title}</p>
-        <p className="text-xs text-muted-foreground truncate">{song.artist} • {formatDuration(song.duration_seconds)}</p>
+        <p className="text-sm font-medium text-foreground truncate"><Highlight text={song.title} query={q} /></p>
+        <p className="text-xs text-muted-foreground truncate"><Highlight text={song.artist} query={q} /> • {formatDuration(song.duration_seconds)}</p>
+        {(() => {
+          const snippet = q ? lyricsSnippet(song.lyrics_text || song.lyrics_lrc, q) : null;
+          return snippet ? (
+            <p className="text-[11px] text-muted-foreground/80 line-clamp-2 mt-0.5 italic">
+              <Highlight text={snippet} query={q} />
+            </p>
+          ) : null;
+        })()}
       </div>
+
       <div className="flex items-center gap-1">
         {showDownload && song.audio_url && (
           isDownloadedTrack(song.id) ? (
