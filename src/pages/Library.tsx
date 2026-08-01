@@ -29,6 +29,7 @@ type SongRow = {
   audio_url: string | null;
   instrumental_url: string | null;
   lyrics_lrc: string | null;
+  lyrics_text?: string | null;
   duration_seconds: number;
   album: string | null;
   is_free_download?: boolean;
