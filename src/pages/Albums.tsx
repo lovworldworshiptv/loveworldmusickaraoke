@@ -7,6 +7,7 @@ import { Disc3, Play, Shuffle, ChevronLeft, Music, Search } from "lucide-react";
 import { SongRowSkeleton, EmptyState } from "@/components/ui/loading-skeleton";
 import { useSearchParams } from "react-router-dom";
 import ShareMenu, { buildShareUrl } from "@/components/share/ShareMenu";
+import { sortSongsByTitle } from "@/lib/utils";
 
 const Albums = () => {
   const { playSong, playQueue, currentSong, isPlaying, toggleShuffle, shuffleOn } = usePlayer();
@@ -19,7 +20,7 @@ const Albums = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("albums").select("*").order("title");
       if (error) throw error;
-      return data;
+      return sortSongsByTitle(data || []);
     },
   });
 
