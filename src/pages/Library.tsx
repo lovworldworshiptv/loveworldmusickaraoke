@@ -568,8 +568,9 @@ const Library = () => {
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{song.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+                        <p className="text-sm font-medium text-foreground truncate"><Highlight text={song.title} query={q} /></p>
+                        <p className="text-xs text-muted-foreground truncate"><Highlight text={song.artist} query={q} /></p>
+
                       </div>
                       <span className="text-[10px] bg-green-500/20 text-green-600 px-1.5 py-0.5 rounded-full font-semibold">FREE</span>
                       <button
