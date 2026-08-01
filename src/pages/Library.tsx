@@ -29,6 +29,7 @@ type SongRow = {
   audio_url: string | null;
   instrumental_url: string | null;
   lyrics_lrc: string | null;
+  lyrics_text?: string | null;
   duration_seconds: number;
   album: string | null;
   is_free_download?: boolean;
@@ -37,7 +38,14 @@ type SongRow = {
 const Library = () => {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get("tab") || "all";
+  const [tab, setTab] = useState(defaultTab);
   const [search, setSearch] = useState("");
+  const searchPlaceholder =
+    tab === "albums" ? "Search album titles..."
+    : tab === "playlists" ? "Search playlists, songs, lyrics, artists..."
+    : tab === "downloads" ? "Search downloaded songs & lyrics..."
+    : "Search songs, lyrics, artists...";
+
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const navigate = useNavigate();
@@ -68,7 +76,7 @@ const Library = () => {
     queryKey: ["free-download-songs"],
     enabled: isOnline,
     queryFn: async () => {
-      const { data } = await supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album, is_free_download").eq("is_free_download", true);
+      const { data } = await supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, duration_seconds, album, is_free_download").eq("is_free_download", true);
       return sortSongsByTitle((data || []) as SongRow[]);
     },
   });
@@ -78,7 +86,7 @@ const Library = () => {
     queryKey: ["library-songs"],
     enabled: isOnline,
     queryFn: async () => {
-      const { data, error } = await supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album, is_free_download").order("title");
+      const { data, error } = await supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, duration_seconds, album, is_free_download").order("title");
       if (error) throw error;
       return sortSongsByTitle((data || []) as SongRow[]);
     },
@@ -89,7 +97,7 @@ const Library = () => {
     queryKey: ["library-favorites", user?.id],
     enabled: !!user && isOnline,
     queryFn: async () => {
-      const { data, error } = await supabase.from("favorites").select("id, song_id, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album)").eq("user_id", user!.id);
+      const { data, error } = await supabase.from("favorites").select("id, song_id, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, duration_seconds, album)").eq("user_id", user!.id);
       if (error) throw error;
       return (data as any[]).sort((a, b) => compareTitles(a.songs?.title, b.songs?.title));
     },
@@ -100,7 +108,7 @@ const Library = () => {
     queryKey: ["library-playlists", user?.id],
     enabled: !!user && isOnline,
     queryFn: async () => {
-      const { data, error } = await supabase.from("playlists").select("id, name, cover_url, created_at, playlist_songs(id, song_id, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album))").eq("user_id", user!.id).order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("playlists").select("id, name, cover_url, created_at, playlist_songs(id, song_id, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, duration_seconds, album))").eq("user_id", user!.id).order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
     },
@@ -259,11 +267,31 @@ const Library = () => {
     });
   };
 
-  const filtered = songs.filter(
-    (s) =>
-      s.title.toLowerCase().includes(search.toLowerCase()) ||
-      s.artist.toLowerCase().includes(search.toLowerCase())
+  const q = search.trim().toLowerCase();
+
+  const matchesSong = (s: any) =>
+    !q ||
+    (s.title || "").toLowerCase().includes(q) ||
+    (s.artist || "").toLowerCase().includes(q) ||
+    (s.lyrics_text || "").toLowerCase().includes(q) ||
+    (s.lyrics_lrc || "").toLowerCase().includes(q);
+
+  const filtered = songs.filter(matchesSong);
+
+  const filteredAlbums = albums.filter((a: any) => !q || (a.title || "").toLowerCase().includes(q));
+
+  const filteredPlaylists = playlists.filter((pl: any) =>
+    !q ||
+    (pl.name || "").toLowerCase().includes(q) ||
+    (pl.playlist_songs || []).some((ps: any) => ps.songs && matchesSong(ps.songs))
   );
+
+  const filteredDownloads = downloads.filter((t) =>
+    !q ||
+    (t.title || "").toLowerCase().includes(q) ||
+    (t.lyricsLrc || "").toLowerCase().includes(q)
+  );
+
 
   const SongRowItem = memo(({ song, index, songList, showDownload = true }: { song: SongRow; index: number; songList: PlayerSong[]; showDownload?: boolean }) => (
     <button
@@ -343,13 +371,13 @@ const Library = () => {
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <input
-            type="text" placeholder="Search songs, artists..."
+            type="text" placeholder={searchPlaceholder}
             value={search} onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-3 rounded-xl bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
 
-        <Tabs defaultValue={defaultTab}>
+        <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="w-full bg-muted/50 mb-4 overflow-x-auto flex-nowrap justify-start lg:justify-center">
             <TabsTrigger value="all" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">All Songs</TabsTrigger>
             <TabsTrigger value="albums" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1">
@@ -403,12 +431,11 @@ const Library = () => {
                   </div>
                 ))}
               </div>
-            ) : albums.filter((a: any) => a.title.toLowerCase().includes(search.toLowerCase()) || a.artist.toLowerCase().includes(search.toLowerCase())).length === 0 ? (
+            ) : filteredAlbums.length === 0 ? (
               <EmptyState icon={Disc3} title="No albums found" description={search ? "Try a different search" : "No albums available yet"} />
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {albums
-                  .filter((a: any) => a.title.toLowerCase().includes(search.toLowerCase()) || a.artist.toLowerCase().includes(search.toLowerCase()))
+                {filteredAlbums
                   .map((album: any) => (
                     <button
                       key={album.id}
@@ -478,11 +505,15 @@ const Library = () => {
 
                 {loadingPlaylists ? (
                   <div className="space-y-1">{Array.from({ length: 3 }).map((_, i) => <SongRowSkeleton key={i} />)}</div>
-                ) : playlists.length === 0 ? (
-                  <EmptyState icon={ListMusic} title="No playlists yet" description="Create your first playlist above" />
+                ) : filteredPlaylists.length === 0 ? (
+                  <EmptyState icon={ListMusic} title={playlists.length === 0 ? "No playlists yet" : "No playlists found"} description={playlists.length === 0 ? "Create your first playlist above" : "Try a different search term"} />
+
                 ) : (
                   <div className="space-y-4">
-                    {playlists.map((pl: any) => (
+                    {filteredPlaylists.map((pl: any) => {
+                      const plMatchesName = q ? pl.name.toLowerCase().includes(q) : false;
+                      const visibleSongs = (pl.playlist_songs || []).filter((ps: any) => ps.songs && (!q || plMatchesName || matchesSong(ps.songs)));
+                      return (
                       <div key={pl.id} className="rounded-xl border border-border p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -494,15 +525,16 @@ const Library = () => {
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                        {pl.playlist_songs?.length > 0 ? (
+                        {visibleSongs.length > 0 ? (
                           <div className="space-y-1">
-                            {(() => { const plSongs = (pl.playlist_songs || []).filter((ps: any) => ps.songs).map((ps: any) => toPlayerSong(ps.songs)); return pl.playlist_songs.map((ps: any, i: number) => ps.songs && <SongRowItem key={ps.id} song={ps.songs} index={i} songList={plSongs} />); })()}
+                            {(() => { const plSongs = visibleSongs.map((ps: any) => toPlayerSong(ps.songs)); return visibleSongs.map((ps: any, i: number) => <SongRowItem key={ps.id} song={ps.songs} index={i} songList={plSongs} />); })()}
                           </div>
                         ) : (
-                          <p className="text-xs text-muted-foreground">No songs in this playlist</p>
+                          <p className="text-xs text-muted-foreground">{q ? "No matching songs in this playlist" : "No songs in this playlist"}</p>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -546,11 +578,11 @@ const Library = () => {
             )}
 
             {/* Downloaded tracks */}
-            {downloads.length === 0 ? (
-              <EmptyState icon={Download} title="No downloads yet" description={canDownload ? "Download songs to play them offline" : "Upgrade to Premium to download songs for offline playback"} />
+            {filteredDownloads.length === 0 ? (
+              <EmptyState icon={Download} title={downloads.length === 0 ? "No downloads yet" : "No downloads found"} description={downloads.length === 0 ? (canDownload ? "Download songs to play them offline" : "Upgrade to Premium to download songs for offline playback") : "Try a different search term"} />
             ) : (
               <div className="space-y-1">
-                {downloads.map((track) => (
+                {filteredDownloads.map((track) => (
                   <div key={track.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/60">
                     {track.coverUrl ? (
                       <img src={track.coverUrl} alt={track.title} className="w-12 h-12 rounded-lg object-cover" />
