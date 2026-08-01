@@ -20,6 +20,9 @@ import { checkPlaybackAllowed, revalidateLicense, setTrackLicense } from "@/lib/
 import { useSearchParams, useNavigate } from "react-router-dom";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import { sortSongsByTitle, compareTitles } from "@/lib/utils";
+import { fuzzyMatch, lyricsSnippet } from "@/lib/fuzzySearch";
+import Highlight from "@/components/search/Highlight";
+
 
 type SongRow = {
   id: string;
