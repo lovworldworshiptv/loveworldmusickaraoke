@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { PlayerProvider } from "@/contexts/PlayerContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import AuthGate from "@/components/auth/AuthGate";
+import OfflineBanner from "@/components/offline/OfflineBanner";
 import Index from "./pages/Index";
 import Library from "./pages/Library";
 import Games from "./pages/Games";
