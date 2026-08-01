@@ -519,7 +519,7 @@ const Library = () => {
                 ) : (
                   <div className="space-y-4">
                     {filteredPlaylists.map((pl: any) => {
-                      const plMatchesName = q ? pl.name.toLowerCase().includes(q) : false;
+                      const plMatchesName = q ? fuzzyMatch(q, [pl.name]) : false;
                       const visibleSongs = (pl.playlist_songs || []).filter((ps: any) => ps.songs && (!q || plMatchesName || matchesSong(ps.songs)));
                       return (
                       <div key={pl.id} className="rounded-xl border border-border p-4">
