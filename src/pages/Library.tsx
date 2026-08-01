@@ -482,7 +482,10 @@ const Library = () => {
                   <EmptyState icon={ListMusic} title="No playlists yet" description="Create your first playlist above" />
                 ) : (
                   <div className="space-y-4">
-                    {playlists.map((pl: any) => (
+                    {filteredPlaylists.map((pl: any) => {
+                      const plMatchesName = q ? pl.name.toLowerCase().includes(q) : false;
+                      const visibleSongs = (pl.playlist_songs || []).filter((ps: any) => ps.songs && (!q || plMatchesName || matchesSong(ps.songs)));
+                      return (
                       <div key={pl.id} className="rounded-xl border border-border p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -494,15 +497,16 @@ const Library = () => {
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                        {pl.playlist_songs?.length > 0 ? (
+                        {visibleSongs.length > 0 ? (
                           <div className="space-y-1">
-                            {(() => { const plSongs = (pl.playlist_songs || []).filter((ps: any) => ps.songs).map((ps: any) => toPlayerSong(ps.songs)); return pl.playlist_songs.map((ps: any, i: number) => ps.songs && <SongRowItem key={ps.id} song={ps.songs} index={i} songList={plSongs} />); })()}
+                            {(() => { const plSongs = visibleSongs.map((ps: any) => toPlayerSong(ps.songs)); return visibleSongs.map((ps: any, i: number) => <SongRowItem key={ps.id} song={ps.songs} index={i} songList={plSongs} />); })()}
                           </div>
                         ) : (
-                          <p className="text-xs text-muted-foreground">No songs in this playlist</p>
+                          <p className="text-xs text-muted-foreground">{q ? "No matching songs in this playlist" : "No songs in this playlist"}</p>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
