@@ -19,7 +19,7 @@ const Albums = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("albums").select("*").order("title");
       if (error) throw error;
-      return data;
+      return sortSongsByTitle(data || []);
     },
   });
 
