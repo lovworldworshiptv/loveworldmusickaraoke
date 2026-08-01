@@ -71,7 +71,7 @@ const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
   }, [open]);
 
   useEffect(() => {
-    const t = setTimeout(() => search(query), 300);
+    const t = setTimeout(() => search(query), 180);
     return () => clearTimeout(t);
   }, [query, search]);
 
@@ -89,6 +89,38 @@ const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
 
   const hasResults = songs.length > 0 || albums.length > 0 || playlists.length > 0 || articles.length > 0 || users.length > 0;
 
+  /** Autocomplete terms derived from live results, ranked by prefix match. */
+  const suggestions = useMemo(() => {
+    const nq = normalize(query);
+    if (nq.length < 2) return [] as { label: string; kind: string }[];
+    const raw: { label: string; kind: string }[] = [
+      ...songs.map(s => ({ label: s.title, kind: "Song" })),
+      ...songs.map(s => ({ label: s.artist, kind: "Artist" })),
+      ...albums.map(a => ({ label: a.title, kind: "Album" })),
+      ...playlists.map(p => ({ label: p.name, kind: "Playlist" })),
+      ...articles.map(a => ({ label: a.title, kind: "Article" })),
+    ];
+    const seen = new Set<string>();
+    const scored: { label: string; kind: string; score: number }[] = [];
+    for (const item of raw) {
+      if (!item.label) continue;
+      const n = normalize(item.label);
+      if (!n || seen.has(n) || n === nq) continue;
+      let score = -1;
+      if (n.startsWith(nq)) score = 0;
+      else if (n.split(" ").some(w => w.startsWith(nq))) score = 1;
+      else if (n.includes(nq)) score = 2;
+      if (score < 0) continue;
+      seen.add(n);
+      scored.push({ ...item, score });
+    }
+    return scored
+      .sort((a, b) => a.score - b.score || a.label.length - b.label.length)
+      .slice(0, 6);
+  }, [query, songs, albums, playlists, articles]);
+
+  const applySuggestion = (label: string) => setQuery(label);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md p-0 gap-0 overflow-hidden">
@@ -97,11 +129,35 @@ const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
           <Input
             value={query}
             onChange={e => setQuery(e.target.value)}
+            onKeyDown={e => {
+              if ((e.key === "Tab" || e.key === "ArrowRight") && suggestions[0] && e.currentTarget.selectionStart === query.length) {
+                if (e.key === "Tab") e.preventDefault();
+                if (e.key === "ArrowRight" && query.length > 0) return;
+                applySuggestion(suggestions[0].label);
+              }
+            }}
             placeholder="Search songs, lyrics, albums, playlists, articles…"
             className="border-0 bg-transparent focus-visible:ring-0 px-0 h-auto text-sm"
             autoFocus
           />
         </div>
+        {suggestions.length > 0 && (
+          <div className="flex gap-1.5 overflow-x-auto px-3 py-2 border-b border-border/60 scrollbar-none">
+            {suggestions.map(s => (
+              <button
+                key={`${s.kind}-${s.label}`}
+                onClick={() => applySuggestion(s.label)}
+                className="flex items-center gap-1.5 flex-shrink-0 rounded-full border border-border bg-muted/40 px-3 py-1 text-xs text-foreground hover:bg-muted transition-colors"
+              >
+                <span className="truncate max-w-[160px]">{s.label}</span>
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{s.kind}</span>
+              </button>
+            ))}
+            <span className="hidden sm:flex items-center gap-1 flex-shrink-0 pl-1 text-[10px] text-muted-foreground">
+              <CornerDownLeft className="w-3 h-3" /> Tab
+            </span>
+          </div>
+        )}
         <div className="max-h-[60vh] overflow-y-auto">
           {loading && <p className="text-xs text-muted-foreground text-center py-6">Searching…</p>}
           {!loading && query.length >= 2 && !hasResults && (
