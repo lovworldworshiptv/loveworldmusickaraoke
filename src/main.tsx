@@ -12,8 +12,22 @@ const isMedian = typeof (window as any).median !== 'undefined'
   || ua.includes('gonative');
 
 if ('serviceWorker' in navigator && !isMedian && import.meta.env.PROD) {
-  navigator.serviceWorker.register('/serviceworker.js');
+  navigator.serviceWorker.register('/serviceworker.js').then((registration) => {
+    // Pull in a new worker version as soon as one is published.
+    registration.update().catch(() => undefined);
+    // Ask the active worker to drop expired lyrics/metadata on each app start.
+    navigator.serviceWorker.ready.then((ready) => {
+      ready.active?.postMessage({ type: 'LMK_PRUNE_METADATA_CACHE' });
+    });
+  }).catch(() => undefined);
+
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data?.type === 'LMK_SW_ACTIVATED') {
+      console.info('[SW] active cache version:', event.data.version);
+    }
+  });
 }
+
 
 if ('serviceWorker' in navigator && import.meta.env.DEV) {
   navigator.serviceWorker.getRegistrations().then((registrations) => {
