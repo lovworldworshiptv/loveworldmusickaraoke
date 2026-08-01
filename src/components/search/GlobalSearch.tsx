@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Search, Music, Disc3, User, ListMusic, BookOpen } from "lucide-react";
+import { Search, Music, Disc3, User, ListMusic, BookOpen, CornerDownLeft } from "lucide-react";
+import { normalize } from "@/lib/fuzzySearch";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { usePlayer } from "@/contexts/PlayerContext";
