@@ -37,7 +37,14 @@ type SongRow = {
 const Library = () => {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get("tab") || "all";
+  const [tab, setTab] = useState(defaultTab);
   const [search, setSearch] = useState("");
+  const searchPlaceholder =
+    tab === "albums" ? "Search album titles..."
+    : tab === "playlists" ? "Search playlists, songs, lyrics, artists..."
+    : tab === "downloads" ? "Search downloaded songs & lyrics..."
+    : "Search songs, lyrics, artists...";
+
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const navigate = useNavigate();
