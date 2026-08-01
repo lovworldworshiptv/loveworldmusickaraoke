@@ -343,13 +343,13 @@ const Library = () => {
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <input
-            type="text" placeholder="Search songs, artists..."
+            type="text" placeholder={searchPlaceholder}
             value={search} onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-3 rounded-xl bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
 
-        <Tabs defaultValue={defaultTab}>
+        <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="w-full bg-muted/50 mb-4 overflow-x-auto flex-nowrap justify-start lg:justify-center">
             <TabsTrigger value="all" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">All Songs</TabsTrigger>
             <TabsTrigger value="albums" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1">
