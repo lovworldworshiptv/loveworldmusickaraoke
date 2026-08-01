@@ -194,21 +194,18 @@ self.addEventListener('fetch', (event) => {
   // Song / album / playlist / article metadata + lyrics:
   // network-first, then fall back to the last good cached copy when offline.
   if (isCacheableMetadataRequest(request, url)) {
+    maybePrune(event);
     event.respondWith(
       fetch(request)
         .then((response) => {
           if (response && response.status === 200) {
-            const clone = response.clone();
-            caches
-              .open(METADATA_CACHE)
-              .then((cache) => cache.put(request, clone))
-              .catch(() => undefined);
+            event.waitUntil(putMetadata(request, response).catch(() => undefined));
           }
           return response;
         })
         .catch(async () => {
           const cached = await caches.match(request, { cacheName: METADATA_CACHE });
-          if (cached) {
+          if (cached && !isExpired(cached)) {
             const headers = new Headers(cached.headers);
             headers.set('x-lmk-offline-cache', 'hit');
             return new Response(await cached.blob(), {
@@ -217,17 +214,23 @@ self.addEventListener('fetch', (event) => {
               headers,
             });
           }
+          if (cached) {
+            // Stale beyond the max age — drop it so it cannot resurface.
+            const cache = await caches.open(METADATA_CACHE);
+            await cache.delete(request);
+          }
           return new Response('[]', {
             status: 200,
             headers: {
               'Content-Type': 'application/json',
-              'x-lmk-offline-cache': 'miss',
+              'x-lmk-offline-cache': cached ? 'expired' : 'miss',
             },
           });
         })
     );
     return;
   }
+
 
   // Network-first for the rest of the API / auth / functions traffic
   if (
