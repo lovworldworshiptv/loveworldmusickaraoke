@@ -75,7 +75,7 @@ const Library = () => {
     queryKey: ["free-download-songs"],
     enabled: isOnline,
     queryFn: async () => {
-      const { data } = await supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album, is_free_download").eq("is_free_download", true);
+      const { data } = await supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, duration_seconds, album, is_free_download").eq("is_free_download", true);
       return sortSongsByTitle((data || []) as SongRow[]);
     },
   });
@@ -85,7 +85,7 @@ const Library = () => {
     queryKey: ["library-songs"],
     enabled: isOnline,
     queryFn: async () => {
-      const { data, error } = await supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album, is_free_download").order("title");
+      const { data, error } = await supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, duration_seconds, album, is_free_download").order("title");
       if (error) throw error;
       return sortSongsByTitle((data || []) as SongRow[]);
     },
@@ -96,7 +96,7 @@ const Library = () => {
     queryKey: ["library-favorites", user?.id],
     enabled: !!user && isOnline,
     queryFn: async () => {
-      const { data, error } = await supabase.from("favorites").select("id, song_id, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album)").eq("user_id", user!.id);
+      const { data, error } = await supabase.from("favorites").select("id, song_id, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, duration_seconds, album)").eq("user_id", user!.id);
       if (error) throw error;
       return (data as any[]).sort((a, b) => compareTitles(a.songs?.title, b.songs?.title));
     },
@@ -107,7 +107,7 @@ const Library = () => {
     queryKey: ["library-playlists", user?.id],
     enabled: !!user && isOnline,
     queryFn: async () => {
-      const { data, error } = await supabase.from("playlists").select("id, name, cover_url, created_at, playlist_songs(id, song_id, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album))").eq("user_id", user!.id).order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("playlists").select("id, name, cover_url, created_at, playlist_songs(id, song_id, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, duration_seconds, album))").eq("user_id", user!.id).order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
     },
