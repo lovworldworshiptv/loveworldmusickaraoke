@@ -601,11 +601,18 @@ const Library = () => {
                       </div>
                     )}
                     <button onClick={() => playOfflineTrack(track)} className="flex-1 min-w-0 text-left">
-                      <p className="text-sm font-medium text-foreground truncate">{track.title}</p>
+                      <p className="text-sm font-medium text-foreground truncate"><Highlight text={track.title} query={q} /></p>
                       <div className="flex items-center gap-2">
-                        <p className="text-xs text-muted-foreground truncate">{track.artist} • {formatDuration(track.durationSeconds)}</p>
+                        <p className="text-xs text-muted-foreground truncate"><Highlight text={track.artist} query={q} /> • {formatDuration(track.durationSeconds)}</p>
                         {track.isFreeDownload && <span className="text-[9px] bg-green-500/20 text-green-600 px-1 py-0.5 rounded font-semibold">FREE</span>}
                       </div>
+                      {(() => {
+                        const snippet = q ? lyricsSnippet(track.lyricsLrc, q) : null;
+                        return snippet ? (
+                          <p className="text-[11px] text-muted-foreground/80 line-clamp-2 mt-0.5 italic"><Highlight text={snippet} query={q} /></p>
+                        ) : null;
+                      })()}
+
                     </button>
                     <button
                       onClick={() => setConfirmDeleteId(track.id)}
