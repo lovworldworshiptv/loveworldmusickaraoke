@@ -267,30 +267,25 @@ const Library = () => {
     });
   };
 
-  const q = search.trim().toLowerCase();
+  const q = search.trim();
 
   const matchesSong = (s: any) =>
-    !q ||
-    (s.title || "").toLowerCase().includes(q) ||
-    (s.artist || "").toLowerCase().includes(q) ||
-    (s.lyrics_text || "").toLowerCase().includes(q) ||
-    (s.lyrics_lrc || "").toLowerCase().includes(q);
+    !q || fuzzyMatch(q, [s.title, s.artist, s.album, s.lyrics_text, s.lyrics_lrc]);
 
   const filtered = songs.filter(matchesSong);
 
-  const filteredAlbums = albums.filter((a: any) => !q || (a.title || "").toLowerCase().includes(q));
+  const filteredAlbums = albums.filter((a: any) => !q || fuzzyMatch(q, [a.title]));
 
   const filteredPlaylists = playlists.filter((pl: any) =>
     !q ||
-    (pl.name || "").toLowerCase().includes(q) ||
+    fuzzyMatch(q, [pl.name]) ||
     (pl.playlist_songs || []).some((ps: any) => ps.songs && matchesSong(ps.songs))
   );
 
   const filteredDownloads = downloads.filter((t) =>
-    !q ||
-    (t.title || "").toLowerCase().includes(q) ||
-    (t.lyricsLrc || "").toLowerCase().includes(q)
+    !q || fuzzyMatch(q, [t.title, t.artist, t.album, t.lyricsLrc])
   );
+
 
 
   const SongRowItem = memo(({ song, index, songList, showDownload = true }: { song: SongRow; index: number; songList: PlayerSong[]; showDownload?: boolean }) => (
