@@ -526,7 +526,7 @@ const Library = () => {
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
                             <ListMusic className="w-5 h-5 text-primary" />
-                            <h3 className="font-semibold text-foreground">{pl.name}</h3>
+                            <h3 className="font-semibold text-foreground"><Highlight text={pl.name} query={q} /></h3>
                             <span className="text-xs text-muted-foreground">({pl.playlist_songs?.length ?? 0} songs)</span>
                           </div>
                           <button onClick={() => deletePlaylist.mutate(pl.id)} className="p-2 text-muted-foreground hover:text-destructive transition-colors touch-target">
