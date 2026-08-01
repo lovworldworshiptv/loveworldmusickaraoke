@@ -546,11 +546,11 @@ const Library = () => {
             )}
 
             {/* Downloaded tracks */}
-            {downloads.length === 0 ? (
-              <EmptyState icon={Download} title="No downloads yet" description={canDownload ? "Download songs to play them offline" : "Upgrade to Premium to download songs for offline playback"} />
+            {filteredDownloads.length === 0 ? (
+              <EmptyState icon={Download} title={downloads.length === 0 ? "No downloads yet" : "No downloads found"} description={downloads.length === 0 ? (canDownload ? "Download songs to play them offline" : "Upgrade to Premium to download songs for offline playback") : "Try a different search term"} />
             ) : (
               <div className="space-y-1">
-                {downloads.map((track) => (
+                {filteredDownloads.map((track) => (
                   <div key={track.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/60">
                     {track.coverUrl ? (
                       <img src={track.coverUrl} alt={track.title} className="w-12 h-12 rounded-lg object-cover" />
