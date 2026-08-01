@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
+import { sortSongsByTitle, compareTitles } from "@/lib/utils";
 
 const tabs = [
   { id: "articles", label: "Articles", icon: BookOpen, path: "/articles", desc: "Read inspiring articles and devotionals" },
@@ -34,8 +35,7 @@ const Discover = () => {
   });
 
   const sortedSongs = useMemo(() => {
-    if (!sortAZ) return songResults;
-    return [...songResults].sort((a: any, b: any) => (a.title || "").localeCompare(b.title || ""));
+    return sortSongsByTitle(songResults as any[]);
   }, [songResults, sortAZ]);
 
   const { data: articleResults = [] } = useQuery({

@@ -8,6 +8,7 @@ import ShareInviteButton from "@/components/articles/ShareInviteButton";
 import BibleWidget from "@/components/articles/BibleWidget";
 
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
+import { sortSongsByTitle, compareTitles } from "@/lib/utils";
 
 interface Article {
   id: string;
@@ -109,7 +110,7 @@ const Articles = () => {
     // Fetch songs for the picker
     if (allSongs.length === 0) {
       const { data } = await supabase.from("songs").select("id, title, artist, cover_url, audio_url, duration_seconds").not("audio_url", "is", null).order("title");
-      if (data) setAllSongs(data);
+      if (data) setAllSongs(sortSongsByTitle(data));
     }
     setShowSongPicker(true);
   };

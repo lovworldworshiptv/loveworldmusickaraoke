@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { SongRowSkeleton, EmptyState } from "@/components/ui/loading-skeleton";
 import { toast } from "sonner";
 import ShareMenu, { buildShareUrl } from "@/components/share/ShareMenu";
+import { sortSongsByTitle, compareTitles } from "@/lib/utils";
 
 const Playlists = () => {
   const { user } = useAuth();
@@ -113,7 +114,7 @@ const Playlists = () => {
       supabase.from("songs").select("id, title, artist, cover_url").order("title"),
       supabase.from("playlist_songs").select("song_id").eq("playlist_id", playlistId),
     ]);
-    setAllSongs(songs || []);
+    setAllSongs(sortSongsByTitle(songs || []));
     setPlaylistSongIds(new Set((existing || []).map((e) => e.song_id)));
   };
 
