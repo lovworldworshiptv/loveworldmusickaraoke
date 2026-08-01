@@ -20,6 +20,9 @@ import { checkPlaybackAllowed, revalidateLicense, setTrackLicense } from "@/lib/
 import { useSearchParams, useNavigate } from "react-router-dom";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import { sortSongsByTitle, compareTitles } from "@/lib/utils";
+import { fuzzyMatch, lyricsSnippet } from "@/lib/fuzzySearch";
+import Highlight from "@/components/search/Highlight";
+
 
 type SongRow = {
   id: string;
@@ -267,30 +270,25 @@ const Library = () => {
     });
   };
 
-  const q = search.trim().toLowerCase();
+  const q = search.trim();
 
   const matchesSong = (s: any) =>
-    !q ||
-    (s.title || "").toLowerCase().includes(q) ||
-    (s.artist || "").toLowerCase().includes(q) ||
-    (s.lyrics_text || "").toLowerCase().includes(q) ||
-    (s.lyrics_lrc || "").toLowerCase().includes(q);
+    !q || fuzzyMatch(q, [s.title, s.artist, s.album, s.lyrics_text, s.lyrics_lrc]);
 
   const filtered = songs.filter(matchesSong);
 
-  const filteredAlbums = albums.filter((a: any) => !q || (a.title || "").toLowerCase().includes(q));
+  const filteredAlbums = albums.filter((a: any) => !q || fuzzyMatch(q, [a.title]));
 
   const filteredPlaylists = playlists.filter((pl: any) =>
     !q ||
-    (pl.name || "").toLowerCase().includes(q) ||
+    fuzzyMatch(q, [pl.name]) ||
     (pl.playlist_songs || []).some((ps: any) => ps.songs && matchesSong(ps.songs))
   );
 
   const filteredDownloads = downloads.filter((t) =>
-    !q ||
-    (t.title || "").toLowerCase().includes(q) ||
-    (t.lyricsLrc || "").toLowerCase().includes(q)
+    !q || fuzzyMatch(q, [t.title, t.artist, t.album, t.lyricsLrc])
   );
+
 
 
   const SongRowItem = memo(({ song, index, songList, showDownload = true }: { song: SongRow; index: number; songList: PlayerSong[]; showDownload?: boolean }) => (
@@ -308,9 +306,18 @@ const Library = () => {
         </div>
       )}
       <div className="flex-1 min-w-0 text-left">
-        <p className="text-sm font-medium text-foreground truncate">{song.title}</p>
-        <p className="text-xs text-muted-foreground truncate">{song.artist} • {formatDuration(song.duration_seconds)}</p>
+        <p className="text-sm font-medium text-foreground truncate"><Highlight text={song.title} query={q} /></p>
+        <p className="text-xs text-muted-foreground truncate"><Highlight text={song.artist} query={q} /> • {formatDuration(song.duration_seconds)}</p>
+        {(() => {
+          const snippet = q ? lyricsSnippet(song.lyrics_text || song.lyrics_lrc, q) : null;
+          return snippet ? (
+            <p className="text-[11px] text-muted-foreground/80 line-clamp-2 mt-0.5 italic">
+              <Highlight text={snippet} query={q} />
+            </p>
+          ) : null;
+        })()}
       </div>
+
       <div className="flex items-center gap-1">
         {showDownload && song.audio_url && (
           isDownloadedTrack(song.id) ? (
@@ -454,8 +461,9 @@ const Library = () => {
                           </div>
                         </div>
                       </div>
-                      <p className="text-sm font-medium text-foreground truncate group-hover:text-gold transition-colors">{album.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">{album.artist}</p>
+                      <p className="text-sm font-medium text-foreground truncate group-hover:text-gold transition-colors"><Highlight text={album.title} query={q} /></p>
+                      <p className="text-xs text-muted-foreground truncate"><Highlight text={album.artist} query={q} /></p>
+
                     </button>
                   ))}
               </div>
@@ -511,14 +519,14 @@ const Library = () => {
                 ) : (
                   <div className="space-y-4">
                     {filteredPlaylists.map((pl: any) => {
-                      const plMatchesName = q ? pl.name.toLowerCase().includes(q) : false;
+                      const plMatchesName = q ? fuzzyMatch(q, [pl.name]) : false;
                       const visibleSongs = (pl.playlist_songs || []).filter((ps: any) => ps.songs && (!q || plMatchesName || matchesSong(ps.songs)));
                       return (
                       <div key={pl.id} className="rounded-xl border border-border p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
                             <ListMusic className="w-5 h-5 text-primary" />
-                            <h3 className="font-semibold text-foreground">{pl.name}</h3>
+                            <h3 className="font-semibold text-foreground"><Highlight text={pl.name} query={q} /></h3>
                             <span className="text-xs text-muted-foreground">({pl.playlist_songs?.length ?? 0} songs)</span>
                           </div>
                           <button onClick={() => deletePlaylist.mutate(pl.id)} className="p-2 text-muted-foreground hover:text-destructive transition-colors touch-target">
@@ -560,8 +568,9 @@ const Library = () => {
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{song.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+                        <p className="text-sm font-medium text-foreground truncate"><Highlight text={song.title} query={q} /></p>
+                        <p className="text-xs text-muted-foreground truncate"><Highlight text={song.artist} query={q} /></p>
+
                       </div>
                       <span className="text-[10px] bg-green-500/20 text-green-600 px-1.5 py-0.5 rounded-full font-semibold">FREE</span>
                       <button
@@ -592,11 +601,18 @@ const Library = () => {
                       </div>
                     )}
                     <button onClick={() => playOfflineTrack(track)} className="flex-1 min-w-0 text-left">
-                      <p className="text-sm font-medium text-foreground truncate">{track.title}</p>
+                      <p className="text-sm font-medium text-foreground truncate"><Highlight text={track.title} query={q} /></p>
                       <div className="flex items-center gap-2">
-                        <p className="text-xs text-muted-foreground truncate">{track.artist} • {formatDuration(track.durationSeconds)}</p>
+                        <p className="text-xs text-muted-foreground truncate"><Highlight text={track.artist} query={q} /> • {formatDuration(track.durationSeconds)}</p>
                         {track.isFreeDownload && <span className="text-[9px] bg-green-500/20 text-green-600 px-1 py-0.5 rounded font-semibold">FREE</span>}
                       </div>
+                      {(() => {
+                        const snippet = q ? lyricsSnippet(track.lyricsLrc, q) : null;
+                        return snippet ? (
+                          <p className="text-[11px] text-muted-foreground/80 line-clamp-2 mt-0.5 italic"><Highlight text={snippet} query={q} /></p>
+                        ) : null;
+                      })()}
+
                     </button>
                     <button
                       onClick={() => setConfirmDeleteId(track.id)}
