@@ -478,8 +478,9 @@ const Library = () => {
 
                 {loadingPlaylists ? (
                   <div className="space-y-1">{Array.from({ length: 3 }).map((_, i) => <SongRowSkeleton key={i} />)}</div>
-                ) : playlists.length === 0 ? (
-                  <EmptyState icon={ListMusic} title="No playlists yet" description="Create your first playlist above" />
+                ) : filteredPlaylists.length === 0 ? (
+                  <EmptyState icon={ListMusic} title={playlists.length === 0 ? "No playlists yet" : "No playlists found"} description={playlists.length === 0 ? "Create your first playlist above" : "Try a different search term"} />
+
                 ) : (
                   <div className="space-y-4">
                     {filteredPlaylists.map((pl: any) => {
