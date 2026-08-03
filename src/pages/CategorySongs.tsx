@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { Music, Play, Pause, Shuffle, ListMusic } from "lucide-react";
 import { useMemo } from "react";
+import ShareTrackButton from "@/components/share/ShareTrackButton";
 
 const CategorySongs = () => {
   const { id } = useParams<{ id: string }>();
@@ -149,10 +150,13 @@ const CategorySongs = () => {
             {songs.map((song: any, index: number) => {
               const isActive = currentSong?.id === song.id;
               return (
-                <button
+                <div
                   key={song.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => playQueue(playerSongs, index)}
-                  className={`group flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-200 hover:bg-muted/60 animate-fade-in ${
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); playQueue(playerSongs, index); } }}
+                  className={`group flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-200 hover:bg-muted/60 animate-fade-in cursor-pointer ${
                     isActive ? "bg-muted/80 ring-1 ring-primary/50" : ""
                   }`}
                   style={{ animationDelay: `${Math.min(index * 0.03, 0.5)}s` }}
@@ -197,7 +201,11 @@ const CategorySongs = () => {
                       {formatDuration(song.duration_seconds)}
                     </span>
                   )}
-                </button>
+                  <ShareTrackButton
+                    track={{ id: song.id, title: song.title, artist: song.artist, coverUrl: song.cover_url }}
+                    className="p-1 text-muted-foreground hover:text-gold transition-colors opacity-70 group-hover:opacity-100"
+                  />
+                </div>
               );
             })}
           </div>

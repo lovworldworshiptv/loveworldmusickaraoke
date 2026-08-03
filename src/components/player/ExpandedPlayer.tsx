@@ -15,7 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Crown } from "lucide-react";
 import KaraokeRecorder from "@/components/karaoke/KaraokeRecorder";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
-import { ListPlus } from "lucide-react";
+import { ListPlus, Share2 } from "lucide-react";
+import ShareTrackButton from "@/components/share/ShareTrackButton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 const formatTime = (s: number) => {
@@ -223,6 +224,13 @@ const ExpandedPlayer = () => {
                   <Slider value={[volume * 100]} onValueChange={([v]) => setVolume(v / 100)} max={100} step={1} className="w-20" />
                 </div>
               </>
+            )}
+            {currentSong && (
+              <ShareTrackButton
+                track={{ id: currentSong.id, title: currentSong.title, artist: currentSong.artist, coverUrl: currentSong.coverUrl }}
+                className="text-muted-foreground hover:text-gold transition-colors p-1"
+                iconClassName="w-5 h-5"
+              />
             )}
             <button onClick={toggleFavorite} className={`transition-colors p-1 ${isFav ? "text-gold" : "text-muted-foreground hover:text-gold"}`}>
               <Heart className="w-5 h-5" fill={isFav ? "currentColor" : "none"} />
@@ -511,6 +519,18 @@ const ExpandedPlayer = () => {
               <ListPlus className="w-5 h-5" />
               Add to Playlist
             </button>
+          )}
+          {/* Share */}
+          {currentSong && (
+            <ShareTrackButton
+              track={{ id: currentSong.id, title: currentSong.title, artist: currentSong.artist, coverUrl: currentSong.coverUrl }}
+              trigger={
+                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors text-foreground">
+                  <Share2 className="w-5 h-5" />
+                  Share Track
+                </button>
+              }
+            />
           )}
         </nav>
       </SheetContent>

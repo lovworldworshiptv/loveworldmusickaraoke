@@ -1,4 +1,5 @@
-import { useState, useEffect, memo, useCallback } from "react";
+import { useState, useEffect, memo, useCallback, useRef } from "react";
+import ShareTrackButton from "@/components/share/ShareTrackButton";
 import AppLayout from "@/components/layout/AppLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Search, Play, Heart, Plus, Music, ListMusic, Trash2, Shuffle, Download, Lock, Crown, WifiOff, ListPlus, Disc3 } from "lucide-react";
@@ -94,6 +95,26 @@ const Library = () => {
       return sortSongsByTitle((data || []) as SongRow[]);
     },
   });
+
+  // Deep link: /library?song=<id> auto-plays the shared track
+  const sharedSongId = searchParams.get("song");
+  const handledSharedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!sharedSongId || songs.length === 0) return;
+    if (handledSharedRef.current === sharedSongId) return;
+    const idx = songs.findIndex((s: SongRow) => s.id === sharedSongId);
+    if (idx === -1) return;
+    handledSharedRef.current = sharedSongId;
+    playQueue(
+      songs.map((s: SongRow) => ({
+        id: s.id, title: s.title, artist: s.artist, album: s.album || undefined,
+        coverUrl: s.cover_url || undefined, audioUrl: s.audio_url || undefined,
+        instrumentalUrl: s.instrumental_url || undefined, lyricsLrc: s.lyrics_lrc || undefined,
+        durationSeconds: s.duration_seconds,
+      })),
+      idx
+    );
+  }, [sharedSongId, songs, playQueue]);
 
   // Fetch favorites
   const { data: favorites = [], isLoading: loadingFavs } = useQuery({
@@ -292,9 +313,12 @@ const Library = () => {
 
 
   const SongRowItem = memo(({ song, index, songList, showDownload = true }: { song: SongRow; index: number; songList: PlayerSong[]; showDownload?: boolean }) => (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => playQueue(songList, index)}
-      className={`flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-200 active:scale-[0.98] hover:bg-muted/60 touch-target ${
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); playQueue(songList, index); } }}
+      className={`flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-200 active:scale-[0.98] hover:bg-muted/60 touch-target cursor-pointer ${
         currentSong?.id === song.id ? "bg-muted/80 ring-1 ring-primary" : ""
       }`}
     >
@@ -347,6 +371,10 @@ const Library = () => {
             <ListPlus className="w-4 h-4 text-muted-foreground" />
           </button>
         )}
+        <ShareTrackButton
+          track={{ id: song.id, title: song.title, artist: song.artist, coverUrl: song.cover_url }}
+          className="p-2 touch-target text-muted-foreground hover:text-gold transition-colors"
+        />
         {user && (
           <button
             onClick={(e) => { e.stopPropagation(); toggleFav.mutate(song.id); }}
@@ -367,8 +395,9 @@ const Library = () => {
           </div>
         )}
       </div>
-    </button>
+    </div>
   ));
+
 
   return (
     <AppLayout>

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Crown } from "lucide-react";
+import ShareTrackButton from "@/components/share/ShareTrackButton";
 
 interface SongCardProps {
   song: PlayerSong;
@@ -84,6 +85,11 @@ const SongCard = memo(({ song, index, allSongs }: SongCardProps) => {
         </div>
         <div className="flex items-center gap-1">
           <p className="text-sm font-medium text-foreground truncate flex-1 group-hover:text-gold transition-colors duration-200">{song.title}</p>
+          <ShareTrackButton
+            track={{ id: song.id, title: song.title, artist: song.artist, coverUrl: song.coverUrl }}
+            className="flex-shrink-0 p-0.5 text-muted-foreground hover:text-gold transition-colors"
+            iconClassName="w-3.5 h-3.5"
+          />
           {song.audioUrl && (
             dlState === "done" ? (
               <Download className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
