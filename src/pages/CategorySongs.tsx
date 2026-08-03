@@ -201,7 +201,11 @@ const CategorySongs = () => {
                       {formatDuration(song.duration_seconds)}
                     </span>
                   )}
-                </button>
+                  <ShareTrackButton
+                    track={{ id: song.id, title: song.title, artist: song.artist, coverUrl: song.cover_url }}
+                    className="p-1 text-muted-foreground hover:text-gold transition-colors opacity-70 group-hover:opacity-100"
+                  />
+                </div>
               );
             })}
           </div>
