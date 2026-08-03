@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Crown } from "lucide-react";
 import KaraokeRecorder from "@/components/karaoke/KaraokeRecorder";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
-import { ListPlus } from "lucide-react";
+import { ListPlus, Share2 } from "lucide-react";
 import ShareTrackButton from "@/components/share/ShareTrackButton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
