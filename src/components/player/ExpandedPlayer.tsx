@@ -520,6 +520,18 @@ const ExpandedPlayer = () => {
               Add to Playlist
             </button>
           )}
+          {/* Share */}
+          {currentSong && (
+            <ShareTrackButton
+              track={{ id: currentSong.id, title: currentSong.title, artist: currentSong.artist, coverUrl: currentSong.coverUrl }}
+              trigger={
+                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors text-foreground">
+                  <Share2 className="w-5 h-5" />
+                  Share Track
+                </button>
+              }
+            />
+          )}
         </nav>
       </SheetContent>
     </Sheet>
