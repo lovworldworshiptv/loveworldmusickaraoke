@@ -150,10 +150,13 @@ const CategorySongs = () => {
             {songs.map((song: any, index: number) => {
               const isActive = currentSong?.id === song.id;
               return (
-                <button
+                <div
                   key={song.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => playQueue(playerSongs, index)}
-                  className={`group flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-200 hover:bg-muted/60 animate-fade-in ${
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); playQueue(playerSongs, index); } }}
+                  className={`group flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-200 hover:bg-muted/60 animate-fade-in cursor-pointer ${
                     isActive ? "bg-muted/80 ring-1 ring-primary/50" : ""
                   }`}
                   style={{ animationDelay: `${Math.min(index * 0.03, 0.5)}s` }}
