@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { Music, Play, Pause, Shuffle, ListMusic } from "lucide-react";
 import { useMemo } from "react";
+import ShareTrackButton from "@/components/share/ShareTrackButton";
 
 const CategorySongs = () => {
   const { id } = useParams<{ id: string }>();

@@ -225,6 +225,13 @@ const ExpandedPlayer = () => {
                 </div>
               </>
             )}
+            {currentSong && (
+              <ShareTrackButton
+                track={{ id: currentSong.id, title: currentSong.title, artist: currentSong.artist, coverUrl: currentSong.coverUrl }}
+                className="text-muted-foreground hover:text-gold transition-colors p-1"
+                iconClassName="w-5 h-5"
+              />
+            )}
             <button onClick={toggleFavorite} className={`transition-colors p-1 ${isFav ? "text-gold" : "text-muted-foreground hover:text-gold"}`}>
               <Heart className="w-5 h-5" fill={isFav ? "currentColor" : "none"} />
             </button>
