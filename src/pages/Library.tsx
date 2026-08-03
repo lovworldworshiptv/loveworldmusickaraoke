@@ -371,6 +371,10 @@ const Library = () => {
             <ListPlus className="w-4 h-4 text-muted-foreground" />
           </button>
         )}
+        <ShareTrackButton
+          track={{ id: song.id, title: song.title, artist: song.artist, coverUrl: song.cover_url }}
+          className="p-2 touch-target text-muted-foreground hover:text-gold transition-colors"
+        />
         {user && (
           <button
             onClick={(e) => { e.stopPropagation(); toggleFav.mutate(song.id); }}
@@ -391,8 +395,9 @@ const Library = () => {
           </div>
         )}
       </div>
-    </button>
+    </div>
   ));
+
 
   return (
     <AppLayout>
