@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Crown } from "lucide-react";
+import ShareTrackButton from "@/components/share/ShareTrackButton";
 
 interface SongCardProps {
   song: PlayerSong;
