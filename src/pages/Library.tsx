@@ -95,6 +95,26 @@ const Library = () => {
     },
   });
 
+  // Deep link: /library?song=<id> auto-plays the shared track
+  const sharedSongId = searchParams.get("song");
+  const handledSharedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!sharedSongId || songs.length === 0) return;
+    if (handledSharedRef.current === sharedSongId) return;
+    const idx = songs.findIndex((s: SongRow) => s.id === sharedSongId);
+    if (idx === -1) return;
+    handledSharedRef.current = sharedSongId;
+    playQueue(
+      songs.map((s: SongRow) => ({
+        id: s.id, title: s.title, artist: s.artist, album: s.album || undefined,
+        coverUrl: s.cover_url || undefined, audioUrl: s.audio_url || undefined,
+        instrumentalUrl: s.instrumental_url || undefined, lyricsLrc: s.lyrics_lrc || undefined,
+        durationSeconds: s.duration_seconds,
+      })),
+      idx
+    );
+  }, [sharedSongId, songs, playQueue]);
+
   // Fetch favorites
   const { data: favorites = [], isLoading: loadingFavs } = useQuery({
     queryKey: ["library-favorites", user?.id],
