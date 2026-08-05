@@ -58,7 +58,7 @@ export interface KingsChatLoginResult {
  */
 export async function signInWithKingsChat(next = "/"): Promise<KingsChatLoginResult> {
   const nativeBridge = window.AndroidKingsChat;
-  const isNativeAndroid = !!nativeBridge?.isAvailable;
+  const isNativeAndroid = typeof nativeBridge?.login === "function";
 
   if (isNativeAndroid) {
     const start = await createLoginAttempt(next);
