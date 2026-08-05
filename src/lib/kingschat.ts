@@ -1,3 +1,12 @@
+declare global {
+  interface Window {
+    AndroidKingsChat?: {
+      isAvailable: boolean;
+      login: (origin: string) => void;
+    };
+  }
+}
+
 import { supabase } from "@/integrations/supabase/client";
 
 const FUNCTIONS_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
@@ -39,10 +48,107 @@ export interface KingsChatLoginResult {
 }
 
 /**
- * Popup sign-in: opens the KingsChat login page, then waits for the
- * server-to-server callback to stage the app session and applies it.
+ * KingsChat sign-in.
+ *
+ * Normal browsers use the existing popup flow. The Android WebView wrapper
+ * uses the native KingsChat SDK instead: the web app creates the same server
+ * side login attempt, passes its nonce to Android, and Android submits the
+ * one-time authorization code to the existing kingschat-callback function.
+ * The web app then uses the existing polling/session handoff.
  */
 export async function signInWithKingsChat(next = "/"): Promise<KingsChatLoginResult> {
+  const nativeBridge = window.AndroidKingsChat;
+  const isNativeAndroid = !!nativeBridge?.isAvailable;
+
+  if (isNativeAndroid) {
+    const start = await createLoginAttempt(next);
+
+    return new Promise<KingsChatLoginResult>((resolve, reject) => {
+      let settled = false;
+
+      const cleanup = () => {
+        window.removeEventListener("kingschatNativeResult", onNativeResult as EventListener);
+      };
+
+      const fail = (message: string) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error(message));
+      };
+
+      const onNativeResult = (event: Event) => {
+        const detail = (event as CustomEvent).detail || {};
+        if (detail.origin !== start.origin) return;
+
+        if (detail.status === "cancel") {
+          fail("KingsChat sign-in cancelled");
+        } else if (detail.status === "error") {
+          fail(detail.message || "KingsChat sign-in failed");
+        }
+      };
+
+      window.addEventListener("kingschatNativeResult", onNativeResult as EventListener);
+
+      try {
+        nativeBridge.login(start.origin);
+      } catch (e: any) {
+        fail(e?.message || "Could not start native KingsChat sign-in");
+        return;
+      }
+
+      const deadline = Date.now() + 5 * 60 * 1000;
+
+      const pollNative = async () => {
+        while (!settled && Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, 1000));
+
+          let result: any;
+          try {
+            result = await poll(start.origin);
+          } catch {
+            continue;
+          }
+
+          if (result?.status === "ready" && result?.session) {
+            settled = true;
+            cleanup();
+
+            const { error } = await supabase.auth.setSession({
+              access_token: result.session.access_token,
+              refresh_token: result.session.refresh_token,
+            });
+            if (error) {
+              reject(error);
+              return;
+            }
+
+            resolve({
+              redirectPath: safePath(result.redirect_path || start.redirect_path),
+              username: result.kingschat_profile?.username,
+            });
+            return;
+          }
+
+          if (result?.status === "error") {
+            fail(result.error || "KingsChat sign-in failed");
+            return;
+          }
+
+          if (result?.status === "expired") {
+            fail("KingsChat sign-in expired, please try again");
+            return;
+          }
+        }
+
+        if (!settled) fail("KingsChat sign-in timed out");
+      };
+
+      void pollNative();
+    });
+  }
+
+  // Existing browser flow.
   const popup = window.open("", "kingschat-login", "width=480,height=720");
   if (!popup) throw new Error("Popup blocked — please allow popups and try again");
 
@@ -84,9 +190,6 @@ export async function signInWithKingsChat(next = "/"): Promise<KingsChatLoginRes
     if (result?.status === "expired") {
       try { popup.close(); } catch { /* ignore */ }
       throw new Error("KingsChat sign-in expired, please try again");
-    }
-    if (popup.closed && Date.now() > deadline - 4.5 * 60 * 1000) {
-      // popup closed by user before completing
     }
   }
 
