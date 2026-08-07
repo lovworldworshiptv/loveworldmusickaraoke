@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     // Validate the CSRF token against what kingschat-login issued.
     const { data: attempt } = await supabase
       .from("kingschat_auth_sessions")
-      .select("nonce, redirect_path, expires_at, session_data")
+      .select("nonce, redirect_path, expires_at, session_data, platform")
       .eq("nonce", origin)
       .maybeSingle();
 
