@@ -1,0 +1,1 @@
+ALTER TABLE public.kingschat_auth_sessions ADD COLUMN IF NOT EXISTS platform text NOT NULL DEFAULT 'web';
