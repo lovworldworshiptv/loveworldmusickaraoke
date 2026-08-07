@@ -41,13 +41,22 @@ export interface KcTokens {
   expires_in?: number;
 }
 
-async function requestTokens(body: Record<string, string>): Promise<KcTokens> {
+async function requestTokens(
+  body: Record<string, string>,
+  platform: KcPlatform,
+): Promise<KcTokens> {
   const res = await fetch(KC_TOKEN_URL, {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   const text = await res.text();
+  // Never log tokens — only platform, truncated client id, status and body.
+  console.log(
+    `KC token ${body.grant_type} platform=${platform} client_id=${body.client_id.slice(0, 8)}… status=${res.status} body=${
+      res.ok ? "<ok>" : text.slice(0, 300)
+    }`,
+  );
   let json: any = null;
   try { json = JSON.parse(text); } catch { /* keep raw */ }
   if (!res.ok || !json?.access_token) {
@@ -56,11 +65,14 @@ async function requestTokens(body: Record<string, string>): Promise<KcTokens> {
   return json as KcTokens;
 }
 
-export const exchangeCode = (code: string) =>
-  requestTokens({ grant_type: "code", client_id: getClientId(), code });
+export const exchangeCode = (code: string, platform: KcPlatform = "web") =>
+  requestTokens({ grant_type: "code", client_id: getClientId(platform), code }, platform);
 
-export const refreshTokens = (refreshToken: string) =>
-  requestTokens({ grant_type: "refresh_token", client_id: getClientId(), refresh_token: refreshToken });
+export const refreshTokens = (refreshToken: string, platform: KcPlatform = "web") =>
+  requestTokens(
+    { grant_type: "refresh_token", client_id: getClientId(platform), refresh_token: refreshToken },
+    platform,
+  );
 
 export function expiryFromTokens(tokens: KcTokens): string {
   const ms = tokens.expires_in_millis ?? (tokens.expires_in ? tokens.expires_in * 1000 : 3600_000);
