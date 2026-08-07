@@ -18,16 +18,20 @@ const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const safePath = (value: string | null | undefined) =>
   value && value.startsWith("/") && !value.startsWith("//") ? value : "/";
 
+const currentPlatform = (): "web" | "android" =>
+  typeof window.AndroidKingsChat?.login === "function" ? "android" : "web";
+
 /** Full-page redirect into the KingsChat hosted login page. */
 export function startKingsChatLogin(next = "/") {
-  window.location.href = `${FUNCTIONS_BASE}/kingschat-login?next=${encodeURIComponent(safePath(next))}`;
+  window.location.href =
+    `${FUNCTIONS_BASE}/kingschat-login?platform=${currentPlatform()}&next=${encodeURIComponent(safePath(next))}`;
 }
 
-interface LoginStart { url: string; origin: string; redirect_path: string }
+interface LoginStart { url: string; origin: string; redirect_path: string; platform?: string }
 
 async function createLoginAttempt(next: string): Promise<LoginStart> {
   const res = await fetch(
-    `${FUNCTIONS_BASE}/kingschat-login?format=json&next=${encodeURIComponent(safePath(next))}`,
+    `${FUNCTIONS_BASE}/kingschat-login?format=json&platform=${currentPlatform()}&next=${encodeURIComponent(safePath(next))}`,
     { headers: { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` } },
   );
   const json = await res.json();

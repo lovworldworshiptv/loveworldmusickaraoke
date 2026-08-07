@@ -1016,6 +1016,7 @@ export type Database = {
           error: string | null
           expires_at: string
           nonce: string
+          platform: string
           redirect_path: string
           session_data: Json | null
         }
@@ -1026,6 +1027,7 @@ export type Database = {
           error?: string | null
           expires_at?: string
           nonce: string
+          platform?: string
           redirect_path?: string
           session_data?: Json | null
         }
@@ -1036,6 +1038,7 @@ export type Database = {
           error?: string | null
           expires_at?: string
           nonce?: string
+          platform?: string
           redirect_path?: string
           session_data?: Json | null
         }
