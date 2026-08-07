@@ -11,9 +11,26 @@ export const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-export function getClientId(): string {
-  const id = Deno.env.get("KINGSCHAT_CLIENT_ID");
-  if (!id) throw new Error("KINGSCHAT_CLIENT_ID is not configured");
+export type KcPlatform = "web" | "android";
+
+export function normalizePlatform(value: unknown): KcPlatform {
+  return value === "android" ? "android" : "web";
+}
+
+/**
+ * Platform-aware client id lookup.
+ * Falls back to the legacy KINGSCHAT_CLIENT_ID secret so existing deployments
+ * keep working without any change.
+ */
+export function getClientId(platform: KcPlatform = "web"): string {
+  const legacy = Deno.env.get("KINGSCHAT_CLIENT_ID");
+  const name = platform === "android" ? "KINGSCHAT_ANDROID_CLIENT_ID" : "KINGSCHAT_WEB_CLIENT_ID";
+  const id = Deno.env.get(name) || (platform === "web" ? legacy : undefined);
+  if (!id) {
+    throw new Error(
+      `${name} is not configured — add it as a secret to enable KingsChat ${platform} sign-in`,
+    );
+  }
   return id;
 }
 
