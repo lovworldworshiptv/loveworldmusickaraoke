@@ -11,6 +11,7 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const redirectPath = safeInternalPath(url.searchParams.get("next"));
     const wantsJson = url.searchParams.get("format") === "json";
+    const platform = normalizePlatform(url.searchParams.get("platform"));
 
     const origin = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
 
@@ -23,14 +24,17 @@ Deno.serve(async (req) => {
     const { error } = await supabase.from("kingschat_auth_sessions").insert({
       nonce: origin,
       redirect_path: redirectPath,
+      platform,
       expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     });
     if (error) throw new Error(error.message);
 
-    const loginUrl = `${KC_LOGIN_URL}?clientId=${encodeURIComponent(getClientId())}&origin=${encodeURIComponent(origin)}`;
+    const clientId = getClientId(platform);
+    console.log(`KC login attempt platform=${platform} client_id=${clientId.slice(0, 8)}…`);
+    const loginUrl = `${KC_LOGIN_URL}?clientId=${encodeURIComponent(clientId)}&origin=${encodeURIComponent(origin)}`;
 
     if (wantsJson) {
-      return new Response(JSON.stringify({ url: loginUrl, origin, redirect_path: redirectPath }), {
+      return new Response(JSON.stringify({ url: loginUrl, origin, redirect_path: redirectPath, platform }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
