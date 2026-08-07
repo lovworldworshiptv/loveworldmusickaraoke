@@ -5,6 +5,7 @@ import {
   exchangeCode,
   expiryFromTokens,
   fetchKcProfile,
+  normalizePlatform,
 } from "../_shared/kingschat.ts";
 
 // POST /kingschat-callback  { code, origin }
@@ -99,7 +100,7 @@ Deno.serve(async (req) => {
       return doneResponse();
     }
 
-    const tokens = await exchangeCode(code);
+    const tokens = await exchangeCode(code, normalizePlatform((attempt as any).platform));
 
     const kcUserId = decodeJwtPayload(tokens.access_token)?.sub || "";
     if (!kcUserId) throw new Error("No subject in KingsChat access token");
