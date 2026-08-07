@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { KC_LOGIN_URL, corsHeaders, getClientId, safeInternalPath } from "../_shared/kingschat.ts";
+import { KC_LOGIN_URL, corsHeaders, getClientId, normalizePlatform, safeInternalPath } from "../_shared/kingschat.ts";
 
 // GET /kingschat-login?next=/library
 // Issues a per-attempt CSRF token (stored server-side) and redirects the user
