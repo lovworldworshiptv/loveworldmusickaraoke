@@ -518,7 +518,7 @@ const Library = () => {
                     <Shuffle className="w-4 h-4" /> Shuffle All ({songs.length} songs)
                   </Button>
                 )}
-                <div className="space-y-1">{filtered.map((song, i) => <SongRowItem key={song.id} song={song} index={i} songList={filtered.map(toPlayerSong)} />)}</div>
+                <div className="space-y-1">{filtered.map((song, i) => <SongRowItem key={song.id} song={song} index={i} songList={filtered.map(toPlayerSong)} compactActions />)}</div>
               </>
             )}
           </TabsContent>
