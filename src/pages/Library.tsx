@@ -2,7 +2,7 @@ import { useState, useEffect, memo, useCallback, useRef } from "react";
 import ShareTrackButton from "@/components/share/ShareTrackButton";
 import AppLayout from "@/components/layout/AppLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Play, Heart, Plus, Music, ListMusic, Trash2, Shuffle, Download, Lock, Crown, WifiOff, ListPlus, Disc3 } from "lucide-react";
+import { Search, Play, Heart, Plus, Music, ListMusic, Trash2, Shuffle, Download, Lock, Crown, WifiOff, ListPlus, Disc3, MoreVertical, Share2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +23,13 @@ import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import { sortSongsByTitle, compareTitles } from "@/lib/utils";
 import { fuzzyMatch, lyricsSnippet } from "@/lib/fuzzySearch";
 import Highlight from "@/components/search/Highlight";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 
 type SongRow = {
@@ -58,6 +65,7 @@ const Library = () => {
   const { isAdmin } = useIsAdmin();
   const { isPremium } = useIsPremium();
   const isOnline = useOnlineStatus();
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
 
   const canDownload = isPremium;
@@ -312,39 +320,15 @@ const Library = () => {
 
 
 
-  const SongRowItem = memo(({ song, index, songList, showDownload = true }: { song: SongRow; index: number; songList: PlayerSong[]; showDownload?: boolean }) => (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => playQueue(songList, index)}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); playQueue(songList, index); } }}
-      className={`flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-200 active:scale-[0.98] hover:bg-muted/60 touch-target cursor-pointer ${
-        currentSong?.id === song.id ? "bg-muted/80 ring-1 ring-primary" : ""
-      }`}
-    >
-      {song.cover_url ? (
-        <img src={song.cover_url} alt={song.title} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" loading="lazy" />
-      ) : (
-        <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-          <Music className="w-5 h-5 text-primary" />
-        </div>
-      )}
-      <div className="flex-1 min-w-0 text-left">
-        <p className="text-sm font-medium text-foreground truncate"><Highlight text={song.title} query={q} /></p>
-        <p className="text-xs text-muted-foreground truncate"><Highlight text={song.artist} query={q} /> • {formatDuration(song.duration_seconds)}</p>
-        {(() => {
-          const snippet = q ? lyricsSnippet(song.lyrics_text || song.lyrics_lrc, q) : null;
-          return snippet ? (
-            <p className="text-[11px] text-muted-foreground/80 line-clamp-2 mt-0.5 italic">
-              <Highlight text={snippet} query={q} />
-            </p>
-          ) : null;
-        })()}
-      </div>
+  const SongRowItem = memo(({ song, index, songList, showDownload = true, compactActions = false }: { song: SongRow; index: number; songList: PlayerSong[]; showDownload?: boolean; compactActions?: boolean }) => {
+    const favorited = isFavorited(song.id);
+    const downloaded = isDownloadedTrack(song.id);
+    const showCompact = isMobile && compactActions;
 
-      <div className="flex items-center gap-1">
+    const actionButtons = (
+      <>
         {showDownload && song.audio_url && (
-          isDownloadedTrack(song.id) ? (
+          downloaded ? (
             <span className="text-[10px] bg-green-500/20 text-green-600 px-1.5 py-0.5 rounded-full font-medium">Saved</span>
           ) : canDownload || song.is_free_download ? (
             <button
@@ -380,23 +364,109 @@ const Library = () => {
             onClick={(e) => { e.stopPropagation(); toggleFav.mutate(song.id); }}
             className="p-2 touch-target"
           >
-            <Heart className={`w-4 h-4 transition-colors ${isFavorited(song.id) ? "fill-red-500 text-red-500" : "text-muted-foreground"}`} />
+            <Heart className={`w-4 h-4 transition-colors ${favorited ? "fill-red-500 text-red-500" : "text-muted-foreground"}`} />
           </button>
         )}
-        {currentSong?.id === song.id && isPlaying ? (
-          <div className="flex gap-0.5 items-end h-4">
-            <div className="w-0.5 h-2 bg-gold rounded-full animate-pulse" />
-            <div className="w-0.5 h-3 bg-gold rounded-full animate-pulse" style={{ animationDelay: "0.15s" }} />
-            <div className="w-0.5 h-4 bg-gold rounded-full animate-pulse" style={{ animationDelay: "0.3s" }} />
-          </div>
+      </>
+    );
+
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => playQueue(songList, index)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); playQueue(songList, index); } }}
+        className={`flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-200 active:scale-[0.98] hover:bg-muted/60 touch-target cursor-pointer ${
+          currentSong?.id === song.id ? "bg-muted/80 ring-1 ring-primary" : ""
+        }`}
+      >
+        {song.cover_url ? (
+          <img src={song.cover_url} alt={song.title} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" loading="lazy" />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_2px_12px_hsl(43_70%_53%/0.4)] ring-1 ring-white/20">
-            <Play className="w-3.5 h-3.5 text-white ml-0.5 drop-shadow-sm" fill="currentColor" />
+          <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+            <Music className="w-5 h-5 text-primary" />
           </div>
         )}
+        <div className="flex-1 min-w-0 text-left">
+          <p className="text-sm font-medium text-foreground truncate"><Highlight text={song.title} query={q} /></p>
+          <p className="text-xs text-muted-foreground truncate"><Highlight text={song.artist} query={q} /> • {formatDuration(song.duration_seconds)}</p>
+          {(() => {
+            const snippet = q ? lyricsSnippet(song.lyrics_text || song.lyrics_lrc, q) : null;
+            return snippet ? (
+              <p className="text-[11px] text-muted-foreground/80 line-clamp-2 mt-0.5 italic">
+                <Highlight text={snippet} query={q} />
+              </p>
+            ) : null;
+          })()}
+        </div>
+
+        <div className="flex items-center gap-1">
+          {showCompact ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button onClick={(e) => e.stopPropagation()} className="p-2 touch-target text-muted-foreground hover:text-foreground transition-colors">
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {showDownload && song.audio_url && (
+                  downloaded ? (
+                    <DropdownMenuItem disabled className="gap-2">
+                      <Download className="w-4 h-4 text-green-500" /> Saved
+                    </DropdownMenuItem>
+                  ) : canDownload || song.is_free_download ? (
+                    <DropdownMenuItem onClick={() => handleDownload(song)} className="gap-2">
+                      <Download className={`w-4 h-4 ${downloadingIds.has(song.id) ? "animate-pulse text-gold" : "text-muted-foreground"}`} />
+                      {downloadingIds.has(song.id) ? "Downloading..." : "Download"}
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem onClick={() => setShowUpgradeModal(true)} className="gap-2">
+                      <Download className="w-4 h-4 text-gold" /> Premium Download
+                    </DropdownMenuItem>
+                  )
+                )}
+                {user && (
+                  <DropdownMenuItem onClick={() => setAddToPlaylistSong({ id: song.id, title: song.title })} className="gap-2">
+                    <ListPlus className="w-4 h-4 text-muted-foreground" /> Add to Playlist
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2 p-0">
+                  <ShareTrackButton
+                    track={{ id: song.id, title: song.title, artist: song.artist, coverUrl: song.cover_url }}
+                    className="w-full px-2 py-1.5 text-sm flex items-center gap-2 text-foreground hover:text-gold transition-colors"
+                    trigger={
+                      <span className="flex items-center gap-2 w-full">
+                        <Share2 className="w-4 h-4 text-muted-foreground" /> Share
+                      </span>
+                    }
+                  />
+                </DropdownMenuItem>
+                {user && (
+                  <DropdownMenuItem onClick={() => toggleFav.mutate(song.id)} className="gap-2">
+                    <Heart className={`w-4 h-4 ${favorited ? "fill-red-500 text-red-500" : "text-muted-foreground"}`} />
+                    {favorited ? "Remove from Favorites" : "Add to Favorites"}
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            actionButtons
+          )}
+          {currentSong?.id === song.id && isPlaying ? (
+            <div className="flex gap-0.5 items-end h-4">
+              <div className="w-0.5 h-2 bg-gold rounded-full animate-pulse" />
+              <div className="w-0.5 h-3 bg-gold rounded-full animate-pulse" style={{ animationDelay: "0.15s" }} />
+              <div className="w-0.5 h-4 bg-gold rounded-full animate-pulse" style={{ animationDelay: "0.3s" }} />
+            </div>
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_2px_12px_hsl(43_70%_53%/0.4)] ring-1 ring-white/20">
+              <Play className="w-3.5 h-3.5 text-white ml-0.5 drop-shadow-sm" fill="currentColor" />
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  ));
+    );
+  });
 
 
   return (
@@ -448,7 +518,7 @@ const Library = () => {
                     <Shuffle className="w-4 h-4" /> Shuffle All ({songs.length} songs)
                   </Button>
                 )}
-                <div className="space-y-1">{filtered.map((song, i) => <SongRowItem key={song.id} song={song} index={i} songList={filtered.map(toPlayerSong)} />)}</div>
+                <div className="space-y-1">{filtered.map((song, i) => <SongRowItem key={song.id} song={song} index={i} songList={filtered.map(toPlayerSong)} compactActions />)}</div>
               </>
             )}
           </TabsContent>
@@ -512,7 +582,7 @@ const Library = () => {
               <EmptyState icon={Heart} title="No favorites yet" description="Tap the heart on any song to save it here" />
             ) : (
               <div className="space-y-1">
-                {(() => { const favSongList = favorites.filter((f: any) => f.songs).map((f: any) => toPlayerSong(f.songs)); return favorites.map((fav: any, i: number) => fav.songs && <SongRowItem key={fav.id} song={fav.songs} index={i} songList={favSongList} />); })()}
+                {(() => { const favSongList = favorites.filter((f: any) => f.songs).map((f: any) => toPlayerSong(f.songs)); return favorites.map((fav: any, i: number) => fav.songs && <SongRowItem key={fav.id} song={fav.songs} index={i} songList={favSongList} compactActions />); })()}
               </div>
             )}
           </TabsContent>
