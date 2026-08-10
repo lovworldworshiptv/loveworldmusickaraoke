@@ -2,7 +2,7 @@ import { useState, useEffect, memo, useCallback, useRef } from "react";
 import ShareTrackButton from "@/components/share/ShareTrackButton";
 import AppLayout from "@/components/layout/AppLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Play, Heart, Plus, Music, ListMusic, Trash2, Shuffle, Download, Lock, Crown, WifiOff, ListPlus, Disc3 } from "lucide-react";
+import { Search, Play, Heart, Plus, Music, ListMusic, Trash2, Shuffle, Download, Lock, Crown, WifiOff, ListPlus, Disc3, MoreVertical } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +23,13 @@ import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import { sortSongsByTitle, compareTitles } from "@/lib/utils";
 import { fuzzyMatch, lyricsSnippet } from "@/lib/fuzzySearch";
 import Highlight from "@/components/search/Highlight";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 
 type SongRow = {
