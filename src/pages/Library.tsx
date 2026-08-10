@@ -65,6 +65,7 @@ const Library = () => {
   const { isAdmin } = useIsAdmin();
   const { isPremium } = useIsPremium();
   const isOnline = useOnlineStatus();
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
 
   const canDownload = isPremium;
