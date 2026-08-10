@@ -582,7 +582,7 @@ const Library = () => {
               <EmptyState icon={Heart} title="No favorites yet" description="Tap the heart on any song to save it here" />
             ) : (
               <div className="space-y-1">
-                {(() => { const favSongList = favorites.filter((f: any) => f.songs).map((f: any) => toPlayerSong(f.songs)); return favorites.map((fav: any, i: number) => fav.songs && <SongRowItem key={fav.id} song={fav.songs} index={i} songList={favSongList} />); })()}
+                {(() => { const favSongList = favorites.filter((f: any) => f.songs).map((f: any) => toPlayerSong(f.songs)); return favorites.map((fav: any, i: number) => fav.songs && <SongRowItem key={fav.id} song={fav.songs} index={i} songList={favSongList} compactActions />); })()}
               </div>
             )}
           </TabsContent>
