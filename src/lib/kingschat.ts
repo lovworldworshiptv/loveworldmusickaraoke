@@ -20,16 +20,15 @@ const safePath = (
  *
  * IMPORTANT:
  *
- * This function intentionally does NOT detect Android.
+ * This intentionally does NOT detect Android.
  * It always uses the WEB KingsChat client configuration.
  *
- * The Android application is simply a browser wrapper around the
- * normal web authentication flow.
+ * The Android application is simply a browser wrapper around
+ * the normal web authentication flow.
  */
 export function startKingsChatLogin(
   next = "/"
 ) {
-
   window.location.href =
     `${FUNCTIONS_BASE}/kingschat-login` +
     `?platform=web` +
@@ -49,9 +48,6 @@ interface LoginStart {
  * Creates a server-side KingsChat login attempt.
  *
  * Always requests the WEB platform.
- *
- * This is intentional because the Android wrapper is using
- * browser OAuth rather than the native Android KingsChat SDK.
  */
 async function createLoginAttempt(
   next: string
@@ -59,11 +55,11 @@ async function createLoginAttempt(
 
   const res = await fetch(
     `${FUNCTIONS_BASE}/kingschat-login` +
-    `?format=json` +
-    `&platform=web` +
-    `&next=${encodeURIComponent(
-      safePath(next)
-    )}`,
+      `?format=json` +
+      `&platform=web` +
+      `&next=${encodeURIComponent(
+        safePath(next)
+      )}`,
     {
       headers: {
         apikey: ANON_KEY,
@@ -101,7 +97,7 @@ async function poll(
 
   const res = await fetch(
     `${FUNCTIONS_BASE}/kingschat-poll` +
-    `?nonce=${encodeURIComponent(origin)}`,
+      `?nonce=${encodeURIComponent(origin)}`,
     {
       headers: {
         apikey: ANON_KEY,
@@ -122,7 +118,7 @@ export interface KingsChatLoginResult {
 /**
  * KingsChat browser OAuth.
  *
- * This is now the ONLY KingsChat authentication flow.
+ * This is the ONLY KingsChat authentication flow.
  *
  * There is no native Android SDK branch.
  * There is no AndroidKingsChat bridge.
@@ -130,8 +126,8 @@ export interface KingsChatLoginResult {
  *
  * Both:
  *
- *   1. Normal web browsers
- *   2. Android WebView wrapper
+ * 1. Normal web browsers
+ * 2. Android WebView wrapper
  *
  * use the same WEB KingsChat OAuth client.
  */
@@ -181,7 +177,7 @@ export async function signInWithKingsChat(
     start.url;
 
   // -------------------------------------------------------------
-  // Wait for the backend to complete authentication.
+  // Wait for backend authentication.
   // -------------------------------------------------------------
 
   const deadline =
@@ -206,8 +202,6 @@ export async function signInWithKingsChat(
 
     } catch {
 
-      // Network temporarily unavailable.
-      // Continue polling.
       continue;
     }
 
@@ -319,13 +313,12 @@ export async function ensureKingsChatToken() {
   const {
     data,
     error
-  } =
-    await supabase.functions.invoke(
-      "kingschat-refresh",
-      {
-        method: "POST",
-      }
-    );
+  } = await supabase.functions.invoke(
+    "kingschat-refresh",
+    {
+      method: "POST",
+    }
+  );
 
   if (error) {
     throw error;
