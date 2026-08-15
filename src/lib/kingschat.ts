@@ -1,11 +1,3 @@
-declare global {
-  interface Window {
-    AndroidKingsChat?: {
-      login: (origin: string) => void;
-    };
-  }
-}
-
 import { supabase } from "@/integrations/supabase/client";
 
 const FUNCTIONS_BASE =
@@ -23,18 +15,24 @@ const safePath = (
     ? value
     : "/";
 
-const currentPlatform = (): "web" | "android" =>
-  typeof window.AndroidKingsChat?.login === "function"
-    ? "android"
-    : "web";
-
+/**
+ * Start KingsChat browser OAuth.
+ *
+ * IMPORTANT:
+ *
+ * This function intentionally does NOT detect Android.
+ * It always uses the WEB KingsChat client configuration.
+ *
+ * The Android application is simply a browser wrapper around the
+ * normal web authentication flow.
+ */
 export function startKingsChatLogin(
   next = "/"
 ) {
 
   window.location.href =
     `${FUNCTIONS_BASE}/kingschat-login` +
-    `?platform=${currentPlatform()}` +
+    `?platform=web` +
     `&next=${encodeURIComponent(
       safePath(next)
     )}`;
@@ -47,31 +45,40 @@ interface LoginStart {
   platform?: string;
 }
 
+/**
+ * Creates a server-side KingsChat login attempt.
+ *
+ * Always requests the WEB platform.
+ *
+ * This is intentional because the Android wrapper is using
+ * browser OAuth rather than the native Android KingsChat SDK.
+ */
 async function createLoginAttempt(
   next: string
 ): Promise<LoginStart> {
 
-  const platform =
-    currentPlatform();
-
   const res = await fetch(
     `${FUNCTIONS_BASE}/kingschat-login` +
     `?format=json` +
-    `&platform=${platform}` +
+    `&platform=web` +
     `&next=${encodeURIComponent(
       safePath(next)
     )}`,
     {
       headers: {
         apikey: ANON_KEY,
-        Authorization: `Bearer ${ANON_KEY}`,
+        Authorization:
+          `Bearer ${ANON_KEY}`,
       },
     }
   );
 
   const json = await res.json();
 
-  if (!res.ok || !json?.url) {
+  if (
+    !res.ok ||
+    !json?.url
+  ) {
     throw new Error(
       json?.error ||
       "Could not start KingsChat sign-in"
@@ -81,6 +88,13 @@ async function createLoginAttempt(
   return json as LoginStart;
 }
 
+/**
+ * Polls the server-side login session.
+ *
+ * The browser itself never receives the KingsChat access token.
+ * The server performs the OAuth exchange and stages the
+ * Supabase session.
+ */
 async function poll(
   origin: string
 ) {
@@ -91,7 +105,8 @@ async function poll(
     {
       headers: {
         apikey: ANON_KEY,
-        Authorization: `Bearer ${ANON_KEY}`,
+        Authorization:
+          `Bearer ${ANON_KEY}`,
       },
     }
   );
@@ -104,245 +119,45 @@ export interface KingsChatLoginResult {
   username?: string;
 }
 
+/**
+ * KingsChat browser OAuth.
+ *
+ * This is now the ONLY KingsChat authentication flow.
+ *
+ * There is no native Android SDK branch.
+ * There is no AndroidKingsChat bridge.
+ * There is no Android client ID.
+ *
+ * Both:
+ *
+ *   1. Normal web browsers
+ *   2. Android WebView wrapper
+ *
+ * use the same WEB KingsChat OAuth client.
+ */
 export async function signInWithKingsChat(
   next = "/"
 ): Promise<KingsChatLoginResult> {
 
-  const nativeBridge =
-    window.AndroidKingsChat;
+  // -------------------------------------------------------------
+  // Open the KingsChat browser login window.
+  // -------------------------------------------------------------
 
-  // ---------------------------------------------------------
-  // ANDROID NATIVE SDK FLOW
-  // ---------------------------------------------------------
-
-  if (
-    typeof nativeBridge?.login ===
-    "function"
-  ) {
-
-    const start =
-      await createLoginAttempt(next);
-
-    return new Promise(
-      (resolve, reject) => {
-
-        let settled = false;
-
-        const cleanup = () => {
-
-          window.removeEventListener(
-            "kingschatNativeResult",
-            onNativeResult as EventListener
-          );
-        };
-
-        const fail = (
-          message: string
-        ) => {
-
-          if (settled) return;
-
-          settled = true;
-
-          cleanup();
-
-          reject(
-            new Error(message)
-          );
-        };
-
-        const onNativeResult =
-          (event: Event) => {
-
-            const detail =
-              (event as CustomEvent)
-                .detail || {};
-
-            if (
-              detail.origin !==
-              start.origin
-            ) {
-              return;
-            }
-
-            if (
-              detail.status ===
-              "cancel"
-            ) {
-
-              fail(
-                "KingsChat sign-in cancelled"
-              );
-
-            } else if (
-              detail.status ===
-              "error"
-            ) {
-
-              fail(
-                detail.message ||
-                "KingsChat sign-in failed"
-              );
-            }
-          };
-
-        window.addEventListener(
-          "kingschatNativeResult",
-          onNativeResult as EventListener
-        );
-
-        try {
-
-          // Android now starts the native
-          // SDK directly.
-          nativeBridge.login(
-            start.origin
-          );
-
-        } catch (e: any) {
-
-          fail(
-            e?.message ||
-            "Could not start native KingsChat sign-in"
-          );
-
-          return;
-        }
-
-        const deadline =
-          Date.now() +
-          5 * 60 * 1000;
-
-        const pollNative =
-          async () => {
-
-            while (
-              !settled &&
-              Date.now() < deadline
-            ) {
-
-              await new Promise(
-                r => setTimeout(r, 1000)
-              );
-
-              let result: any;
-
-              try {
-
-                result =
-                  await poll(
-                    start.origin
-                  );
-
-              } catch {
-
-                continue;
-              }
-
-              if (
-                result?.status ===
-                  "ready" &&
-                result?.session
-              ) {
-
-                settled = true;
-
-                cleanup();
-
-                const {
-                  error
-                } =
-                  await supabase.auth.setSession(
-                    {
-                      access_token:
-                        result.session
-                          .access_token,
-
-                      refresh_token:
-                        result.session
-                          .refresh_token,
-                    }
-                  );
-
-                if (error) {
-
-                  reject(error);
-
-                  return;
-                }
-
-                resolve({
-                  redirectPath:
-                    safePath(
-                      result.redirect_path ||
-                      start.redirect_path
-                    ),
-
-                  username:
-                    result
-                      .kingschat_profile
-                      ?.username,
-                });
-
-                return;
-              }
-
-              if (
-                result?.status ===
-                "error"
-              ) {
-
-                fail(
-                  result.error ||
-                  "KingsChat sign-in failed"
-                );
-
-                return;
-              }
-
-              if (
-                result?.status ===
-                "expired"
-              ) {
-
-                fail(
-                  "KingsChat sign-in expired, please try again"
-                );
-
-                return;
-              }
-            }
-
-            if (!settled) {
-
-              fail(
-                "KingsChat sign-in timed out"
-              );
-            }
-          };
-
-        void pollNative();
-      }
-    );
-  }
-
-  // ---------------------------------------------------------
-  // NORMAL WEB FLOW
-  // ---------------------------------------------------------
-
-  const popup =
-    window.open(
-      "",
-      "kingschat-login",
-      "width=480,height=720"
-    );
+  const popup = window.open(
+    "",
+    "kingschat-login",
+    "width=480,height=720"
+  );
 
   if (!popup) {
-
     throw new Error(
       "Popup blocked — please allow popups and try again"
     );
   }
+
+  // -------------------------------------------------------------
+  // Create server-side login attempt.
+  // -------------------------------------------------------------
 
   let start: LoginStart;
 
@@ -358,8 +173,16 @@ export async function signInWithKingsChat(
     throw e;
   }
 
+  // -------------------------------------------------------------
+  // Send popup to KingsChat web OAuth.
+  // -------------------------------------------------------------
+
   popup.location.href =
     start.url;
+
+  // -------------------------------------------------------------
+  // Wait for the backend to complete authentication.
+  // -------------------------------------------------------------
 
   const deadline =
     Date.now() +
@@ -370,7 +193,8 @@ export async function signInWithKingsChat(
   ) {
 
     await new Promise(
-      r => setTimeout(r, 1500)
+      (resolve) =>
+        setTimeout(resolve, 1500)
     );
 
     let result: any;
@@ -378,44 +202,47 @@ export async function signInWithKingsChat(
     try {
 
       result =
-        await poll(
-          start.origin
-        );
+        await poll(start.origin);
 
     } catch {
 
+      // Network temporarily unavailable.
+      // Continue polling.
       continue;
     }
 
+    // -----------------------------------------------------------
+    // Successful login
+    // -----------------------------------------------------------
+
     if (
-      result?.status ===
-        "ready" &&
+      result?.status === "ready" &&
       result?.session
     ) {
 
       try {
         popup.close();
-      } catch {}
+      } catch {
+        // Ignore popup close errors.
+      }
 
       const {
         error
       } =
-        await supabase.auth.setSession(
-          {
-            access_token:
-              result.session
-                .access_token,
+        await supabase.auth.setSession({
+          access_token:
+            result.session.access_token,
 
-            refresh_token:
-              result.session
-                .refresh_token,
-          }
-        );
+          refresh_token:
+            result.session.refresh_token,
+        });
 
-      if (error)
+      if (error) {
         throw error;
+      }
 
       return {
+
         redirectPath:
           safePath(
             result.redirect_path ||
@@ -429,14 +256,19 @@ export async function signInWithKingsChat(
       };
     }
 
+    // -----------------------------------------------------------
+    // Backend authentication error
+    // -----------------------------------------------------------
+
     if (
-      result?.status ===
-      "error"
+      result?.status === "error"
     ) {
 
       try {
         popup.close();
-      } catch {}
+      } catch {
+        // Ignore.
+      }
 
       throw new Error(
         result.error ||
@@ -444,14 +276,19 @@ export async function signInWithKingsChat(
       );
     }
 
+    // -----------------------------------------------------------
+    // Login attempt expired
+    // -----------------------------------------------------------
+
     if (
-      result?.status ===
-      "expired"
+      result?.status === "expired"
     ) {
 
       try {
         popup.close();
-      } catch {}
+      } catch {
+        // Ignore.
+      }
 
       throw new Error(
         "KingsChat sign-in expired, please try again"
@@ -459,15 +296,24 @@ export async function signInWithKingsChat(
     }
   }
 
+  // -------------------------------------------------------------
+  // Timeout
+  // -------------------------------------------------------------
+
   try {
     popup.close();
-  } catch {}
+  } catch {
+    // Ignore.
+  }
 
   throw new Error(
     "KingsChat sign-in timed out"
   );
 }
 
+/**
+ * Ensures the stored KingsChat access token is still valid.
+ */
 export async function ensureKingsChatToken() {
 
   const {
@@ -477,12 +323,13 @@ export async function ensureKingsChatToken() {
     await supabase.functions.invoke(
       "kingschat-refresh",
       {
-        method: "POST"
+        method: "POST",
       }
     );
 
-  if (error)
+  if (error) {
     throw error;
+  }
 
   return data as {
     refreshed: boolean;
