@@ -21,9 +21,10 @@ interface ShareTrackButtonProps {
   className?: string;
   iconClassName?: string;
   trigger?: React.ReactNode;
+  ariaLabel?: string;
 }
 
-const ShareTrackButton = ({ track, className, iconClassName, trigger }: ShareTrackButtonProps) => (
+const ShareTrackButton = ({ track, className, iconClassName, trigger, ariaLabel }: ShareTrackButtonProps) => (
   <ShareMenu
     url={buildTrackShareUrl(track)}
     title={track.title}
@@ -31,17 +32,18 @@ const ShareTrackButton = ({ track, className, iconClassName, trigger }: ShareTra
     imageUrl={track.coverUrl || undefined}
     kingschatFirst
     trigger={
-      trigger || (
-        <button
-          onClick={(e) => e.stopPropagation()}
-          aria-label={`Share ${track.title}`}
-          className={className || "p-1 text-muted-foreground hover:text-gold transition-colors"}
-        >
-          <Share2 className={iconClassName || "w-4 h-4"} />
-        </button>
-      )
+      <button
+        type="button"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        aria-label={ariaLabel || `Share ${track.title}`}
+        className={className || "p-1 text-muted-foreground hover:text-gold transition-colors"}
+      >
+        {trigger || <Share2 className={iconClassName || "w-4 h-4"} aria-hidden="true" />}
+      </button>
     }
   />
 );
+
 
 export default ShareTrackButton;
