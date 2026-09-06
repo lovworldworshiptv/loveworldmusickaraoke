@@ -488,10 +488,6 @@ const Library = () => {
           ) : (
             actionButtons
           )}
-
-          ) : (
-            actionButtons
-          )}
           {currentSong?.id === song.id && isPlaying ? (
             <div className="flex gap-0.5 items-end h-4">
               <div className="w-0.5 h-2 bg-gold rounded-full animate-pulse" />
