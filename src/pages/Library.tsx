@@ -157,18 +157,41 @@ const Library = () => {
     },
   });
 
-  // Toggle favorite
+  // Toggle favorite (optimistic so the Favorites tab updates instantly)
+  const favKey = ["library-favorites", user?.id];
   const toggleFav = useMutation({
     mutationFn: async (songId: string) => {
       const existing = favorites.find((f: any) => f.song_id === songId);
-      if (existing) {
-        await supabase.from("favorites").delete().eq("id", existing.id);
+      if (existing && !String(existing.id).startsWith("optimistic-")) {
+        const { error } = await supabase.from("favorites").delete().eq("id", existing.id);
+        if (error) throw error;
+      } else if (existing) {
+        const { error } = await supabase.from("favorites").delete().eq("song_id", songId).eq("user_id", user!.id);
+        if (error) throw error;
       } else {
-        await supabase.from("favorites").insert({ song_id: songId, user_id: user!.id });
+        const { error } = await supabase.from("favorites").insert({ song_id: songId, user_id: user!.id });
+        if (error) throw error;
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["library-favorites"] }),
+    onMutate: async (songId: string) => {
+      await queryClient.cancelQueries({ queryKey: favKey });
+      const previous = queryClient.getQueryData<any[]>(favKey);
+      const songRow = (songs as SongRow[]).find(s => s.id === songId);
+      queryClient.setQueryData<any[]>(favKey, (old = []) => {
+        const exists = old.some((f: any) => f.song_id === songId);
+        if (exists) return old.filter((f: any) => f.song_id !== songId);
+        return [...old, { id: `optimistic-${songId}`, song_id: songId, songs: songRow ?? null }]
+          .sort((a: any, b: any) => compareTitles(a.songs?.title, b.songs?.title));
+      });
+      return { previous };
+    },
+    onError: (_err, _songId, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(favKey, ctx.previous);
+      toast.error("Couldn't update favorites");
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: favKey }),
   });
+
 
   // Create playlist
   const createPlaylist = useMutation({
