@@ -157,18 +157,41 @@ const Library = () => {
     },
   });
 
-  // Toggle favorite
+  // Toggle favorite (optimistic so the Favorites tab updates instantly)
+  const favKey = ["library-favorites", user?.id];
   const toggleFav = useMutation({
     mutationFn: async (songId: string) => {
       const existing = favorites.find((f: any) => f.song_id === songId);
-      if (existing) {
-        await supabase.from("favorites").delete().eq("id", existing.id);
+      if (existing && !String(existing.id).startsWith("optimistic-")) {
+        const { error } = await supabase.from("favorites").delete().eq("id", existing.id);
+        if (error) throw error;
+      } else if (existing) {
+        const { error } = await supabase.from("favorites").delete().eq("song_id", songId).eq("user_id", user!.id);
+        if (error) throw error;
       } else {
-        await supabase.from("favorites").insert({ song_id: songId, user_id: user!.id });
+        const { error } = await supabase.from("favorites").insert({ song_id: songId, user_id: user!.id });
+        if (error) throw error;
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["library-favorites"] }),
+    onMutate: async (songId: string) => {
+      await queryClient.cancelQueries({ queryKey: favKey });
+      const previous = queryClient.getQueryData<any[]>(favKey);
+      const songRow = (songs as SongRow[]).find(s => s.id === songId);
+      queryClient.setQueryData<any[]>(favKey, (old = []) => {
+        const exists = old.some((f: any) => f.song_id === songId);
+        if (exists) return old.filter((f: any) => f.song_id !== songId);
+        return [...old, { id: `optimistic-${songId}`, song_id: songId, songs: songRow ?? null }]
+          .sort((a: any, b: any) => compareTitles(a.songs?.title, b.songs?.title));
+      });
+      return { previous };
+    },
+    onError: (_err, _songId, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(favKey, ctx.previous);
+      toast.error("Couldn't update favorites");
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: favKey }),
   });
+
 
   // Create playlist
   const createPlaylist = useMutation({
@@ -404,46 +427,59 @@ const Library = () => {
           {showCompact ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button onClick={(e) => e.stopPropagation()} className="p-2 touch-target text-muted-foreground hover:text-foreground transition-colors">
-                  <MoreVertical className="w-4 h-4" />
+                <button
+                  type="button"
+                  aria-label={`More actions for ${song.title}`}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  className="p-2 min-h-11 min-w-11 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <MoreVertical className="w-4 h-4" aria-hidden="true" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-56" aria-label={`Actions for ${song.title}`}>
                 {showDownload && song.audio_url && (
                   downloaded ? (
                     <DropdownMenuItem disabled className="gap-2">
-                      <Download className="w-4 h-4 text-green-500" /> Saved
+                      <Download className="w-4 h-4 text-green-500" aria-hidden="true" /> Saved offline
                     </DropdownMenuItem>
                   ) : canDownload || song.is_free_download ? (
-                    <DropdownMenuItem onClick={() => handleDownload(song)} className="gap-2">
-                      <Download className={`w-4 h-4 ${downloadingIds.has(song.id) ? "animate-pulse text-gold" : "text-muted-foreground"}`} />
-                      {downloadingIds.has(song.id) ? "Downloading..." : "Download"}
+                    <DropdownMenuItem
+                      onSelect={() => handleDownload(song)}
+                      disabled={downloadingIds.has(song.id)}
+                      className="gap-2"
+                    >
+                      <Download className={`w-4 h-4 ${downloadingIds.has(song.id) ? "animate-pulse text-gold" : "text-muted-foreground"}`} aria-hidden="true" />
+                      {downloadingIds.has(song.id) ? "Downloading…" : song.is_free_download && !canDownload ? "Download (Free)" : "Download"}
                     </DropdownMenuItem>
                   ) : (
-                    <DropdownMenuItem onClick={() => setShowUpgradeModal(true)} className="gap-2">
-                      <Download className="w-4 h-4 text-gold" /> Premium Download
+                    <DropdownMenuItem onSelect={() => handleDownload(song)} className="gap-2">
+                      <Lock className="w-4 h-4 text-gold" aria-hidden="true" />
+                      <span className="flex-1">Download</span>
+                      <span className="text-[10px] font-semibold text-gold">Premium</span>
                     </DropdownMenuItem>
                   )
                 )}
                 {user && (
-                  <DropdownMenuItem onClick={() => setAddToPlaylistSong({ id: song.id, title: song.title })} className="gap-2">
-                    <ListPlus className="w-4 h-4 text-muted-foreground" /> Add to Playlist
+                  <DropdownMenuItem onSelect={() => setAddToPlaylistSong({ id: song.id, title: song.title })} className="gap-2">
+                    <ListPlus className="w-4 h-4 text-muted-foreground" aria-hidden="true" /> Add to Playlist
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2 p-0">
                   <ShareTrackButton
                     track={{ id: song.id, title: song.title, artist: song.artist, coverUrl: song.cover_url }}
-                    className="w-full px-2 py-1.5 text-sm flex items-center gap-2 text-foreground hover:text-gold transition-colors"
+                    className="w-full px-2 py-1.5 text-sm flex items-center gap-2 text-foreground hover:text-gold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+                    ariaLabel={`Share ${song.title}`}
                     trigger={
                       <span className="flex items-center gap-2 w-full">
-                        <Share2 className="w-4 h-4 text-muted-foreground" /> Share
+                        <Share2 className="w-4 h-4 text-muted-foreground" aria-hidden="true" /> Share
                       </span>
                     }
                   />
                 </DropdownMenuItem>
                 {user && (
-                  <DropdownMenuItem onClick={() => toggleFav.mutate(song.id)} className="gap-2">
-                    <Heart className={`w-4 h-4 ${favorited ? "fill-red-500 text-red-500" : "text-muted-foreground"}`} />
+                  <DropdownMenuItem onSelect={() => toggleFav.mutate(song.id)} className="gap-2">
+                    <Heart className={`w-4 h-4 ${favorited ? "fill-red-500 text-red-500" : "text-muted-foreground"}`} aria-hidden="true" />
                     {favorited ? "Remove from Favorites" : "Add to Favorites"}
                   </DropdownMenuItem>
                 )}
