@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 const ChallengeReferrals = () => {
   const navigate = useNavigate();
-  const { user, username } = useAuth();
+  const { user } = useAuth();
   const { data: ch } = useActiveChallenge();
   const { data: myScore } = useMyScore(ch?.id);
   const { data: gate } = useReferralGateStatus(ch?.id);
