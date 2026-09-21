@@ -14,7 +14,7 @@ const ChallengeReferrals = () => {
   const { data: myScore } = useMyScore(ch?.id);
   const { data: gate } = useReferralGateStatus(ch?.id);
 
-  const refUrl = user ? buildReferralUrl(username && username !== "Guest" ? username : user.id) : "";
+  const refUrl = user ? buildReferralUrl(user.id) : "";
   const required = gate?.required ?? 0;
   const refCount = gate?.refCount ?? 0;
   const remaining = (gate as any)?.remaining ?? Math.max(0, required - refCount);

@@ -64,7 +64,7 @@ const Challenge = () => {
   }
 
   const myRow = board.find((r: any) => r.user_id === user?.id);
-  const refUrl = user ? buildReferralUrl(username && username !== "Guest" ? username : user.id) : "";
+  const refUrl = user ? buildReferralUrl(user.id) : "";
 
 
 

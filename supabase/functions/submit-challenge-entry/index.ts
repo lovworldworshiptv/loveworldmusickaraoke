@@ -55,8 +55,15 @@ Deno.serve(async (req) => {
       if (UUID_RE.test(raw)) {
         validReferrer = raw;
       } else {
-        const { data: prof } = await svc.from("profiles").select("user_id").ilike("username", raw).maybeSingle();
-        if (prof?.user_id) validReferrer = prof.user_id;
+        const { data: profiles, error: profileError } = await svc.from("profiles")
+          .select("user_id, username, created_at")
+          .ilike("username", raw)
+          .order("created_at", { ascending: true })
+          .limit(2);
+        if (profileError) throw profileError;
+        const exact = (profiles || []).filter((profile: any) => profile.username === raw);
+        const match = exact.length === 1 ? exact[0] : profiles?.length === 1 ? profiles[0] : null;
+        if (match?.user_id) validReferrer = match.user_id;
       }
       if (validReferrer === user.id) validReferrer = null;
     }
@@ -71,25 +78,16 @@ Deno.serve(async (req) => {
     if (existing) {
       let referralClaimed = false;
       if (validReferrer && !existing.referred_by_user_id) {
-        const { data: referrerEntry } = await svc.from("challenge_entries")
+        const { data: claimed, error: claimError } = await svc.from("challenge_entries")
+          .update({ referred_by_user_id: validReferrer })
+          .eq("id", existing.id)
+          .is("referred_by_user_id", null)
           .select("id")
-          .eq("challenge_id", challenge_id)
-          .eq("user_id", validReferrer)
-          .eq("status", "approved")
           .maybeSingle();
-
-        if (referrerEntry) {
-          const { data: claimed, error: claimError } = await svc.from("challenge_entries")
-            .update({ referred_by_user_id: validReferrer })
-            .eq("id", existing.id)
-            .is("referred_by_user_id", null)
-            .select("id")
-            .maybeSingle();
-          if (claimError) throw claimError;
-          referralClaimed = !!claimed;
-          if (referralClaimed && existing.status === "approved") {
-            await awardReferral(svc, challenge_id, validReferrer, user.id, ch.max_referrals_per_user);
-          }
+        if (claimError) throw claimError;
+        referralClaimed = !!claimed;
+        if (referralClaimed && existing.status === "approved") {
+          await awardReferral(svc, challenge_id, validReferrer, user.id, ch.max_referrals_per_user);
         }
       }
       return json({ success: true, existing: true, referral_claimed: referralClaimed, entry: existing });
@@ -149,7 +147,7 @@ async function awardReferral(svc: any, challenge_id: string, referrer: string, r
   if (cap && cap > 0) {
     const { count } = await svc.from("challenge_referrals")
       .select("id", { count: "exact", head: true })
-      .eq("challenge_id", challenge_id).eq("referrer_user_id", referrer);
+      .eq("challenge_id", challenge_id).eq("referrer_user_id", referrer).eq("awarded", true);
     if ((count ?? 0) >= cap) {
       const { error } = await svc.from("challenge_referrals").insert({ challenge_id, referrer_user_id: referrer, referred_user_id: referred, awarded: false });
       if (error) throw error;
