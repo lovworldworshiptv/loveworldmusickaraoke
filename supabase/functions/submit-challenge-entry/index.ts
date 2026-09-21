@@ -47,11 +47,6 @@ Deno.serve(async (req) => {
       return json({ error: "Zone is required" }, 400);
     }
 
-    // Existing entry?
-    const { data: existing } = await svc.from("challenge_entries")
-      .select("id, status").eq("challenge_id", challenge_id).eq("user_id", user.id).maybeSingle();
-    if (existing) return json({ error: "You already have an entry", entry: existing }, 400);
-
     // Resolve referrer: accept a UUID or a username. Reject self-referrals.
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     let validReferrer: string | null = null;
@@ -64,6 +59,40 @@ Deno.serve(async (req) => {
         if (prof?.user_id) validReferrer = prof.user_id;
       }
       if (validReferrer === user.id) validReferrer = null;
+    }
+
+    // Existing participants may receive a referral link after enrolling. Preserve
+    // the first valid attribution instead of silently discarding that referral.
+    const { data: existing } = await svc.from("challenge_entries")
+      .select("id, status, referred_by_user_id")
+      .eq("challenge_id", challenge_id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (existing) {
+      let referralClaimed = false;
+      if (validReferrer && !existing.referred_by_user_id) {
+        const { data: referrerEntry } = await svc.from("challenge_entries")
+          .select("id")
+          .eq("challenge_id", challenge_id)
+          .eq("user_id", validReferrer)
+          .eq("status", "approved")
+          .maybeSingle();
+
+        if (referrerEntry) {
+          const { data: claimed, error: claimError } = await svc.from("challenge_entries")
+            .update({ referred_by_user_id: validReferrer })
+            .eq("id", existing.id)
+            .is("referred_by_user_id", null)
+            .select("id")
+            .maybeSingle();
+          if (claimError) throw claimError;
+          referralClaimed = !!claimed;
+          if (referralClaimed && existing.status === "approved") {
+            await awardReferral(svc, challenge_id, validReferrer, user.id, ch.max_referrals_per_user);
+          }
+        }
+      }
+      return json({ success: true, existing: true, referral_claimed: referralClaimed, entry: existing });
     }
 
     const autoApprove = isPremium || isFree;
@@ -122,14 +151,17 @@ async function awardReferral(svc: any, challenge_id: string, referrer: string, r
       .select("id", { count: "exact", head: true })
       .eq("challenge_id", challenge_id).eq("referrer_user_id", referrer);
     if ((count ?? 0) >= cap) {
-      await svc.from("challenge_referrals").insert({ challenge_id, referrer_user_id: referrer, referred_user_id: referred, awarded: false });
+      const { error } = await svc.from("challenge_referrals").insert({ challenge_id, referrer_user_id: referrer, referred_user_id: referred, awarded: false });
+      if (error) throw error;
       return;
     }
   }
-  await svc.from("challenge_referrals").insert({ challenge_id, referrer_user_id: referrer, referred_user_id: referred, awarded: true });
-  await svc.from("challenge_bonuses_awarded").insert({
+  const { error: referralError } = await svc.from("challenge_referrals").insert({ challenge_id, referrer_user_id: referrer, referred_user_id: referred, awarded: true });
+  if (referralError) throw referralError;
+  const { error: bonusError } = await svc.from("challenge_bonuses_awarded").insert({
     challenge_id, user_id: referrer, bonus_key: `referral_${referred}`, points: 50,
   });
+  if (bonusError) throw bonusError;
   await recalcScore(svc, challenge_id, referrer);
 }
 
