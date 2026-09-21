@@ -9,12 +9,12 @@ import { toast } from "sonner";
 
 const ChallengeReferrals = () => {
   const navigate = useNavigate();
-  const { user, username } = useAuth();
+  const { user } = useAuth();
   const { data: ch } = useActiveChallenge();
   const { data: myScore } = useMyScore(ch?.id);
   const { data: gate } = useReferralGateStatus(ch?.id);
 
-  const refUrl = user ? buildReferralUrl(username && username !== "Guest" ? username : user.id) : "";
+  const refUrl = user ? buildReferralUrl(user.id) : "";
   const required = gate?.required ?? 0;
   const refCount = gate?.refCount ?? 0;
   const remaining = (gate as any)?.remaining ?? Math.max(0, required - refCount);

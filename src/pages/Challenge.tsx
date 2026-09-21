@@ -28,6 +28,28 @@ const Challenge = () => {
     if (ref && ref !== user?.id && ref !== username) localStorage.setItem("challenge_ref", ref);
   }, [params, user?.id, username]);
 
+  // If an invited user already joined the challenge, claim their first valid
+  // referral when they open the shared link instead of losing the attribution.
+  useEffect(() => {
+    const ref = params.get("ref");
+    if (!ref || !user?.id || !ch?.id || !entry || entry.referred_by_user_id) return;
+    if (ref === user.id || ref.toLocaleLowerCase() === username?.toLocaleLowerCase()) return;
+
+    let cancelled = false;
+    const claimReferral = async () => {
+      const { data, error } = await supabase.functions.invoke("submit-challenge-entry", {
+        body: { challenge_id: ch.id, referred_by_user_id: ref },
+      });
+      if (cancelled || error || (data as any)?.error) return;
+      if ((data as any)?.referral_claimed) {
+        localStorage.removeItem("challenge_ref");
+        await refetchEntry();
+      }
+    };
+    void claimReferral();
+    return () => { cancelled = true; };
+  }, [params, user?.id, username, ch?.id, entry, refetchEntry]);
+
   if (!ch) {
     return (
       <AppLayout>
@@ -42,7 +64,7 @@ const Challenge = () => {
   }
 
   const myRow = board.find((r: any) => r.user_id === user?.id);
-  const refUrl = user ? buildReferralUrl(username && username !== "Guest" ? username : user.id) : "";
+  const refUrl = user ? buildReferralUrl(user.id) : "";
 
 
 
