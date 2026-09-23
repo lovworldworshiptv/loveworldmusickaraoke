@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790165172064,
+      "tag": "0000_challenge_premium_only_leaderboard",
+      "breakpoints": true
+    }
+  ]
+}
