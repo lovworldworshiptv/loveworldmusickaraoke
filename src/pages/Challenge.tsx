@@ -94,6 +94,24 @@ const Challenge = () => {
           <ChallengeCountdown endDate={ch.end_date} />
         </div>
 
+        {entry?.status === "approved" && !premiumLoading && !isPremium && (
+          <div className="glass-card p-5 mb-5 border border-amber-500/50 bg-amber-500/5">
+            <div className="flex items-center gap-2 mb-2">
+              <Crown className="w-4 h-4 text-amber-400" />
+              <h3 className="font-bold text-sm">Premium Required to Continue</h3>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              The Song Master Challenge is for Premium subscribers only, for the full duration of the challenge.
+              Your Premium subscription is no longer active, so your games won't earn points and your leaderboard
+              position is temporarily hidden from everyone — including the prize ranking — until you renew.
+            </p>
+            <button onClick={() => navigate("/subscription")}
+              className="w-full py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold text-xs flex items-center justify-center gap-2">
+              <Crown className="w-3.5 h-3.5" /> Renew Premium
+            </button>
+          </div>
+        )}
+
         {entry?.status === "approved" && (
           <div className="glass-card p-5 mb-5">
             <h3 className="font-bold mb-3 flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> Your Progress</h3>
