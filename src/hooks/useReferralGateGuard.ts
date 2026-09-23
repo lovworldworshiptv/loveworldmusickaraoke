@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveChallenge, useMyEntry, useReferralGateStatus } from "@/hooks/useChallenge";
+import { useIsPremium } from "@/hooks/useIsPremium";
 
 export const CHALLENGE_RESUME_KEY = "challenge_resume_path";
 
@@ -20,6 +21,21 @@ export function useReferralGateGuard() {
   const activeCh = ch && ch.status === "active" ? ch : null;
   const { data: entry } = useMyEntry(activeCh?.id);
   const { data: gate } = useReferralGateStatus(activeCh?.id);
+  const { isPremium, loading: premiumLoading } = useIsPremium();
+
+  // Premium is required for the whole duration of the challenge.
+  useEffect(() => {
+    if (!user || !activeCh || premiumLoading) return;
+    if (entry?.status !== "approved") return;
+    if (isPremium) return;
+    try {
+      localStorage.setItem(CHALLENGE_RESUME_KEY, location.pathname + location.search);
+    } catch {}
+    toast.error(
+      "Your Premium subscription has ended. Renew Premium to keep playing — your leaderboard position stays hidden until you do."
+    );
+    navigate("/games/challenge", { replace: true });
+  }, [user, activeCh, entry?.status, isPremium, premiumLoading, location.pathname, location.search, navigate]);
 
   useEffect(() => {
     if (!user || !activeCh) return;
