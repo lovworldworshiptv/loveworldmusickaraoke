@@ -36,10 +36,16 @@ Deno.serve(async (req) => {
     const results: any[] = [];
     for (const ch of (list || [])) {
       if (!challenge_id && new Date(ch.end_date) > new Date()) continue;
-      const { data: scores } = await svc.from("challenge_scores")
+      const { data: allScores } = await svc.from("challenge_scores")
         .select("user_id, total_score, qualified")
         .eq("challenge_id", ch.id).eq("qualified", true)
         .order("total_score", { ascending: false });
+      // Only active Premium subscribers are ranked or awarded prizes.
+      const scores: any[] = [];
+      for (const s of (allScores || [])) {
+        const { data: ok } = await svc.rpc("has_active_premium", { _user_id: s.user_id });
+        if (ok) scores.push(s);
+      }
       const dist = ch.prize_distribution as Record<string, number>;
       const ranks = Object.keys(dist).map(Number).sort((a, b) => a - b);
       for (let i = 0; i < (scores || []).length; i++) {
