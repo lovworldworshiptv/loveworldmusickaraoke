@@ -28,6 +28,21 @@ const Challenge = () => {
     if (ref && ref !== user?.id && ref !== username) localStorage.setItem("challenge_ref", ref);
   }, [params, user?.id, username]);
 
+  // If this visitor is already enrolled, tell the referrer their invite doesn't count
+  useEffect(() => {
+    const ref = params.get("ref");
+    if (!ref || !user || !ch?.id || !entry) return;
+    if (ref === user.id || ref === username) return;
+    supabase.functions
+      .invoke("record-duplicate-referral", { body: { challenge_id: ch.id, ref } })
+      .then(({ data }: any) => {
+        if (data?.duplicate) {
+          toast.info("You're already in the Song Master Challenge, so this invite won't earn referral points.");
+        }
+      })
+      .catch(() => {});
+  }, [params, user, ch?.id, entry, username]);
+
   if (!ch) {
     return (
       <AppLayout>
