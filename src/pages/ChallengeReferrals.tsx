@@ -2,9 +2,9 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { useActiveChallenge, useReferralGateStatus, useMyScore, buildReferralUrl } from "@/hooks/useChallenge";
+import { useActiveChallenge, useReferralGateStatus, useMyScore, buildReferralUrl, useDuplicateReferrals } from "@/hooks/useChallenge";
 import { CHALLENGE_RESUME_KEY } from "@/hooks/useReferralGateGuard";
-import { ArrowLeft, Copy, Users, CheckCircle2, Share2, Trophy } from "lucide-react";
+import { ArrowLeft, Copy, Users, CheckCircle2, Share2, Trophy, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 const ChallengeReferrals = () => {
@@ -13,6 +13,7 @@ const ChallengeReferrals = () => {
   const { data: ch } = useActiveChallenge();
   const { data: myScore } = useMyScore(ch?.id);
   const { data: gate } = useReferralGateStatus(ch?.id);
+  const { data: duplicates = [] } = useDuplicateReferrals(ch?.id);
 
   const refUrl = user ? buildReferralUrl(username && username !== "Guest" ? username : user.id) : "";
   const required = gate?.required ?? 0;
@@ -110,6 +111,24 @@ const ChallengeReferrals = () => {
             </button>
           )}
         </div>
+
+        {duplicates.length > 0 && (
+          <div className="glass-card p-4 mb-5 border border-amber-500/40">
+            <p className="font-semibold text-sm text-foreground mb-1 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-400" />
+              {duplicates.length} invite{duplicates.length === 1 ? " is" : "s are"} already in the challenge
+            </p>
+            <p className="text-xs text-muted-foreground mb-2">
+              These players had already joined the Song Master Challenge, so they don't count and earn you no
+              referral points. Invite players who are new to the challenge to complete this milestone.
+            </p>
+            <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-0.5">
+              {duplicates.map((d) => (
+                <li key={d.id}><span className="text-foreground">{d.username}</span> — already in the challenge</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="glass-card p-4 text-xs text-muted-foreground">
           <p className="font-semibold text-foreground mb-1">How the Milestone Advancement Score works</p>

@@ -114,6 +114,32 @@ export const useLeaderboard = (challengeId?: string) => {
   });
 };
 
+/** Invites that landed on people already in the challenge — they earn no points. */
+export const useDuplicateReferrals = (challengeId?: string) => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["challenge-duplicate-referrals", challengeId, user?.id],
+    queryFn: async () => {
+      if (!user?.id || !challengeId) return [] as { id: string; username: string }[];
+      const { data } = await supabase
+        .from("challenge_referrals" as any)
+        .select("id, referred_user_id, created_at")
+        .eq("challenge_id", challengeId)
+        .eq("referrer_user_id", user.id)
+        .eq("awarded", false)
+        .order("created_at", { ascending: false });
+      const rows = (data as any[]) || [];
+      const out: { id: string; username: string }[] = [];
+      for (const r of rows) {
+        const { data: prof } = await supabase.rpc("get_public_profile" as any, { p_user_id: r.referred_user_id });
+        out.push({ id: r.id, username: (prof as any)?.[0]?.username || "A player" });
+      }
+      return out;
+    },
+    enabled: !!user?.id && !!challengeId,
+  });
+};
+
 export const useParticipantCount = (challengeId?: string) => {
   return useQuery({
     queryKey: ["challenge-participants", challengeId],
@@ -210,6 +236,12 @@ export async function recordChallengeGame(mode: "lyrics" | "melody" | "category"
     } else if (result?.skipped === "difficulty_gate" && result.message) {
       const { toast } = await import("sonner");
       toast.warning(result.message, { duration: 7000 });
+    } else if (result?.skipped === "premium_required" && result.message) {
+      const { toast } = await import("sonner");
+      toast.error(result.message, {
+        action: { label: "Get Premium", onClick: () => { window.location.href = "/subscription"; } },
+        duration: 10000,
+      });
     }
     return result;
   } catch (e) {

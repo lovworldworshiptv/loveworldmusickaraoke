@@ -9,6 +9,7 @@ import { Trophy, Copy, ArrowLeft, Crown, Target, CheckCircle, LogOut, AlertCircl
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIsPremium } from "@/hooks/useIsPremium";
 
 
 const Challenge = () => {
@@ -20,6 +21,7 @@ const Challenge = () => {
   const { data: entry, refetch: refetchEntry } = useMyEntry(ch?.id);
   const { data: myScore } = useMyScore(ch?.id);
   const { data: board = [] } = useLeaderboard(ch?.id);
+  const { isPremium, loading: premiumLoading } = useIsPremium();
 
 
   // Capture ?ref= referrer (username or user_id) to localStorage
@@ -27,6 +29,21 @@ const Challenge = () => {
     const ref = params.get("ref");
     if (ref && ref !== user?.id && ref !== username) localStorage.setItem("challenge_ref", ref);
   }, [params, user?.id, username]);
+
+  // If this visitor is already enrolled, tell the referrer their invite doesn't count
+  useEffect(() => {
+    const ref = params.get("ref");
+    if (!ref || !user || !ch?.id || !entry) return;
+    if (ref === user.id || ref === username) return;
+    supabase.functions
+      .invoke("record-duplicate-referral", { body: { challenge_id: ch.id, ref } })
+      .then(({ data }: any) => {
+        if (data?.duplicate) {
+          toast.info("You're already in the Song Master Challenge, so this invite won't earn referral points.");
+        }
+      })
+      .catch(() => {});
+  }, [params, user, ch?.id, entry, username]);
 
   if (!ch) {
     return (
@@ -78,6 +95,24 @@ const Challenge = () => {
           <div className="mb-2 text-xs text-center text-muted-foreground">Ends In</div>
           <ChallengeCountdown endDate={ch.end_date} />
         </div>
+
+        {entry?.status === "approved" && !premiumLoading && !isPremium && (
+          <div className="glass-card p-5 mb-5 border border-amber-500/50 bg-amber-500/5">
+            <div className="flex items-center gap-2 mb-2">
+              <Crown className="w-4 h-4 text-amber-400" />
+              <h3 className="font-bold text-sm">Premium Required to Continue</h3>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              The Song Master Challenge is for Premium subscribers only, for the full duration of the challenge.
+              Your Premium subscription is no longer active, so your games won't earn points and your leaderboard
+              position is temporarily hidden from everyone — including the prize ranking — until you renew.
+            </p>
+            <button onClick={() => navigate("/subscription")}
+              className="w-full py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold text-xs flex items-center justify-center gap-2">
+              <Crown className="w-3.5 h-3.5" /> Renew Premium
+            </button>
+          </div>
+        )}
 
         {entry?.status === "approved" && (
           <div className="glass-card p-5 mb-5">

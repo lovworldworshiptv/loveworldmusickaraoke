@@ -32,6 +32,15 @@ Deno.serve(async (req) => {
       .eq("challenge_id", ch.id).eq("user_id", user.id).maybeSingle();
     if (!entry || entry.status !== "approved") return json({ skipped: "not_enrolled" });
 
+    // Premium is required at all times to earn challenge points
+    const { data: isPremium } = await svc.rpc("has_active_premium", { _user_id: user.id });
+    if (!isPremium) {
+      return json({
+        skipped: "premium_required",
+        message: "Your Premium subscription has ended. Renew Premium to keep earning challenge points — your leaderboard position stays hidden until you do.",
+      });
+    }
+
     // Referral gate: once user total_score >= gate, require N awarded referrals before games count
     let referralGateBlocked = false;
     let referralRefCount = 0;

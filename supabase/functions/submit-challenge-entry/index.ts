@@ -50,7 +50,31 @@ Deno.serve(async (req) => {
     // Existing entry?
     const { data: existing } = await svc.from("challenge_entries")
       .select("id, status").eq("challenge_id", challenge_id).eq("user_id", user.id).maybeSingle();
-    if (existing) return json({ error: "You already have an entry", entry: existing }, 400);
+    if (existing) {
+      // If they arrived through someone's referral link, log it as a non-counting
+      // duplicate so the referrer is told this invite is already in the challenge.
+      try {
+        if (referred_by_user_id) {
+          const r = String(referred_by_user_id).trim();
+          const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(r);
+          let refId: string | null = isUuid ? r : null;
+          if (!refId) {
+            const { data: prof } = await svc.from("profiles").select("user_id").ilike("username", r).maybeSingle();
+            refId = prof?.user_id ?? null;
+          }
+          if (refId && refId !== user.id) {
+            const { data: dup } = await svc.from("challenge_referrals").select("id")
+              .eq("challenge_id", challenge_id).eq("referred_user_id", user.id).maybeSingle();
+            if (!dup) {
+              await svc.from("challenge_referrals").insert({
+                challenge_id, referrer_user_id: refId, referred_user_id: user.id, awarded: false,
+              });
+            }
+          }
+        }
+      } catch (_e) { /* non-fatal */ }
+      return json({ error: "You already have an entry", entry: existing }, 400);
+    }
 
     // Resolve referrer: accept a UUID or a username. Reject self-referrals.
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
