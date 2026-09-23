@@ -2,9 +2,9 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { useActiveChallenge, useReferralGateStatus, useMyScore, buildReferralUrl } from "@/hooks/useChallenge";
+import { useActiveChallenge, useReferralGateStatus, useMyScore, buildReferralUrl, useDuplicateReferrals } from "@/hooks/useChallenge";
 import { CHALLENGE_RESUME_KEY } from "@/hooks/useReferralGateGuard";
-import { ArrowLeft, Copy, Users, CheckCircle2, Share2, Trophy } from "lucide-react";
+import { ArrowLeft, Copy, Users, CheckCircle2, Share2, Trophy, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 const ChallengeReferrals = () => {
@@ -13,6 +13,7 @@ const ChallengeReferrals = () => {
   const { data: ch } = useActiveChallenge();
   const { data: myScore } = useMyScore(ch?.id);
   const { data: gate } = useReferralGateStatus(ch?.id);
+  const { data: duplicates = [] } = useDuplicateReferrals(ch?.id);
 
   const refUrl = user ? buildReferralUrl(username && username !== "Guest" ? username : user.id) : "";
   const required = gate?.required ?? 0;

@@ -9,6 +9,7 @@ import { Trophy, Copy, ArrowLeft, Crown, Target, CheckCircle, LogOut, AlertCircl
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIsPremium } from "@/hooks/useIsPremium";
 
 
 const Challenge = () => {
@@ -20,6 +21,7 @@ const Challenge = () => {
   const { data: entry, refetch: refetchEntry } = useMyEntry(ch?.id);
   const { data: myScore } = useMyScore(ch?.id);
   const { data: board = [] } = useLeaderboard(ch?.id);
+  const { isPremium, loading: premiumLoading } = useIsPremium();
 
 
   // Capture ?ref= referrer (username or user_id) to localStorage
