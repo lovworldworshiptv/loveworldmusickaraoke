@@ -3,7 +3,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsEditor } from "@/hooks/useIsEditor";
-import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer, FileAudio, ChevronDown, Rewind, FastForward, Pencil, Check, CheckCircle } from "lucide-react";
+import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer, FileAudio, ChevronDown, Rewind, FastForward, Pencil, Check, CheckCircle, Wand2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
@@ -806,6 +806,15 @@ const AdminSongs = () => {
                 </div>
 
                 <div className="flex gap-2">
+                  {isAdmin && song.audio_url && (
+                    <button onClick={() => handleGenerateInstrumental(song)}
+                      disabled={!!generating[song.id]}
+                      className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors disabled:opacity-60"
+                      title={song.instrumental_url ? "Regenerate Instrumental" : "Generate Instrumental"}
+                      aria-label="Generate Instrumental">
+                      {generating[song.id] ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                    </button>
+                  )}
                   <button onClick={() => openEdit(song, "details")}
                     className={`p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors ${isEditorOnly ? "opacity-30 pointer-events-none" : ""}`} title="Edit Details"
                     disabled={isEditorOnly}>
