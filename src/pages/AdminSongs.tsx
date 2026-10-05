@@ -128,6 +128,41 @@ const AdminSongs = () => {
   const { isEditor, loading: editorLoading } = useIsEditor();
   const isEditorOnly = isEditor && !isAdmin;
   const [songs, setSongs] = useState<Song[]>([]);
+  const [generating, setGenerating] = useState<Record<string, boolean>>({});
+
+  const handleGenerateInstrumental = async (song: Song) => {
+    if (song.instrumental_url && !confirm(`"${song.title}" already has an instrumental. Replace it?`)) return;
+    setGenerating(g => ({ ...g, [song.id]: true }));
+    const tId = toast.loading(`Removing vocals from "${song.title}"… this can take a few minutes.`);
+    const call = async (body: Record<string, string>) => {
+      const { data, error } = await supabase.functions.invoke("generate-instrumental", { body });
+      if (error) {
+        let msg = error.message;
+        try { const ctx = await (error as any).context?.json(); msg = ctx?.error || msg; } catch {}
+        throw new Error(typeof msg === "string" ? msg : "Request failed");
+      }
+      return data;
+    };
+    try {
+      const start = await call({ action: "start", songId: song.id });
+      const predictionId = start.predictionId;
+      for (let i = 0; i < 180; i++) {
+        await new Promise(r => setTimeout(r, i < 5 ? 4000 : 8000));
+        const res = await call({ action: "check", songId: song.id, predictionId });
+        if (res.status === "succeeded") {
+          setSongs(prev => prev.map(s => s.id === song.id ? { ...s, instrumental_url: res.instrumentalUrl } : s));
+          toast.success(`Instrumental ready for "${song.title}"`, { id: tId });
+          return;
+        }
+        if (res.status === "failed" || res.status === "canceled") throw new Error(res.error || "Separation failed");
+      }
+      throw new Error("Timed out waiting for the instrumental");
+    } catch (e: any) {
+      toast.error(`Couldn't generate instrumental: ${e.message}`, { id: tId });
+    } finally {
+      setGenerating(g => { const n = { ...g }; delete n[song.id]; return n; });
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
   const [editMode, setEditMode] = useState<"lrc" | "sync" | "details">("lrc");
