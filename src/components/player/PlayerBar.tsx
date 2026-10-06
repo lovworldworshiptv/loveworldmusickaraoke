@@ -88,8 +88,8 @@ const PlayerBar = () => {
     }
   }, [currentSong, canDownload]);
 
-  if (!currentSong) return null;
   const tone = playerTone(useDominantColor(currentSong?.coverUrl), 90);
+  if (!currentSong) return null;
   if (hidden) return (
     <button onClick={() => setHidden(false)} className="fixed z-30 w-12 h-12 rounded-full gradient-gold flex items-center justify-center text-primary-foreground shadow-lg hover:opacity-90 transition-opacity touch-target active:scale-95 lg:bottom-2 right-3" style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
       <ChevronUp className="w-5 h-5" />
