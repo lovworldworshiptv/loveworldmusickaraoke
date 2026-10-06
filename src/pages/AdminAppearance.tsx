@@ -223,6 +223,19 @@ const AdminAppearance = () => {
     error ? toast.error("Could not remove background") : toast.success("Background removed");
   };
 
+  const reorderStageChoices = async (fromId: string, toId: string) => {
+    const list = [...(stage.backgroundLibrary || [])];
+    const from = list.findIndex((c) => c.id === fromId);
+    const to = list.findIndex((c) => c.id === toId);
+    if (from < 0 || to < 0 || from === to) return;
+    const [moved] = list.splice(from, 1);
+    list.splice(to, 0, moved);
+    const next = { ...stage, backgroundLibrary: list };
+    setStage(next);
+    const { error } = await saveSetting(SETTING_KEYS.stageMode, next);
+    error ? toast.error("Could not save order") : toast.success("Background order saved");
+  };
+
   if (loading) return null;
 
   return (
