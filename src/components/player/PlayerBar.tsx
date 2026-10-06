@@ -8,7 +8,6 @@ import { useIsPremium } from "@/hooks/useIsPremium";
 import { supabase } from "@/integrations/supabase/client";
 import { isDownloaded, saveDownload, type DownloadedTrack } from "@/lib/downloadManager";
 import { toast } from "sonner";
-import { Slider } from "@/components/ui/slider";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -21,7 +20,11 @@ const formatTime = (s: number) => {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 };
 
-const PlayerBar = () => {
+interface PlayerBarProps {
+  desktopSidebarCollapsed?: boolean;
+}
+
+const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
   const {
     currentSong, isPlaying, isKaraoke, isExpanded, progress, currentTime, duration,
     togglePlay, toggleKaraoke, toggleExpanded, seekTo,
@@ -103,7 +106,7 @@ const PlayerBar = () => {
 
   return (
     <>
-      <div style={tone ? { backgroundColor: `rgba(${tone}, 0.92)`, borderColor: `rgba(${tone}, 0.4)`, transition: "background-color 700ms ease, border-color 700ms ease" } : undefined} className="fixed left-2 right-2 z-30 glass rounded-2xl border border-border gpu shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] lg:left-[16.75rem] lg:right-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] lg:bottom-2">
+      <div style={tone ? { backgroundColor: `rgba(${tone}, 0.92)`, borderColor: `rgba(${tone}, 0.4)`, transition: "background-color 700ms ease, border-color 700ms ease" } : undefined} className={`fixed left-2 right-2 z-30 glass rounded-2xl border border-border gpu shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] lg:right-0 lg:bottom-0 lg:rounded-none lg:border-x-0 lg:border-b-0 lg:transition-[left] lg:duration-300 ${desktopSidebarCollapsed ? "lg:left-20" : "lg:left-64"}`}>
         <div className="px-4 pt-2">
           <div className="relative w-[96%] mx-auto group/progress">
             <PlaybackProgress value={progress} onValueChange={seekTo} ariaLabel="Song position" />
@@ -187,7 +190,7 @@ const PlayerBar = () => {
               <button onClick={() => setVolume(volume === 0 ? 0.7 : 0)}>
                 <VolumeIcon className="w-4 h-4 text-muted-foreground" />
               </button>
-              <Slider value={[volume * 100]} onValueChange={([v]) => setVolume(v / 100)} max={100} step={1} className="flex-1" />
+              <PlaybackProgress value={volume * 100} onValueChange={(value) => setVolume(value / 100)} ariaLabel="Volume" className="flex-1" />
             </div>
             <span className="text-xs text-muted-foreground w-16 text-right">{formatTime(currentTime)} / {formatTime(duration)}</span>
             <button onClick={() => setHidden(true)} className="text-muted-foreground hover:text-foreground transition-colors ml-1">

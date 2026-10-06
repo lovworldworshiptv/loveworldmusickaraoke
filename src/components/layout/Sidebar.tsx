@@ -1,10 +1,11 @@
-import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3, List, Image, Gamepad2, Sparkles, Users, BarChart3, Bell, Crown, Compass, Mic2, AlarmClock, Trophy, Clapperboard, HardDrive, Film, Presentation , Palette } from "lucide-react";
+import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3, List, Image, Gamepad2, Sparkles, Users, BarChart3, Bell, Crown, Compass, Mic2, AlarmClock, Trophy, Clapperboard, HardDrive, Film, Presentation, Palette, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsEditor } from "@/hooks/useIsEditor";
+import { Button } from "@/components/ui/button";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
@@ -44,7 +45,12 @@ const adminItems = [
   { icon: Palette, label: "Appearance & Home", path: "/admin/appearance" },
 ];
 
-const Sidebar = () => {
+interface SidebarProps {
+  collapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
+}
+
+const Sidebar = ({ collapsed, onCollapsedChange }: SidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut, user } = useAuth();
@@ -52,9 +58,19 @@ const Sidebar = () => {
   const { isEditor } = useIsEditor();
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 h-screen bg-sidebar border-r border-sidebar-border fixed left-0 top-0 z-30">
-      <div className="p-6">
-        <img src={logo} alt="Loveworld Music Karaoke+" className="h-10 w-auto" />
+    <aside className={cn("hidden lg:flex flex-col h-screen bg-sidebar border-r border-sidebar-border fixed left-0 top-0 z-30 transition-[width] duration-300", collapsed ? "w-20" : "w-64")}>
+      <div className={cn("h-[88px] flex items-center", collapsed ? "justify-center px-3" : "justify-between px-6")}>
+        {!collapsed && <img src={logo} alt="Loveworld Music Karaoke+" className="h-10 w-auto min-w-0" />}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onCollapsedChange(!collapsed)}
+          aria-label={collapsed ? "Open sidebar" : "Close sidebar"}
+          title={collapsed ? "Open sidebar" : "Close sidebar"}
+          className="shrink-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-gold"
+        >
+          {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+        </Button>
       </div>
 
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
@@ -64,21 +80,22 @@ const Sidebar = () => {
             onClick={() => navigate(item.path)}
             className={cn(
               "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+              collapsed && "justify-center",
               location.pathname === item.path
                 ? "bg-sidebar-accent text-gold"
                 : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             )}
           >
             <item.icon className="w-5 h-5" />
-            {item.label}
+            {!collapsed && item.label}
           </button>
         ))}
 
         {(isAdmin || isEditor) && (
           <>
-            <div className="pt-4 pb-1 px-3">
+            <div className={cn("pt-4 pb-1 px-3", collapsed && "border-t border-sidebar-border mt-3")}>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                {isAdmin ? "Admin" : "Editor"}
+                {collapsed ? "" : isAdmin ? "Admin" : "Editor"}
               </p>
             </div>
             {(isAdmin ? adminItems : [{ icon: Music2, label: "Manage Songs", path: "/admin/songs" }]).map((item) => (
@@ -87,13 +104,14 @@ const Sidebar = () => {
                 onClick={() => navigate(item.path)}
                 className={cn(
                   "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                  collapsed && "justify-center",
                   location.pathname === item.path
                     ? "bg-sidebar-accent text-gold"
                     : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 )}
               >
                 <item.icon className="w-5 h-5" />
-                {item.label}
+                {!collapsed && item.label}
               </button>
             ))}
           </>
@@ -103,20 +121,20 @@ const Sidebar = () => {
       <div className="px-3 pb-6 space-y-1">
         {user ? (
           <button onClick={() => signOut()}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-all duration-200">
-            <LogOut className="w-5 h-5" /> Sign Out
+            className={cn("flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-all duration-200", collapsed && "justify-center")}>
+            <LogOut className="w-5 h-5" /> {!collapsed && "Sign Out"}
           </button>
         ) : (
           <button onClick={() => navigate("/auth")}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gold hover:bg-sidebar-accent transition-all duration-200">
-            <LogOut className="w-5 h-5" /> Sign In
+            className={cn("flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gold hover:bg-sidebar-accent transition-all duration-200", collapsed && "justify-center")}>
+            <LogOut className="w-5 h-5" /> {!collapsed && "Sign In"}
           </button>
         )}
-        <button onClick={() => navigate("/privacy")} className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200">
-          <Shield className="w-5 h-5" /> Privacy Policy
+        <button onClick={() => navigate("/privacy")} className={cn("flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200", collapsed && "justify-center")}>
+          <Shield className="w-5 h-5" /> {!collapsed && "Privacy Policy"}
         </button>
-        <button onClick={() => navigate("/terms")} className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200">
-          <FileText className="w-5 h-5" /> Terms of Use
+        <button onClick={() => navigate("/terms")} className={cn("flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200", collapsed && "justify-center")}>
+          <FileText className="w-5 h-5" /> {!collapsed && "Terms of Use"}
         </button>
       </div>
     </aside>
