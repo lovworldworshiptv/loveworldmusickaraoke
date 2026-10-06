@@ -12,7 +12,7 @@ export const SETTING_KEYS = {
   globalCardColor: "global_playlist_card_color",
 } as const;
 
-export type ThemeColors = { gold?: string; background?: string; accent?: string; foreground?: string };
+export type ThemeColors = { gold?: string; background?: string; accent?: string; foreground?: string; dailyDiscover?: string };
 export type HomeSectionSetting = { id: string; visible: boolean };
 export type StageModePresentation = {
   backgroundColor: string;
@@ -115,6 +115,7 @@ export function applyTheme(t: ThemeColors | null | undefined) {
   };
   set(["--gold", "--primary", "--ring", "--sidebar-primary"], t.gold);
   set(["--background"], t.background);
+  set(["--daily-discover"], t.dailyDiscover);
   set(["--accent"], t.accent);
   set(["--foreground", "--card-foreground", "--popover-foreground"], t.foreground);
 }

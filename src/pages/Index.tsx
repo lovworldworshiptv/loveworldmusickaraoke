@@ -1,3 +1,5 @@
+import { useFeatures } from "@/contexts/FeatureContext";
+import { HOME_FEATURES } from "@/lib/featureFlags";
 import { useState, useEffect, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
@@ -25,6 +27,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 const Index = () => {
+  const { enabled } = useFeatures();
   const { username } = useAuth();
   const navigate = useNavigate();
   const isOnline = useOnlineStatus();
@@ -57,7 +60,7 @@ const Index = () => {
     <AppLayout>
       <HomepagePopup />
       <RenewalBanner />
-      {layout.filter((x) => x.visible).map((x) => {
+      {layout.filter((x) => x.visible && (!HOME_FEATURES[x.id] || enabled(HOME_FEATURES[x.id]))).map((x) => {
         const node = ({
           moods: <MoodCapsules value={mood.id} onChange={setMood} />,
           hero: <HeroBanner />,

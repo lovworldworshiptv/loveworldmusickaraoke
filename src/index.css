@@ -53,6 +53,8 @@
     --sidebar-ring: 43 70% 53%;
 
     --player-background: 220 40% 8%;
+    --daily-discover: 110 100% 54%;
+    --daily-discover-background: linear-gradient(120deg, hsl(var(--daily-discover) / 0.8), hsl(var(--daily-discover)));
     --glass-bg: 220 35% 12%;
     --glass-border: 220 25% 22%;
   }

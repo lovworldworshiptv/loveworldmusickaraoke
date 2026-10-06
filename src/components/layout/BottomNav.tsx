@@ -1,3 +1,4 @@
+import { useFeatures } from "@/contexts/FeatureContext";
 import { Home, Compass, Library, Gamepad2, BookOpen, Plus, ListMusic, Mic2, AlarmClock, Presentation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -24,6 +25,7 @@ const createItems = [
 
 const BottomNav = memo(() => {
   const navigate = useNavigate();
+  const { pathEnabled } = useFeatures();
   const location = useLocation();
   const { isExpanded } = usePlayer();
   const [createOpen, setCreateOpen] = useState(false);
@@ -48,7 +50,7 @@ const BottomNav = memo(() => {
       isExpanded && "translate-y-full pointer-events-none"
     )}>
       <div className="flex items-center justify-around py-2" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
-        {navItems.map((item) => (
+        {navItems.filter((item) => pathEnabled(item.path)).map((item) => (
           <Button
             key={item.label}
             variant="ghost"
@@ -66,7 +68,7 @@ const BottomNav = memo(() => {
           </Button>
         ))}
 
-        <Drawer open={createOpen} onOpenChange={setCreateOpen}>
+        {createItems.some((item) => pathEnabled(item.path)) && <Drawer open={createOpen} onOpenChange={setCreateOpen}>
           <DrawerTrigger asChild>
             <Button
               variant="ghost"
@@ -92,7 +94,7 @@ const BottomNav = memo(() => {
               <DrawerDescription className="text-white/80">Choose what you want to open.</DrawerDescription>
             </DrawerHeader>
             <div className="grid grid-cols-2 gap-3 pb-2">
-              {createItems.map((item) => (
+              {createItems.filter((item) => pathEnabled(item.path)).map((item) => (
                 <Button
                   key={item.label}
                   variant="outline"
@@ -109,7 +111,7 @@ const BottomNav = memo(() => {
               ))}
             </div>
           </DrawerContent>
-        </Drawer>
+        </Drawer>}
       </div>
     </nav>
   );

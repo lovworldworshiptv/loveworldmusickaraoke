@@ -1,3 +1,4 @@
+import { useFeatures } from "@/contexts/FeatureContext";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -31,6 +32,7 @@ const adminItems = [
 const ProfileMenu = () => {
   const { user, username, avatarUrl, kingschatHandle, signOut } = useAuth();
   const navigate = useNavigate();
+  const { pathEnabled } = useFeatures();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"main" | "settings">("main");
   const { theme, setTheme, themes } = useTheme();
@@ -118,7 +120,7 @@ const ProfileMenu = () => {
                     { icon: HardDrive, label: "My Studio", path: "/studio" },
                     { icon: Clock, label: "History", path: "/history" },
                     { icon: MessageSquare, label: "Feedback", path: "/feedback" },
-                  ].map((item) => (
+                  ].filter((item) => pathEnabled(item.path)).map((item) => (
                     <button
                       key={item.path}
                       onClick={() => { setOpen(false); navigate(item.path); }}

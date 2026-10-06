@@ -43,13 +43,13 @@ const DailyDiscover = () => {
           boxShadow: dominant
             ? `0 8px 40px rgba(${dominant[0]}, ${dominant[1]}, ${dominant[2]}, 0.35)`
             : "0 8px 40px hsl(43 70% 53% / 0.15)",
-          background: "linear-gradient(120deg, hsl(43 100% 60%) 0%, hsl(320 95% 52%) 55%, hsl(265 90% 55%) 100%)",
+          background: "var(--daily-discover-background)",
         }}
       >
         {song.cover_url && (
           <img src={song.cover_url} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover scale-125 blur-2xl opacity-30 mix-blend-luminosity" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/50 to-transparent" />
         <div className="relative flex h-full gap-3">
           <div className="aspect-square h-full rounded-xl overflow-hidden flex-shrink-0 bg-muted ring-1 ring-gold/40">
             {song.cover_url ? <img src={song.cover_url} alt={song.title} className="w-full h-full object-cover" /> : <div className="w-full h-full gradient-purple flex items-center justify-center"><Sparkles className="w-8 h-8 text-gold/60" /></div>}
