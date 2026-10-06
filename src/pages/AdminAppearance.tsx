@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowDown, ArrowUp, Image, Loader2, Search, Trash2, Upload, Video } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, Image, Loader2, Search, Trash2, Upload, Video } from "lucide-react";
 import { toast } from "sonner";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -101,6 +101,8 @@ const AdminAppearance = () => {
   const [stageSongs, setStageSongs] = useState<SongLite[]>([]);
   const [stageUploading, setStageUploading] = useState(false);
   const [stageChoiceName, setStageChoiceName] = useState("");
+  const [stageDragId, setStageDragId] = useState<string | null>(null);
+  const [stageDragOverId, setStageDragOverId] = useState<string | null>(null);
 
   useEffect(() => { if (!loading && !isAdmin) navigate("/"); }, [isAdmin, loading, navigate]);
 
