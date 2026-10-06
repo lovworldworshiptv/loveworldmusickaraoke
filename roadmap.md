@@ -11,3 +11,4 @@
 - [ ] Phase 10: renewal reminders, multilingual lyrics management, and social community
 - [ ] Home UX polish: fuchsia-pink card for "Pastor Chris Live Unending Praise", bright gradient background for Daily Discover card
 
+- [x] Graceful hover effects: top icons, mood capsules, bottom nav (hover-only, no other changes)

@@ -24,7 +24,7 @@ const TopNavbar = () => {
         {!isHome && (
           <button
             onClick={() => navigate(-1)}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors active:scale-95"
+            className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/70 hover:scale-105 hover:shadow-[0_0_14px_hsl(43_70%_53%/0.25)] transition-all duration-200 ease-out active:scale-90"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -39,7 +39,7 @@ const TopNavbar = () => {
         )}
       </div>
       <div className="flex items-center gap-1">
-        <button onClick={() => setSearchOpen(true)} className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+        <button onClick={() => setSearchOpen(true)} className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/70 hover:scale-105 hover:shadow-[0_0_14px_hsl(43_70%_53%/0.25)] transition-all duration-200 ease-out active:scale-90">
           <Search className="w-5 h-5" />
         </button>
         <NotificationCenter />
