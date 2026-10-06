@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, Pause, RotateCcw, RotateCw, Loader2 } from "lucide-react";
-import { Slider } from "@/components/ui/slider";
+import PlaybackProgress from "@/components/player/PlaybackProgress";
 
 export interface SongVideo {
   id: string;
@@ -127,7 +127,12 @@ const VideoMode = ({ video, startAt, positionRef }: Props) => {
       </div>
 
       <div className="w-full max-w-3xl">
-        <Slider value={[dur ? (time / dur) * 100 : 0]} onValueChange={([v]) => dur && seek((v / 100) * dur)} max={100} step={0.5} className="w-full mb-1.5" aria-label="Video position" />
+        <PlaybackProgress
+          value={dur ? (time / dur) * 100 : 0}
+          onValueChange={(value) => { if (dur) seek((value / 100) * dur); }}
+          ariaLabel="Video position"
+          className="mb-1.5"
+        />
         <div className="flex justify-between text-[11px] text-muted-foreground font-medium">
           <span>{fmt(time)}</span><span>{dur ? `-${fmt(Math.max(0, dur - time))}` : ""}</span>
         </div>

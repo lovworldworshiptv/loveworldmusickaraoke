@@ -22,6 +22,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Video } from "lucide-react";
 import VideoMode, { SongVideo } from "@/components/player/VideoMode";
 import LyricsLanguageSheet from "@/components/player/LyricsLanguageSheet";
+import PlaybackProgress from "@/components/player/PlaybackProgress";
 
 type PlayerMode = "song" | "karaoke" | "video";
 
@@ -492,9 +493,7 @@ const ExpandedPlayer = () => {
         {!isRecordingActive && mode !== "video" && (
         <div className="flex-shrink-0 px-6 pt-2 safe-bottom" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
           <div className="mb-4 group/progress">
-            <Slider value={[progress]} onValueChange={([v]) => seekTo(v)} max={100} step={0.5}
-              className="w-full mb-1.5 [&_[class*=Track]]:h-1 [&_[class*=Track]]:bg-muted-foreground/20 [&_[class*=Range]]:bg-gradient-to-r [&_[class*=Range]]:from-gold [&_[class*=Range]]:via-gold-light [&_[class*=Range]]:to-gold [&_[class*=Thumb]]:w-[5.6px] [&_[class*=Thumb]]:h-[5.6px] [&_[class*=Thumb]]:bg-gold [&_[class*=Thumb]]:border-0 [&_[class*=Thumb]]:shadow-[0_0_6px_hsl(43_70%_53%/0.6)]"
-            />
+            <PlaybackProgress value={progress} onValueChange={seekTo} ariaLabel="Song position" className="mb-1.5" />
             <div className="flex justify-between text-[11px] text-muted-foreground font-medium">
               <span>{formatTime(currentTime)}</span>
               <span>-{formatTime(Math.max(0, duration - currentTime))}</span>
