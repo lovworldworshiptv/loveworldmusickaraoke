@@ -141,10 +141,10 @@ const StageMode = () => {
       onPointerDown={pokeControls}
     >
       {activeStage.mediaType === "image" && activeStage.mediaUrl && (
-        <img src={resolveStageMediaUrl(activeStage.mediaUrl)} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img src={resolveStageMediaUrl(activeStage.mediaUrl)} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover" />
       )}
       {activeStage.mediaType === "video" && activeStage.mediaUrl && (
-        <video src={resolveStageMediaUrl(activeStage.mediaUrl)} muted loop autoPlay playsInline className="absolute inset-0 h-full w-full object-cover" />
+        <video src={resolveStageMediaUrl(activeStage.mediaUrl)} muted loop autoPlay playsInline className="pointer-events-none absolute inset-0 h-full w-full object-cover" />
       )}
       <div className="pointer-events-none absolute inset-0 bg-background/65" />
       {/* Top bar */}
