@@ -1332,6 +1332,7 @@ export type Database = {
       }
       playlists: {
         Row: {
+          card_color: string | null
           cover_url: string | null
           created_at: string
           description: string | null
@@ -1341,6 +1342,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          card_color?: string | null
           cover_url?: string | null
           created_at?: string
           description?: string | null
@@ -1350,6 +1352,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          card_color?: string | null
           cover_url?: string | null
           created_at?: string
           description?: string | null

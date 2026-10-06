@@ -1,0 +1,1 @@
+ALTER TABLE public.playlists ADD COLUMN IF NOT EXISTS card_color text;

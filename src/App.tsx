@@ -58,6 +58,7 @@ import Challenge from "./pages/Challenge";
 import ChallengeEntry from "./pages/ChallengeEntry";
 import ChallengeReferrals from "./pages/ChallengeReferrals";
 import AdminChallenges from "./pages/AdminChallenges";
+import AdminAppearance from "./pages/AdminAppearance";
 
 const queryClient = new QueryClient();
 
@@ -125,6 +126,7 @@ const App = () => (
                 <Route path="/admin/notifications" element={<AuthGate><AdminNotifications /></AuthGate>} />
                 <Route path="/admin/subscriptions" element={<AuthGate><AdminSubscriptions /></AuthGate>} />
                 <Route path="/admin/karaoke-stories" element={<AuthGate><AdminKaraokeStories /></AuthGate>} />
+                <Route path="/admin/appearance" element={<AuthGate><AdminAppearance /></AuthGate>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </PlayerProvider>
