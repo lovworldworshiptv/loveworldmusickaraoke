@@ -429,4 +429,9 @@ const BibleWidgetContent = () => {
   );
 };
 
+const BibleWidget = () => {
+  const { enabled } = useFeatures();
+  return enabled("bible") ? <BibleWidgetContent /> : null;
+};
+
 export default BibleWidget;
