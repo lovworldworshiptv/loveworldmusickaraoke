@@ -19,8 +19,14 @@ export type StageModePresentation = {
   mediaUrl: string;
 };
 
+export type StageBackgroundChoice = StageModePresentation & {
+  id: string;
+  name: string;
+};
+
 export type StageModeSetting = StageModePresentation & {
   songOverrides?: Record<string, StageModePresentation>;
+  backgroundLibrary?: StageBackgroundChoice[];
 };
 
 export const DEFAULT_STAGE_MODE: StageModeSetting = {

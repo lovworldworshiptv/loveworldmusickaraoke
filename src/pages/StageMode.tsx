@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePlayer } from "@/contexts/PlayerContext";
-import { X, Play, Pause, SkipBack, SkipForward, Minus, Plus, Music, Volume2, VolumeX, Hand, WandSparkles } from "lucide-react";
+import { X, Play, Pause, SkipBack, SkipForward, Minus, Plus, Music, Volume2, VolumeX, Hand, WandSparkles, Images, Video } from "lucide-react";
 import { DEFAULT_STAGE_MODE, resolveStageMediaUrl, SETTING_KEYS, type StageModeSetting, useSetting } from "@/lib/siteSettings";
 import { Button } from "@/components/ui/button";
 
@@ -29,6 +29,8 @@ const StageMode = () => {
   const [audioOn, setAudioOn] = useState(volume > 0);
   const [lyricsMode, setLyricsMode] = useState<"sync" | "manual">("sync");
   const [selectedLineIndex, setSelectedLineIndex] = useState<number | null>(null);
+  const [backgroundMenuOpen, setBackgroundMenuOpen] = useState(false);
+  const [selectedBackgroundId, setSelectedBackgroundId] = useState("song");
   const previousVolume = useRef(volume > 0 ? volume : 0.7);
   const setting = useSetting<StageModeSetting>(SETTING_KEYS.stageMode);
   const globalStage = { ...DEFAULT_STAGE_MODE, ...(setting || {}) };
@@ -41,6 +43,19 @@ const StageMode = () => {
 
   const hasSync = lrcLines.length > 0;
   const manualScroll = lyricsMode === "manual";
+  const backgroundChoices = useMemo(() => {
+    const choices = [
+      { id: "song", name: "Song background", ...stage },
+      ...(currentSong.coverUrl
+        ? [{ id: "artwork", name: "Song artwork", backgroundColor: stage.backgroundColor, mediaType: "image" as const, mediaUrl: currentSong.coverUrl }]
+        : []),
+      ...(setting?.backgroundLibrary || []),
+    ];
+    return choices.filter((choice, index) => choices.findIndex((candidate) =>
+      candidate.mediaType === choice.mediaType && candidate.mediaUrl === choice.mediaUrl && candidate.backgroundColor === choice.backgroundColor
+    ) === index);
+  }, [currentSong.coverUrl, setting?.backgroundLibrary, stage]);
+  const activeStage = backgroundChoices.find((choice) => choice.id === selectedBackgroundId) || backgroundChoices[0] || stage;
   const staticLines = useMemo(
     () => (hasSync ? [] : staticLyrics.split("\n").map((l) => l.trim()).filter(Boolean)),
     [hasSync, staticLyrics]
@@ -59,6 +74,11 @@ const StageMode = () => {
       if (hideTimer.current) clearTimeout(hideTimer.current);
     };
   }, [pokeControls]);
+
+  useEffect(() => {
+    setSelectedBackgroundId("song");
+    setBackgroundMenuOpen(false);
+  }, [currentSong.id]);
 
   // Keep the screen awake while on stage.
   useEffect(() => {
@@ -116,17 +136,17 @@ const StageMode = () => {
   return (
     <div
       className="h-[100dvh] bg-background text-foreground flex flex-col select-none overflow-hidden relative"
-      style={{ backgroundColor: stage.backgroundColor }}
+      style={{ backgroundColor: activeStage.backgroundColor }}
       onPointerMove={pokeControls}
       onPointerDown={pokeControls}
     >
-      {stage.mediaType === "image" && stage.mediaUrl && (
-        <img src={resolveStageMediaUrl(stage.mediaUrl)} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      {activeStage.mediaType === "image" && activeStage.mediaUrl && (
+        <img src={resolveStageMediaUrl(activeStage.mediaUrl)} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover" />
       )}
-      {stage.mediaType === "video" && stage.mediaUrl && (
-        <video src={resolveStageMediaUrl(stage.mediaUrl)} muted loop autoPlay playsInline className="absolute inset-0 h-full w-full object-cover" />
+      {activeStage.mediaType === "video" && activeStage.mediaUrl && (
+        <video src={resolveStageMediaUrl(activeStage.mediaUrl)} muted loop autoPlay playsInline className="pointer-events-none absolute inset-0 h-full w-full object-cover" />
       )}
-      <div className="absolute inset-0 bg-background/65" />
+      <div className="pointer-events-none absolute inset-0 bg-background/65" />
       {/* Top bar */}
       <div
         className={`absolute top-0 inset-x-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-500 ${
@@ -174,6 +194,45 @@ const StageMode = () => {
         </div>
       </div>
 
+      <div className={`absolute top-28 right-4 z-40 transition-opacity duration-500 ${controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          aria-label="Choose stage background"
+          aria-expanded={backgroundMenuOpen}
+          onClick={() => setBackgroundMenuOpen((open) => !open)}
+          className="rounded-full border-gold/25 bg-background/45 backdrop-blur-xl"
+        >
+          <Images className="h-4 w-4" />
+        </Button>
+        {backgroundMenuOpen && (
+          <div className="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl border border-gold/20 bg-background/75 p-1.5 shadow-xl backdrop-blur-xl" role="menu" aria-label="Stage backgrounds">
+            {backgroundChoices.map((choice) => (
+              <Button
+                key={choice.id}
+                type="button"
+                variant="ghost"
+                role="menuitemradio"
+                aria-checked={selectedBackgroundId === choice.id}
+                onClick={() => {
+                  setSelectedBackgroundId(choice.id);
+                  setBackgroundMenuOpen(false);
+                  pokeControls();
+                }}
+                className={`h-10 w-full justify-start gap-2 px-2 text-sm ${selectedBackgroundId === choice.id ? "bg-gold/15 text-gold" : "text-foreground"}`}
+              >
+                <span className="h-7 w-9 shrink-0 overflow-hidden rounded border border-foreground/15" style={{ backgroundColor: choice.backgroundColor }}>
+                  {choice.mediaType === "image" && choice.mediaUrl && <img src={resolveStageMediaUrl(choice.mediaUrl)} alt="" className="h-full w-full object-cover" />}
+                  {choice.mediaType === "video" && <Video className="m-auto h-full w-3.5" />}
+                </span>
+                <span className="truncate">{choice.name}</span>
+              </Button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div
         className={`absolute top-16 left-1/2 z-30 -translate-x-1/2 flex items-center rounded-full border border-gold/20 bg-background/45 p-1 backdrop-blur-xl transition-opacity duration-500 ${
           controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"
@@ -206,7 +265,7 @@ const StageMode = () => {
       {/* Lyrics */}
       <div
         ref={scrollRef}
-        className={`relative z-10 flex-1 overflow-y-auto px-6 py-[40dvh] ${manualScroll ? "touch-pan-y" : "scroll-smooth"}`}
+        className={`relative z-10 flex-1 overflow-y-auto px-6 py-[40dvh] ${manualScroll ? "touch-pan-y pointer-events-auto" : "scroll-smooth pointer-events-none"}`}
         style={{ scrollbarWidth: "none" }}
       >
         {hasSync ? (
@@ -221,9 +280,9 @@ const StageMode = () => {
                 className={`font-serif font-bold leading-snug transition-all duration-500 ${FONT_STEPS[fontStep]} ${manualScroll ? "cursor-pointer rounded-lg px-3 py-1" : ""} ${
                   i === (manualScroll ? selectedLineIndex : activeLrcIndex)
                     ? "text-amber-400 scale-105 drop-shadow-[0_0_25px_rgba(251,191,36,0.4)]"
-                    : i < (manualScroll ? (selectedLineIndex ?? 0) : activeLrcIndex)
-                      ? "text-white"
-                      : "text-white"
+                    : Math.abs(i - (manualScroll ? (selectedLineIndex ?? 0) : activeLrcIndex)) === 1
+                      ? "text-foreground opacity-100"
+                      : "text-foreground opacity-25"
                 }`}
               >
                 {line.text || "♪"}
@@ -237,7 +296,7 @@ const StageMode = () => {
                 key={i}
                 ref={(el) => { lineRefs.current[i] = el; }}
                 onClick={() => selectManualLine(i)}
-                className={`font-serif font-bold leading-snug transition-all duration-500 ${FONT_STEPS[fontStep]} ${manualScroll ? "cursor-pointer rounded-lg px-3 py-1" : ""} ${manualScroll && i === selectedLineIndex ? "text-amber-400 scale-105 drop-shadow-[0_0_25px_rgba(251,191,36,0.4)]" : "text-white"}`}
+                className={`font-serif font-bold leading-snug transition-all duration-500 ${FONT_STEPS[fontStep]} ${manualScroll ? "cursor-pointer rounded-lg px-3 py-1" : ""} ${manualScroll && i === selectedLineIndex ? "text-amber-400 scale-105 drop-shadow-[0_0_25px_rgba(251,191,36,0.4)]" : manualScroll && selectedLineIndex !== null && Math.abs(i - selectedLineIndex) === 1 ? "text-foreground opacity-100" : manualScroll ? "text-foreground opacity-25" : "text-foreground"}`}
               >
                 {line}
               </p>
