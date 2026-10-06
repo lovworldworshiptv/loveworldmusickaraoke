@@ -1533,6 +1533,7 @@ export type Database = {
       }
       song_audio_versions: {
         Row: {
+          attempts: number
           audio_url: string | null
           bitrate_kbps: number | null
           created_at: string
@@ -1540,11 +1541,15 @@ export type Database = {
           id: string
           kind: string
           language_code: string
+          prediction_id: string | null
           song_id: string
+          source: string
+          started_at: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          attempts?: number
           audio_url?: string | null
           bitrate_kbps?: number | null
           created_at?: string
@@ -1552,11 +1557,15 @@ export type Database = {
           id?: string
           kind?: string
           language_code: string
+          prediction_id?: string | null
           song_id: string
+          source?: string
+          started_at?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          attempts?: number
           audio_url?: string | null
           bitrate_kbps?: number | null
           created_at?: string
@@ -1564,7 +1573,10 @@ export type Database = {
           id?: string
           kind?: string
           language_code?: string
+          prediction_id?: string | null
           song_id?: string
+          source?: string
+          started_at?: string | null
           status?: string
           updated_at?: string
         }
@@ -1817,6 +1829,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      stem_worker_state: {
+        Row: {
+          id: number
+          lease_until: string | null
+          paused_at: string | null
+          paused_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          lease_until?: string | null
+          paused_at?: string | null
+          paused_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          lease_until?: string | null
+          paused_at?: string | null
+          paused_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       subscription_requests: {
         Row: {
@@ -2249,6 +2285,8 @@ export type Database = {
         }
         Returns: undefined
       }
+      stem_queue_disarm: { Args: never; Returns: undefined }
+      stem_worker_acquire: { Args: { p_seconds?: number }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "free" | "premium" | "editor" | "user"
