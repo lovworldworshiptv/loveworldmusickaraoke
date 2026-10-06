@@ -102,8 +102,8 @@ const PlayerBar = () => {
 
   return (
     <>
-      <div style={tone ? { backgroundColor: `rgba(${tone}, 0.92)`, borderColor: `rgba(${tone}, 1)`, transition: "background-color 700ms ease" } : undefined} className="fixed left-0 right-0 z-30 glass border-t border-border gpu lg:left-64 lg:bottom-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))]">
-        <div className="px-5 pt-2">
+      <div style={tone ? { backgroundColor: `rgba(${tone}, 0.92)`, borderColor: `rgba(${tone}, 0.4)`, transition: "background-color 700ms ease, border-color 700ms ease" } : undefined} className="fixed left-2 right-2 z-30 glass rounded-2xl border border-border gpu shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] lg:left-[16.75rem] lg:right-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] lg:bottom-2">
+        <div className="px-4 pt-2.5">
           <div className="relative w-[96%] mx-auto group/progress">
             <Slider
               value={[progress]}
@@ -115,7 +115,7 @@ const PlayerBar = () => {
           </div>
         </div>
 
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between px-3.5 pb-2.5 pt-2">
           {/* Song Info */}
           <button onClick={toggleExpanded} className="flex items-center gap-3 min-w-0 flex-1">
             <div className="w-10 h-10 rounded-lg gradient-gold flex-shrink-0 flex items-center justify-center overflow-hidden">
