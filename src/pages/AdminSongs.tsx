@@ -935,7 +935,7 @@ const AdminSongs = () => {
 
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{song.title}</p>
-                  <p className="text-xs text-muted-foreground truncate">{song.artist} {song.album ? `• ${song.album}` : ""}</p>
+                  <p className="text-xs text-foreground truncate">{song.artist} {song.album ? `• ${song.album}` : ""}</p>
                   <div className="flex flex-wrap gap-2 mt-1">
                     {song.audio_url && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded">Audio</span>}
                     {song.instrumental_url && <span className="text-[10px] bg-accent/20 text-accent-foreground px-1.5 py-0.5 rounded">Instrumental</span>}
