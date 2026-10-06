@@ -1,508 +1,184 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Activity, AlertTriangle, BarChart3, BookOpen, CheckCircle2, Clock3, Crown,
+  Download, Gamepad2, Heart, MapPin, Mic2, Music, Play, RefreshCw, Users,
+} from "lucide-react";
+import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import AppLayout from "@/components/layout/AppLayout";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
-import { BarChart3, Users, Music, Play, Download, Heart, TrendingUp, Calendar, Crown, Mic2, Gamepad2, BookOpen, Trophy } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 
-const COLORS = ["hsl(43 70% 53%)", "hsl(258 70% 55%)", "hsl(170 60% 45%)", "hsl(350 65% 55%)", "hsl(210 60% 50%)"];
+type Range = "7d" | "30d" | "all";
+type Song = {
+  id: string; title: string; artist: string; cover_url: string | null; audio_url: string | null;
+  instrumental_url: string | null; lyrics_lrc: string | null; lyrics_text: string | null;
+  category_id: string | null; has_video: boolean; is_featured: boolean;
+};
+type PlayEvent = { user_id: string | null; song_id: string; mode: string; created_at: string };
 
-const StatCard = ({ icon: Icon, label, value, sub }: { icon: any; label: string; value: string | number; sub?: string }) => (
-  <div className="rounded-xl border border-border bg-card p-4 space-y-1">
-    <div className="flex items-center gap-2 text-muted-foreground">
-      <Icon className="w-4 h-4" />
-      <span className="text-xs font-medium">{label}</span>
-    </div>
-    <p className="text-2xl font-bold text-foreground">{value}</p>
-    {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+const panel = "rounded-xl border border-border bg-card p-4";
+const tooltipStyle = { background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 };
+
+const StatCard = ({ icon: Icon, label, value, sub }: { icon: typeof Users; label: string; value: string | number; sub?: string }) => (
+  <div className={panel}>
+    <div className="flex items-center gap-2 text-muted-foreground"><Icon className="h-4 w-4" /><span className="text-xs font-medium">{label}</span></div>
+    <p className="mt-2 text-2xl font-bold text-foreground">{value}</p>
+    {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
   </div>
 );
 
+const empty = (message: string) => <p className="py-8 text-center text-sm text-muted-foreground">{message}</p>;
+
 const AdminAnalytics = () => {
+  const navigate = useNavigate();
   const { isAdmin, loading: adminLoading } = useIsAdmin();
-  const [range, setRange] = useState<"7d" | "30d" | "all">("30d");
+  const [range, setRange] = useState<Range>("30d");
 
-  const rangeDate = range === "7d"
-    ? new Date(Date.now() - 7 * 86400000).toISOString()
-    : range === "30d"
-    ? new Date(Date.now() - 30 * 86400000).toISOString()
-    : "2000-01-01T00:00:00Z";
-
-  // Total users
-  const { data: totalUsers = 0 } = useQuery({
-    queryKey: ["analytics-total-users"],
+  const analytics = useQuery({
+    queryKey: ["admin-v2-dashboard"],
     enabled: isAdmin,
     queryFn: async () => {
-      const { count } = await supabase.from("profiles").select("id", { count: "exact", head: true });
-      return count || 0;
+      const results = await Promise.all([
+        supabase.from("profiles").select("user_id, username, avatar_url, region, zone, created_at, profile_completed").order("created_at", { ascending: false }),
+        supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, category_id, has_video, is_featured").order("title"),
+        supabase.from("play_events").select("user_id, song_id, mode, created_at").order("created_at", { ascending: false }).limit(5000),
+        supabase.from("favorites").select("user_id, song_id").limit(5000),
+        supabase.from("downloads").select("user_id, song_id").limit(5000),
+        supabase.from("karaoke_recordings").select("user_id, song_id, created_at").limit(5000),
+        supabase.from("user_subscriptions").select("user_id, subscription, subscription_expiry_date"),
+        supabase.from("admin_notifications").select("id, type, title, message, is_read, created_at").order("created_at", { ascending: false }).limit(30),
+        supabase.from("song_audio_versions").select("song_id, status, error, updated_at").eq("kind", "instrumental").order("updated_at", { ascending: false }),
+        supabase.from("articles").select("id", { count: "exact", head: true }),
+        supabase.from("game_sessions").select("user_id, score").limit(5000),
+      ]);
+      const failed = results.find((result) => result.error);
+      if (failed?.error) throw failed.error;
+      return {
+        profiles: results[0].data ?? [], songs: (results[1].data ?? []) as Song[], plays: (results[2].data ?? []) as PlayEvent[],
+        favorites: results[3].data ?? [], downloads: results[4].data ?? [], karaoke: results[5].data ?? [],
+        subscriptions: results[6].data ?? [], notifications: results[7].data ?? [], stems: results[8].data ?? [],
+        articles: results[9].count ?? 0, games: results[10].data ?? [],
+      };
     },
   });
 
-  // Total songs
-  const { data: totalSongs = 0 } = useQuery({
-    queryKey: ["analytics-total-songs"],
-    enabled: isAdmin,
-    queryFn: async () => {
-      const { count } = await supabase.from("songs").select("id", { count: "exact", head: true });
-      return count || 0;
-    },
-  });
-
-  // Total plays (recently_played count)
-  const { data: totalPlays = 0 } = useQuery({
-    queryKey: ["analytics-total-plays", range],
-    enabled: isAdmin,
-    queryFn: async () => {
-      const { count } = await supabase.from("recently_played").select("id", { count: "exact", head: true }).gte("played_at", rangeDate);
-      return count || 0;
-    },
-  });
-
-  // Total favorites
-  const { data: totalFavorites = 0 } = useQuery({
-    queryKey: ["analytics-total-favorites"],
-    enabled: isAdmin,
-    queryFn: async () => {
-      const { count } = await supabase.from("favorites").select("id", { count: "exact", head: true });
-      return count || 0;
-    },
-  });
-
-  // Total downloads
-  const { data: totalDownloads = 0 } = useQuery({
-    queryKey: ["analytics-total-downloads"],
-    enabled: isAdmin,
-    queryFn: async () => {
-      const { count } = await supabase.from("downloads").select("id", { count: "exact", head: true });
-      return count || 0;
-    },
-  });
-
-  // Total karaoke recordings
-  const { data: totalKaraoke = 0 } = useQuery({
-    queryKey: ["analytics-total-karaoke"],
-    enabled: isAdmin,
-    queryFn: async () => {
-      const { count } = await supabase.from("karaoke_recordings").select("id", { count: "exact", head: true });
-      return count || 0;
-    },
-  });
-
-  // Role distribution
-  const { data: roleData = [] } = useQuery({
-    queryKey: ["analytics-roles"],
-    enabled: isAdmin,
-    queryFn: async () => {
-      const { data } = await supabase.from("user_roles").select("role");
-      if (!data) return [];
-      const counts: Record<string, number> = {};
-      data.forEach(r => { counts[r.role] = (counts[r.role] || 0) + 1; });
-      return Object.entries(counts).map(([name, value]) => ({ name, value }));
-    },
-  });
-
-  // Subscription distribution
-  const { data: subData = [] } = useQuery({
-    queryKey: ["analytics-subscriptions"],
-    enabled: isAdmin,
-    queryFn: async () => {
-      const { data } = await supabase.from("user_subscriptions").select("subscription, subscription_expiry_date");
-      if (!data) return [];
-      const counts: Record<string, number> = {};
-      data.forEach((s: any) => {
-        const isExpired = s.subscription_expiry_date && new Date(s.subscription_expiry_date) < new Date();
-        const effective = (s.subscription === "premium" || s.subscription === "trial") && isExpired ? "free" : s.subscription;
-        counts[effective] = (counts[effective] || 0) + 1;
-      });
-      return Object.entries(counts).map(([name, value]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), value }));
-    },
-  });
-
-  // Top played songs
-  const { data: topSongs = [] } = useQuery({
-    queryKey: ["analytics-top-songs", range],
-    enabled: isAdmin,
-    queryFn: async () => {
-      const { data } = await supabase.from("recently_played").select("song_id, songs(title)").gte("played_at", rangeDate).limit(1000);
-      if (!data) return [];
-      const counts: Record<string, { title: string; count: number }> = {};
-      data.forEach((r: any) => {
-        const id = r.song_id;
-        if (!counts[id]) counts[id] = { title: r.songs?.title || "Unknown", count: 0 };
-        counts[id].count++;
-      });
-      return Object.values(counts).sort((a, b) => b.count - a.count).slice(0, 10);
-    },
-  });
-
-  // Plays per day (last 30 days)
-  const { data: playsPerDay = [] } = useQuery({
-    queryKey: ["analytics-plays-per-day"],
-    enabled: isAdmin,
-    queryFn: async () => {
-      const since = new Date(Date.now() - 30 * 86400000).toISOString();
-      const { data } = await supabase.from("recently_played").select("played_at").gte("played_at", since).order("played_at").limit(1000);
-      if (!data) return [];
-      const days: Record<string, number> = {};
-      data.forEach(r => {
-        const day = r.played_at.slice(0, 10);
-        days[day] = (days[day] || 0) + 1;
-      });
-      return Object.entries(days).map(([date, plays]) => ({ date: date.slice(5), plays }));
-    },
-  });
-
-  // New users per day (last 30 days)
-  const { data: newUsersPerDay = [] } = useQuery({
-    queryKey: ["analytics-new-users-per-day"],
-    enabled: isAdmin,
-    queryFn: async () => {
-      const since = new Date(Date.now() - 30 * 86400000).toISOString();
-      const { data } = await supabase.from("profiles").select("created_at").gte("created_at", since).order("created_at").limit(1000);
-      if (!data) return [];
-      const days: Record<string, number> = {};
-      data.forEach(r => {
-        const day = r.created_at.slice(0, 10);
-        days[day] = (days[day] || 0) + 1;
-      });
-      return Object.entries(days).map(([date, users]) => ({ date: date.slice(5), users }));
-    },
-  });
-
-  // Top categories
-  const { data: topCategories = [] } = useQuery({
-    queryKey: ["analytics-top-categories"],
-    enabled: isAdmin,
-    queryFn: async () => {
-      const { data } = await supabase.from("songs").select("category_id, categories(name)").not("category_id", "is", null);
-      if (!data) return [];
-      const counts: Record<string, { name: string; count: number }> = {};
-      data.forEach((s: any) => {
-        const id = s.category_id;
-        if (!counts[id]) counts[id] = { name: s.categories?.name || "Unknown", count: 0 };
-        counts[id].count++;
-      });
-      return Object.values(counts).sort((a, b) => b.count - a.count).slice(0, 5);
-    },
-  });
-
-  // Total articles
-  const { data: totalArticles = 0 } = useQuery({
-    queryKey: ["analytics-total-articles"],
-    enabled: isAdmin,
-    queryFn: async () => {
-      const { count } = await supabase.from("articles").select("id", { count: "exact", head: true });
-      return count || 0;
-    },
-  });
-
-  // Total feedback
-  const { data: totalFeedback = 0 } = useQuery({
-    queryKey: ["analytics-total-feedback"],
-    enabled: isAdmin,
-    queryFn: async () => {
-      const { count } = await supabase.from("feedback").select("id", { count: "exact", head: true });
-      return count || 0;
-    },
-  });
-
-  // Game Analytics: total game players (distinct users)
-  const { data: gameStats = { totalPlayers: 0, totalSessions: 0 } } = useQuery({
-    queryKey: ["analytics-game-stats"],
-    enabled: isAdmin,
-    queryFn: async () => {
-      const { data } = await supabase.from("game_sessions").select("user_id");
-      if (!data) return { totalPlayers: 0, totalSessions: 0 };
-      const uniqueUsers = new Set(data.map((s: any) => s.user_id));
-      return { totalPlayers: uniqueUsers.size, totalSessions: data.length };
-    },
-  });
-
-  // Top game achievers
-  const { data: topAchievers = [] } = useQuery({
-    queryKey: ["analytics-top-achievers"],
-    enabled: isAdmin,
-    queryFn: async () => {
-      const { data: sessions } = await supabase.from("game_sessions").select("user_id, score");
-      if (!sessions) return [];
-      const userScores: Record<string, number> = {};
-      sessions.forEach((s: any) => { userScores[s.user_id] = (userScores[s.user_id] || 0) + s.score; });
-      const sorted = Object.entries(userScores).sort((a, b) => b[1] - a[1]).slice(0, 10);
-      // Fetch profiles
-      const profileResults = await Promise.all(
-        sorted.map(([uid]) => supabase.rpc("get_public_profile", { p_user_id: uid }))
-      );
-      return sorted.map(([uid, score], i) => {
-        const p = (profileResults[i]?.data as any)?.[0];
-        return { username: p?.username || "User", avatar_url: p?.avatar_url, score };
-      });
-    },
-  });
-
-  // Article analytics: total readers, reads per article
-  const { data: articleAnalytics = { totalReaders: 0, perArticle: [] as { title: string; reads: number; uniqueReaders: number }[] } } = useQuery({
-    queryKey: ["analytics-article-reads"],
-    enabled: isAdmin,
-    queryFn: async () => {
-      const { data } = await supabase.from("analytics_events").select("user_id, event_data").eq("event_type", "article_read");
-      if (!data) return { totalReaders: 0, perArticle: [] };
-      const allReaders = new Set(data.filter((e: any) => e.user_id).map((e: any) => e.user_id));
-      const perArticleMap: Record<string, { title: string; reads: number; readers: Set<string> }> = {};
-      data.forEach((e: any) => {
-        const ed = e.event_data as any;
-        const aid = ed?.article_id;
-        if (!aid) return;
-        if (!perArticleMap[aid]) perArticleMap[aid] = { title: ed?.article_title || "Unknown", reads: 0, readers: new Set() };
-        perArticleMap[aid].reads++;
-        if (e.user_id) perArticleMap[aid].readers.add(e.user_id);
-      });
-      const perArticle = Object.values(perArticleMap)
-        .map(a => ({ title: a.title, reads: a.reads, uniqueReaders: a.readers.size }))
-        .sort((a, b) => b.reads - a.reads)
-        .slice(0, 10);
-      return { totalReaders: allReaders.size, perArticle };
-    },
-  });
+  const data = analytics.data;
+  const model = useMemo(() => {
+    if (!data) return null;
+    const cutoff = range === "7d" ? Date.now() - 7 * 86400000 : range === "30d" ? Date.now() - 30 * 86400000 : 0;
+    const plays = data.plays.filter((p) => new Date(p.created_at).getTime() >= cutoff);
+    const songMap = new Map(data.songs.map((song) => [song.id, song]));
+    const metrics = new Map<string, { plays: number; karaoke: number; favorites: number; downloads: number; listeners: Set<string> }>();
+    const getMetric = (id: string) => {
+      const current = metrics.get(id) ?? { plays: 0, karaoke: 0, favorites: 0, downloads: 0, listeners: new Set<string>() };
+      metrics.set(id, current);
+      return current;
+    };
+    plays.forEach((event) => { const m = getMetric(event.song_id); m.plays++; if (event.mode === "karaoke") m.karaoke++; if (event.user_id) m.listeners.add(event.user_id); });
+    data.favorites.forEach((row) => getMetric(row.song_id).favorites++);
+    data.downloads.forEach((row) => getMetric(row.song_id).downloads++);
+    data.karaoke.forEach((row) => { if (new Date(row.created_at).getTime() >= cutoff) getMetric(row.song_id).karaoke++; });
+    const contentRows = data.songs.map((song) => {
+      const m = getMetric(song.id);
+      return { ...song, ...m, listeners: m.listeners.size, engagement: m.plays + m.karaoke * 3 + m.favorites * 2 + m.downloads * 2 };
+    }).sort((a, b) => b.engagement - a.engagement);
+    const dayMap = new Map<string, { date: string; plays: number; karaoke: number }>();
+    plays.forEach((event) => {
+      const key = event.created_at.slice(0, 10);
+      const day = dayMap.get(key) ?? { date: key.slice(5), plays: 0, karaoke: 0 };
+      day.plays++; if (event.mode === "karaoke") day.karaoke++; dayMap.set(key, day);
+    });
+    const profileDays = new Map<string, number>();
+    data.profiles.filter((p) => new Date(p.created_at).getTime() >= cutoff).forEach((p) => { const key = p.created_at.slice(0, 10); profileDays.set(key, (profileDays.get(key) ?? 0) + 1); });
+    const listenerCounts = new Map<string, number>();
+    plays.forEach((p) => { if (p.user_id) listenerCounts.set(p.user_id, (listenerCounts.get(p.user_id) ?? 0) + 1); });
+    const profileMap = new Map(data.profiles.map((p) => [p.user_id, p]));
+    const engaged = [...listenerCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([id, count]) => ({ ...profileMap.get(id), count }));
+    const locationMap = new Map<string, number>();
+    data.profiles.forEach((p) => { const label = p.region || p.zone; if (label) locationMap.set(label, (locationMap.get(label) ?? 0) + 1); });
+    const locations = [...locationMap.entries()].map(([name, users]) => ({ name, users })).sort((a, b) => b.users - a.users).slice(0, 8);
+    const subscriptions = data.subscriptions.reduce<Record<string, number>>((acc, sub) => {
+      const expired = sub.subscription_expiry_date && new Date(sub.subscription_expiry_date).getTime() < Date.now();
+      const key = expired ? "free" : sub.subscription; acc[key] = (acc[key] ?? 0) + 1; return acc;
+    }, {});
+    const expiring = data.subscriptions.filter((sub) => {
+      if (!sub.subscription_expiry_date) return false;
+      const days = (new Date(sub.subscription_expiry_date).getTime() - Date.now()) / 86400000;
+      return days >= 0 && days <= 7;
+    }).length;
+    const issues = {
+      artwork: data.songs.filter((s) => !s.cover_url).length, audio: data.songs.filter((s) => !s.audio_url).length,
+      lyrics: data.songs.filter((s) => !s.lyrics_lrc && !s.lyrics_text).length, instrumental: data.songs.filter((s) => !s.instrumental_url).length,
+      video: data.songs.filter((s) => !s.has_video).length, category: data.songs.filter((s) => !s.category_id).length,
+    };
+    const activeUsers = new Set(plays.map((p) => p.user_id).filter(Boolean)).size;
+    return { plays, contentRows, playDays: [...dayMap.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, value]) => value), profileDays: [...profileDays.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, users]) => ({ date: date.slice(5), users })), engaged, locations, subscriptions, expiring, issues, activeUsers, songMap };
+  }, [data, range]);
 
   if (adminLoading) return <AppLayout><div className="p-6 text-center text-muted-foreground">Loading...</div></AppLayout>;
   if (!isAdmin) return <AppLayout><div className="p-6 text-center text-muted-foreground">Admin access required.</div></AppLayout>;
 
+  const rangeLabel = range === "all" ? "all time" : `last ${range}`;
   return (
     <AppLayout>
-      <div className="px-4 lg:px-6 pt-4 lg:pt-6 max-w-6xl pb-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-serif font-bold text-foreground flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-gold" /> Analytics
-          </h2>
-          <div className="flex gap-1 bg-muted rounded-lg p-0.5">
-            {(["7d", "30d", "all"] as const).map(r => (
-              <button
-                key={r}
-                onClick={() => setRange(r)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${range === r ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                {r === "7d" ? "7 Days" : r === "30d" ? "30 Days" : "All Time"}
-              </button>
-            ))}
+      <div className="mx-auto max-w-7xl px-4 pb-10 pt-4 lg:px-6 lg:pt-6">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div><p className="text-xs font-semibold uppercase tracking-widest text-gold">Admin v2</p><h1 className="mt-1 flex items-center gap-2 text-2xl font-serif font-bold text-foreground"><BarChart3 className="h-6 w-6 text-gold" /> Command Centre</h1></div>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-lg bg-muted p-1">
+              {(["7d", "30d", "all"] as Range[]).map((item) => <Button key={item} size="sm" variant={range === item ? "default" : "ghost"} onClick={() => setRange(item)} className="h-8 px-3 text-xs">{item === "all" ? "All" : item}</Button>)}
+            </div>
+            <Button size="icon" variant="outline" onClick={() => analytics.refetch()} aria-label="Refresh dashboard"><RefreshCw className={`h-4 w-4 ${analytics.isFetching ? "animate-spin" : ""}`} /></Button>
           </div>
         </div>
 
-        {/* Stat cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-          <StatCard icon={Users} label="Total Users" value={totalUsers} />
-          <StatCard icon={Music} label="Total Songs" value={totalSongs} />
-          <StatCard icon={Play} label="Total Plays" value={totalPlays} sub={range === "all" ? "all time" : `last ${range}`} />
-          <StatCard icon={Heart} label="Total Favorites" value={totalFavorites} />
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
-          <StatCard icon={Download} label="Total Downloads" value={totalDownloads} />
-          <StatCard icon={Mic2} label="Karaoke Recordings" value={totalKaraoke} />
-          <StatCard icon={Crown} label="Total Feedback" value={totalFeedback} />
-          <StatCard icon={TrendingUp} label="Total Articles" value={totalArticles} />
-        </div>
+        {analytics.isLoading || !data || !model ? <div className="py-20 text-center text-muted-foreground">Loading live insights...</div> : analytics.error ? <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-destructive">Dashboard data could not be loaded.</div> : (
+          <Tabs defaultValue="overview">
+            <TabsList className="mb-5 grid h-auto w-full grid-cols-4 overflow-x-auto">
+              <TabsTrigger value="overview">Overview</TabsTrigger><TabsTrigger value="content">Content</TabsTrigger><TabsTrigger value="audience">Audience</TabsTrigger><TabsTrigger value="operations">Operations</TabsTrigger>
+            </TabsList>
 
-        {/* Charts row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Plays per day */}
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-gold" /> Plays (Last 30 Days)
-            </h3>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={playsPerDay}>
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                  <Bar dataKey="plays" fill="hsl(43 70% 53%)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* New users per day */}
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-gold" /> New Users (Last 30 Days)
-            </h3>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={newUsersPerDay}>
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                  <Line type="monotone" dataKey="users" stroke="hsl(258 70% 55%)" strokeWidth={2} dot={{ r: 3 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* Second row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Role distribution */}
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Users className="w-4 h-4 text-gold" /> User Roles
-            </h3>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={roleData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
-                    {roleData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Subscription distribution */}
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Crown className="w-4 h-4 text-gold" /> Subscription Tiers
-            </h3>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={subData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
-                    {subData.map((_, i) => <Cell key={i} fill={COLORS[(i + 2) % COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Top played songs */}
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Music className="w-4 h-4 text-gold" /> Top Played Songs
-            </h3>
-            <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-hide">
-              {topSongs.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-4">No play data yet</p>
-              ) : topSongs.map((s, i) => (
-                <div key={i} className="flex items-center gap-3 text-sm">
-                  <span className="w-5 text-right text-xs font-bold text-gold">{i + 1}</span>
-                  <div className="flex-1 min-w-0 truncate text-foreground">{s.title}</div>
-                  <span className="text-xs text-muted-foreground tabular-nums">{s.count} plays</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Category stats + summary */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-4">Songs by Category</h3>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topCategories} layout="vertical">
-                  <XAxis type="number" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" width={80} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                  <Bar dataKey="count" fill="hsl(170 60% 45%)" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-4">Platform Summary</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total Songs</span>
-                <span className="font-semibold text-foreground">{totalSongs}</span>
+            <TabsContent value="overview" className="space-y-6">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <StatCard icon={Users} label="Active listeners" value={model.activeUsers} sub={rangeLabel} />
+                <StatCard icon={Play} label="Plays" value={model.plays.length} sub={rangeLabel} />
+                <StatCard icon={Music} label="Songs" value={data.songs.length} sub={`${data.songs.filter((s) => s.is_featured).length} featured`} />
+                <StatCard icon={Crown} label="Premium & trial" value={(model.subscriptions.premium ?? 0) + (model.subscriptions.trial ?? 0)} sub={`${model.expiring} expire within 7 days`} />
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total Articles</span>
-                <span className="font-semibold text-foreground">{totalArticles}</span>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <div className={panel}><h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground"><Activity className="h-4 w-4 text-gold" /> Listening activity</h2><div className="h-64">{model.playDays.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={model.playDays}><CartesianGrid stroke="hsl(var(--border))" vertical={false} /><XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} /><YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} /><Tooltip contentStyle={tooltipStyle} /><Bar dataKey="plays" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} /><Bar dataKey="karaoke" fill="hsl(var(--gold))" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer> : empty("No listening activity in this period")}</div></div>
+                <div className={panel}><h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground"><Users className="h-4 w-4 text-gold" /> New users</h2><div className="h-64">{model.profileDays.length ? <ResponsiveContainer width="100%" height="100%"><LineChart data={model.profileDays}><CartesianGrid stroke="hsl(var(--border))" vertical={false} /><XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} /><YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} /><Tooltip contentStyle={tooltipStyle} /><Line dataKey="users" stroke="hsl(var(--gold))" strokeWidth={2} dot={false} /></LineChart></ResponsiveContainer> : empty("No new users in this period")}</div></div>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total Users</span>
-                <span className="font-semibold text-foreground">{totalUsers}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total Plays ({range})</span>
-                <span className="font-semibold text-foreground">{totalPlays}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total Favorites</span>
-                <span className="font-semibold text-foreground">{totalFavorites}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total Downloads</span>
-                <span className="font-semibold text-foreground">{totalDownloads}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Karaoke Recordings</span>
-                <span className="font-semibold text-foreground">{totalKaraoke}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">User Feedback</span>
-                <span className="font-semibold text-foreground">{totalFeedback}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4"><StatCard icon={Heart} label="Favorites" value={data.favorites.length} /><StatCard icon={Download} label="Downloads" value={data.downloads.length} /><StatCard icon={Mic2} label="Recordings" value={data.karaoke.length} /><StatCard icon={BookOpen} label="Articles" value={data.articles} /></div>
+            </TabsContent>
 
-        {/* Game Analytics */}
-        <h3 className="text-lg font-serif font-bold text-foreground flex items-center gap-2 mb-4">
-          <Gamepad2 className="w-5 h-5 text-gold" /> Game Analytics
-        </h3>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
-          <StatCard icon={Gamepad2} label="Game Players" value={gameStats.totalPlayers} sub="unique users" />
-          <StatCard icon={Play} label="Total Game Sessions" value={gameStats.totalSessions} />
-          <StatCard icon={Trophy} label="Top Score" value={topAchievers.length > 0 ? topAchievers[0].score : 0} sub={topAchievers.length > 0 ? topAchievers[0].username : "—"} />
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-gold" /> Top Achievers
-            </h3>
-            <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-hide">
-              {topAchievers.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-4">No game data yet</p>
-              ) : topAchievers.map((a, i) => (
-                <div key={i} className="flex items-center gap-3 text-sm">
-                  <span className="w-5 text-right text-xs font-bold text-gold">{i + 1}</span>
-                  <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {a.avatar_url ? <img src={a.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[10px] font-bold text-muted-foreground">{a.username[0]?.toUpperCase()}</span>}
-                  </div>
-                  <div className="flex-1 min-w-0 truncate text-foreground">{a.username}</div>
-                  <span className="text-xs text-muted-foreground tabular-nums">{a.score} pts</span>
-                </div>
-              ))}
-            </div>
-          </div>
+            <TabsContent value="content" className="space-y-6">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4"><StatCard icon={Play} label="Song plays" value={model.plays.length} sub={rangeLabel} /><StatCard icon={Mic2} label="Karaoke activity" value={model.contentRows.reduce((sum, s) => sum + s.karaoke, 0)} /><StatCard icon={Gamepad2} label="Game sessions" value={data.games.length} /><StatCard icon={BookOpen} label="Published library" value={data.articles} sub="articles" /></div>
+              <div className={`${panel} overflow-hidden p-0`}><div className="border-b border-border p-4"><h2 className="font-semibold text-foreground">Song performance</h2><p className="text-xs text-muted-foreground">Ranked by plays, singing, favorites, and downloads.</p></div><div className="overflow-x-auto"><table className="w-full min-w-[720px] text-sm"><thead className="bg-muted/40 text-left text-xs text-muted-foreground"><tr><th className="px-4 py-3">Song</th><th className="px-3 py-3 text-right">Plays</th><th className="px-3 py-3 text-right">Listeners</th><th className="px-3 py-3 text-right">Karaoke</th><th className="px-3 py-3 text-right">Favorites</th><th className="px-4 py-3 text-right">Downloads</th></tr></thead><tbody>{model.contentRows.slice(0, 25).map((song) => <tr key={song.id} className="border-t border-border/70"><td className="px-4 py-3"><div className="flex items-center gap-3">{song.cover_url ? <img src={song.cover_url} alt="" className="h-9 w-9 rounded-md object-cover" /> : <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted"><Music className="h-4 w-4 text-muted-foreground" /></div>}<div><p className="font-medium text-foreground">{song.title}</p><p className="text-xs text-muted-foreground">{song.artist}</p></div></div></td><td className="px-3 py-3 text-right tabular-nums">{song.plays}</td><td className="px-3 py-3 text-right tabular-nums">{song.listeners}</td><td className="px-3 py-3 text-right tabular-nums">{song.karaoke}</td><td className="px-3 py-3 text-right tabular-nums">{song.favorites}</td><td className="px-4 py-3 text-right tabular-nums">{song.downloads}</td></tr>)}</tbody></table></div></div>
+            </TabsContent>
 
-          {/* Article Analytics */}
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-gold" /> Article Reads
-            </h3>
-            <p className="text-xs text-muted-foreground mb-3">
-              {articleAnalytics.totalReaders} unique readers across all articles
-            </p>
-            <div className="space-y-2 max-h-52 overflow-y-auto scrollbar-hide">
-              {articleAnalytics.perArticle.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-4">No read data yet</p>
-              ) : articleAnalytics.perArticle.map((a, i) => (
-                <div key={i} className="flex items-center gap-3 text-sm">
-                  <span className="w-5 text-right text-xs font-bold text-gold">{i + 1}</span>
-                  <div className="flex-1 min-w-0 truncate text-foreground">{a.title}</div>
-                  <div className="text-right flex-shrink-0">
-                    <span className="text-xs text-muted-foreground tabular-nums">{a.reads} reads</span>
-                    <span className="text-[10px] text-muted-foreground/60 ml-1">({a.uniqueReaders} users)</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+            <TabsContent value="audience" className="space-y-6">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4"><StatCard icon={Users} label="Registered users" value={data.profiles.length} /><StatCard icon={Activity} label="Active listeners" value={model.activeUsers} sub={rangeLabel} /><StatCard icon={Crown} label="Premium" value={model.subscriptions.premium ?? 0} /><StatCard icon={Clock3} label="Expiring soon" value={model.expiring} sub="within 7 days" /></div>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <div className={panel}><h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground"><MapPin className="h-4 w-4 text-gold" /> Audience locations</h2>{model.locations.length ? <div className="space-y-3">{model.locations.map((location) => <div key={location.name}><div className="mb-1 flex justify-between text-sm"><span className="text-foreground">{location.name}</span><span className="text-muted-foreground">{location.users}</span></div><div className="h-1.5 rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(6, location.users / Math.max(model.locations[0]?.users ?? 1, 1) * 100)}%` }} /></div></div>)}</div> : empty("Location details have not been completed yet")}</div>
+                <div className={panel}><h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground"><Crown className="h-4 w-4 text-gold" /> Subscription mix</h2><div className="space-y-4">{["premium", "trial", "free"].map((tier) => <div key={tier} className="flex items-center justify-between rounded-lg bg-muted/40 px-4 py-3"><span className="capitalize text-foreground">{tier}</span><span className="font-bold text-foreground">{model.subscriptions[tier] ?? 0}</span></div>)}</div></div>
+              </div>
+              <div className={panel}><h2 className="mb-4 font-semibold text-foreground">Most engaged listeners</h2>{model.engaged.length ? <div className="grid gap-2 sm:grid-cols-2">{model.engaged.map((person, index) => <div key={person.user_id ?? index} className="flex items-center gap-3 rounded-lg bg-muted/30 p-3"><span className="w-5 text-center text-xs font-bold text-gold">{index + 1}</span>{person.avatar_url ? <img src={person.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" /> : <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-bold">{person.username?.[0]?.toUpperCase() ?? "U"}</div>}<div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-foreground">{person.username ?? "Listener"}</p><p className="text-xs text-muted-foreground">{person.count} plays</p></div></div>)}</div> : empty("No listening activity in this period")}</div>
+            </TabsContent>
+
+            <TabsContent value="operations" className="space-y-6">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4"><StatCard icon={AlertTriangle} label="Content gaps" value={Object.values(model.issues).reduce((a, b) => a + b, 0)} /><StatCard icon={Activity} label="Active stem jobs" value={data.stems.filter((s) => s.status === "pending" || s.status === "processing").length} /><StatCard icon={AlertTriangle} label="Failed stem jobs" value={data.stems.filter((s) => s.status === "failed").length} /><StatCard icon={CheckCircle2} label="Unread alerts" value={data.notifications.filter((n) => !n.is_read).length} /></div>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <div className={panel}><div className="mb-4 flex items-center justify-between"><div><h2 className="font-semibold text-foreground">Catalogue health</h2><p className="text-xs text-muted-foreground">Items requiring content work.</p></div><Button size="sm" variant="outline" onClick={() => navigate("/admin/songs")}>Manage songs</Button></div><div className="grid grid-cols-2 gap-2">{Object.entries(model.issues).map(([name, value]) => <div key={name} className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-3 text-sm"><span className="capitalize text-muted-foreground">Missing {name}</span><span className={value ? "font-bold text-destructive" : "font-bold text-gold"}>{value}</span></div>)}</div></div>
+                <div className={panel}><div className="mb-4 flex items-center justify-between"><div><h2 className="font-semibold text-foreground">Admin alerts</h2><p className="text-xs text-muted-foreground">Latest operational updates.</p></div><Button size="sm" variant="outline" onClick={() => navigate("/admin/songs")}>Stem Studio</Button></div>{data.notifications.length ? <div className="max-h-80 space-y-2 overflow-y-auto">{data.notifications.slice(0, 12).map((note) => <div key={note.id} className={`rounded-lg border p-3 ${note.is_read ? "border-border bg-muted/20" : "border-gold/30 bg-gold/5"}`}><div className="flex items-start justify-between gap-3"><p className="text-sm font-medium text-foreground">{note.title}</p><span className="shrink-0 text-[10px] text-muted-foreground">{new Date(note.created_at).toLocaleDateString()}</span></div>{note.message && <p className="mt-1 text-xs text-muted-foreground">{note.message}</p>}</div>)}</div> : empty("No operational alerts")}</div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
     </AppLayout>
   );
