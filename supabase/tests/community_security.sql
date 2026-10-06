@@ -1,4 +1,5 @@
 -- Signed-in regression test for community privacy + rate limits.
+-- Run as a privileged DB user (needs SET ROLE authenticated). Success = error "ALL_PASSED".
 -- Runs entirely in one block and always rolls back (ends with RAISE 'ALL_PASSED').
 DO $$
 DECLARE
@@ -26,7 +27,7 @@ BEGIN
   SELECT count(*) INTO _n FROM public.community_posts WHERE community_id=_c; IF _n<>0 THEN RAISE EXCEPTION 'FAIL: outsider sees % posts',_n; END IF;
   SELECT count(*) INTO _n FROM public.community_members WHERE community_id=_c; IF _n<>0 THEN RAISE EXCEPTION 'FAIL: outsider sees members'; END IF;
   SELECT count(*) INTO _n FROM public.community_post_comments c WHERE c.post_id = ANY(_posts) OR c.content='seed'; IF _n<>0 THEN RAISE EXCEPTION 'FAIL: outsider sees comments'; END IF;
-  SELECT count(*) INTO _n FROM public.community_post_likes l JOIN public.community_posts p ON p.id=l.post_id WHERE p.community_id=_c; IF _n<>0 THEN RAISE EXCEPTION 'FAIL: outsider sees likes'; END IF;
+  SELECT count(*) INTO _n FROM public.community_post_likes l WHERE l.post_id = ANY(_posts) OR l.user_id=_admin; IF _n<>0 THEN RAISE EXCEPTION 'FAIL: outsider sees likes'; END IF;
   _ok := false; BEGIN INSERT INTO public.community_posts(community_id,user_id,content) VALUES (_c,_outsider,'x'); EXCEPTION WHEN OTHERS THEN _ok := true; END;
   IF NOT _ok THEN RAISE EXCEPTION 'FAIL: outsider could post'; END IF;
   RESET ROLE;
