@@ -8,11 +8,14 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Heart, MessageCircle, Play, Plus, Send, Share2, Trash2, Users, X } from "lucide-react";
+import { Heart, MessageCircle, Play, Plus, Send, Share2, Sparkles, Trash2, Users, X, Music4, Flame, BookOpen, Sunrise, Globe, Check } from "lucide-react";
 import { toast } from "sonner";
+import communityHero from "@/assets/community-hero.jpg";
 
 const rateMsg = (e: { message?: string } | null) =>
   e?.message?.includes("rate_limited") ? "You're going a bit fast — please wait a minute and try again." : null;
+
+const COMMUNITY_ICONS = [Heart, Music4, Flame, BookOpen, Sunrise, Sparkles, Users, Globe];
 
 interface CommunityRow { id: string; name: string; description: string | null; cover_url: string | null; member_count?: number }
 interface PostRow {
@@ -30,7 +33,7 @@ const Community = () => {
   const { isAdmin } = useIsAdmin();
   const [communities, setCommunities] = useState<CommunityRow[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [isMember, setIsMember] = useState(false);
+  const [memberIds, setMemberIds] = useState<Set<string>>(new Set());
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [content, setContent] = useState("");
   const [attachedSong, setAttachedSong] = useState<PostRow["song"]>(null);
@@ -58,10 +61,13 @@ const Community = () => {
   useEffect(() => { loadCommunities(); }, []);
 
   useEffect(() => {
-    if (!user || !activeId) { setIsMember(false); return; }
-    supabase.from("community_members").select("id").eq("community_id", activeId).eq("user_id", user.id).maybeSingle()
-      .then(({ data }) => setIsMember(!!data));
-  }, [user, activeId]);
+    if (!user || !communities.length) { setMemberIds(new Set()); return; }
+    supabase.from("community_members").select("community_id").eq("user_id", user.id)
+      .in("community_id", communities.map((c) => c.id))
+      .then(({ data }) => setMemberIds(new Set(((data || []) as { community_id: string }[]).map((r) => r.community_id))));
+  }, [user, communities]);
+
+  const isMember = activeId ? memberIds.has(activeId) : false;
 
   const loadPosts = useCallback(async (communityId: string) => {
     let query = supabase
@@ -98,18 +104,20 @@ const Community = () => {
 
   useEffect(() => { if (activeId) loadPosts(activeId); }, [activeId, loadPosts]);
 
-  const joinCommunity = async () => {
-    if (!user || !activeId) return;
-    if (isMember) {
-      await supabase.from("community_members").delete().eq("community_id", activeId).eq("user_id", user.id);
-      setIsMember(false);
+  const toggleMembership = async (communityId: string) => {
+    if (!user) return;
+    if (memberIds.has(communityId)) {
+      await supabase.from("community_members").delete().eq("community_id", communityId).eq("user_id", user.id);
+      setMemberIds((s) => { const n = new Set(s); n.delete(communityId); return n; });
       toast.success("You left the community");
     } else {
-      const { error } = await supabase.from("community_members").insert({ community_id: activeId, user_id: user.id });
-      if (!error) { setIsMember(true); toast.success("Welcome to the community!"); }
+      const { error } = await supabase.from("community_members").insert({ community_id: communityId, user_id: user.id });
+      if (error) { toast.error("Could not join right now"); return; }
+      setMemberIds((s) => new Set(s).add(communityId));
+      toast.success("Welcome to the community!");
     }
     loadCommunities();
-    loadPosts(activeId);
+    loadPosts(communityId);
   };
 
   const playAttached = (song: NonNullable<PostRow["song"]>) => {
@@ -211,44 +219,74 @@ const Community = () => {
     return `${Math.floor(h / 24)}d ago`;
   };
 
-  const activeCommunity = communities.find((c) => c.id === activeId);
+  const totalMembers = communities.reduce((sum, c) => sum + (c.member_count || 0), 0);
+  const goldBtn = "rounded-full bg-gradient-to-r from-[#c9a227] to-[#8b6914] text-white font-semibold";
 
   return (
     <AppLayout>
       <div className="px-4 md:px-8 pt-6 pb-28 lg:pb-10 max-w-4xl mx-auto">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="font-serif text-2xl md:text-3xl font-bold text-foreground">Community</h1>
-            <p className="text-sm text-foreground/70 mt-1">Share testimonies, prayer points and worship moments.</p>
-          </div>
+        {/* Hero */}
+        <div className="relative rounded-3xl overflow-hidden shadow-[0_18px_50px_-20px_rgba(201,162,39,0.45)]">
+          <img src={communityHero} alt="" className="w-full h-48 md:h-72 object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-transparent" />
           {isAdmin && (
-            <Button size="sm" onClick={() => setManageOpen(true)} className="rounded-full bg-gradient-to-r from-[#c9a227] to-[#8b6914] text-white font-semibold">
-              <Plus className="w-4 h-4 mr-1" /> New Community
-            </Button>
-          )}
-        </div>
-
-        <div className="flex gap-2 overflow-x-auto pb-1 mt-4 snap-x [scrollbar-width:none]">
-          {communities.map((c) => (
-            <button key={c.id} onClick={() => setActiveId(c.id)}
-              className={`shrink-0 snap-start px-4 py-2 rounded-full text-sm font-medium border transition-all ${activeId === c.id ? "bg-gold/20 border-gold text-gold" : "border-border bg-secondary/40 text-foreground hover:bg-secondary/70"}`}>
-              {c.name} <span className="text-xs opacity-70">· {c.member_count ?? 0}</span>
+            <button onClick={() => setManageOpen(true)}
+              className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full glass-card border border-gold/30 px-3 py-1.5 text-xs font-semibold text-white hover:border-gold/60 transition-colors">
+              <Plus className="w-3.5 h-3.5" /> New Community
             </button>
-          ))}
+          )}
+          <div className="absolute bottom-0 left-0 right-0 p-5 md:p-7">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gold/15 border border-gold/30 px-3 py-1 text-[11px] font-medium text-gold">
+              <Sparkles className="w-3 h-3" /> Worship Together
+            </span>
+            <h1 className="font-serif text-3xl md:text-4xl font-bold text-white mt-2">Community</h1>
+            <p className="text-sm text-white/80 mt-1 max-w-md">Share testimonies, prayer points and worship moments with believers everywhere.</p>
+            <div className="flex items-center gap-4 mt-3 text-[11px] md:text-xs text-white/75">
+              <span className="inline-flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-gold" /> {totalMembers.toLocaleString()} members</span>
+              <span className="inline-flex items-center gap-1.5"><Globe className="w-3.5 h-3.5 text-gold" /> {communities.length} communities</span>
+            </div>
+          </div>
         </div>
 
-        {activeCommunity && (
-          <div className="flex items-center justify-between mt-3 glass-card rounded-2xl px-4 py-3">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate">{activeCommunity.name}</p>
-              {activeCommunity.description && <p className="text-xs text-foreground/70 truncate">{activeCommunity.description}</p>}
-            </div>
-            <Button size="sm" variant={isMember ? "secondary" : "default"} onClick={joinCommunity}
-              className={isMember ? "rounded-full text-foreground" : "rounded-full bg-gradient-to-r from-[#c9a227] to-[#8b6914] text-white font-semibold"}>
-              <Users className="w-4 h-4 mr-1" /> {isMember ? "Joined" : "Join"}
-            </Button>
-          </div>
-        )}
+        {/* Communities grid */}
+        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {communities.map((c, i) => {
+            const Icon = COMMUNITY_ICONS[i % COMMUNITY_ICONS.length];
+            const active = c.id === activeId;
+            const joined = memberIds.has(c.id);
+            return (
+              <div key={c.id} onClick={() => setActiveId(c.id)}
+                className={`glass-card rounded-2xl p-4 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-[0_10px_30px_-12px_rgba(201,162,39,0.5)] ${active ? "border-gold/70 ring-1 ring-gold/40" : ""}`}>
+                <div className="flex items-start gap-3">
+                  <div className={`w-11 h-11 rounded-xl shrink-0 flex items-center justify-center transition-colors ${active ? "bg-gradient-to-br from-[#c9a227] to-[#8b6914]" : "bg-gold/15 border border-gold/25"}`}>
+                    <Icon className={`w-5 h-5 ${active ? "text-white" : "text-gold"}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{c.name}</p>
+                    {c.description ? (
+                      <p className="text-xs text-foreground/65 mt-0.5 line-clamp-2">{c.description}</p>
+                    ) : (
+                      <p className="text-xs text-foreground/45 mt-0.5 italic">A space to gather and share</p>
+                    )}
+                  </div>
+                  {joined && <Check className="w-4 h-4 text-gold shrink-0 mt-1" />}
+                </div>
+                <div className="flex items-center justify-between mt-3">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] text-foreground/60">
+                    <Users className="w-3.5 h-3.5 text-gold/70" /> {(c.member_count || 0).toLocaleString()}
+                  </span>
+                  {user && (
+                    <Button size="sm" variant={joined ? "secondary" : "default"} onClick={(e) => { e.stopPropagation(); toggleMembership(c.id); }}
+                      className={`${joined ? "rounded-full text-foreground" : goldBtn} h-7 px-3 text-xs`}>
+                      {joined ? "Joined" : "Join"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
         {isMember && (
           <div className="glass-card rounded-2xl p-4 mt-4">
@@ -281,8 +319,7 @@ const Community = () => {
               <Button variant="ghost" size="sm" onClick={() => setShowSongSearch((v) => !v)} className="text-foreground/80 hover:text-gold rounded-full">
                 <Play className="w-4 h-4 mr-1" /> Attach song
               </Button>
-              <Button size="sm" disabled={!content.trim() || posting} onClick={createPost}
-                className="rounded-full bg-gradient-to-r from-[#c9a227] to-[#8b6914] text-white font-semibold">
+              <Button size="sm" disabled={!content.trim() || posting} onClick={createPost} className={goldBtn}>
                 <Send className="w-4 h-4 mr-1" /> Share
               </Button>
             </div>
@@ -293,7 +330,7 @@ const Community = () => {
           {!user && (
             <div className="text-center py-10">
               <p className="text-foreground/70 text-sm">Sign in to join the conversation.</p>
-              <Link to="/auth"><Button size="sm" className="mt-3 rounded-full bg-gradient-to-r from-[#c9a227] to-[#8b6914] text-white font-semibold">Sign in</Button></Link>
+              <Link to="/auth"><Button size="sm" className={`mt-3 ${goldBtn}`}>Sign in</Button></Link>
             </div>
           )}
           {user && !isMember && posts.length === 0 && (
@@ -354,7 +391,7 @@ const Community = () => {
                       onKeyDown={(e) => e.key === "Enter" && addComment(post.id)} placeholder="Write a comment..."
                       className="bg-secondary/50 border-border text-foreground text-xs" />
                     <Button size="sm" onClick={() => addComment(post.id)} disabled={!commentDraft[post.id]?.trim()}
-                      className="rounded-full bg-gradient-to-r from-[#c9a227] to-[#8b6914] text-white px-3"><Send className="w-3.5 h-3.5" /></Button>
+                      className={`${goldBtn} px-3`}><Send className="w-3.5 h-3.5" /></Button>
                   </div>
                 </div>
               )}
@@ -369,7 +406,7 @@ const Community = () => {
           <div className="space-y-3">
             <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Community name" className="bg-secondary/50 border-border text-foreground" />
             <Input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Short description" className="bg-secondary/50 border-border text-foreground" />
-            <Button onClick={createCommunity} className="w-full rounded-full bg-gradient-to-r from-[#c9a227] to-[#8b6914] text-white font-semibold">Create</Button>
+            <Button onClick={createCommunity} className={`w-full ${goldBtn}`}>Create</Button>
           </div>
         </DialogContent>
       </Dialog>
