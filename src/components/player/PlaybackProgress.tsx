@@ -16,7 +16,7 @@ const PlaybackProgress = ({ value, onValueChange, ariaLabel, className }: Playba
     step={0.5}
     aria-label={ariaLabel}
     className={cn(
-      "w-full [&_[class*=Track]]:h-0.5 [&_[class*=Track]]:bg-muted-foreground/20 [&_[class*=Range]]:bg-gradient-to-r [&_[class*=Range]]:from-gold [&_[class*=Range]]:via-gold-light [&_[class*=Range]]:to-gold [&_[class*=Thumb]]:h-[2.24px] [&_[class*=Thumb]]:w-[2.24px] [&_[class*=Thumb]]:border-0 [&_[class*=Thumb]]:bg-gold [&_[class*=Thumb]]:shadow-[0_0_4px_hsl(43_70%_53%/0.6)]",
+      "w-full [&_.slider-track]:h-[1.8px] [&_.slider-track]:bg-muted-foreground/20 [&_.slider-range]:bg-gradient-to-r [&_.slider-range]:from-gold [&_.slider-range]:via-gold-light [&_.slider-range]:to-gold [&_.slider-thumb]:h-[2.02px] [&_.slider-thumb]:w-[2.02px] [&_.slider-thumb]:border-0 [&_.slider-thumb]:bg-gold [&_.slider-thumb]:shadow-[0_0_4px_hsl(43_70%_53%/0.6)]",
       className,
     )}
   />
