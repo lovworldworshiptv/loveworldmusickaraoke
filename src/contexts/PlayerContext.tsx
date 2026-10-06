@@ -96,6 +96,20 @@ function shuffleArray<T>(arr: T[]): T[] {
 }
 
 const AUTO_PAUSE_MS = 60 * 60 * 1000; // 1 hour
+const PLAYER_STATE_KEY = "loveworld-player-state-v1";
+const PLAYER_STATE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
+
+type PersistedPlayerState = {
+  song: PlayerSong;
+  queue: PlayerSong[];
+  queueIndex: number;
+  currentTime: number;
+  isKaraoke: boolean;
+  repeatMode: RepeatMode;
+  shuffleOn: boolean;
+  volume: number;
+  savedAt: number;
+};
 
 export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [currentSong, setCurrentSong] = useState<PlayerSong | null>(null);
@@ -133,7 +147,9 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   volumeRef.current = volume;
   const isPlayingRef = useRef(isPlaying);
   isPlayingRef.current = isPlaying;
-  const internalPlayRef = useRef<(song: PlayerSong, karaokeMode: boolean) => void>(() => {});
+  const internalPlayRef = useRef<(song: PlayerSong, karaokeMode: boolean, startAt?: number, autoplay?: boolean) => void>(() => {});
+  const restoredRef = useRef(false);
+  const lastPersistRef = useRef(0);
 
   const stopInterval = useCallback(() => {
     if (intervalRef.current) {
@@ -185,7 +201,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   // The core function that creates an audio, plays it, and attaches ended handler
-  const internalPlay = useCallback((song: PlayerSong, karaokeMode: boolean) => {
+  const internalPlay = useCallback((song: PlayerSong, karaokeMode: boolean, startAt = 0, autoplay = true) => {
     stopInterval();
     if (audioRef.current) {
       audioRef.current.pause();
@@ -194,8 +210,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }
     setCurrentSong(song);
     setIsKaraoke(karaokeMode);
-    setProgress(0);
-    setCurrentTime(0);
+    setProgress(song.durationSeconds ? (startAt / song.durationSeconds) * 100 : 0);
+    setCurrentTime(startAt);
     setActiveLrcIndex(-1);
 
     if (song.lyricsLrc) {
@@ -263,8 +279,15 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         }
       };
 
-      audio.addEventListener("loadedmetadata", () => setDuration(audio.duration));
-      audio.play().then(() => { setIsPlaying(true); startInterval(); resetAutoPauseTimer(); }).catch(() => {});
+      audio.addEventListener("loadedmetadata", () => {
+        setDuration(audio.duration);
+        if (startAt > 0 && startAt < audio.duration) audio.currentTime = startAt;
+      });
+      if (autoplay) {
+        audio.play().then(() => { setIsPlaying(true); startInterval(); resetAutoPauseTimer(); }).catch(() => {});
+      } else {
+        setIsPlaying(false);
+      }
     } else {
       setDuration(song.durationSeconds || 240);
       setIsPlaying(true);
@@ -296,6 +319,61 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
   internalPlayRef.current = internalPlay;
 
+  // Restore the last listening session once. Browsers require a user gesture before
+  // audio can resume, so the track returns paused at the saved position.
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    try {
+      const raw = localStorage.getItem(PLAYER_STATE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as PersistedPlayerState;
+      const isExpired = !saved.savedAt || Date.now() - saved.savedAt > PLAYER_STATE_MAX_AGE;
+      const isComplete = !!saved.song?.durationSeconds && saved.currentTime >= saved.song.durationSeconds - 2;
+      if (!saved.song?.id || !saved.song.audioUrl || isExpired || isComplete) {
+        localStorage.removeItem(PLAYER_STATE_KEY);
+        return;
+      }
+      const restoredQueue = Array.isArray(saved.queue) && saved.queue.length ? saved.queue : [saved.song];
+      const restoredIndex = Math.max(0, Math.min(saved.queueIndex ?? 0, restoredQueue.length - 1));
+      setQueue(restoredQueue);
+      setQueueIndex(restoredIndex);
+      setRepeatMode(saved.repeatMode || "off");
+      setShuffleOn(!!saved.shuffleOn);
+      setVolumeState(Math.max(0, Math.min(saved.volume ?? 0.7, 1)));
+      volumeRef.current = Math.max(0, Math.min(saved.volume ?? 0.7, 1));
+      internalPlay(restoredQueue[restoredIndex] || saved.song, !!saved.isKaraoke, Math.max(0, saved.currentTime || 0), false);
+    } catch {
+      localStorage.removeItem(PLAYER_STATE_KEY);
+    }
+  }, [internalPlay]);
+
+  const persistPlayerState = useCallback(() => {
+    const song = currentSong;
+    if (!song) return;
+    const exactTime = audioRef.current?.currentTime ?? currentTime;
+    const state: PersistedPlayerState = {
+      song, queue: queue.length ? queue : [song], queueIndex: Math.max(0, queueIndex),
+      currentTime: exactTime, isKaraoke, repeatMode, shuffleOn, volume, savedAt: Date.now(),
+    };
+    localStorage.setItem(PLAYER_STATE_KEY, JSON.stringify(state));
+  }, [currentSong, currentTime, isKaraoke, queue, queueIndex, repeatMode, shuffleOn, volume]);
+
+  useEffect(() => {
+    if (!currentSong) return;
+    const now = Date.now();
+    if (now - lastPersistRef.current >= 2000 || !isPlaying) {
+      lastPersistRef.current = now;
+      persistPlayerState();
+    }
+  }, [currentSong, currentTime, isPlaying, isKaraoke, queue, queueIndex, repeatMode, shuffleOn, volume, persistPlayerState]);
+
+  useEffect(() => {
+    const save = () => persistPlayerState();
+    window.addEventListener("pagehide", save);
+    return () => window.removeEventListener("pagehide", save);
+  }, [persistPlayerState]);
+
   const skipNextRef = useRef(() => {});
   const skipPrevRef = useRef(() => {});
 
@@ -303,8 +381,9 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        await supabase.from("recently_played").insert({ user_id: session.user.id, song_id: songId });
+        const { error } = await supabase.from("recently_played").insert({ user_id: session.user.id, song_id: songId });
         await supabase.rpc("record_play", { p_song_id: songId, p_mode: "song" });
+        if (!error) window.dispatchEvent(new CustomEvent("recently-played-updated"));
       }
     } catch {}
   }, []);

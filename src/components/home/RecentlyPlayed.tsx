@@ -3,21 +3,22 @@ import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 const RecentlyPlayed = () => {
   const { currentSong, isPlaying, playQueue } = usePlayer();
   const { user } = useAuth();
 
-  const { data: recentSongs = [] } = useQuery({
+  const { data: recentSongs = [], refetch } = useQuery({
     queryKey: ["home-recently-played", user?.id],
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("recently_played")
         .select("id, played_at, song_id, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album)")
-        .eq("user_id", user!.id)
+        .eq("user_id", user?.id || "")
         .order("played_at", { ascending: false })
-        .limit(5);
+        .limit(30);
       if (error) throw error;
       // Deduplicate by song_id, keep most recent
       const seen = new Set<string>();
@@ -25,10 +26,16 @@ const RecentlyPlayed = () => {
         if (!item.songs || seen.has(item.song_id)) return false;
         seen.add(item.song_id);
         return true;
-      });
+      }).slice(0, 8);
     },
-    refetchInterval: 10000, // refresh periodically
+    refetchInterval: 30000,
   });
+
+  useEffect(() => {
+    const refresh = () => refetch();
+    window.addEventListener("recently-played-updated", refresh);
+    return () => window.removeEventListener("recently-played-updated", refresh);
+  }, [refetch]);
 
   const toPlayerSong = (s: any): PlayerSong => ({
     id: s.id, title: s.title, artist: s.artist, album: s.album || undefined,
@@ -59,7 +66,7 @@ const RecentlyPlayed = () => {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-serif font-bold text-foreground">Recently Played</h3>
       </div>
-      <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+      <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory touch-pan-x overscroll-x-contain" style={{ WebkitOverflowScrolling: "touch" }}>
         {items.map((item: any, idx: number) => {
           const song = item.songs;
           if (!song) return null;
@@ -68,7 +75,7 @@ const RecentlyPlayed = () => {
             <button
               key={item.id}
               onClick={() => playQueue(allPlayerSongs, idx)}
-              className="flex-shrink-0 w-40 glass-card p-3 hover:glow-gold transition-all duration-300 text-left group hover:-translate-y-1"
+              className="flex-shrink-0 w-40 glass-card p-3 hover:glow-gold transition-all duration-300 text-left group hover:-translate-y-1 snap-start"
             >
               <div className="w-full aspect-square rounded-xl gradient-purple flex items-center justify-center mb-3 relative overflow-hidden">
                 {song.cover_url ? (
