@@ -403,6 +403,14 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     recordPlayFn(song.id);
   }, [internalPlay, recordPlayFn]);
 
+  const playVideo = useCallback((song: PlayerSong) => {
+    playSong(song);
+    setIsExpanded(true);
+    setVideoModeRequest(true);
+  }, [playSong]);
+
+  const clearVideoModeRequest = useCallback(() => setVideoModeRequest(false), []);
+
   const playQueue = useCallback((songs: PlayerSong[], startIndex = 0) => {
     const q = shuffleOnRef.current ? shuffleArray(songs) : songs;
     setQueue(q);
@@ -551,6 +559,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       currentSong, isPlaying, isKaraoke, isExpanded, progress, duration,
       currentTime, lrcLines, staticLyrics, activeLrcIndex, repeatMode, shuffleOn,
       queue, queueIndex, volume, trackEndCount, playSong, playQueue, togglePlay,
+      playVideo, videoModeRequest, clearVideoModeRequest,
       toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev,
       cycleRepeat, toggleShuffle, setVolume, applyLyrics, handoffPause, resumeAt,
     }}>
