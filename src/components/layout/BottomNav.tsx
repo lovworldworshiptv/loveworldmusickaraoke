@@ -2,6 +2,7 @@ import { Home, Compass, Library, Gamepad2, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
 import { memo } from "react";
+import { usePlayer } from "@/contexts/PlayerContext";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
