@@ -4,3 +4,4 @@
 - [x] Admin notifications for stem jobs: started / completed / needs retry (admin_notifications table + worker hooks)
 - [x] Stem Studio: live list of individual songs being processed + recent results
 - [x] Phase 5: Videos hub — /videos page (grid of songs with active videos, search, type badges), sidebar "Videos" entry, playVideo() opens the player straight into Video mode
+- [x] Phase 6: My Studio (/studio) — offline songs with days-left, on-device karaoke recordings (save, keep shared ones, rename, export, delete)
