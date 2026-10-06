@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Community directory/detail pages, admin-editable profile images, white text, and neutral grey page background.
+
 - [x] Reference-matched community card colours with admin colour picker, live preview, and saved per-community settings.
 
 - [x] Neon-green Daily Discover (CMS colour control) and 18 centralized admin feature switches across routes, menus, home sections, and player modes; six regression tests pass and disabled direct links verified

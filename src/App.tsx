@@ -110,6 +110,7 @@ const App = () => (
                 <Route path="/collection/:id" element={<Collection />} />
                 <Route path="/moments" element={<AuthGate><Moments /></AuthGate>} />
                 <Route path="/community" element={<AuthGate><Community /></AuthGate>} />
+                <Route path="/community/:communityId" element={<AuthGate><Community /></AuthGate>} />
                 <Route path="/stage" element={<AuthGate><StageMode /></AuthGate>} />
                 <Route path="/studio" element={<Studio />} />
                 <Route path="/category/:id" element={<AuthGate><CategorySongs /></AuthGate>} />

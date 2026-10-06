@@ -58,6 +58,7 @@
     --glass-bg: 220 35% 12%;
     --glass-border: 220 25% 22%;
     --community-foreground: 0 0% 100%;
+    --community-page-background: 0 0% 22%;
   }
 
   .dark {
@@ -103,6 +104,14 @@
 }
 
 @layer utilities {
+  .community-page {
+    background: hsl(var(--community-page-background));
+    --foreground: var(--community-foreground);
+    --muted-foreground: var(--community-foreground);
+    --primary-foreground: var(--community-foreground);
+    --secondary-foreground: var(--community-foreground);
+  }
+
   .community-color-card, .glass-card.community-color-card {
     background: hsl(var(--community-color));
     --foreground: var(--community-foreground);
