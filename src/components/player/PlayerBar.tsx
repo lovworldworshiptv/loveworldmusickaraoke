@@ -132,23 +132,23 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
           {/* Controls */}
           <div className="flex items-center gap-2 md:gap-4">
             {/* Mobile 3-dot menu */}
-            <button onClick={toggleExpanded} className="md:hidden text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={toggleExpanded} className="md:hidden text-foreground hover:text-gold transition-colors">
               <MoreVertical className="w-5 h-5" />
             </button>
-            <button onClick={toggleShuffle} className={`hidden md:block transition-colors ${shuffleOn ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
+            <button onClick={toggleShuffle} className={`hidden md:block transition-colors ${shuffleOn ? "text-gold" : "text-foreground hover:text-gold"}`}>
               <Shuffle className="w-4 h-4" />
             </button>
-            <button onClick={skipPrev} className="text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={skipPrev} className="text-foreground hover:text-gold transition-colors">
               <SkipBack className="w-5 h-5" />
             </button>
             <button onClick={togglePlay}
               className="w-11 h-11 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center text-primary-foreground shadow-[0_4px_20px_hsl(43_70%_53%/0.5)] ring-2 ring-white/20 hover:scale-105 active:scale-95 transition-all duration-200">
               {isPlaying ? <Pause className="w-5 h-5 text-white drop-shadow-sm" fill="currentColor" /> : <Play className="w-5 h-5 text-white ml-0.5 drop-shadow-sm" fill="currentColor" />}
             </button>
-            <button onClick={skipNext} className="text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={skipNext} className="text-foreground hover:text-gold transition-colors">
               <SkipForward className="w-5 h-5" />
             </button>
-            <button onClick={cycleRepeat} className={`hidden md:block transition-colors ${repeatMode !== "off" ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
+            <button onClick={cycleRepeat} className={`hidden md:block transition-colors ${repeatMode !== "off" ? "text-gold" : "text-foreground hover:text-gold"}`}>
               <RepeatIcon className="w-4 h-4" />
             </button>
           </div>
@@ -160,7 +160,7 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
               downloaded ? (
                 <span className="text-green-500"><Check className="w-4 h-4" /></span>
               ) : canDownload ? (
-                <button onClick={handleDownload} disabled={downloading} className="text-muted-foreground hover:text-foreground transition-colors">
+                <button onClick={handleDownload} disabled={downloading} className="text-foreground hover:text-gold transition-colors">
                   <Download className={`w-4 h-4 ${downloading ? "animate-pulse text-gold" : ""}`} />
                 </button>
               ) : (
@@ -169,7 +169,7 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
                 </button>
               )
             )}
-            <button onClick={toggleKaraoke} className={`transition-opacity ${isKaraoke ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
+            <button onClick={toggleKaraoke} className={`transition-opacity ${isKaraoke ? "text-gold" : "text-foreground hover:text-gold"}`}>
               <Mic2 className="w-4 h-4" />
             </button>
             {recordFeatureEnabled && (
@@ -183,17 +183,17 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
                 </button>
               )
             )}
-            <button onClick={() => setShowQueue(q => !q)} className={`transition-colors ${showQueue ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
+            <button onClick={() => setShowQueue(q => !q)} className={`transition-colors ${showQueue ? "text-gold" : "text-foreground hover:text-gold"}`}>
               <ListMusic className="w-4 h-4" />
             </button>
             <div className="flex items-center gap-2 w-28">
               <button onClick={() => setVolume(volume === 0 ? 0.7 : 0)}>
-                <VolumeIcon className="w-4 h-4 text-muted-foreground" />
+                <VolumeIcon className="w-4 h-4 text-foreground" />
               </button>
               <PlaybackProgress value={volume * 100} onValueChange={(value) => setVolume(value / 100)} ariaLabel="Volume" className="flex-1" />
             </div>
-            <span className="text-xs text-muted-foreground w-16 text-right">{formatTime(currentTime)} / {formatTime(duration)}</span>
-            <button onClick={() => setHidden(true)} className="text-muted-foreground hover:text-foreground transition-colors ml-1">
+            <span className="text-xs text-foreground w-16 text-right">{formatTime(currentTime)} / {formatTime(duration)}</span>
+            <button onClick={() => setHidden(true)} className="text-foreground hover:text-gold transition-colors ml-1">
               <X className="w-4 h-4" />
             </button>
           </div>
