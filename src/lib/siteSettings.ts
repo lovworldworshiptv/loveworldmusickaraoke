@@ -12,10 +12,14 @@ export const SETTING_KEYS = {
 
 export type ThemeColors = { gold?: string; background?: string; accent?: string; foreground?: string };
 export type HomeSectionSetting = { id: string; visible: boolean };
-export type StageModeSetting = {
+export type StageModePresentation = {
   backgroundColor: string;
   mediaType: "none" | "image" | "video";
   mediaUrl: string;
+};
+
+export type StageModeSetting = StageModePresentation & {
+  songOverrides?: Record<string, StageModePresentation>;
 };
 
 export const DEFAULT_STAGE_MODE: StageModeSetting = {

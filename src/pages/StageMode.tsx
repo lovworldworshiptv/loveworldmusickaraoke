@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { X, Play, Pause, SkipBack, SkipForward, Minus, Plus, Music, Volume2, VolumeX, Hand, WandSparkles } from "lucide-react";
 import { DEFAULT_STAGE_MODE, SETTING_KEYS, type StageModeSetting, useSetting } from "@/lib/siteSettings";
+import { Button } from "@/components/ui/button";
 
 const FONT_STEPS = ["text-2xl", "text-3xl", "text-4xl", "text-5xl", "text-6xl"];
 
@@ -26,15 +27,20 @@ const StageMode = () => {
   const [fontStep, setFontStep] = useState(2);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [audioOn, setAudioOn] = useState(volume > 0);
-  const [manualScroll, setManualScroll] = useState(false);
+  const [lyricsMode, setLyricsMode] = useState<"sync" | "manual">("sync");
+  const [selectedLineIndex, setSelectedLineIndex] = useState<number | null>(null);
   const previousVolume = useRef(volume > 0 ? volume : 0.7);
   const setting = useSetting<StageModeSetting>(SETTING_KEYS.stageMode);
-  const stage = { ...DEFAULT_STAGE_MODE, ...(setting || {}) };
+  const globalStage = { ...DEFAULT_STAGE_MODE, ...(setting || {}) };
+  const stage = currentSong
+    ? { ...globalStage, ...(setting?.songOverrides?.[currentSong.id] || {}) }
+    : globalStage;
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
 
   const hasSync = lrcLines.length > 0;
+  const manualScroll = lyricsMode === "manual";
   const staticLines = useMemo(
     () => (hasSync ? [] : staticLyrics.split("\n").map((l) => l.trim()).filter(Boolean)),
     [hasSync, staticLyrics]
@@ -69,6 +75,18 @@ const StageMode = () => {
     if (manualScroll || !hasSync || activeLrcIndex < 0) return;
     lineRefs.current[activeLrcIndex]?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [activeLrcIndex, hasSync, manualScroll]);
+
+  const selectManualLine = useCallback((index: number) => {
+    if (!manualScroll) return;
+    setSelectedLineIndex(index);
+    lineRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    pokeControls();
+  }, [manualScroll, pokeControls]);
+
+  const setNavigationMode = (mode: "sync" | "manual") => {
+    setLyricsMode(mode);
+    setSelectedLineIndex(mode === "manual" ? Math.max(0, activeLrcIndex) : null);
+  };
 
   // Unsynced lyrics: slow auto-scroll across the song's duration.
   useEffect(() => {
@@ -140,13 +158,6 @@ const StageMode = () => {
             {audioOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
           <button
-            onClick={() => setManualScroll((v) => !v)}
-            aria-label={manualScroll ? "Turn automatic scrolling on" : "Use manual scrolling"}
-            className={`w-10 h-10 rounded-full backdrop-blur flex items-center justify-center ${manualScroll ? "bg-gold/25 text-gold" : "bg-foreground/10"}`}
-          >
-            {manualScroll ? <Hand className="w-4 h-4" /> : <WandSparkles className="w-4 h-4" />}
-          </button>
-          <button
             onClick={() => setFontStep((s) => Math.max(0, s - 1))}
             aria-label="Smaller lyrics"
             className="w-10 h-10 rounded-full bg-white/10 backdrop-blur flex items-center justify-center"
@@ -163,6 +174,35 @@ const StageMode = () => {
         </div>
       </div>
 
+      <div
+        className={`absolute top-16 left-1/2 z-20 -translate-x-1/2 flex items-center rounded-full border border-gold/20 bg-background/45 p-1 backdrop-blur-xl transition-opacity duration-500 ${
+          controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        role="group"
+        aria-label="Lyrics navigation mode"
+      >
+        <Button
+          type="button"
+          size="sm"
+          variant={lyricsMode === "sync" ? "default" : "ghost"}
+          onClick={() => setNavigationMode("sync")}
+          aria-pressed={lyricsMode === "sync"}
+          className="h-8 rounded-full gap-1.5 px-3"
+        >
+          <WandSparkles className="h-3.5 w-3.5" /> Sync
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={lyricsMode === "manual" ? "default" : "ghost"}
+          onClick={() => setNavigationMode("manual")}
+          aria-pressed={lyricsMode === "manual"}
+          className="h-8 rounded-full gap-1.5 px-3"
+        >
+          <Hand className="h-3.5 w-3.5" /> Manual
+        </Button>
+      </div>
+
       {/* Lyrics */}
       <div
         ref={scrollRef}
@@ -177,10 +217,11 @@ const StageMode = () => {
                 ref={(el) => {
                   lineRefs.current[i] = el;
                 }}
-                className={`font-serif font-bold leading-snug transition-all duration-500 ${FONT_STEPS[fontStep]} ${
-                  i === activeLrcIndex
+                onClick={() => selectManualLine(i)}
+                className={`font-serif font-bold leading-snug transition-all duration-500 ${FONT_STEPS[fontStep]} ${manualScroll ? "cursor-pointer rounded-lg px-3 py-1" : ""} ${
+                  i === (manualScroll ? selectedLineIndex : activeLrcIndex)
                     ? "text-amber-400 scale-105 drop-shadow-[0_0_25px_rgba(251,191,36,0.4)]"
-                    : i < activeLrcIndex
+                    : i < (manualScroll ? (selectedLineIndex ?? 0) : activeLrcIndex)
                       ? "text-white"
                       : "text-white"
                 }`}
@@ -192,7 +233,12 @@ const StageMode = () => {
         ) : staticLines.length > 0 ? (
           <div className="max-w-3xl mx-auto space-y-6 text-center">
             {staticLines.map((line, i) => (
-              <p key={i} className={`font-serif font-bold leading-snug text-white ${FONT_STEPS[fontStep]}`}>
+              <p
+                key={i}
+                ref={(el) => { lineRefs.current[i] = el; }}
+                onClick={() => selectManualLine(i)}
+                className={`font-serif font-bold leading-snug transition-all duration-500 ${FONT_STEPS[fontStep]} ${manualScroll ? "cursor-pointer rounded-lg px-3 py-1" : ""} ${manualScroll && i === selectedLineIndex ? "text-amber-400 scale-105 drop-shadow-[0_0_25px_rgba(251,191,36,0.4)]" : "text-white"}`}
+              >
                 {line}
               </p>
             ))}
