@@ -453,7 +453,7 @@ const ExpandedPlayer = () => {
         )}
 
         {/* Bottom Controls - hidden during active recording */}
-        {!isRecordingActive && (
+        {!isRecordingActive && mode !== "video" && (
         <div className="flex-shrink-0 px-6 pt-2 safe-bottom" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
           <div className="mb-4 group/progress">
             <Slider value={[progress]} onValueChange={([v]) => seekTo(v)} max={100} step={0.5}
