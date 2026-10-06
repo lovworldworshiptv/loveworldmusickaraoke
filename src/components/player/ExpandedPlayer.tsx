@@ -80,7 +80,7 @@ const ExpandedPlayer = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
   const isMobile = useIsMobile();
-  const { handoffPause, resumeAt } = usePlayer();
+  const { handoffPause, resumeAt, videoModeRequest, clearVideoModeRequest } = usePlayer();
 
   // --- 3-mode player (Song | Karaoke | Video) with seamless position transfer ---
   const [videos, setVideos] = useState<SongVideo[]>([]);
@@ -120,6 +120,7 @@ const ExpandedPlayer = () => {
       setVideoMode(true);
       return;
     }
+
     if (videoMode) {
       const pos = videoPosRef.current();
       setVideoMode(false);
@@ -130,6 +131,14 @@ const ExpandedPlayer = () => {
     }
     toggleKaraoke();
   }, [mode, videoMode, isKaraoke, toggleKaraoke, handoffPause, resumeAt]);
+
+  // Honor a "watch video" request from the Videos hub: switch to Video mode once videos load.
+  useEffect(() => {
+    if (videoModeRequest && videos.length > 0 && !videoMode) {
+      switchMode("video");
+      clearVideoModeRequest();
+    }
+  }, [videoModeRequest, videos, videoMode, switchMode, clearVideoModeRequest]);
 
   useEffect(() => {
     supabase.from("app_settings" as any).select("value").eq("key", "karaoke_record_enabled").single()
