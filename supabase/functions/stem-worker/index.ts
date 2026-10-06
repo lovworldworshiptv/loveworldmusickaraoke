@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
   try {
     // 1) Check running separations
     const { data: running } = await admin.from("song_audio_versions")
-      .select("id, song_id, language_code, attempts, prediction_id")
+      .select("id, song_id, language_code, attempts, prediction_id, songs(title)")
       .eq("kind", "instrumental").eq("status", "processing").not("prediction_id", "is", null).limit(10);
 
     for (const row of running ?? []) {
