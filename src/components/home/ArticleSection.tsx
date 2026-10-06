@@ -54,7 +54,7 @@ const ArticleSection = () => {
             <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{article.excerpt}</p>
             <div className="flex items-center gap-2">
               <BookOpen className="w-3.5 h-3.5 text-gold" />
-              <span className="text-xs text-muted-foreground">By {article.author}</span>
+              <span className="text-xs font-medium text-white">By {article.author}</span>
             </div>
           </article>
         ))}
