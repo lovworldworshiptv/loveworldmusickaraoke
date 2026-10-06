@@ -3,12 +3,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ListMusic, Play } from "lucide-react";
+import { cardGradient } from "@/lib/siteSettings";
 
-type Rec = { id: string; name: string; cover_url: string | null; playlist_songs: { songs: { title: string; artist: string; cover_url: string | null } | null }[] | null };
+type Rec = { id: string; name: string; card_color: string | null; cover_url: string | null; playlist_songs: { songs: { title: string; artist: string; cover_url: string | null } | null }[] | null };
 
 /** Spotify-style recommendation cards; each opens the playlist's collection page. */
-/** Deep brown treatment reserved for the "Pastor Chris Live Unending Praise" card. */
-const isUnendingPraiseCard = (name: string) => /unending praise/i.test(name);
 
 const PlatformRecommendations = () => {
   const [items, setItems] = useState<Rec[]>([]);
@@ -16,7 +15,7 @@ const PlatformRecommendations = () => {
 
   useEffect(() => {
     supabase.from("playlists")
-      .select("id,name,cover_url,playlist_songs(songs(title,artist,cover_url))")
+      .select("id,name,cover_url,card_color,playlist_songs(songs(title,artist,cover_url))")
       .eq("is_visible_on_homepage", true)
       .order("created_at", { ascending: false }).limit(8)
       .then(({ data }) => setItems(((data as unknown as Rec[]) || []).filter((p) => (p.playlist_songs || []).some((s) => s.songs))));
@@ -35,11 +34,11 @@ const PlatformRecommendations = () => {
           const songs = (p.playlist_songs || []).map((s) => s.songs).filter(Boolean) as NonNullable<Rec["playlist_songs"]>[number]["songs"][];
           const cover = p.cover_url || songs[0]?.cover_url;
           const names = songs.slice(0, 3).map((s) => s!.title).join(", ");
-          const unendingPraise = isUnendingPraiseCard(p.name);
+          const tint = p.card_color ? cardGradient(p.card_color) : undefined;
           return (
-            <button key={p.id} onClick={() => navigate(`/collection/${p.id}${unendingPraise ? "?theme=brown" : ""}`)}
-              className={`snap-start flex-shrink-0 w-full md:w-[calc(50%_-_0.375rem)] lg:w-[29.6%] h-[166px] md:h-36 rounded-2xl p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${unendingPraise ? "border-0 shadow-[0_4px_20px_hsl(30_70%_25%/0.45)]" : "glass-card hover:border-gold/40"}`}
-              style={unendingPraise ? { background: "linear-gradient(135deg, hsl(25 50% 10%) 0%, hsl(28 55% 24%) 55%, hsl(32 65% 38%) 100%)" } : undefined}>
+            <button key={p.id} onClick={() => navigate(`/collection/${p.id}${p.card_color ? `?color=${encodeURIComponent(p.card_color)}` : ""}`)}
+              className={`snap-start flex-shrink-0 w-full md:w-[calc(50%_-_0.375rem)] lg:w-[29.6%] h-[166px] md:h-36 rounded-2xl p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${tint ? "border-0 shadow-lg" : "glass-card hover:border-gold/40"}`}
+              style={tint ? { background: tint } : undefined}>
               <div className="flex h-full gap-3">
                 <div className="aspect-square h-full rounded-xl overflow-hidden flex-shrink-0 bg-muted">
                   {cover ? <img src={cover} alt="" loading="lazy" className="w-full h-full object-cover" /> :

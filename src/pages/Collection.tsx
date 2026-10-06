@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { SONG_COLUMNS, toPlayerSong, type SongRow } from "@/lib/homeSongs";
 import { ArrowLeft, ListMusic, Music2, Play, Shuffle } from "lucide-react";
+import { pageGradient } from "@/lib/siteSettings";
 import { Button } from "@/components/ui/button";
 
 /** Collection of recommended songs behind a home recommendation card. */
@@ -21,11 +22,10 @@ const Collection = () => {
   const [params] = useSearchParams();
   const theme = params.get("theme");
   const tone = playerTone(useDominantColor(cover), 100);
-  const bg = theme === "purple"
-    ? "linear-gradient(180deg, hsl(272 60% 30%) 0%, hsl(266 50% 18%) 45%, hsl(262 55% 9%) 75%, hsl(var(--background)) 100%)"
-    : theme === "brown"
-    ? "linear-gradient(180deg, hsl(32 65% 38%) 0%, hsl(28 55% 24%) 45%, hsl(25 50% 10%) 75%, hsl(var(--background)) 100%)"
-    : `linear-gradient(180deg, ${tone || "hsl(220 80% 18%)"} 0%, hsl(var(--background)) 80%)`;
+  const color = params.get("color");
+  const legacy = theme === "purple" ? "#5b2a9e" : theme === "brown" ? "#7a4a1f" : null;
+  const custom = color || legacy;
+  const bg = (custom && pageGradient(custom)) || `linear-gradient(180deg, ${tone || "hsl(220 80% 18%)"} 0%, hsl(var(--background)) 80%)`;
 
   useEffect(() => {
     if (!id) return;

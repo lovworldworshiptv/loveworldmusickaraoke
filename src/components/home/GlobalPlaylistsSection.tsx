@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { ListMusic, Play } from "lucide-react";
+import { cardGradient, DEFAULT_GLOBAL_CARD } from "@/lib/siteSettings";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 
 interface PlaylistSongRow {
@@ -23,6 +24,7 @@ interface GlobalPlaylist {
   id: string;
   name: string;
   cover_url: string | null;
+  card_color: string | null;
   playlist_songs: PlaylistSongRow[] | null;
 }
 
@@ -92,12 +94,12 @@ const GlobalPlaylistsSection = () => {
               key={playlist.id}
               role="button"
               tabIndex={0}
-              onClick={() => navigate(`/collection/${playlist.id}?theme=purple`)}
+              onClick={() => navigate(`/collection/${playlist.id}?color=${encodeURIComponent(playlist.card_color || DEFAULT_GLOBAL_CARD)}`)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") navigate(`/collection/${playlist.id}?theme=purple`);
+                if (e.key === "Enter" || e.key === " ") navigate(`/collection/${playlist.id}?color=${encodeURIComponent(playlist.card_color || DEFAULT_GLOBAL_CARD)}`);
               }}
-              className="snap-start flex-shrink-0 w-full md:w-[calc(50%_-_0.375rem)] lg:w-[29.6%] h-[166px] md:h-36 rounded-2xl p-3 text-left cursor-pointer border-0 shadow-[0_4px_20px_hsl(265_60%_18%/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
-              style={{ background: "linear-gradient(135deg, hsl(262 55% 9%) 0%, hsl(266 50% 18%) 55%, hsl(272 60% 30%) 100%)" }}
+              className="snap-start flex-shrink-0 w-full md:w-[calc(50%_-_0.375rem)] lg:w-[29.6%] h-[166px] md:h-36 rounded-2xl p-3 text-left cursor-pointer border-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+              style={{ background: cardGradient(playlist.card_color || DEFAULT_GLOBAL_CARD) }}
             >
               <div className="flex h-full gap-3">
                 <div className="aspect-square h-full rounded-xl overflow-hidden flex-shrink-0 bg-muted">
