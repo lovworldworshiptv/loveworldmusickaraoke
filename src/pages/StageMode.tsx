@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { X, Play, Pause, SkipBack, SkipForward, Minus, Plus, Music, Volume2, VolumeX, Hand, WandSparkles } from "lucide-react";
-import { DEFAULT_STAGE_MODE, SETTING_KEYS, type StageModeSetting, useSetting } from "@/lib/siteSettings";
+import { DEFAULT_STAGE_MODE, resolveStageMediaUrl, SETTING_KEYS, type StageModeSetting, useSetting } from "@/lib/siteSettings";
 import { Button } from "@/components/ui/button";
 
 const FONT_STEPS = ["text-2xl", "text-3xl", "text-4xl", "text-5xl", "text-6xl"];
@@ -121,10 +121,10 @@ const StageMode = () => {
       onPointerDown={pokeControls}
     >
       {stage.mediaType === "image" && stage.mediaUrl && (
-        <img src={stage.mediaUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img src={resolveStageMediaUrl(stage.mediaUrl)} alt="" className="absolute inset-0 h-full w-full object-cover" />
       )}
       {stage.mediaType === "video" && stage.mediaUrl && (
-        <video src={stage.mediaUrl} muted loop autoPlay playsInline className="absolute inset-0 h-full w-full object-cover" />
+        <video src={resolveStageMediaUrl(stage.mediaUrl)} muted loop autoPlay playsInline className="absolute inset-0 h-full w-full object-cover" />
       )}
       <div className="absolute inset-0 bg-background/65" />
       {/* Top bar */}

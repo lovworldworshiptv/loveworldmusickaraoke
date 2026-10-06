@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import divinityStageVideo from "@/assets/divinity-stage-ocean-mountains.mp4.asset.json";
 
 /** Admin-managed settings stored in app_settings (key → jsonb). */
 export const SETTING_KEYS = {
@@ -27,6 +28,12 @@ export const DEFAULT_STAGE_MODE: StageModeSetting = {
   mediaType: "none",
   mediaUrl: "",
 };
+
+const MANAGED_STAGE_MEDIA = new Map([[divinityStageVideo.url, divinityStageVideo.url]]);
+
+export function resolveStageMediaUrl(url: string) {
+  return MANAGED_STAGE_MEDIA.get(url) || url;
+}
 
 export const HOME_SECTIONS: { id: string; label: string }[] = [
   { id: "moods", label: "Mood Capsules" },

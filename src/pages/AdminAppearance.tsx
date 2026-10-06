@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  applyTheme, cardGradient, DEFAULT_GLOBAL_CARD, DEFAULT_STAGE_MODE, getSetting, HOME_SECTIONS, resolveHomeLayout, saveSetting, SETTING_KEYS,
+  applyTheme, cardGradient, DEFAULT_GLOBAL_CARD, DEFAULT_STAGE_MODE, getSetting, HOME_SECTIONS, resolveHomeLayout, resolveStageMediaUrl, saveSetting, SETTING_KEYS,
   type HomeSectionSetting, type StageModeSetting, type ThemeColors,
 } from "@/lib/siteSettings";
 
@@ -272,8 +272,8 @@ const AdminAppearance = () => {
               </div>
             </div>
             <div className="relative aspect-video overflow-hidden rounded-xl border border-border" style={{ backgroundColor: stageEditor.backgroundColor }}>
-              {stageEditor.mediaType === "image" && stageEditor.mediaUrl && <img src={stageEditor.mediaUrl} alt="Stage background preview" className="absolute inset-0 w-full h-full object-cover" />}
-              {stageEditor.mediaType === "video" && stageEditor.mediaUrl && <video src={stageEditor.mediaUrl} muted loop autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />}
+              {stageEditor.mediaType === "image" && stageEditor.mediaUrl && <img src={resolveStageMediaUrl(stageEditor.mediaUrl)} alt="Stage background preview" className="absolute inset-0 w-full h-full object-cover" />}
+              {stageEditor.mediaType === "video" && stageEditor.mediaUrl && <video src={resolveStageMediaUrl(stageEditor.mediaUrl)} muted loop autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />}
               <div className="absolute inset-0 bg-background/55" />
               <p className="absolute inset-0 flex items-center justify-center px-5 text-center font-serif font-bold text-foreground">Your lyrics will appear here</p>
             </div>
