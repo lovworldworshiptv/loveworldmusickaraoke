@@ -3,7 +3,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsEditor } from "@/hooks/useIsEditor";
-import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer, FileAudio, ChevronDown, Rewind, FastForward, Pencil, Check, CheckCircle, Wand2, Loader2 } from "lucide-react";
+import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer, FileAudio, ChevronDown, Rewind, FastForward, Pencil, Check, CheckCircle, Wand2, Loader2, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
@@ -11,6 +11,8 @@ import { sortSongsByTitle, compareTitles } from "@/lib/utils";
 import { Video } from "lucide-react";
 import SongVideosManager from "@/components/admin/SongVideosManager";
 import StemStudio, { callStemAdmin, type StemStatus } from "@/components/admin/StemStudio";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Song {
   id: string;
@@ -188,6 +190,12 @@ const AdminSongs = () => {
   const [albumOptions, setAlbumOptions] = useState<AlbumOption[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<{ id: string; name: string }[]>([]);
   const [playlistOptions, setPlaylistOptions] = useState<PlaylistOption[]>([]);
+  const [search, setSearch] = useState("");
+  const [catalogueFilter, setCatalogueFilter] = useState("all");
+  const [selectedSongIds, setSelectedSongIds] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState("");
+  const [bulkCategory, setBulkCategory] = useState("");
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   // Auto-detect audio duration from URL
   const detectAudioDuration = (url: string, callback: (seconds: number) => void) => {
@@ -314,6 +322,67 @@ const AdminSongs = () => {
     await supabase.from("songs").delete().eq("id", id);
     toast.success("Deleted");
     fetchSongs();
+  };
+
+  const filteredSongs = songs.filter((song) => {
+    const term = search.trim().toLowerCase();
+    const matchesSearch = !term || song.title.toLowerCase().includes(term) || song.artist.toLowerCase().includes(term) || (song.album || "").toLowerCase().includes(term);
+    const matchesFilter = catalogueFilter === "all"
+      || (catalogueFilter === "missing-artwork" && !song.cover_url)
+      || (catalogueFilter === "missing-audio" && !song.audio_url)
+      || (catalogueFilter === "missing-lyrics" && !song.lyrics_lrc)
+      || (catalogueFilter === "missing-instrumental" && !song.instrumental_url)
+      || (catalogueFilter === "with-video" && !!song.has_video)
+      || (catalogueFilter === "featured" && song.is_featured);
+    return matchesSearch && matchesFilter;
+  });
+
+  const visibleIds = filteredSongs.map((song) => song.id);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedSongIds.has(id));
+
+  const toggleSongSelection = (id: string, checked: boolean) => {
+    setSelectedSongIds((current) => {
+      const next = new Set(current);
+      if (checked) next.add(id); else next.delete(id);
+      return next;
+    });
+  };
+
+  const toggleAllVisible = (checked: boolean) => {
+    setSelectedSongIds((current) => {
+      const next = new Set(current);
+      visibleIds.forEach((id) => checked ? next.add(id) : next.delete(id));
+      return next;
+    });
+  };
+
+  const applyBulkAction = async () => {
+    const ids = [...selectedSongIds];
+    if (!ids.length || !bulkAction) return;
+    const updates: Record<string, boolean | string | null> = {};
+    const labels: Record<string, string> = {
+      feature: "mark as Featured", unfeature: "remove from Featured", top: "mark as Top", untop: "remove from Top",
+      free: "allow free downloads", paid: "remove free downloads", category: "change category",
+    };
+    if (bulkAction === "category") {
+      if (!bulkCategory) { toast.error("Choose a category first"); return; }
+      updates.category_id = bulkCategory === "none" ? null : bulkCategory;
+    } else if (bulkAction === "feature") updates.is_featured = true;
+    else if (bulkAction === "unfeature") updates.is_featured = false;
+    else if (bulkAction === "top") updates.is_top = true;
+    else if (bulkAction === "untop") updates.is_top = false;
+    else if (bulkAction === "free") updates.is_free_download = true;
+    else if (bulkAction === "paid") updates.is_free_download = false;
+    if (!Object.keys(updates).length) return;
+    if (!confirm(`${labels[bulkAction]} for ${ids.length} selected song(s)?`)) return;
+    setBulkBusy(true);
+    const { error } = await supabase.from("songs").update(updates).in("id", ids);
+    setBulkBusy(false);
+    if (error) { toast.error("Bulk update failed: " + error.message); return; }
+    toast.success(`${ids.length} song(s) updated`);
+    setSelectedSongIds(new Set());
+    setBulkAction("");
+    await fetchSongs();
   };
 
   const handleUpdateDetails = async () => {
@@ -466,7 +535,7 @@ const AdminSongs = () => {
 
   return (
     <AppLayout>
-      <div className="px-4 lg:px-6 pt-4 lg:pt-6 max-w-4xl">
+      <div className="px-4 lg:px-6 pt-4 lg:pt-6 max-w-6xl">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-serif font-bold text-foreground">Manage Songs</h2>
           {!isEditorOnly && (
@@ -817,15 +886,40 @@ const AdminSongs = () => {
 
         {isAdmin && !isEditorOnly && <StemStudio onStatusChange={handleStemStatus} refreshKey={stemRefresh} />}
 
+        <div className="mb-4 space-y-3 rounded-xl border border-border bg-card p-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search songs, artists, or albums" className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring" />
+            </div>
+            <Select value={catalogueFilter} onValueChange={setCatalogueFilter}>
+              <SelectTrigger className="w-full sm:w-52"><SlidersHorizontal className="mr-2 h-4 w-4" /><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="all">All songs</SelectItem><SelectItem value="featured">Featured</SelectItem><SelectItem value="with-video">With video</SelectItem><SelectItem value="missing-artwork">Missing artwork</SelectItem><SelectItem value="missing-audio">Missing audio</SelectItem><SelectItem value="missing-lyrics">Missing lyrics</SelectItem><SelectItem value="missing-instrumental">Missing instrumental</SelectItem></SelectContent>
+            </Select>
+          </div>
+          {isAdmin && !isEditorOnly && (
+            <div className="flex flex-col gap-3 border-t border-border pt-3 lg:flex-row lg:items-center">
+              <label className="flex items-center gap-2 text-sm text-foreground"><Checkbox checked={allVisibleSelected} onCheckedChange={(value) => toggleAllVisible(value === true)} />Select visible</label>
+              <span className="text-xs text-muted-foreground">{selectedSongIds.size} selected · {filteredSongs.length} shown</span>
+              <div className="flex flex-1 flex-col gap-2 sm:flex-row lg:justify-end">
+                <Select value={bulkAction} onValueChange={setBulkAction}><SelectTrigger className="sm:w-48"><SelectValue placeholder="Bulk action" /></SelectTrigger><SelectContent><SelectItem value="feature">Mark Featured</SelectItem><SelectItem value="unfeature">Remove Featured</SelectItem><SelectItem value="top">Mark Top</SelectItem><SelectItem value="untop">Remove Top</SelectItem><SelectItem value="free">Enable Free Download</SelectItem><SelectItem value="paid">Disable Free Download</SelectItem><SelectItem value="category">Set Category</SelectItem></SelectContent></Select>
+                {bulkAction === "category" && <Select value={bulkCategory} onValueChange={setBulkCategory}><SelectTrigger className="sm:w-48"><SelectValue placeholder="Choose category" /></SelectTrigger><SelectContent><SelectItem value="none">No category</SelectItem>{categoryOptions.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}</SelectContent></Select>}
+                <Button onClick={applyBulkAction} disabled={bulkBusy || !selectedSongIds.size || !bulkAction} className="gradient-gold text-primary-foreground">{bulkBusy && <Loader2 className="h-4 w-4 animate-spin" />}Apply</Button>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Songs List */}
         {loading ? (
           <p className="text-muted-foreground text-sm">Loading...</p>
-        ) : songs.length === 0 ? (
-          <p className="text-muted-foreground text-center py-12">No songs yet. Add your first song above.</p>
+        ) : filteredSongs.length === 0 ? (
+          <p className="text-muted-foreground text-center py-12">No songs match this search or filter.</p>
         ) : (
           <div className="space-y-2">
-            {songs.map(song => (
+            {filteredSongs.map(song => (
               <div key={song.id} className="glass-card p-4 flex items-center gap-4">
+                {isAdmin && !isEditorOnly && <Checkbox checked={selectedSongIds.has(song.id)} onCheckedChange={(value) => toggleSongSelection(song.id, value === true)} aria-label={`Select ${song.title}`} />}
                 <div className="w-14 h-14 rounded-lg gradient-purple flex-shrink-0 overflow-hidden flex items-center justify-center relative group">
                   {song.cover_url ? (
                     <img src={song.cover_url} alt="" className="w-full h-full object-cover" />
