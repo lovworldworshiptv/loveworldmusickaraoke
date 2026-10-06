@@ -50,6 +50,13 @@
       "when": 1791273224647,
       "tag": "0006_playlist_card_color",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791287482348,
+      "tag": "0007_phase10_lyrics_languages_community",
+      "breakpoints": true
     }
   ]
 }
