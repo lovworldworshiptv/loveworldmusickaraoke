@@ -45,11 +45,11 @@ const BottomNav = memo(() => {
             variant="ghost"
             onClick={() => navigate(item.path)}
             className={cn(
-              "h-auto min-w-0 flex-1 flex-col gap-1 rounded-lg px-1 py-2 transition-all duration-200 touch-target active:scale-95 hover:bg-transparent",
-              "[&_svg]:!size-6",
+              "h-auto min-w-0 flex-1 flex-col gap-1 rounded-lg px-1 py-2 transition-all duration-300 ease-out touch-target active:scale-95 hover:bg-transparent hover:-translate-y-0.5",
+              "[&_svg]:!size-6 [&_svg]:transition-all [&_svg]:duration-300",
               location.pathname === item.path
-                ? "text-gold"
-                : "text-muted-foreground active:text-foreground"
+                ? "text-gold hover:[&_svg]:drop-shadow-[0_0_8px_hsl(43_70%_53%/0.6)]"
+                : "text-muted-foreground hover:text-foreground active:text-foreground"
             )}
           >
             <item.icon className="w-6 h-6" />
@@ -62,14 +62,14 @@ const BottomNav = memo(() => {
             <Button
               variant="ghost"
               className={cn(
-                "h-auto min-w-0 flex-1 flex-col gap-1 rounded-lg px-1 py-2 transition-all duration-200 touch-target active:scale-95 hover:bg-transparent",
-                createActive || createOpen ? "text-gold" : "text-muted-foreground active:text-foreground",
+                "h-auto min-w-0 flex-1 flex-col gap-1 rounded-lg px-1 py-2 transition-all duration-300 ease-out touch-target active:scale-95 hover:bg-transparent hover:-translate-y-0.5",
+                createActive || createOpen ? "text-gold" : "text-muted-foreground hover:text-foreground active:text-foreground",
               )}
               aria-label="Open Create menu"
               aria-expanded={createOpen}
             >
               <span className={cn(
-                "flex h-6 w-6 items-center justify-center rounded-full bg-gold text-primary-foreground shadow-gold transition-transform duration-300",
+                "flex h-6 w-6 items-center justify-center rounded-full bg-gold text-primary-foreground shadow-gold transition-all duration-300 ease-out hover:scale-110 hover:shadow-[0_0_16px_hsl(43_70%_53%/0.55)]",
                 createOpen && "rotate-45",
               )}>
                 <Plus className="!h-4 !w-4" />
