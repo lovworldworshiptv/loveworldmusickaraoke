@@ -76,10 +76,10 @@ const StageMode = () => {
       <div className="h-[100dvh] bg-black flex flex-col items-center justify-center gap-4 text-white px-6 text-center">
         <Music className="w-12 h-12 text-amber-400" />
         <p className="text-lg font-serif">Nothing is playing</p>
-        <p className="text-sm text-white/60">Start a song, then open Stage Mode for the big-screen lyrics view.</p>
+        <p className="text-sm text-white">Start a song, then open Stage Mode for the big-screen lyrics view.</p>
         <button
           onClick={() => navigate(-1)}
-          className="mt-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-600 text-slate-950 font-semibold text-sm"
+          className="mt-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-600 text-foreground font-semibold text-sm"
         >
           Go back
         </button>
@@ -108,7 +108,7 @@ const StageMode = () => {
         </button>
         <div className="text-center min-w-0 px-3">
           <p className="text-sm font-serif font-bold truncate">{currentSong.title}</p>
-          <p className="text-[11px] text-white/60 truncate">{currentSong.artist}</p>
+          <p className="text-[11px] text-white truncate">{currentSong.artist}</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -146,8 +146,8 @@ const StageMode = () => {
                   i === activeLrcIndex
                     ? "text-amber-400 scale-105 drop-shadow-[0_0_25px_rgba(251,191,36,0.4)]"
                     : i < activeLrcIndex
-                      ? "text-white/30"
-                      : "text-white/60"
+                      ? "text-white"
+                      : "text-white"
                 }`}
               >
                 {line.text || "♪"}
@@ -157,13 +157,13 @@ const StageMode = () => {
         ) : staticLines.length > 0 ? (
           <div className="max-w-3xl mx-auto space-y-6 text-center">
             {staticLines.map((line, i) => (
-              <p key={i} className={`font-serif font-bold leading-snug text-white/85 ${FONT_STEPS[fontStep]}`}>
+              <p key={i} className={`font-serif font-bold leading-snug text-white ${FONT_STEPS[fontStep]}`}>
                 {line}
               </p>
             ))}
           </div>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center gap-3 text-white/50">
+          <div className="h-full flex flex-col items-center justify-center gap-3 text-white">
             <Music className="w-10 h-10" />
             <p className="text-sm">No lyrics available for this song</p>
           </div>
@@ -177,7 +177,7 @@ const StageMode = () => {
         }`}
       >
         <div className="flex items-center justify-center gap-8">
-          <button onClick={skipPrev} aria-label="Previous song" className="text-white/80 hover:text-white transition-colors">
+          <button onClick={skipPrev} aria-label="Previous song" className="text-white hover:text-white transition-colors">
             <SkipBack className="w-8 h-8" fill="currentColor" />
           </button>
           <button
@@ -186,12 +186,12 @@ const StageMode = () => {
             className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-[0_0_30px_rgba(251,191,36,0.5)]"
           >
             {isPlaying ? (
-              <Pause className="w-7 h-7 text-slate-950" fill="currentColor" />
+              <Pause className="w-7 h-7 text-foreground" fill="currentColor" />
             ) : (
-              <Play className="w-7 h-7 text-slate-950 ml-1" fill="currentColor" />
+              <Play className="w-7 h-7 text-foreground ml-1" fill="currentColor" />
             )}
           </button>
-          <button onClick={skipNext} aria-label="Next song" className="text-white/80 hover:text-white transition-colors">
+          <button onClick={skipNext} aria-label="Next song" className="text-white hover:text-white transition-colors">
             <SkipForward className="w-8 h-8" fill="currentColor" />
           </button>
         </div>

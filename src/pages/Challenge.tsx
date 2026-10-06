@@ -168,7 +168,7 @@ const Challenge = () => {
                 const prizeRanks = new Set(Object.keys(dist).filter(k => Number(dist[k]) > 0).map(k => Number(k)));
                 const medalFor = (rank: number) => {
                   if (rank === 1) return <Medal className="w-5 h-5 text-amber-400" />;
-                  if (rank === 2) return <Medal className="w-5 h-5 text-slate-300" />;
+                  if (rank === 2) return <Medal className="w-5 h-5 text-foreground" />;
                   if (rank === 3) return <Medal className="w-5 h-5 text-orange-500" />;
                   if (prizeRanks.has(rank)) return <Award className="w-5 h-5 text-primary" />;
                   return null;

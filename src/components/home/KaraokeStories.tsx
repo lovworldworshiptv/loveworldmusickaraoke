@@ -212,13 +212,13 @@ const KaraokeStories = () => {
         <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center">
           {/* Previous arrow */}
           {activeIndex !== null && activeIndex > 0 && (
-            <button onClick={goPrev} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 text-white/60 hover:text-white p-2">
+            <button onClick={goPrev} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 text-white hover:text-white p-2">
               <ChevronLeft className="w-8 h-8" />
             </button>
           )}
           {/* Next arrow */}
           {activeIndex !== null && activeIndex + 1 < stories.length && (
-            <button onClick={goNext} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 text-white/60 hover:text-white p-2">
+            <button onClick={goNext} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 text-white hover:text-white p-2">
               <ChevronRight className="w-8 h-8" />
             </button>
           )}
@@ -231,7 +231,7 @@ const KaraokeStories = () => {
                   <div key={i} className={`h-0.5 flex-1 rounded-full transition-colors ${i === activeIndex ? "bg-primary" : i < (activeIndex ?? 0) ? "bg-white/50" : "bg-white/20"}`} />
                 ))}
               </div>
-              <button onClick={closeStory} className="text-white/80 hover:text-white">
+              <button onClick={closeStory} className="text-white hover:text-white">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -269,11 +269,11 @@ const KaraokeStories = () => {
               <div className="text-center">
                 <p className="text-white text-sm font-medium">{activeStory.song_title}</p>
                 {activeStory.caption && (
-                  <p className="text-white/60 text-xs mt-1 italic">"{activeStory.caption}"</p>
+                  <p className="text-white text-xs mt-1 italic">"{activeStory.caption}"</p>
                 )}
                 <div className="flex items-center justify-center gap-3 mt-1">
-                  <p className="text-white/40 text-[10px]">{(activeIndex ?? 0) + 1} / {stories.length}</p>
-                  <div className="flex items-center gap-1 text-white/50">
+                  <p className="text-white text-[10px]">{(activeIndex ?? 0) + 1} / {stories.length}</p>
+                  <div className="flex items-center gap-1 text-white">
                     <Eye className="w-3 h-3" />
                     <span className="text-[10px]">{viewCounts[activeStory.id] ?? 0}</span>
                   </div>
