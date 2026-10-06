@@ -1639,6 +1639,44 @@ export type Database = {
           },
         ]
       }
+      song_motion_artwork: {
+        Row: {
+          created_at: string
+          duration_seconds: number
+          id: string
+          is_active: boolean
+          song_id: string
+          updated_at: string
+          video_url: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds: number
+          id?: string
+          is_active?: boolean
+          song_id: string
+          updated_at?: string
+          video_url: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          is_active?: boolean
+          song_id?: string
+          updated_at?: string
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "song_motion_artwork_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: true
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       song_videos: {
         Row: {
           created_at: string

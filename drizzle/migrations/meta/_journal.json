@@ -15,6 +15,13 @@
       "when": 1791255684288,
       "tag": "0001_phase1_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791258766256,
+      "tag": "0002_add_song_motion_artwork",
+      "breakpoints": true
     }
   ]
 }
