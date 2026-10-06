@@ -185,7 +185,7 @@ const CategorySongs = () => {
                     <p className={`text-sm font-medium truncate transition-colors ${isActive ? "text-primary" : "text-foreground"}`}>
                       {song.title}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+                    <p className="text-xs text-foreground truncate">{song.artist}</p>
                   </div>
 
                   {/* Duration / equalizer */}

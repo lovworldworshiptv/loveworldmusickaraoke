@@ -72,7 +72,7 @@ const SongPicker = ({ settingKey, label }: { settingKey: string; label: string }
       </div>
       {results.filter((r) => !ids.includes(r.id)).map((r) => (
         <button key={r.id} onClick={() => { persist([...chosen, r]); setQ(""); }} className="block w-full text-left text-sm px-3 py-2 rounded-lg hover:bg-muted text-foreground">
-          + {r.title} <span className="text-muted-foreground">· {r.artist}</span>
+          + {r.title} <span className="text-foreground">· {r.artist}</span>
         </button>
       ))}
       <ol className="mt-2 space-y-1">

@@ -412,7 +412,7 @@ const Library = () => {
         )}
         <div className="flex-1 min-w-0 text-left">
           <p className="text-sm font-medium text-foreground truncate"><Highlight text={song.title} query={q} /></p>
-          <p className="text-xs text-muted-foreground truncate"><Highlight text={song.artist} query={q} /> • {formatDuration(song.duration_seconds)}</p>
+          <p className="text-xs text-foreground truncate"><Highlight text={song.artist} query={q} /> • {formatDuration(song.duration_seconds)}</p>
           {(() => {
             const snippet = q ? lyricsSnippet(song.lyrics_text || song.lyrics_lrc, q) : null;
             return snippet ? (
@@ -597,7 +597,7 @@ const Library = () => {
                         </div>
                       </div>
                       <p className="text-sm font-medium text-foreground truncate group-hover:text-gold transition-colors"><Highlight text={album.title} query={q} /></p>
-                      <p className="text-xs text-muted-foreground truncate"><Highlight text={album.artist} query={q} /></p>
+                      <p className="text-xs text-foreground truncate"><Highlight text={album.artist} query={q} /></p>
 
                     </button>
                   ))}
@@ -704,7 +704,7 @@ const Library = () => {
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate"><Highlight text={song.title} query={q} /></p>
-                        <p className="text-xs text-muted-foreground truncate"><Highlight text={song.artist} query={q} /></p>
+                        <p className="text-xs text-foreground truncate"><Highlight text={song.artist} query={q} /></p>
 
                       </div>
                       <span className="text-[10px] bg-green-500/20 text-green-600 px-1.5 py-0.5 rounded-full font-semibold">FREE</span>
@@ -738,7 +738,7 @@ const Library = () => {
                     <button onClick={() => playOfflineTrack(track)} className="flex-1 min-w-0 text-left">
                       <p className="text-sm font-medium text-foreground truncate"><Highlight text={track.title} query={q} /></p>
                       <div className="flex items-center gap-2">
-                        <p className="text-xs text-muted-foreground truncate"><Highlight text={track.artist} query={q} /> • {formatDuration(track.durationSeconds)}</p>
+                        <p className="text-xs text-foreground truncate"><Highlight text={track.artist} query={q} /> • {formatDuration(track.durationSeconds)}</p>
                         {track.isFreeDownload && <span className="text-[9px] bg-green-500/20 text-green-600 px-1 py-0.5 rounded font-semibold">FREE</span>}
                       </div>
                       {(() => {

@@ -319,7 +319,7 @@ const Articles = () => {
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">{song.title}</p>
-                          <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+                          <p className="text-xs text-foreground truncate">{song.artist}</p>
                         </div>
                         <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center flex-shrink-0 shadow-[0_2px_8px_hsl(43_70%_53%/0.4)]">
                           <Play className="w-3 h-3 text-white ml-0.5" fill="currentColor" />

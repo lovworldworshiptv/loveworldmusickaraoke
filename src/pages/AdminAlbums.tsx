@@ -136,7 +136,7 @@ const AdminAlbums = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{album.title}</p>
-                  <p className="text-xs text-muted-foreground truncate">{album.artist}</p>
+                  <p className="text-xs text-foreground truncate">{album.artist}</p>
                   <div className="flex gap-2 mt-1">
                     {album.is_top && <span className="text-[10px] bg-gold/20 text-gold px-1.5 py-0.5 rounded">Top Album</span>}
                   </div>

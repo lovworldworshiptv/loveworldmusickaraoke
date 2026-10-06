@@ -109,7 +109,7 @@ const Discover = () => {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm text-foreground truncate">{s.title}</p>
-                          <p className="text-xs text-muted-foreground truncate">
+                          <p className="text-xs text-foreground truncate">
                             {s.artist}
                             {lyricsMatch && <span className="ml-1 text-primary">• lyrics match</span>}
                           </p>

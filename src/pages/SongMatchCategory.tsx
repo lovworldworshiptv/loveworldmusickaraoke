@@ -267,9 +267,9 @@ const SongMatchCategory = () => {
           <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${((currentQ + 1) / questions.length) * 100}%` }} />
         </div>
         <div className="glass-card p-6 mb-6 text-center">
-          <p className="text-xs text-muted-foreground mb-3 font-medium">What category does this song belong to?</p>
+          <p className="text-xs text-foreground mb-3 font-medium">What category does this song belong to?</p>
           <p className="text-xl font-serif font-bold text-foreground mb-1">{q.songTitle}</p>
-          <p className="text-sm text-muted-foreground">{q.artist}</p>
+          <p className="text-sm text-foreground">{q.artist}</p>
         </div>
         <div className="space-y-3">
           {q.options.map((opt, i) => {

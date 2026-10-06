@@ -206,7 +206,7 @@ const PublicProfile = () => {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-foreground truncate">{currentSong?.title}</p>
-                <p className="text-xs text-muted-foreground truncate">{currentSong?.artist}</p>
+                <p className="text-xs text-foreground truncate">{currentSong?.artist}</p>
               </div>
               <span className="text-[10px] text-primary font-medium">♪ Live</span>
             </div>
@@ -228,7 +228,7 @@ const PublicProfile = () => {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground truncate">{track.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
+                    <p className="text-xs text-foreground truncate">{track.artist}</p>
                   </div>
                   <span className="text-[10px] text-muted-foreground">{timeAgo(track.played_at)}</span>
                 </div>

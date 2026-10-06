@@ -213,7 +213,7 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
                 <span className="w-5 text-xs text-muted-foreground text-right">{i + 1}</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm">{song.title}</p>
-                  <p className="truncate text-xs text-muted-foreground">{song.artist}</p>
+                  <p className="truncate text-xs text-foreground">{song.artist}</p>
                 </div>
                 <span className="text-xs text-muted-foreground tabular-nums">{formatTime(song.durationSeconds || 0)}</span>
               </div>
