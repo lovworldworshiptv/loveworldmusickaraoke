@@ -1,6 +1,6 @@
 import { useDominantColor as useSharedDominantColor, playerTone } from "@/lib/dominantColor";
 import { usePlayer, RepeatMode } from "@/contexts/PlayerContext";
-import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3, Square, Volume2, VolumeX, ListMusic, MoreVertical, Maximize2, Type, Image as ImageIcon, Film } from "lucide-react";
+import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3, Square, Volume2, VolumeX, ListMusic, MoreVertical, Maximize2, Type, Image as ImageIcon, Film, Presentation } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -598,6 +598,13 @@ const ExpandedPlayer = () => {
           >
             <Mic2 className={`w-5 h-5 ${isKaraoke ? "text-gold" : ""}`} />
             {isKaraoke ? "Switch to Full Song" : "Switch to Karaoke"}
+          </button>
+          <button
+            onClick={() => { setShowMobileMenu(false); navigate("/stage"); }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors text-foreground"
+          >
+            <Presentation className="w-5 h-5 text-gold" />
+            Open Stage Mode
           </button>
           {/* Queue */}
           <button
