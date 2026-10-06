@@ -44,6 +44,7 @@ import Playlists from "./pages/Playlists";
 import Feedback from "./pages/Feedback";
 import Albums from "./pages/Albums";
 import Videos from "./pages/Videos";
+import Studio from "./pages/Studio";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import CategorySongs from "./pages/CategorySongs";
@@ -98,6 +99,7 @@ const App = () => (
                 <Route path="/feedback" element={<AuthGate><Feedback /></AuthGate>} />
                 <Route path="/albums" element={<AuthGate><Albums /></AuthGate>} />
                 <Route path="/videos" element={<AuthGate><Videos /></AuthGate>} />
+                <Route path="/studio" element={<Studio />} />
                 <Route path="/category/:id" element={<AuthGate><CategorySongs /></AuthGate>} />
                 <Route path="/subscription" element={<AuthGate><Subscription /></AuthGate>} />
                 <Route path="/reminders" element={<AuthGate><Reminders /></AuthGate>} />
