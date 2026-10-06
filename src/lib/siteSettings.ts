@@ -7,10 +7,22 @@ export const SETTING_KEYS = {
   homeLayout: "home_layout",
   curatedVideos: "curated_video_songs",
   curatedKaraoke: "curated_karaoke_songs",
+  stageMode: "stage_mode_presentation",
 } as const;
 
 export type ThemeColors = { gold?: string; background?: string; accent?: string; foreground?: string };
 export type HomeSectionSetting = { id: string; visible: boolean };
+export type StageModeSetting = {
+  backgroundColor: string;
+  mediaType: "none" | "image" | "video";
+  mediaUrl: string;
+};
+
+export const DEFAULT_STAGE_MODE: StageModeSetting = {
+  backgroundColor: "#000000",
+  mediaType: "none",
+  mediaUrl: "",
+};
 
 export const HOME_SECTIONS: { id: string; label: string }[] = [
   { id: "moods", label: "Mood Capsules" },

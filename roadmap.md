@@ -12,3 +12,4 @@
 - [ ] Home UX polish: fuchsia-pink card for "Pastor Chris Live Unending Praise", bright gradient background for Daily Discover card
 
 - [x] Graceful hover effects: top icons, mood capsules, bottom nav (hover-only, no other changes)
+- [ ] Stage Mode CMS: colour/image/video backgrounds, audio toggle, manual scroll, and player-options shortcut
