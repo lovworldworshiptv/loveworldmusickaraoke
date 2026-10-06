@@ -36,23 +36,13 @@ const DailyDiscover = () => {
           boxShadow: dominant
             ? `0 8px 40px rgba(${dominant[0]}, ${dominant[1]}, ${dominant[2]}, 0.35)`
             : "0 8px 40px hsl(43 70% 53% / 0.15)",
-          backgroundColor: dominant
-            ? `rgba(${dominant[0]}, ${dominant[1]}, ${dominant[2]}, 0.25)`
-            : undefined,
+          background: "linear-gradient(120deg, hsl(43 100% 60%) 0%, hsl(320 95% 52%) 55%, hsl(265 90% 55%) 100%)",
         }}
       >
         {song.cover_url && (
-          <img src={song.cover_url} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover scale-125 blur-2xl opacity-50" />
+          <img src={song.cover_url} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover scale-125 blur-2xl opacity-30 mix-blend-luminosity" />
         )}
-        {dominant && (
-          <div
-            className="absolute inset-0 transition-opacity duration-700"
-            style={{
-              background: `linear-gradient(120deg, rgba(${dominant[0]}, ${dominant[1]}, ${dominant[2]}, 0.55), rgba(${dominant[0]}, ${dominant[1]}, ${dominant[2]}, 0.15))`,
-            }}
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-background/40" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/60 to-transparent" />
         <div className="relative flex items-center gap-4 p-4 md:p-6">
           <div className="w-24 h-24 md:w-32 md:h-32 rounded-xl overflow-hidden flex-shrink-0 ring-1 ring-gold/40">
             {song.cover_url ? <img src={song.cover_url} alt={song.title} className="w-full h-full object-cover" /> : <div className="w-full h-full gradient-purple" />}
