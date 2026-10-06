@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
 import { sortSongsByTitle, compareTitles } from "@/lib/utils";
+import { Video } from "lucide-react";
+import SongVideosManager from "@/components/admin/SongVideosManager";
 
 interface Song {
   id: string;
@@ -24,6 +26,7 @@ interface Song {
   is_top: boolean;
   is_free_download: boolean;
   category_id: string | null;
+  has_video?: boolean;
 }
 
 interface AlbumOption {
@@ -164,6 +167,8 @@ const AdminSongs = () => {
     }
   };
   const [loading, setLoading] = useState(true);
+  const [videoSong, setVideoSong] = useState<{ id: string; title: string } | null>(null);
+  const fetchSongsRef = useRef<(() => void) | null>(null);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
   const [editMode, setEditMode] = useState<"lrc" | "sync" | "details">("lrc");
   const [lrcText, setLrcText] = useState("");
@@ -227,6 +232,7 @@ const AdminSongs = () => {
     if (data) setSongs(sortSongsByTitle(data));
     setLoading(false);
   };
+  fetchSongsRef.current = fetchSongs;
 
   const handleSaveLyrics = async () => {
     if (!editingSong) return;
@@ -862,6 +868,13 @@ const AdminSongs = () => {
                       <CheckCircle className="w-3 h-3 text-green-500 absolute -top-0.5 -right-0.5" />
                     )}
                   </button>
+                  {!isEditorOnly && (
+                    <button onClick={() => setVideoSong({ id: song.id, title: song.title })}
+                      className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors relative" title="Manage Videos">
+                      <Video className="w-4 h-4" />
+                      {song.has_video && <CheckCircle className="w-3 h-3 text-green-500 absolute -top-0.5 -right-0.5" />}
+                    </button>
+                  )}
                   <button onClick={() => handleDelete(song.id)}
                     className={`p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors ${isEditorOnly ? "opacity-30 pointer-events-none" : ""}`} title="Delete"
                     disabled={isEditorOnly}>
@@ -874,6 +887,11 @@ const AdminSongs = () => {
         )}
       </div>
       <div className="h-8" />
+      <SongVideosManager
+        songId={videoSong?.id ?? null}
+        songTitle={videoSong?.title}
+        onClose={() => { setVideoSong(null); fetchSongsRef.current?.(); }}
+      />
     </AppLayout>
   );
 };
