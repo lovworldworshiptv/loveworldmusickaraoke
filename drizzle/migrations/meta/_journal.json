@@ -29,6 +29,13 @@
       "when": 1791259883139,
       "tag": "0003_phase4_stem_automation",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791261709775,
+      "tag": "0004_admin_notifications",
+      "breakpoints": true
     }
   ]
 }
