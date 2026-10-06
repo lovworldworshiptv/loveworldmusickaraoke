@@ -18,6 +18,11 @@ import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import { ListPlus, Share2 } from "lucide-react";
 import ShareTrackButton from "@/components/share/ShareTrackButton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Video } from "lucide-react";
+import VideoMode, { SongVideo } from "@/components/player/VideoMode";
+import LyricsLanguageSheet from "@/components/player/LyricsLanguageSheet";
+
+type PlayerMode = "song" | "karaoke" | "video";
 
 const formatTime = (s: number) => {
   const m = Math.floor(s / 60);
@@ -69,6 +74,46 @@ const ExpandedPlayer = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
   const isMobile = useIsMobile();
+  const { handoffPause, resumeAt } = usePlayer();
+
+  // --- 3-mode player (Song | Karaoke | Video) with seamless position transfer ---
+  const [videos, setVideos] = useState<SongVideo[]>([]);
+  const [videoMode, setVideoMode] = useState(false);
+  const [videoStart, setVideoStart] = useState(0);
+  const videoPosRef = useRef<() => number>(() => 0);
+  const mode: PlayerMode = videoMode ? "video" : isKaraoke ? "karaoke" : "song";
+
+  useEffect(() => {
+    setVideoMode(false);
+    setVideos([]);
+    if (!currentSong) return;
+    supabase.from("song_videos").select("id, video_url, video_type, language_code, offset_ms, thumbnail_url")
+      .eq("song_id", currentSong.id).eq("is_active", true)
+      .then(({ data }) => {
+        const list = (data as SongVideo[]) || [];
+        const order = ["official", "lyric", "live", "karaoke"];
+        list.sort((a, b) => order.indexOf(a.video_type) - order.indexOf(b.video_type));
+        setVideos(list);
+      });
+  }, [currentSong?.id]);
+
+  const switchMode = useCallback((next: PlayerMode) => {
+    if (next === mode) return;
+    if (next === "video") {
+      setVideoStart(handoffPause());
+      setVideoMode(true);
+      return;
+    }
+    if (videoMode) {
+      const pos = videoPosRef.current();
+      setVideoMode(false);
+      if ((next === "karaoke") !== isKaraoke) toggleKaraoke();
+      // allow a karaoke source swap to load before seeking
+      setTimeout(() => resumeAt(pos), (next === "karaoke") !== isKaraoke ? 400 : 0);
+      return;
+    }
+    toggleKaraoke();
+  }, [mode, videoMode, isKaraoke, toggleKaraoke, handoffPause, resumeAt]);
 
   useEffect(() => {
     supabase.from("app_settings" as any).select("value").eq("key", "karaoke_record_enabled").single()
@@ -273,22 +318,28 @@ const ExpandedPlayer = () => {
         </div>
 
 
-        {/* Karaoke + Record Toggle Row (always visible) */}
-        <div className="flex justify-center gap-1.5 mb-3 px-6 flex-shrink-0 flex-wrap">
-          <button
-            onClick={() => { if (isKaraoke) toggleKaraoke(); }}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
-              !isKaraoke ? "gradient-gold text-primary-foreground shadow-lg" : "bg-secondary/60 text-muted-foreground hover:text-foreground"
-            }`}>
-            <Music className="w-3.5 h-3.5" /> Full Song
-          </button>
-          <button
-            onClick={() => { if (!isKaraoke) toggleKaraoke(); }}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
-              isKaraoke ? "gradient-gold text-primary-foreground shadow-lg" : "bg-secondary/60 text-muted-foreground hover:text-foreground"
-            }`}>
-            <Mic2 className="w-3.5 h-3.5" /> Karaoke
-          </button>
+        {/* 3-mode segmented pill: Song | Karaoke | Video */}
+        <div className="flex justify-center items-center gap-1.5 mb-3 px-6 flex-shrink-0 flex-wrap">
+          <div className="flex items-center p-1 rounded-full bg-secondary/60 glass-card" role="tablist" aria-label="Player mode">
+            {([
+              { id: "song", label: "Song", Icon: Music },
+              { id: "karaoke", label: "Karaoke", Icon: Mic2 },
+              ...(videos.length ? [{ id: "video", label: "Video", Icon: Video }] : []),
+            ] as const).map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                role="tab"
+                aria-selected={mode === id}
+                onClick={() => switchMode(id as PlayerMode)}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 ${
+                  mode === id ? "gradient-gold text-primary-foreground shadow-lg" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" /> {label}
+              </button>
+            ))}
+          </div>
+          {mode !== "video" && <LyricsLanguageSheet />}
           {recordFeatureEnabled && (isPremium ? (
             <button
               onClick={() => { if (!isKaraoke) toggleKaraoke(); setShowRecorder(true); setShowLyrics(true); }}
@@ -327,8 +378,10 @@ const ExpandedPlayer = () => {
           </div>
         )}
 
-        {/* Main view: artwork or synced lyrics */}
-        {!showLyrics ? (
+        {/* Main view: video, artwork or synced lyrics */}
+        {mode === "video" && videos[0] ? (
+          <VideoMode video={videos[0]} startAt={videoStart} positionRef={videoPosRef} />
+        ) : !showLyrics ? (
           <div className="flex-1 flex flex-col items-center justify-center px-8 min-h-0">
             <button onClick={() => setShowLyrics(true)} className="w-full max-w-[280px] aspect-square">
               <div className="w-full h-full rounded-3xl gradient-purple flex items-center justify-center glow-gold shadow-2xl overflow-hidden">
