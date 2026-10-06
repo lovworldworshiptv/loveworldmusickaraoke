@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useDominantColor, playerTone } from "@/lib/dominantColor";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer } from "@/contexts/PlayerContext";
@@ -16,6 +17,14 @@ const Collection = () => {
   const [cover, setCover] = useState<string | null>(null);
   const [songs, setSongs] = useState<SongRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [params] = useSearchParams();
+  const theme = params.get("theme");
+  const tone = playerTone(useDominantColor(cover), 100);
+  const bg = theme === "purple"
+    ? "linear-gradient(180deg, hsl(272 60% 30%) 0%, hsl(266 50% 18%) 45%, hsl(262 55% 9%) 75%, hsl(var(--background)) 100%)"
+    : theme === "brown"
+    ? "linear-gradient(180deg, hsl(32 65% 38%) 0%, hsl(28 55% 24%) 45%, hsl(25 50% 10%) 75%, hsl(var(--background)) 100%)"
+    : `linear-gradient(180deg, ${tone || "hsl(220 80% 18%)"} 0%, hsl(var(--background)) 80%)`;
 
   useEffect(() => {
     if (!id) return;
@@ -34,16 +43,15 @@ const Collection = () => {
 
   return (
     <AppLayout>
+      <div className="min-h-full transition-[background] duration-700" style={{ background: bg }}>
       <div className="px-4 lg:px-6 pt-4">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"><ArrowLeft className="w-4 h-4" /> Back</button>
-        <div className="flex items-end gap-4 mb-6">
-          <div className="w-32 h-32 rounded-2xl overflow-hidden bg-muted shadow-xl flex-shrink-0">
-            {cover ? <img src={cover} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full gradient-purple flex items-center justify-center"><ListMusic className="w-10 h-10 text-gold/60" /></div>}
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-gold/80">Recommended</p>
-            <h1 className="text-2xl font-serif font-bold text-foreground">{name}</h1>
-            <p className="text-xs text-muted-foreground">{songs.length} songs</p>
+        <div className="relative w-full max-w-md mx-auto aspect-square rounded-3xl overflow-hidden shadow-2xl mb-5">
+          {cover ? <img src={cover} alt={name} className="w-full h-full object-cover" /> : <div className="w-full h-full gradient-purple flex items-center justify-center"><ListMusic className="w-16 h-16 text-gold/60" /></div>}
+          <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-background/90 via-background/50 to-transparent">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-gold">Playlist</p>
+            <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground">{name}</h1>
+            <p className="text-xs text-white/90">{songs.length} songs</p>
           </div>
         </div>
         {songs.length > 0 && (
@@ -61,7 +69,7 @@ const Collection = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className={`text-sm truncate ${currentSong?.id === s.id ? "text-gold" : "text-foreground"}`}>{s.title}</p>
-                  <p className="text-xs text-muted-foreground truncate">{s.artist}</p>
+                  <p className="text-xs text-white/75 truncate">{s.artist}</p>
                 </div>
               </button>
             ))}
@@ -69,6 +77,7 @@ const Collection = () => {
         )}
       </div>
       <div className="h-8" />
+      </div>
     </AppLayout>
   );
 };

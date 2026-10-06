@@ -92,9 +92,9 @@ const GlobalPlaylistsSection = () => {
               key={playlist.id}
               role="button"
               tabIndex={0}
-              onClick={() => navigate(`/collection/${playlist.id}`)}
+              onClick={() => navigate(`/collection/${playlist.id}?theme=purple`)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") navigate(`/collection/${playlist.id}`);
+                if (e.key === "Enter" || e.key === " ") navigate(`/collection/${playlist.id}?theme=purple`);
               }}
               className="snap-start flex-shrink-0 w-full md:w-[calc(50%_-_0.375rem)] lg:w-[29.6%] h-[166px] md:h-36 rounded-2xl p-3 text-left cursor-pointer border-0 shadow-[0_4px_20px_hsl(265_60%_18%/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
               style={{ background: "linear-gradient(135deg, hsl(262 55% 9%) 0%, hsl(266 50% 18%) 55%, hsl(272 60% 30%) 100%)" }}
