@@ -120,7 +120,7 @@ const Community = () => {
   const searchSongs = async (q: string) => {
     setSongQuery(q);
     if (q.trim().length < 2) { setSongResults([]); return; }
-    const { data } = await supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url")
+    const { data } = await (supabase.from("songs") as any).select("id, title, artist, cover_url, audio_url, instrumental_url")
       .ilike("title", `%${q}%`).eq("has_audio", true).limit(6);
     setSongResults((data || []) as any);
   };
