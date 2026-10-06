@@ -10,6 +10,8 @@ export const SETTING_KEYS = {
   curatedKaraoke: "curated_karaoke_songs",
   stageMode: "stage_mode_presentation",
   globalCardColor: "global_playlist_card_color",
+  dailyDiscoverConfig: "daily_discover_config",
+  dailyDiscoverSongs: "daily_discover_songs",
 } as const;
 
 export type ThemeColors = { gold?: string; background?: string; accent?: string; foreground?: string; dailyDiscover?: string };
@@ -144,3 +146,7 @@ export function useGlobalCardColor() {
   const v = useSetting<string>(SETTING_KEYS.globalCardColor);
   return (typeof v === "string" && hexToHsl(v)) ? v : DEFAULT_GLOBAL_CARD;
 }
+
+/** Admin-editable Daily Discover card + collection page. */
+export type DailyDiscoverConfig = { title?: string; subtitle?: string; cardColor?: string; coverUrl?: string };
+export const DEFAULT_DAILY_DISCOVER_COLOR = "#39ff14";

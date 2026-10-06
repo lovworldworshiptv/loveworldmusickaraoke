@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   applyTheme, cardGradient, DEFAULT_GLOBAL_CARD, DEFAULT_STAGE_MODE, getSetting, HOME_SECTIONS, resolveHomeLayout, resolveStageMediaUrl, saveSetting, SETTING_KEYS,
-  type HomeSectionSetting, type StageModeSetting, type ThemeColors,
+  DEFAULT_DAILY_DISCOVER_COLOR, type DailyDiscoverConfig, type HomeSectionSetting, type StageModeSetting, type ThemeColors,
 } from "@/lib/siteSettings";
 
 const THEME_FIELDS: { key: keyof ThemeColors; label: string; def: string }[] = [
@@ -86,6 +86,30 @@ const SongPicker = ({ settingKey, label }: { settingKey: string; label: string }
           </li>
         ))}
       </ol>
+    </div>
+  );
+};
+
+const DailyDiscoverEditor = () => {
+  const [cfg, setCfg] = useState<DailyDiscoverConfig>({});
+  useEffect(() => { getSetting<DailyDiscoverConfig>(SETTING_KEYS.dailyDiscoverConfig).then((v) => setCfg(v || {})); }, []);
+  const save = async () => {
+    const { error } = await saveSetting(SETTING_KEYS.dailyDiscoverConfig, cfg);
+    error ? toast.error("Could not save") : toast.success("Daily Discover saved");
+  };
+  const color = cfg.cardColor || DEFAULT_DAILY_DISCOVER_COLOR;
+  return (
+    <div className="space-y-3">
+      <Input value={cfg.title || ""} onChange={(e) => setCfg({ ...cfg, title: e.target.value })} placeholder="Title (default: Daily Discover)" />
+      <Input value={cfg.subtitle || ""} onChange={(e) => setCfg({ ...cfg, subtitle: e.target.value })} placeholder="Subtitle / description" />
+      <Input value={cfg.coverUrl || ""} onChange={(e) => setCfg({ ...cfg, coverUrl: e.target.value })} placeholder="Cover image link (optional — defaults to first song)" />
+      <div className="flex items-center gap-3">
+        <input type="color" value={color} onChange={(e) => setCfg({ ...cfg, cardColor: e.target.value })} className="w-10 h-10 rounded-lg bg-transparent border-0" aria-label="Daily Discover colour" />
+        <div className="flex-1 h-12 rounded-xl" style={{ background: cardGradient(color) }} />
+        <Button variant="outline" size="sm" onClick={() => setCfg({ ...cfg, cardColor: undefined })}>Reset</Button>
+        <Button size="sm" onClick={save}>Save</Button>
+      </div>
+      <SongPicker settingKey={SETTING_KEYS.dailyDiscoverSongs} label="Daily Discover songs" />
     </div>
   );
 };
@@ -381,6 +405,10 @@ const AdminAppearance = () => {
               </li>
             ))}
           </ul>
+        </Card>
+
+        <Card title="Daily Discover">
+          <DailyDiscoverEditor />
         </Card>
 
         <Card title="Curated songs">
