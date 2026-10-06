@@ -100,10 +100,12 @@ Deno.serve(async (req) => {
     const slots = Math.max(0, MAX_CONCURRENT - (active ?? 0));
     if (slots > 0) {
       const { data: pending } = await admin.from("song_audio_versions")
-        .select("id, song_id, attempts").eq("kind", "instrumental").eq("status", "pending")
+        .select("id, song_id, attempts, songs(title)")
+        .eq("kind", "instrumental").eq("status", "pending")
         .lt("attempts", MAX_ATTEMPTS).order("created_at").limit(slots);
 
       for (const row of pending ?? []) {
+        const songTitle = (row.songs as { title?: string } | null)?.title;
         const { data: song } = await admin.from("songs").select("audio_url, instrumental_url").eq("id", row.song_id).maybeSingle();
         if (!song?.audio_url) { await admin.from("song_audio_versions").update({ status: "failed", error: "Song has no audio" }).eq("id", row.id); continue; }
         if (song.instrumental_url && row.attempts === 0) {
@@ -119,10 +121,11 @@ Deno.serve(async (req) => {
         if (res.status === 402) { await pause("Replicate account has no credit. Add billing at replicate.com/account/billing, then press Resume."); break; }
         if (res.status === 403) { await pause(`Replicate denied the request: ${(await res.text()).slice(0, 200)}`); break; }
         if (res.status === 429) break;
-        if (!res.ok) { await failRow(row, `Start failed [${res.status}]`); continue; }
+        if (!res.ok) { await failRow({ ...row, songTitle }, `Start failed [${res.status}]`); continue; }
         const pred = await res.json();
         await admin.from("song_audio_versions").update({ status: "processing", prediction_id: pred.id, started_at: new Date().toISOString(), error: null }).eq("id", row.id);
         report.started++;
+        await notify("stem_started", `Stem split started: ${songTitle ?? "a song"}`, "Separating vocals from the instrumental — usually takes a few minutes.", { song_id: row.song_id });
       }
     }
   } finally {
