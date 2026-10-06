@@ -8,8 +8,9 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  applyTheme, cardGradient, DEFAULT_GLOBAL_CARD, DEFAULT_STAGE_MODE, getSetting, HOME_SECTIONS, resolveHomeLayout, saveSetting, SETTING_KEYS,
+  applyTheme, cardGradient, DEFAULT_GLOBAL_CARD, DEFAULT_STAGE_MODE, getSetting, HOME_SECTIONS, resolveHomeLayout, resolveStageMediaUrl, saveSetting, SETTING_KEYS,
   type HomeSectionSetting, type StageModeSetting, type ThemeColors,
 } from "@/lib/siteSettings";
 
@@ -95,6 +96,9 @@ const AdminAppearance = () => {
   const [layout, setLayout] = useState<HomeSectionSetting[]>(resolveHomeLayout(null));
   const [playlists, setPlaylists] = useState<Pl[]>([]);
   const [stage, setStage] = useState<StageModeSetting>(DEFAULT_STAGE_MODE);
+  const [stageEditor, setStageEditor] = useState<StageModeSetting>(DEFAULT_STAGE_MODE);
+  const [stageSongId, setStageSongId] = useState("global");
+  const [stageSongs, setStageSongs] = useState<SongLite[]>([]);
   const [stageUploading, setStageUploading] = useState(false);
 
   useEffect(() => { if (!loading && !isAdmin) navigate("/"); }, [isAdmin, loading, navigate]);
@@ -102,9 +106,15 @@ const AdminAppearance = () => {
   useEffect(() => {
     getSetting<ThemeColors>(SETTING_KEYS.theme).then((t) => setTheme(t || {}));
     getSetting<HomeSectionSetting[]>(SETTING_KEYS.homeLayout).then((l) => setLayout(resolveHomeLayout(l)));
-    getSetting<StageModeSetting>(SETTING_KEYS.stageMode).then((s) => setStage({ ...DEFAULT_STAGE_MODE, ...(s || {}) }));
+    getSetting<StageModeSetting>(SETTING_KEYS.stageMode).then((s) => {
+      const next = { ...DEFAULT_STAGE_MODE, ...(s || {}) };
+      setStage(next);
+      setStageEditor(next);
+    });
     supabase.from("playlists").select("id,name,card_color").eq("is_visible_on_homepage", true).order("created_at", { ascending: false })
       .then(({ data }) => setPlaylists((data as Pl[]) || []));
+    supabase.from("songs").select("id,title,artist").order("title").limit(500)
+      .then(({ data }) => setStageSongs((data as SongLite[]) || []));
   }, []);
 
   const saveTheme = async (t: ThemeColors) => {
@@ -130,10 +140,41 @@ const AdminAppearance = () => {
     error ? toast.error("Could not save") : toast.success("Card colour saved");
   };
 
-  const saveStage = async (next = stage) => {
+  const chooseStageTarget = (songId: string) => {
+    setStageSongId(songId);
+    setStageEditor(songId === "global"
+      ? { ...DEFAULT_STAGE_MODE, ...stage }
+      : { ...DEFAULT_STAGE_MODE, ...(stage.songOverrides?.[songId] || stage) });
+  };
+
+  const saveStage = async (presentation = stageEditor) => {
+    const clean = {
+      backgroundColor: presentation.backgroundColor,
+      mediaType: presentation.mediaType,
+      mediaUrl: presentation.mediaUrl,
+    };
+    const next = stageSongId === "global"
+      ? { ...stage, ...clean }
+      : { ...stage, songOverrides: { ...(stage.songOverrides || {}), [stageSongId]: clean } };
     setStage(next);
+    setStageEditor({ ...DEFAULT_STAGE_MODE, ...clean });
     const { error } = await saveSetting(SETTING_KEYS.stageMode, next);
     error ? toast.error("Could not save Stage Mode") : toast.success("Stage Mode saved");
+  };
+
+  const resetStageTarget = async () => {
+    if (stageSongId === "global") {
+      setStageEditor(DEFAULT_STAGE_MODE);
+      await saveStage(DEFAULT_STAGE_MODE);
+      return;
+    }
+    const overrides = { ...(stage.songOverrides || {}) };
+    delete overrides[stageSongId];
+    const next = { ...stage, songOverrides: overrides };
+    setStage(next);
+    setStageEditor({ ...DEFAULT_STAGE_MODE, ...stage });
+    const { error } = await saveSetting(SETTING_KEYS.stageMode, next);
+    error ? toast.error("Could not reset song background") : toast.success("Song now uses the global background");
   };
 
   const uploadStageMedia = async (file?: File) => {
@@ -151,7 +192,7 @@ const AdminAppearance = () => {
       return;
     }
     const publicUrl = supabase.storage.from("song-covers").getPublicUrl(path).data.publicUrl;
-    await saveStage({ ...stage, mediaType: isVideo ? "video" : "image", mediaUrl: publicUrl });
+    await saveStage({ ...stageEditor, mediaType: isVideo ? "video" : "image", mediaUrl: publicUrl });
     setStageUploading(false);
   };
 
@@ -193,10 +234,17 @@ const AdminAppearance = () => {
 
         <Card title="Stage Mode background">
           <p className="text-xs text-foreground mb-4">Choose a colour, image, or looping video behind the lyrics. A dark layer keeps lyrics readable.</p>
+          <Select value={stageSongId} onValueChange={chooseStageTarget}>
+            <SelectTrigger className="mb-4"><SelectValue placeholder="Choose global or a song" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="global">All songs (global background)</SelectItem>
+              {stageSongs.map((song) => <SelectItem key={song.id} value={song.id}>{song.title} · {song.artist}</SelectItem>)}
+            </SelectContent>
+          </Select>
           <div className="grid sm:grid-cols-[1fr_1.5fr] gap-4">
             <div className="space-y-3">
               <label className="flex items-center gap-3 text-sm text-foreground">
-                <input type="color" value={stage.backgroundColor} onChange={(e) => setStage({ ...stage, backgroundColor: e.target.value })} className="w-10 h-10 rounded-lg bg-transparent border-0" />
+                <input type="color" value={stageEditor.backgroundColor} onChange={(e) => setStageEditor({ ...stageEditor, backgroundColor: e.target.value })} className="w-10 h-10 rounded-lg bg-transparent border-0" />
                 Background colour
               </label>
               <div className="grid grid-cols-3 gap-2" role="group" aria-label="Stage background type">
@@ -205,13 +253,13 @@ const AdminAppearance = () => {
                   { id: "image", label: "Image", Icon: Image },
                   { id: "video", label: "Video", Icon: Video },
                 ] as const).map(({ id, label, Icon }) => (
-                  <Button key={id} type="button" size="sm" variant={stage.mediaType === id ? "default" : "outline"} onClick={() => setStage({ ...stage, mediaType: id })} className="gap-1 px-2">
+                  <Button key={id} type="button" size="sm" variant={stageEditor.mediaType === id ? "default" : "outline"} onClick={() => setStageEditor({ ...stageEditor, mediaType: id })} className="gap-1 px-2">
                     <Icon className="w-3.5 h-3.5" /> {label}
                   </Button>
                 ))}
               </div>
-              {stage.mediaType !== "none" && (
-                <Input value={stage.mediaUrl} onChange={(e) => setStage({ ...stage, mediaUrl: e.target.value })} placeholder={`Paste ${stage.mediaType} link`} type="url" />
+              {stageEditor.mediaType !== "none" && (
+                <Input value={stageEditor.mediaUrl} onChange={(e) => setStageEditor({ ...stageEditor, mediaUrl: e.target.value })} placeholder={`Paste ${stageEditor.mediaType} link`} type="url" />
               )}
               <label className="flex items-center justify-center gap-2 h-10 rounded-md border border-input bg-background text-sm text-foreground cursor-pointer hover:bg-muted">
                 {stageUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
@@ -220,12 +268,12 @@ const AdminAppearance = () => {
               </label>
               <div className="flex gap-2">
                 <Button onClick={() => saveStage()}>Save Stage Mode</Button>
-                <Button variant="outline" onClick={() => saveStage(DEFAULT_STAGE_MODE)}>Reset</Button>
+                <Button variant="outline" onClick={resetStageTarget}>{stageSongId === "global" ? "Reset" : "Use global"}</Button>
               </div>
             </div>
-            <div className="relative aspect-video overflow-hidden rounded-xl border border-border" style={{ backgroundColor: stage.backgroundColor }}>
-              {stage.mediaType === "image" && stage.mediaUrl && <img src={stage.mediaUrl} alt="Stage background preview" className="absolute inset-0 w-full h-full object-cover" />}
-              {stage.mediaType === "video" && stage.mediaUrl && <video src={stage.mediaUrl} muted loop autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />}
+            <div className="relative aspect-video overflow-hidden rounded-xl border border-border" style={{ backgroundColor: stageEditor.backgroundColor }}>
+              {stageEditor.mediaType === "image" && stageEditor.mediaUrl && <img src={resolveStageMediaUrl(stageEditor.mediaUrl)} alt="Stage background preview" className="absolute inset-0 w-full h-full object-cover" />}
+              {stageEditor.mediaType === "video" && stageEditor.mediaUrl && <video src={resolveStageMediaUrl(stageEditor.mediaUrl)} muted loop autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />}
               <div className="absolute inset-0 bg-background/55" />
               <p className="absolute inset-0 flex items-center justify-center px-5 text-center font-serif font-bold text-foreground">Your lyrics will appear here</p>
             </div>
