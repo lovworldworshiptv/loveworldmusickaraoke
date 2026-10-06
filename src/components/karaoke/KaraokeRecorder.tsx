@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Mic2, Square, Play, Pause, Trash2, RotateCcw, Share2, X, Copy, ExternalLink, Volume2, Headphones, Minimize2, Maximize2 } from "lucide-react";
+import { saveStudioRecording } from "@/lib/studioStore";
+import { Mic2, Square, Play, Pause, Trash2, RotateCcw, Share2, X, Copy, ExternalLink, Volume2, Headphones, Minimize2, Maximize2, HardDrive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -391,6 +392,7 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
     cancelAnimationFrame(playbackRafRef.current);
     if (recordedUrl) URL.revokeObjectURL(recordedUrl);
     setRecordedBlob(null);
+    setSavedToStudio(false);
     setRecordedUrl(null);
     setRecorded(false);
     setPlaying(false);
@@ -426,6 +428,18 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
     } finally {
       setUploading(false);
       setSharingTo(null);
+    }
+  };
+
+  const [savedToStudio, setSavedToStudio] = useState(false);
+  const saveToStudio = async () => {
+    if (!recordedBlob) return;
+    try {
+      await saveStudioRecording(recordedBlob, { songId, songTitle, caption: caption.trim() || undefined, durationSeconds: recordDuration });
+      setSavedToStudio(true);
+      toast.success("Saved to My Studio");
+    } catch {
+      toast.error("Couldn't save to this device");
     }
   };
 
@@ -648,6 +662,9 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
           <h3 className="text-lg font-bold text-foreground mb-1">Share Recording</h3>
           <p className="text-xs text-muted-foreground mb-4">Listen to my karaoke version of {songTitle} on Loveworld Music Karaoke.</p>
           <div className="space-y-2">
+            <Button onClick={saveToStudio} disabled={savedToStudio} variant="outline" className="w-full justify-start rounded-xl">
+              <HardDrive className="w-4 h-4 mr-2" /> {savedToStudio ? "Saved to My Studio" : "Save to my Studio (this device)"}
+            </Button>
             <Button onClick={() => shareRecording("my_karaoke")} disabled={uploading} variant="outline" className="w-full justify-start rounded-xl">
               <Mic2 className="w-4 h-4 mr-2" /> {sharingTo === "my_karaoke" ? "Sharing…" : "My Karaoke"}
             </Button>
