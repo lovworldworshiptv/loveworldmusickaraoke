@@ -56,7 +56,11 @@ interface PlayerContextType {
   resumeAt: (seconds: number) => void;
 }
 
-const PlayerContext = createContext<PlayerContextType | null>(null);
+// Keep one context instance across hot reloads so consumers and provider never mismatch.
+const globalCtx = globalThis as unknown as { __loveworldPlayerContext?: import("react").Context<PlayerContextType | null> };
+const PlayerContext =
+  globalCtx.__loveworldPlayerContext ??
+  (globalCtx.__loveworldPlayerContext = createContext<PlayerContextType | null>(null));
 
 export const usePlayer = () => {
   const ctx = useContext(PlayerContext);
