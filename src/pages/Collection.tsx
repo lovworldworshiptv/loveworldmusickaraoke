@@ -29,10 +29,11 @@ const Collection = () => {
 
   useEffect(() => {
     if (!id) return;
-    supabase.from("playlists").select(`name,cover_url,playlist_songs(sort_order,songs(${SONG_COLUMNS}))`).eq("id", id).maybeSingle()
+    supabase.from("playlists").select(`name,description,cover_url,playlist_songs(sort_order,songs(${SONG_COLUMNS}))`).eq("id", id).maybeSingle()
       .then(({ data }) => {
         const d = data as any;
         setName(d?.name || "Collection");
+        setDescription(d?.description || null);
         const rows = ((d?.playlist_songs || []) as any[]).sort((a, b) => a.sort_order - b.sort_order).map((x) => x.songs).filter(Boolean) as SongRow[];
         setSongs(rows);
         setCover(d?.cover_url || rows[0]?.cover_url || null);
