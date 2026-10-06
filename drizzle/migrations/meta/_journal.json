@@ -71,6 +71,13 @@
       "when": 1791293780121,
       "tag": "0009_community_scoped_moderators",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791295205607,
+      "tag": "0010_admin_remove_community_members",
+      "breakpoints": true
     }
   ]
 }
