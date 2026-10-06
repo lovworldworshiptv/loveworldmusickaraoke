@@ -3,3 +3,4 @@
 - Plays are logged only via the record_play RPC into play_events (no client inserts); discovery reads go through get_trending/get_quick_picks/get_daily_discover — why: privacy and consistent counters.
 - Playback continuity is stored locally and restored paused without logging a new play — why: preserve position across navigation and app exits without inflating analytics.
 - Stem separation runs through a queue in song_audio_versions (kind='instrumental' is the job row), processed by the stem-worker function on a cron that arms on enqueue and unschedules when drained — why: bounded, single-flight, retry-safe background AI work with a persisted pause on billing errors.
+- Song, Karaoke, mini-player, and Video playback timelines use the shared PlaybackProgress component — why: progress tracks and position markers must remain visually consistent.
