@@ -1,3 +1,4 @@
+import SeeAll from "./SeeAll";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,9 +26,11 @@ const PlatformRecommendations = () => {
 
   return (
     <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" aria-labelledby="recs-h">
+      <div className="flex items-end justify-between gap-3 mb-4"><div>
       <p className="text-[11px] uppercase tracking-[0.2em] text-gold/80">Curated for you</p>
-      <h3 id="recs-h" className="text-xl font-serif font-bold text-foreground mb-4">Recommended Playlists</h3>
-      <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 touch-pan-x">
+      <h3 id="recs-h" className="text-xl font-serif font-bold text-foreground">Recommended Playlists</h3>
+      </div><SeeAll to="/playlists" /></div>
+      <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 touch-pan-x overscroll-x-contain">
         {items.map((p) => {
           const songs = (p.playlist_songs || []).map((s) => s.songs).filter(Boolean) as NonNullable<Rec["playlist_songs"]>[number]["songs"][];
           const cover = p.cover_url || songs[0]?.cover_url;
