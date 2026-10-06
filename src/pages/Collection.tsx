@@ -8,6 +8,7 @@ import { SONG_COLUMNS, toPlayerSong, type SongRow } from "@/lib/homeSongs";
 import { ArrowLeft, ListMusic, Music2, Play, Shuffle } from "lucide-react";
 import { pageGradient } from "@/lib/siteSettings";
 import { Button } from "@/components/ui/button";
+import { loadDailyDiscover } from "@/components/home/DailyDiscover";
 
 /** Collection of recommended songs behind a home recommendation card. */
 const Collection = () => {
@@ -29,6 +30,16 @@ const Collection = () => {
 
   useEffect(() => {
     if (!id) return;
+    if (id === "daily-discover") {
+      loadDailyDiscover().then(({ cfg, songs: rows, reason }) => {
+        setName(cfg.title || "Daily Discover");
+        setDescription(cfg.subtitle || reason || null);
+        setSongs(rows);
+        setCover(cfg.coverUrl || rows[0]?.cover_url || null);
+        setLoading(false);
+      });
+      return;
+    }
     supabase.from("playlists").select(`name,description,cover_url,playlist_songs(sort_order,songs(${SONG_COLUMNS}))`).eq("id", id).maybeSingle()
       .then(({ data }) => {
         const d = data as any;
@@ -54,7 +65,7 @@ const Collection = () => {
         <div className="relative w-full max-w-md mx-auto aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl mb-5">
           {cover ? <img src={cover} alt={name} className="w-full h-full object-cover" /> : <div className="w-full h-full gradient-purple flex items-center justify-center"><ListMusic className="w-16 h-16 text-gold/60" /></div>}
           <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-background/90 via-background/50 to-transparent">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-gold">Playlist</p>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-gold">{id === "daily-discover" ? "Daily Discover" : "Playlist"}</p>
             <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground">{name}</h1>
             <p className="text-xs text-white line-clamp-2 mt-0.5">{description || autoDescription}</p>
           </div>
