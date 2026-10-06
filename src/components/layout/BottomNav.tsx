@@ -1,8 +1,10 @@
-import { Home, Compass, Library, Gamepad2, BookOpen } from "lucide-react";
+import { Home, Compass, Library, Gamepad2, BookOpen, Plus, ListMusic, Mic2, AlarmClock, Presentation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
-import { memo } from "react";
+import { memo, useState } from "react";
 import { usePlayer } from "@/contexts/PlayerContext";
+import { Button } from "@/components/ui/button";
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
@@ -12,10 +14,24 @@ const navItems = [
   { icon: Gamepad2, label: "Games", path: "/games" },
 ];
 
+const createItems = [
+  { icon: ListMusic, label: "Playlist", path: "/playlists" },
+  { icon: Mic2, label: "Studio Mode", path: "/studio" },
+  { icon: AlarmClock, label: "Reminders", path: "/reminders" },
+  { icon: Presentation, label: "Stage Mode", path: "/stage" },
+];
+
 const BottomNav = memo(() => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isExpanded } = usePlayer();
+  const [createOpen, setCreateOpen] = useState(false);
+  const createActive = createItems.some((item) => location.pathname === item.path);
+
+  const openCreateDestination = (path: string) => {
+    setCreateOpen(false);
+    navigate(path);
+  };
 
   return (
     <nav className={cn(
@@ -24,12 +40,13 @@ const BottomNav = memo(() => {
     )}>
       <div className="flex items-center justify-around py-2" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
         {navItems.map((item) => (
-          <button
+          <Button
             key={item.label}
+            variant="ghost"
             onClick={() => navigate(item.path)}
             className={cn(
-              "flex flex-col items-center gap-1 rounded-lg transition-all duration-200 touch-target active:scale-95",
-              "px-4 py-2",
+              "h-auto min-w-0 flex-1 flex-col gap-1 rounded-lg px-1 py-2 transition-all duration-200 touch-target active:scale-95 hover:bg-transparent",
+              "[&_svg]:!size-6",
               location.pathname === item.path
                 ? "text-gold"
                 : "text-muted-foreground active:text-foreground"
@@ -37,8 +54,53 @@ const BottomNav = memo(() => {
           >
             <item.icon className="w-6 h-6" />
             <span className="text-[10px] font-medium">{item.label}</span>
-          </button>
+          </Button>
         ))}
+
+        <Drawer open={createOpen} onOpenChange={setCreateOpen}>
+          <DrawerTrigger asChild>
+            <Button
+              variant="ghost"
+              className={cn(
+                "h-auto min-w-0 flex-1 flex-col gap-1 rounded-lg px-1 py-2 transition-all duration-200 touch-target active:scale-95 hover:bg-transparent",
+                createActive || createOpen ? "text-gold" : "text-muted-foreground active:text-foreground",
+              )}
+              aria-label="Open Create menu"
+              aria-expanded={createOpen}
+            >
+              <span className={cn(
+                "flex h-6 w-6 items-center justify-center rounded-full bg-gold text-primary-foreground shadow-gold transition-transform duration-300",
+                createOpen && "rotate-45",
+              )}>
+                <Plus className="!h-4 !w-4" />
+              </span>
+              <span className="text-[10px] font-medium">Create</span>
+            </Button>
+          </DrawerTrigger>
+          <DrawerContent className="rounded-t-3xl border-border bg-background/95 px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
+            <DrawerHeader className="px-0 pb-5 pt-3 text-left">
+              <DrawerTitle className="text-xl text-foreground">Create</DrawerTitle>
+              <DrawerDescription>Choose what you want to open.</DrawerDescription>
+            </DrawerHeader>
+            <div className="grid grid-cols-2 gap-3 pb-2">
+              {createItems.map((item) => (
+                <Button
+                  key={item.label}
+                  variant="outline"
+                  onClick={() => openCreateDestination(item.path)}
+                  className={cn(
+                    "h-24 flex-col gap-3 rounded-2xl border-border bg-card/70 text-foreground shadow-sm backdrop-blur-md hover:border-gold/50 hover:bg-accent",
+                    "[&_svg]:!size-6",
+                    location.pathname === item.path && "border-gold/60 bg-gold/10 text-gold",
+                  )}
+                >
+                  <item.icon />
+                  <span>{item.label}</span>
+                </Button>
+              ))}
+            </div>
+          </DrawerContent>
+        </Drawer>
       </div>
     </nav>
   );
