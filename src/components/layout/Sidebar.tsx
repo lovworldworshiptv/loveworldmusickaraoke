@@ -16,6 +16,7 @@ const navItems = [
   { icon: Disc3, label: "Albums", path: "/albums" },
   { icon: Clapperboard, label: "Videos", path: "/videos" },
   { icon: Film, label: "Moments", path: "/moments" },
+  { icon: Users, label: "Community", path: "/community" },
   { icon: Presentation, label: "Stage Mode", path: "/stage" },
   { icon: HardDrive, label: "My Studio", path: "/studio" },
   { icon: Clock, label: "History", path: "/history" },

@@ -12,6 +12,7 @@ import ArticleSection from "@/components/home/ArticleSection";
 import SecondaryBanner from "@/components/home/SecondaryBanner";
 import RecentlyPlayed from "@/components/home/RecentlyPlayed";
 import HomepagePopup from "@/components/home/HomepagePopup";
+import RenewalBanner from "@/components/home/RenewalBanner";
 import MoodCapsules, { type Mood } from "@/components/home/MoodCapsules";
 import QuickPicks from "@/components/home/QuickPicks";
 import DailyDiscover from "@/components/home/DailyDiscover";
@@ -55,6 +56,7 @@ const Index = () => {
   return (
     <AppLayout>
       <HomepagePopup />
+      <RenewalBanner />
       {layout.filter((x) => x.visible).map((x) => {
         const node = ({
           moods: <MoodCapsules value={mood.id} onChange={setMood} />,
