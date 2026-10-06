@@ -38,6 +38,7 @@ const toPlayerSong = (song: NonNullable<PlaylistSongRow["songs"]>): PlayerSong =
   durationSeconds: song.duration_seconds,
 });
 
+/** Global playlist cards styled like the Recommended Playlists cards, with a deep purple gradient. */
 const GlobalPlaylistsSection = () => {
   const [playlists, setPlaylists] = useState<GlobalPlaylist[]>([]);
   const navigate = useNavigate();
@@ -76,47 +77,56 @@ const GlobalPlaylistsSection = () => {
         </button>
       </div>
 
-      <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1">
-        {playlists.map((playlist, i) => {
+      <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 touch-pan-x">
+        {playlists.map((playlist) => {
           const orderedSongs = (playlist.playlist_songs || [])
             .filter((item): item is PlaylistSongRow & { songs: NonNullable<PlaylistSongRow["songs"]> } => !!item.songs)
             .sort((a, b) => a.sort_order - b.sort_order)
             .map((item) => toPlayerSong(item.songs));
 
           const cover = playlist.cover_url || orderedSongs[0]?.coverUrl;
+          const names = orderedSongs.slice(0, 3).map((s) => s.title).join(", ");
 
           return (
             <div
               key={playlist.id}
-              className="group flex-shrink-0 w-48 text-left animate-fade-in-up"
-              style={{ animationDelay: `${i * 0.06}s` }}
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate(`/collection/${playlist.id}`)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") navigate(`/collection/${playlist.id}`);
+              }}
+              className="snap-start flex-shrink-0 w-full md:w-[calc(50%_-_0.375rem)] lg:w-[29.6%] h-[166px] md:h-36 rounded-2xl p-3 text-left cursor-pointer border-0 shadow-[0_4px_20px_hsl(265_60%_18%/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+              style={{ background: "linear-gradient(135deg, hsl(262 55% 9%) 0%, hsl(266 50% 18%) 55%, hsl(272 60% 30%) 100%)" }}
             >
-              <button
-                onClick={() => navigate("/playlists")}
-                className="relative w-full aspect-[4/3] rounded-xl overflow-hidden mb-3 glass-card transition-all duration-300 group-hover:shadow-[0_8px_32px_hsl(43_70%_53%/0.12)]"
-              >
-                {cover ? (
-                  <img src={cover} alt={playlist.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                ) : (
-                  <div className="w-full h-full gradient-purple flex items-center justify-center">
-                    <ListMusic className="w-10 h-10 text-gold/30" />
-                  </div>
-                )}
-
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/85 to-transparent p-3">
-                  <p className="text-sm font-medium text-foreground truncate">{playlist.name}</p>
-                  <p className="text-xs text-muted-foreground">{orderedSongs.length} songs</p>
+              <div className="flex h-full gap-3">
+                <div className="aspect-square h-full rounded-xl overflow-hidden flex-shrink-0 bg-muted">
+                  {cover ? (
+                    <img src={cover} alt={playlist.name} className="w-full h-full object-cover" loading="lazy" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <ListMusic className="w-8 h-8 text-gold/60" />
+                    </div>
+                  )}
                 </div>
-              </button>
-
-              {orderedSongs.length > 0 && (
-                <button
-                  onClick={() => playQueue(orderedSongs)}
-                  className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-muted hover:bg-muted/70 px-3 py-2 text-xs text-foreground transition-colors"
-                >
-                  <Play className="w-3.5 h-3.5" fill="currentColor" /> Play Playlist
-                </button>
-              )}
+                <div className="min-w-0 flex-1 flex flex-col">
+                  <span className="text-[10px] uppercase tracking-wider text-gold">Playlist · {orderedSongs.length} songs</span>
+                  <p className="font-serif font-bold text-foreground truncate mt-0.5">{playlist.name}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{names || "Worship collection"}</p>
+                  {orderedSongs.length > 0 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        playQueue(orderedSongs);
+                      }}
+                      aria-label={`Play ${playlist.name}`}
+                      className="mt-auto self-end w-9 h-9 rounded-full gradient-gold flex items-center justify-center shadow-[0_2px_12px_hsl(var(--gold)/0.4)]"
+                    >
+                      <Play className="w-4 h-4 text-primary-foreground ml-0.5" fill="currentColor" />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           );
         })}
