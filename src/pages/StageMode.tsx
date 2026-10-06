@@ -46,15 +46,15 @@ const StageMode = () => {
   const backgroundChoices = useMemo(() => {
     const choices = [
       { id: "song", name: "Song background", ...stage },
-      ...(currentSong.cover_url
-        ? [{ id: "artwork", name: "Song artwork", backgroundColor: stage.backgroundColor, mediaType: "image" as const, mediaUrl: currentSong.cover_url }]
+      ...(currentSong.coverUrl
+        ? [{ id: "artwork", name: "Song artwork", backgroundColor: stage.backgroundColor, mediaType: "image" as const, mediaUrl: currentSong.coverUrl }]
         : []),
       ...(setting?.backgroundLibrary || []),
     ];
     return choices.filter((choice, index) => choices.findIndex((candidate) =>
       candidate.mediaType === choice.mediaType && candidate.mediaUrl === choice.mediaUrl && candidate.backgroundColor === choice.backgroundColor
     ) === index);
-  }, [currentSong.cover_url, setting?.backgroundLibrary, stage]);
+  }, [currentSong.coverUrl, setting?.backgroundLibrary, stage]);
   const activeStage = backgroundChoices.find((choice) => choice.id === selectedBackgroundId) || backgroundChoices[0] || stage;
   const staticLines = useMemo(
     () => (hasSync ? [] : staticLyrics.split("\n").map((l) => l.trim()).filter(Boolean)),
