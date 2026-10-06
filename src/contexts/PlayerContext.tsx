@@ -45,6 +45,9 @@ interface PlayerContextType {
   playVideo: (song: PlayerSong) => void;
   videoModeRequest: boolean;
   clearVideoModeRequest: () => void;
+  singThis: (song: PlayerSong) => void;
+  karaokeModeRequest: boolean;
+  clearKaraokeModeRequest: () => void;
   togglePlay: () => void;
   toggleKaraoke: () => void;
   toggleExpanded: () => void;
@@ -124,6 +127,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [isKaraoke, setIsKaraoke] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [videoModeRequest, setVideoModeRequest] = useState(false);
+  const [karaokeModeRequest, setKaraokeModeRequest] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -411,6 +415,14 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
   const clearVideoModeRequest = useCallback(() => setVideoModeRequest(false), []);
 
+  const singThis = useCallback((song: PlayerSong) => {
+    playSong(song);
+    setIsExpanded(true);
+    setKaraokeModeRequest(true);
+  }, [playSong]);
+
+  const clearKaraokeModeRequest = useCallback(() => setKaraokeModeRequest(false), []);
+
   const playQueue = useCallback((songs: PlayerSong[], startIndex = 0) => {
     const q = shuffleOnRef.current ? shuffleArray(songs) : songs;
     setQueue(q);
@@ -560,6 +572,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       currentTime, lrcLines, staticLyrics, activeLrcIndex, repeatMode, shuffleOn,
       queue, queueIndex, volume, trackEndCount, playSong, playQueue, togglePlay,
       playVideo, videoModeRequest, clearVideoModeRequest,
+      singThis, karaokeModeRequest, clearKaraokeModeRequest,
       toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev,
       cycleRepeat, toggleShuffle, setVolume, applyLyrics, handoffPause, resumeAt,
     }}>
