@@ -29,30 +29,40 @@ Deno.serve(async (req) => {
   if (!got) return json({ skipped: "locked" });
 
   const report = { checked: 0, finished: 0, failed: 0, started: 0 };
+  const notify = (type: string, title: string, message: string, metadata: Record<string, unknown>) =>
+    admin.from("admin_notifications").insert({ type, title, message, metadata }).then(({ error }) => {
+      if (error) console.error("notify failed", error.message);
+    });
   const pause = async (reason: string) => {
     await admin.from("stem_worker_state").update({ paused_reason: reason, paused_at: new Date().toISOString() }).eq("id", 1);
+    await notify("stem_paused", "Stem splitting paused", reason, {});
   };
-  const failRow = async (row: { id: string; attempts: number }, error: string) => {
+  const failRow = async (row: { id: string; attempts: number; song_id?: string; songTitle?: string }, error: string) => {
     const attempts = row.attempts + 1;
+    const final = attempts >= MAX_ATTEMPTS;
     await admin.from("song_audio_versions").update({
-      status: attempts >= MAX_ATTEMPTS ? "failed" : "pending", attempts, error, prediction_id: null,
+      status: final ? "failed" : "pending", attempts, error, prediction_id: null,
     }).eq("id", row.id);
     report.failed++;
+    if (final) {
+      await notify("stem_failed", `Stem split failed: ${row.songTitle ?? "a song"}`, `${error} — needs a retry from Stem Studio.`, { song_id: row.song_id ?? null });
+    }
   };
 
   try {
     // 1) Check running separations
     const { data: running } = await admin.from("song_audio_versions")
-      .select("id, song_id, language_code, attempts, prediction_id")
+      .select("id, song_id, language_code, attempts, prediction_id, songs(title)")
       .eq("kind", "instrumental").eq("status", "processing").not("prediction_id", "is", null).limit(10);
 
     for (const row of running ?? []) {
       report.checked++;
+      const songTitle = (row.songs as { title?: string } | null)?.title;
       const res = await fetch(`${GATEWAY}/predictions/${row.prediction_id}`, { headers: auth });
       if (res.status === 429) break;
       if (!res.ok) { console.error(`poll [${res.status}]: ${await res.text()}`); continue; }
       const pred = await res.json();
-      if (pred.status === "failed" || pred.status === "canceled") { await failRow(row, pred.error || "Separation failed"); continue; }
+      if (pred.status === "failed" || pred.status === "canceled") { await failRow({ ...row, songTitle }, pred.error || "Separation failed"); continue; }
       if (pred.status !== "succeeded") continue;
 
       const inst: string | undefined = pred.output?.no_vocals;
@@ -78,8 +88,9 @@ Deno.serve(async (req) => {
           }, { onConflict: "song_id,language_code,kind" });
         }
         report.finished++;
+        await notify("stem_completed", `Karaoke track ready: ${songTitle ?? "a song"}`, "The instrumental and vocals stems were saved and Karaoke mode is now available.", { song_id: row.song_id });
       } catch (e) {
-        await failRow(row, e instanceof Error ? e.message : "Save failed");
+        await failRow({ ...row, songTitle }, e instanceof Error ? e.message : "Save failed");
       }
     }
 
@@ -89,10 +100,12 @@ Deno.serve(async (req) => {
     const slots = Math.max(0, MAX_CONCURRENT - (active ?? 0));
     if (slots > 0) {
       const { data: pending } = await admin.from("song_audio_versions")
-        .select("id, song_id, attempts").eq("kind", "instrumental").eq("status", "pending")
+        .select("id, song_id, attempts, songs(title)")
+        .eq("kind", "instrumental").eq("status", "pending")
         .lt("attempts", MAX_ATTEMPTS).order("created_at").limit(slots);
 
       for (const row of pending ?? []) {
+        const songTitle = (row.songs as { title?: string } | null)?.title;
         const { data: song } = await admin.from("songs").select("audio_url, instrumental_url").eq("id", row.song_id).maybeSingle();
         if (!song?.audio_url) { await admin.from("song_audio_versions").update({ status: "failed", error: "Song has no audio" }).eq("id", row.id); continue; }
         if (song.instrumental_url && row.attempts === 0) {
@@ -108,10 +121,11 @@ Deno.serve(async (req) => {
         if (res.status === 402) { await pause("Replicate account has no credit. Add billing at replicate.com/account/billing, then press Resume."); break; }
         if (res.status === 403) { await pause(`Replicate denied the request: ${(await res.text()).slice(0, 200)}`); break; }
         if (res.status === 429) break;
-        if (!res.ok) { await failRow(row, `Start failed [${res.status}]`); continue; }
+        if (!res.ok) { await failRow({ ...row, songTitle }, `Start failed [${res.status}]`); continue; }
         const pred = await res.json();
         await admin.from("song_audio_versions").update({ status: "processing", prediction_id: pred.id, started_at: new Date().toISOString(), error: null }).eq("id", row.id);
         report.started++;
+        await notify("stem_started", `Stem split started: ${songTitle ?? "a song"}`, "Separating vocals from the instrumental — usually takes a few minutes.", { song_id: row.song_id });
       }
     }
   } finally {
