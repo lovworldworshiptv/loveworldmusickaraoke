@@ -20,7 +20,7 @@ const MoodCapsules = ({ value, onChange }: Props) => {
 
   return (
     <div className="sticky top-0 z-20 -mb-2 bg-background/80 backdrop-blur-md px-4 lg:px-6 py-3">
-      <div role="tablist" aria-label="Filter by mood" className="flex gap-2 overflow-x-auto scrollbar-hide">
+      <div role="tablist" aria-label="Filter by mood" className="flex gap-2 overflow-x-auto scrollbar-hide touch-pan-x overscroll-x-contain snap-x snap-mandatory [webkit-overflow-scrolling:touch]">
         {all.map((m) => {
           const active = value === m.id;
           return (
