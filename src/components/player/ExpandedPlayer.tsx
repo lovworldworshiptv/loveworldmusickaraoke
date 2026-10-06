@@ -80,7 +80,7 @@ const ExpandedPlayer = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
   const isMobile = useIsMobile();
-  const { handoffPause, resumeAt } = usePlayer();
+  const { handoffPause, resumeAt, videoModeRequest, clearVideoModeRequest } = usePlayer();
 
   // --- 3-mode player (Song | Karaoke | Video) with seamless position transfer ---
   const [videos, setVideos] = useState<SongVideo[]>([]);
