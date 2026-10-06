@@ -133,6 +133,9 @@ const AdminSongs = () => {
   const isEditorOnly = isEditor && !isAdmin;
   const [songs, setSongs] = useState<Song[]>([]);
   const [generating, setGenerating] = useState<Record<string, boolean>>({});
+  const [stemStatus, setStemStatus] = useState<Record<string, StemStatus>>({});
+  const [stemRefresh, setStemRefresh] = useState(0);
+  const handleStemStatus = useCallback((m: Record<string, StemStatus>) => setStemStatus(m), []);
 
   const handleGenerateInstrumental = async (song: Song) => {
     if (song.instrumental_url && !confirm(`"${song.title}" already has an instrumental. Replace it?`)) return;
