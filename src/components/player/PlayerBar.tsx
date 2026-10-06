@@ -115,7 +115,7 @@ const PlayerBar = () => {
           </div>
         </div>
 
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between px-3.5 pb-2.5 pt-2">
           {/* Song Info */}
           <button onClick={toggleExpanded} className="flex items-center gap-3 min-w-0 flex-1">
             <div className="w-10 h-10 rounded-lg gradient-gold flex-shrink-0 flex items-center justify-center overflow-hidden">
