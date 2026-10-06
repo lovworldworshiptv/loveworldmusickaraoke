@@ -3,12 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { fetchSongsByIds, toPlayerSong, type SongRow } from "@/lib/homeSongs";
 import { Play, Sparkles, Mic2 } from "lucide-react";
+import { useDominantColor } from "@/lib/dominantColor";
 
 /** Once-a-day personal pick with ambient artwork background. */
 const DailyDiscover = () => {
   const [song, setSong] = useState<SongRow | null>(null);
   const [reason, setReason] = useState("");
   const { playSong, toggleKaraoke, isKaraoke } = usePlayer();
+  const dominant = useDominantColor(song?.cover_url);
 
   useEffect(() => {
     supabase.rpc("get_daily_discover").then(async ({ data }) => {
