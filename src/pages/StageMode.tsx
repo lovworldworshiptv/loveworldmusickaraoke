@@ -265,7 +265,7 @@ const StageMode = () => {
       {/* Lyrics */}
       <div
         ref={scrollRef}
-        className={`relative z-10 flex-1 overflow-y-auto px-6 py-[40dvh] ${manualScroll ? "touch-pan-y" : "scroll-smooth"}`}
+        className={`relative z-10 flex-1 overflow-y-auto px-6 py-[40dvh] ${manualScroll ? "touch-pan-y pointer-events-auto" : "scroll-smooth pointer-events-none"}`}
         style={{ scrollbarWidth: "none" }}
       >
         {hasSync ? (
