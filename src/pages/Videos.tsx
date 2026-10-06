@@ -78,7 +78,7 @@ const Videos = () => {
           </div>
         ) : filtered.length === 0 ? (
           <EmptyState
-            icon={<VideoIcon className="w-10 h-10 text-muted-foreground" />}
+            icon={VideoIcon}
             title={q ? "No videos match your search" : "No videos yet"}
             description={q ? "Try a different song or artist name." : "Videos added to songs will appear here."}
           />
