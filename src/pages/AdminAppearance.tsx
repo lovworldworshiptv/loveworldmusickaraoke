@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowDown, ArrowUp, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, Image, Loader2, Search, Upload, Video } from "lucide-react";
 import { toast } from "sonner";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,8 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  applyTheme, cardGradient, DEFAULT_GLOBAL_CARD, getSetting, HOME_SECTIONS, resolveHomeLayout, saveSetting, SETTING_KEYS,
-  type HomeSectionSetting, type ThemeColors,
+  applyTheme, cardGradient, DEFAULT_GLOBAL_CARD, DEFAULT_STAGE_MODE, getSetting, HOME_SECTIONS, resolveHomeLayout, saveSetting, SETTING_KEYS,
+  type HomeSectionSetting, type StageModeSetting, type ThemeColors,
 } from "@/lib/siteSettings";
 
 const THEME_FIELDS: { key: keyof ThemeColors; label: string; def: string }[] = [
@@ -94,12 +94,15 @@ const AdminAppearance = () => {
   const [theme, setTheme] = useState<ThemeColors>({});
   const [layout, setLayout] = useState<HomeSectionSetting[]>(resolveHomeLayout(null));
   const [playlists, setPlaylists] = useState<Pl[]>([]);
+  const [stage, setStage] = useState<StageModeSetting>(DEFAULT_STAGE_MODE);
+  const [stageUploading, setStageUploading] = useState(false);
 
   useEffect(() => { if (!loading && !isAdmin) navigate("/"); }, [isAdmin, loading, navigate]);
 
   useEffect(() => {
     getSetting<ThemeColors>(SETTING_KEYS.theme).then((t) => setTheme(t || {}));
     getSetting<HomeSectionSetting[]>(SETTING_KEYS.homeLayout).then((l) => setLayout(resolveHomeLayout(l)));
+    getSetting<StageModeSetting>(SETTING_KEYS.stageMode).then((s) => setStage({ ...DEFAULT_STAGE_MODE, ...(s || {}) }));
     supabase.from("playlists").select("id,name,card_color").eq("is_visible_on_homepage", true).order("created_at", { ascending: false })
       .then(({ data }) => setPlaylists((data as Pl[]) || []));
   }, []);
@@ -125,6 +128,31 @@ const AdminAppearance = () => {
     setPlaylists((p) => p.map((x) => (x.id === id ? { ...x, card_color: color } : x)));
     const { error } = await supabase.from("playlists").update({ card_color: color }).eq("id", id);
     error ? toast.error("Could not save") : toast.success("Card colour saved");
+  };
+
+  const saveStage = async (next = stage) => {
+    setStage(next);
+    const { error } = await saveSetting(SETTING_KEYS.stageMode, next);
+    error ? toast.error("Could not save Stage Mode") : toast.success("Stage Mode saved");
+  };
+
+  const uploadStageMedia = async (file?: File) => {
+    if (!file) return;
+    const isVideo = file.type.startsWith("video/");
+    const isImage = file.type.startsWith("image/");
+    if (!isVideo && !isImage) return toast.error("Choose an image or video file");
+    setStageUploading(true);
+    const extension = file.name.split(".").pop() || (isVideo ? "mp4" : "jpg");
+    const path = `stage/${Date.now()}.${extension}`;
+    const { error } = await supabase.storage.from("song-covers").upload(path, file, { contentType: file.type, upsert: false });
+    if (error) {
+      setStageUploading(false);
+      toast.error("Upload failed");
+      return;
+    }
+    const publicUrl = supabase.storage.from("song-covers").getPublicUrl(path).data.publicUrl;
+    await saveStage({ ...stage, mediaType: isVideo ? "video" : "image", mediaUrl: publicUrl });
+    setStageUploading(false);
   };
 
   if (loading) return null;
@@ -161,6 +189,47 @@ const AdminAppearance = () => {
               </li>
             ))}
           </ul>
+        </Card>
+
+        <Card title="Stage Mode background">
+          <p className="text-xs text-foreground mb-4">Choose a colour, image, or looping video behind the lyrics. A dark layer keeps lyrics readable.</p>
+          <div className="grid sm:grid-cols-[1fr_1.5fr] gap-4">
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 text-sm text-foreground">
+                <input type="color" value={stage.backgroundColor} onChange={(e) => setStage({ ...stage, backgroundColor: e.target.value })} className="w-10 h-10 rounded-lg bg-transparent border-0" />
+                Background colour
+              </label>
+              <div className="grid grid-cols-3 gap-2" role="group" aria-label="Stage background type">
+                {([
+                  { id: "none", label: "Colour", Icon: Image },
+                  { id: "image", label: "Image", Icon: Image },
+                  { id: "video", label: "Video", Icon: Video },
+                ] as const).map(({ id, label, Icon }) => (
+                  <Button key={id} type="button" size="sm" variant={stage.mediaType === id ? "default" : "outline"} onClick={() => setStage({ ...stage, mediaType: id })} className="gap-1 px-2">
+                    <Icon className="w-3.5 h-3.5" /> {label}
+                  </Button>
+                ))}
+              </div>
+              {stage.mediaType !== "none" && (
+                <Input value={stage.mediaUrl} onChange={(e) => setStage({ ...stage, mediaUrl: e.target.value })} placeholder={`Paste ${stage.mediaType} link`} type="url" />
+              )}
+              <label className="flex items-center justify-center gap-2 h-10 rounded-md border border-input bg-background text-sm text-foreground cursor-pointer hover:bg-muted">
+                {stageUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                {stageUploading ? "Uploading…" : "Upload image or video"}
+                <input type="file" accept="image/*,video/*" className="sr-only" disabled={stageUploading} onChange={(e) => uploadStageMedia(e.target.files?.[0])} />
+              </label>
+              <div className="flex gap-2">
+                <Button onClick={() => saveStage()}>Save Stage Mode</Button>
+                <Button variant="outline" onClick={() => saveStage(DEFAULT_STAGE_MODE)}>Reset</Button>
+              </div>
+            </div>
+            <div className="relative aspect-video overflow-hidden rounded-xl border border-border" style={{ backgroundColor: stage.backgroundColor }}>
+              {stage.mediaType === "image" && stage.mediaUrl && <img src={stage.mediaUrl} alt="Stage background preview" className="absolute inset-0 w-full h-full object-cover" />}
+              {stage.mediaType === "video" && stage.mediaUrl && <video src={stage.mediaUrl} muted loop autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />}
+              <div className="absolute inset-0 bg-background/55" />
+              <p className="absolute inset-0 flex items-center justify-center px-5 text-center font-serif font-bold text-foreground">Your lyrics will appear here</p>
+            </div>
+          </div>
         </Card>
 
         <Card title="Playlist card colours">
