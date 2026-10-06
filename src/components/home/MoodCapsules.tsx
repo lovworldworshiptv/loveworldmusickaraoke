@@ -40,7 +40,8 @@ const MoodCapsules = ({ value, onChange }: Props) => {
 
   return (
     <div className="sticky top-0 z-20 -mb-2 bg-background/80 backdrop-blur-md px-4 lg:px-6 py-3">
-      <div role="tablist" aria-label="Filter by mood" className="flex gap-2 overflow-x-auto scrollbar-hide touch-pan-x overscroll-x-contain snap-x snap-mandatory [webkit-overflow-scrolling:touch]">
+      <div className="relative">
+        <div ref={scrollRef} role="tablist" aria-label="Filter by mood" className="flex gap-2 overflow-x-auto scrollbar-hide touch-pan-x overscroll-x-contain snap-x snap-mandatory [webkit-overflow-scrolling:touch]">
         {all.map((m) => {
           const active = value === m.id;
           return (
@@ -60,6 +61,23 @@ const MoodCapsules = ({ value, onChange }: Props) => {
             </button>
           );
         })}
+        </div>
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-y-0 left-0 w-8 rounded-l-full transition-opacity duration-300",
+            canLeft ? "opacity-100" : "opacity-0"
+          )}
+          style={{ background: "linear-gradient(to right, hsl(var(--background) / 0.95) 20%, hsl(var(--background) / 0) 100%)" }}
+        />
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-full transition-opacity duration-300",
+            canRight ? "opacity-100" : "opacity-0"
+          )}
+          style={{ background: "linear-gradient(to left, hsl(var(--background) / 0.95) 20%, hsl(var(--background) / 0) 100%)" }}
+        />
       </div>
     </div>
   );
