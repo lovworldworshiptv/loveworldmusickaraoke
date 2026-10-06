@@ -14,6 +14,7 @@ const Collection = () => {
   const navigate = useNavigate();
   const { playQueue, currentSong } = usePlayer();
   const [name, setName] = useState("");
+  const [description, setDescription] = useState<string | null>(null);
   const [cover, setCover] = useState<string | null>(null);
   const [songs, setSongs] = useState<SongRow[]>([]);
   const [loading, setLoading] = useState(true);
