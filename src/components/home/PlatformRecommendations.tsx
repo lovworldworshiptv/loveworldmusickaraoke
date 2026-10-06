@@ -6,6 +6,9 @@ import { ListMusic, Play } from "lucide-react";
 type Rec = { id: string; name: string; cover_url: string | null; playlist_songs: { songs: { title: string; artist: string; cover_url: string | null } | null }[] | null };
 
 /** Spotify-style recommendation cards; each opens the playlist's collection page. */
+/** Fuchsia-pink treatment reserved for the "Pastor Chris Live Unending Praise" card. */
+const isFuchsiaCard = (name: string) => /unending praise/i.test(name);
+
 const PlatformRecommendations = () => {
   const [items, setItems] = useState<Rec[]>([]);
   const navigate = useNavigate();
@@ -29,9 +32,11 @@ const PlatformRecommendations = () => {
           const songs = (p.playlist_songs || []).map((s) => s.songs).filter(Boolean) as NonNullable<Rec["playlist_songs"]>[number]["songs"][];
           const cover = p.cover_url || songs[0]?.cover_url;
           const names = songs.slice(0, 3).map((s) => s!.title).join(", ");
+          const fuchsia = isFuchsiaCard(p.name);
           return (
             <button key={p.id} onClick={() => navigate(`/collection/${p.id}`)}
-              className="snap-start flex-shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] glass-card rounded-2xl p-3 text-left hover:border-gold/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
+              className={`snap-start flex-shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] rounded-2xl p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${fuchsia ? "border border-fuchsia-400/40 shadow-[0_4px_20px_hsl(320_90%_45%/0.35)]" : "glass-card hover:border-gold/40"}`}
+              style={fuchsia ? { background: "linear-gradient(135deg, hsl(320 85% 16%) 0%, hsl(320 95% 38%) 55%, hsl(320 100% 55%) 100%)" } : undefined}>
               <div className="flex gap-3">
                 <div className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-muted">
                   {cover ? <img src={cover} alt="" loading="lazy" className="w-full h-full object-cover" /> :
