@@ -56,7 +56,7 @@ const Collection = () => {
           <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-background/90 via-background/50 to-transparent">
             <p className="text-[11px] uppercase tracking-[0.2em] text-gold">Playlist</p>
             <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground">{name}</h1>
-            <p className="text-xs text-white/90 line-clamp-2 mt-0.5">{description || autoDescription}</p>
+            <p className="text-xs text-white line-clamp-2 mt-0.5">{description || autoDescription}</p>
           </div>
         </div>
         {songs.length > 0 && (
@@ -74,7 +74,7 @@ const Collection = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className={`text-sm truncate ${currentSong?.id === s.id ? "text-gold" : "text-foreground"}`}>{s.title}</p>
-                  <p className="text-xs text-white/75 truncate">{s.artist}</p>
+                  <p className="text-xs text-white truncate">{s.artist}</p>
                 </div>
               </button>
             ))}

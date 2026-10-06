@@ -54,7 +54,7 @@ const Videos = () => {
       <div className="px-4 md:px-8 py-6 pb-32 max-w-6xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.35)]">
-            <Clapperboard className="w-5 h-5 text-slate-950" />
+            <Clapperboard className="w-5 h-5 text-foreground" />
           </div>
           <div>
             <h1 className="text-xl font-serif font-bold text-foreground">Videos</h1>
@@ -104,7 +104,7 @@ const Videos = () => {
                     )}
                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.5)]">
-                        <Play className="w-5 h-5 text-slate-950 ml-0.5" fill="currentColor" />
+                        <Play className="w-5 h-5 text-foreground ml-0.5" fill="currentColor" />
                       </div>
                     </div>
                     <span className="absolute top-2 left-2 text-[10px] font-semibold uppercase tracking-wide bg-black/60 backdrop-blur px-2 py-0.5 rounded-full text-amber-300">
@@ -114,7 +114,7 @@ const Videos = () => {
                       {formatDuration(song.duration_seconds)}
                     </span>
                     {isCurrent && (
-                      <span className="absolute top-2 right-2 text-[10px] font-semibold bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full">
+                      <span className="absolute top-2 right-2 text-[10px] font-semibold bg-amber-400 text-foreground px-2 py-0.5 rounded-full">
                         Playing
                       </span>
                     )}

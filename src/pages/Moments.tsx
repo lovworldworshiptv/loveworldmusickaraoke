@@ -101,7 +101,7 @@ const MomentCard = ({
           )}
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-[0_0_30px_rgba(251,191,36,0.5)]">
-              <Play className="w-7 h-7 text-slate-950 ml-1" fill="currentColor" />
+              <Play className="w-7 h-7 text-foreground ml-1" fill="currentColor" />
             </div>
           </div>
         </button>
@@ -136,7 +136,7 @@ const MomentCard = ({
               fill={liked ? "currentColor" : "none"}
             />
           </div>
-          <span className="text-[10px] text-white/80">Like</span>
+          <span className="text-[10px] text-white">Like</span>
         </button>
 
         <button
@@ -145,9 +145,9 @@ const MomentCard = ({
           className="flex flex-col items-center gap-1"
         >
           <div className="w-11 h-11 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.4)]">
-            <Mic2 className="w-5 h-5 text-slate-950" />
+            <Mic2 className="w-5 h-5 text-foreground" />
           </div>
-          <span className="text-[10px] text-white/80">Sing This</span>
+          <span className="text-[10px] text-white">Sing This</span>
         </button>
 
         <ShareMenu
@@ -160,7 +160,7 @@ const MomentCard = ({
               <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-xl border border-white/10 flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
               </div>
-              <span className="text-[10px] text-white/80">Share</span>
+              <span className="text-[10px] text-white">Share</span>
             </div>
           }
         />
@@ -174,7 +174,7 @@ const MomentCard = ({
             <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-xl border border-white/10 flex items-center justify-center">
               {muted ? <VolumeX className="w-5 h-5 text-white" /> : <Volume2 className="w-5 h-5 text-amber-400" />}
             </div>
-            <span className="text-[10px] text-white/80">{muted ? "Unmute" : "Sound on"}</span>
+            <span className="text-[10px] text-white">{muted ? "Unmute" : "Sound on"}</span>
           </button>
         )}
       </div>
@@ -185,9 +185,9 @@ const MomentCard = ({
           {TYPE_LABEL[moment.video_type] || "Video"}
         </span>
         <p className="text-base font-serif font-bold text-white truncate">{song.title}</p>
-        <p className="text-xs text-white/70 truncate">{song.artist}</p>
+        <p className="text-xs text-white truncate">{song.artist}</p>
         {isCurrent && (
-          <span className="inline-block mt-1 text-[10px] font-semibold bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full">
+          <span className="inline-block mt-1 text-[10px] font-semibold bg-amber-400 text-foreground px-2 py-0.5 rounded-full">
             Playing
           </span>
         )}
