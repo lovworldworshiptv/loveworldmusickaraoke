@@ -301,7 +301,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         await supabase.from("recently_played").insert({ user_id: session.user.id, song_id: songId });
-        await supabase.rpc("record_play", { p_song_id: songId, p_mode: isKaraokeRef.current ? "karaoke" : "song" });
+        await supabase.rpc("record_play", { p_song_id: songId, p_mode: "song" });
       }
     } catch {}
   }, []);

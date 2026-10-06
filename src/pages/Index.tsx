@@ -12,6 +12,10 @@ import ArticleSection from "@/components/home/ArticleSection";
 import SecondaryBanner from "@/components/home/SecondaryBanner";
 import RecentlyPlayed from "@/components/home/RecentlyPlayed";
 import HomepagePopup from "@/components/home/HomepagePopup";
+import MoodCapsules, { type Mood } from "@/components/home/MoodCapsules";
+import QuickPicks from "@/components/home/QuickPicks";
+import DailyDiscover from "@/components/home/DailyDiscover";
+import LazySection from "@/components/home/LazySection";
 import OnboardingSplash from "@/components/onboarding/OnboardingSplash";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
@@ -21,6 +25,7 @@ const Index = () => {
   const navigate = useNavigate();
   const isOnline = useOnlineStatus();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [mood, setMood] = useState<Mood>({ id: null, name: "For You" });
 
   useEffect(() => {
     const seen = localStorage.getItem("onboarding_completed");
@@ -45,16 +50,19 @@ const Index = () => {
   return (
     <AppLayout>
       <HomepagePopup />
+      <MoodCapsules value={mood.id} onChange={setMood} />
       <HeroBanner />
+      <QuickPicks moodId={mood.id} moodName={mood.id ? mood.name : undefined} />
       <AlbumSection />
-      <GlobalPlaylistsSection />
       <KaraokeStories />
+      <DailyDiscover />
       <SongSection title="Featured Songs" />
       <SecondaryBanner />
-      <CategorySection />
-      <RecentlyPlayed />
-      <ArticleSection />
-      
+      <LazySection><CategorySection /></LazySection>
+      <LazySection><GlobalPlaylistsSection /></LazySection>
+      <LazySection><RecentlyPlayed /></LazySection>
+      <LazySection><ArticleSection /></LazySection>
+
       <div className="h-8" />
     </AppLayout>
   );
