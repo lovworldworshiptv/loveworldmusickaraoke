@@ -6,8 +6,8 @@ DECLARE
   _posts uuid[] := '{}';
 BEGIN
   SELECT user_id INTO _admin FROM public.user_roles WHERE role='admin' LIMIT 1;
-  SELECT u.id INTO _member FROM auth.users u WHERE NOT public.has_role(u.id,'admin') ORDER BY u.created_at LIMIT 1;
-  SELECT u.id INTO _outsider FROM auth.users u WHERE NOT public.has_role(u.id,'admin') AND u.id <> _member ORDER BY u.created_at LIMIT 1;
+  SELECT u.user_id INTO _member FROM public.profiles u WHERE NOT public.has_role(u.user_id,'admin') ORDER BY u.created_at LIMIT 1;
+  SELECT u.user_id INTO _outsider FROM public.profiles u WHERE NOT public.has_role(u.user_id,'admin') AND u.user_id <> _member ORDER BY u.created_at LIMIT 1;
   IF _admin IS NULL OR _member IS NULL OR _outsider IS NULL THEN RAISE EXCEPTION 'SETUP: need 1 admin + 2 regular users'; END IF;
 
   INSERT INTO public.communities(name, is_active) VALUES ('__test__', true) RETURNING id INTO _c;
