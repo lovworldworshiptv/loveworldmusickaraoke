@@ -137,6 +137,14 @@ const AdminAppearance = () => {
     [n[i], n[j]] = [n[j], n[i]]; saveLayout(n);
   };
 
+  const [globalColor, setGlobalColor] = useState(DEFAULT_GLOBAL_CARD);
+  useEffect(() => { getSetting<string>(SETTING_KEYS.globalCardColor).then((v) => v && setGlobalColor(v)); }, []);
+  const saveGlobalColor = async (c: string) => {
+    setGlobalColor(c);
+    const { error } = await saveSetting(SETTING_KEYS.globalCardColor, c);
+    error ? toast.error("Could not save") : toast.success("Global card colour saved");
+  };
+
   const setCardColor = async (id: string, color: string | null) => {
     setPlaylists((p) => p.map((x) => (x.id === id ? { ...x, card_color: color } : x)));
     const { error } = await supabase.from("playlists").update({ card_color: color }).eq("id", id);
@@ -351,11 +359,22 @@ const AdminAppearance = () => {
         </Card>
 
         <Card title="Playlist card colours">
-          <p className="text-xs text-muted-foreground mb-3">Used on the home card and its playlist page. Global playlists without a colour use deep purple.</p>
+          <p className="text-xs text-foreground mb-3">Used on the home card and its playlist page. Playlists without their own colour use the global colour below.</p>
+          <div className="rounded-2xl p-3 mb-4 border border-gold/20" style={{ background: cardGradient(globalColor) }}>
+            <div className="flex items-center gap-3">
+              <input type="color" value={globalColor} onChange={(e) => setGlobalColor(e.target.value)} onBlur={(e) => saveGlobalColor(e.target.value)} className="w-10 h-10 rounded-lg bg-transparent border-0" aria-label="Global card colour" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">Global card colour</p>
+                <p className="text-xs text-foreground/90">Live preview · {globalColor.toUpperCase()}</p>
+              </div>
+              <button className="text-xs text-foreground underline" onClick={() => saveGlobalColor(globalColor)}>Save</button>
+              <button className="text-xs text-foreground underline" onClick={() => saveGlobalColor(DEFAULT_GLOBAL_CARD)}>Reset</button>
+            </div>
+          </div>
           <ul className="space-y-2">
             {playlists.map((p) => (
-              <li key={p.id} className="flex items-center gap-3 rounded-xl p-2" style={{ background: cardGradient(p.card_color || DEFAULT_GLOBAL_CARD) }}>
-                <input type="color" value={p.card_color || DEFAULT_GLOBAL_CARD} onChange={(e) => setCardColor(p.id, e.target.value)} className="w-9 h-9 rounded-lg bg-transparent border-0" />
+              <li key={p.id} className="flex items-center gap-3 rounded-xl p-2" style={{ background: cardGradient(p.card_color || globalColor) }}>
+                <input type="color" value={p.card_color || globalColor} onChange={(e) => setCardColor(p.id, e.target.value)} className="w-9 h-9 rounded-lg bg-transparent border-0" />
                 <span className="flex-1 text-sm text-foreground truncate">{p.name}</span>
                 {p.card_color && <button className="text-xs text-foreground underline" onClick={() => setCardColor(p.id, null)}>Clear</button>}
               </li>
