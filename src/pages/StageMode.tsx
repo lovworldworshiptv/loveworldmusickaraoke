@@ -27,6 +27,7 @@ const StageMode = () => {
   const [controlsVisible, setControlsVisible] = useState(true);
   const [audioOn, setAudioOn] = useState(volume > 0);
   const [manualScroll, setManualScroll] = useState(false);
+  const previousVolume = useRef(volume > 0 ? volume : 0.7);
   const setting = useSetting<StageModeSetting>(SETTING_KEYS.stageMode);
   const stage = { ...DEFAULT_STAGE_MODE, ...(setting || {}) };
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -65,9 +66,9 @@ const StageMode = () => {
 
   // Keep the active lyric line centered.
   useEffect(() => {
-    if (!hasSync || activeLrcIndex < 0) return;
+    if (manualScroll || !hasSync || activeLrcIndex < 0) return;
     lineRefs.current[activeLrcIndex]?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [activeLrcIndex, hasSync]);
+  }, [activeLrcIndex, hasSync, manualScroll]);
 
   // Unsynced lyrics: slow auto-scroll across the song's duration.
   useEffect(() => {
@@ -129,8 +130,9 @@ const StageMode = () => {
           <button
             onClick={() => {
               const next = !audioOn;
+              if (!next && volume > 0) previousVolume.current = volume;
               setAudioOn(next);
-              setVolume(next ? 0.7 : 0);
+              setVolume(next ? previousVolume.current : 0);
             }}
             aria-label={audioOn ? "Turn audio off" : "Turn audio on"}
             className="w-10 h-10 rounded-full bg-foreground/10 backdrop-blur flex items-center justify-center"
