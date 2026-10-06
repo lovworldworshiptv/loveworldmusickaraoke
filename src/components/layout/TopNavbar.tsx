@@ -31,7 +31,7 @@ const TopNavbar = () => {
         )}
         {isHome ? (
           <div>
-            <p className="text-sm text-muted-foreground tracking-wide">Welcome Esteemed</p>
+            <p className="text-sm text-white tracking-wide">Welcome Esteemed</p>
             <h1 className="text-lg font-serif font-bold gradient-gold-text leading-tight">{username}</h1>
           </div>
         ) : (
