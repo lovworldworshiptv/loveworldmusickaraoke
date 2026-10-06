@@ -42,6 +42,9 @@ interface PlayerContextType {
   trackEndCount: number;
   playSong: (song: PlayerSong) => void;
   playQueue: (songs: PlayerSong[], startIndex?: number) => void;
+  playVideo: (song: PlayerSong) => void;
+  videoModeRequest: boolean;
+  clearVideoModeRequest: () => void;
   togglePlay: () => void;
   toggleKaraoke: () => void;
   toggleExpanded: () => void;
@@ -120,6 +123,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isKaraoke, setIsKaraoke] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [videoModeRequest, setVideoModeRequest] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
