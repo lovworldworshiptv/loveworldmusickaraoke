@@ -462,6 +462,41 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_discover: {
+        Row: {
+          created_at: string
+          discover_date: string
+          id: string
+          reason: string | null
+          song_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          discover_date?: string
+          id?: string
+          reason?: string | null
+          song_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          discover_date?: string
+          id?: string
+          reason?: string | null
+          song_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_discover_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       downloads: {
         Row: {
           downloaded_at: string
@@ -1077,6 +1112,36 @@ export type Database = {
         }
         Relationships: []
       }
+      languages: {
+        Row: {
+          code: string
+          created_at: string
+          is_active: boolean
+          is_rtl: boolean
+          name: string
+          native_name: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          is_active?: boolean
+          is_rtl?: boolean
+          name: string
+          native_name: string
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          is_active?: boolean
+          is_rtl?: boolean
+          name?: string
+          native_name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           action_url: string | null
@@ -1160,6 +1225,44 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      play_events: {
+        Row: {
+          created_at: string
+          id: string
+          language_code: string | null
+          mode: string
+          seconds_played: number
+          song_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          language_code?: string | null
+          mode?: string
+          seconds_played?: number
+          song_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          language_code?: string | null
+          mode?: string
+          seconds_played?: number
+          song_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "play_events_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       playlist_songs: {
         Row: {
@@ -1428,6 +1531,168 @@ export type Database = {
           },
         ]
       }
+      song_audio_versions: {
+        Row: {
+          audio_url: string | null
+          bitrate_kbps: number | null
+          created_at: string
+          error: string | null
+          id: string
+          kind: string
+          language_code: string
+          song_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          audio_url?: string | null
+          bitrate_kbps?: number | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind?: string
+          language_code: string
+          song_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          audio_url?: string | null
+          bitrate_kbps?: number | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind?: string
+          language_code?: string
+          song_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "song_audio_versions_language_code_fkey"
+            columns: ["language_code"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "song_audio_versions_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      song_lyrics: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_machine_translated: boolean
+          is_verified: boolean
+          language_code: string
+          lyrics_lrc: string | null
+          lyrics_text: string | null
+          song_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_machine_translated?: boolean
+          is_verified?: boolean
+          language_code: string
+          lyrics_lrc?: string | null
+          lyrics_text?: string | null
+          song_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_machine_translated?: boolean
+          is_verified?: boolean
+          language_code?: string
+          lyrics_lrc?: string | null
+          lyrics_text?: string | null
+          song_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "song_lyrics_language_code_fkey"
+            columns: ["language_code"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "song_lyrics_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      song_videos: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          is_active: boolean
+          language_code: string
+          offset_ms: number
+          song_id: string
+          thumbnail_url: string | null
+          video_type: string
+          video_url: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          is_active?: boolean
+          language_code?: string
+          offset_ms?: number
+          song_id: string
+          thumbnail_url?: string | null
+          video_type?: string
+          video_url: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          is_active?: boolean
+          language_code?: string
+          offset_ms?: number
+          song_id?: string
+          thumbnail_url?: string | null
+          video_type?: string
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "song_videos_language_code_fkey"
+            columns: ["language_code"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "song_videos_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       songs: {
         Row: {
           album: string | null
@@ -1437,7 +1702,9 @@ export type Database = {
           category_id: string | null
           cover_url: string | null
           created_at: string
+          dominant_color: string | null
           duration_seconds: number
+          has_video: boolean
           id: string
           instrumental_url: string | null
           is_featured: boolean
@@ -1445,8 +1712,10 @@ export type Database = {
           is_top: boolean
           lyrics_lrc: string | null
           lyrics_text: string | null
+          original_language: string
           play_count: number
           title: string
+          total_sung: number
         }
         Insert: {
           album?: string | null
@@ -1456,7 +1725,9 @@ export type Database = {
           category_id?: string | null
           cover_url?: string | null
           created_at?: string
+          dominant_color?: string | null
           duration_seconds?: number
+          has_video?: boolean
           id?: string
           instrumental_url?: string | null
           is_featured?: boolean
@@ -1464,8 +1735,10 @@ export type Database = {
           is_top?: boolean
           lyrics_lrc?: string | null
           lyrics_text?: string | null
+          original_language?: string
           play_count?: number
           title: string
+          total_sung?: number
         }
         Update: {
           album?: string | null
@@ -1475,7 +1748,9 @@ export type Database = {
           category_id?: string | null
           cover_url?: string | null
           created_at?: string
+          dominant_color?: string | null
           duration_seconds?: number
+          has_video?: boolean
           id?: string
           instrumental_url?: string | null
           is_featured?: boolean
@@ -1483,8 +1758,10 @@ export type Database = {
           is_top?: boolean
           lyrics_lrc?: string | null
           lyrics_text?: string | null
+          original_language?: string
           play_count?: number
           title?: string
+          total_sung?: number
         }
         Relationships: [
           {
@@ -1663,6 +1940,36 @@ export type Database = {
           },
         ]
       }
+      user_preferences: {
+        Row: {
+          created_at: string
+          data_saver: boolean
+          default_mode: string
+          favorite_moods: string[]
+          preferred_languages: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_saver?: boolean
+          default_mode?: string
+          favorite_moods?: string[]
+          preferred_languages?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_saver?: boolean
+          default_mode?: string
+          favorite_moods?: string[]
+          preferred_languages?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -1819,6 +2126,13 @@ export type Database = {
           username: string
         }[]
       }
+      get_daily_discover: {
+        Args: never
+        Returns: {
+          reason: string
+          song_id: string
+        }[]
+      }
       get_public_karaoke: {
         Args: { p_user_id: string }
         Returns: {
@@ -1849,6 +2163,20 @@ export type Database = {
           title: string
         }[]
       }
+      get_quick_picks: {
+        Args: { p_limit?: number }
+        Returns: {
+          song_id: string
+          source: string
+        }[]
+      }
+      get_trending: {
+        Args: { p_days?: number; p_limit?: number }
+        Returns: {
+          plays: number
+          song_id: string
+        }[]
+      }
       has_active_premium: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
@@ -1873,6 +2201,15 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      record_play: {
+        Args: {
+          p_language?: string
+          p_mode?: string
+          p_seconds?: number
+          p_song_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

@@ -1,0 +1,2 @@
+- v2 media data lives in child tables (song_lyrics, song_audio_versions, song_videos) keyed by song + language; songs columns stay as legacy defaults — why: non-destructive multi-language extension.
+- Plays are logged only via the record_play RPC into play_events (no client inserts); discovery reads go through get_trending/get_quick_picks/get_daily_discover — why: privacy and consistent counters.
