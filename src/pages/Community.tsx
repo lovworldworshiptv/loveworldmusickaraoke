@@ -70,14 +70,24 @@ const Community = () => {
   const [loadingCommunities, setLoadingCommunities] = useState(true);
   const feedRef = useRef<HTMLDivElement>(null);
 
-  const loadCommunities = useCallback(async () => {
-    const { data } = await supabase.from("communities").select("*").eq("is_active", true).order("sort_order");
-    const rows = (data || []) as CommunityRow[];
-    const { data: counts } = await (supabase.rpc as any)("get_community_member_counts");
-    const countMap = new Map<string, number>(((counts || []) as { community_id: string; member_count: number }[]).map((r) => [r.community_id, Number(r.member_count)]));
-    const withCounts = rows.map((c) => ({ ...c, member_count: countMap.get(c.id) || 0 }));
-    setCommunities(withCounts);
-    setLoadingCommunities(false);
+  const loadCommunities = useCallback(async (attempt = 0): Promise<void> => {
+    try {
+      const { data, error } = await supabase.from("communities").select("*").eq("is_active", true).order("sort_order");
+      if (error) throw error;
+      const rows = (data || []) as CommunityRow[];
+      let countMap = new Map<string, number>();
+      try {
+        const { data: counts } = await (supabase.rpc as any)("get_community_member_counts");
+        countMap = new Map(((counts || []) as { community_id: string; member_count: number }[]).map((r) => [r.community_id, Number(r.member_count)]));
+      } catch { /* counts are optional */ }
+      setCommunities(rows.map((c) => ({ ...c, member_count: countMap.get(c.id) || 0 })));
+      setLoadingCommunities(false);
+    } catch (e) {
+      if (attempt < 2) { setTimeout(() => loadCommunities(attempt + 1), 1000 * (attempt + 1)); return; }
+      console.error("Failed to load communities", e);
+      toast.error("Couldn't load communities. Please try again.");
+      setLoadingCommunities(false);
+    }
   }, []);
 
   useEffect(() => { loadCommunities(); }, [loadCommunities]);
