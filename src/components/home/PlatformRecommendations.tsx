@@ -35,8 +35,8 @@ const PlatformRecommendations = () => {
           const fuchsia = isFuchsiaCard(p.name);
           return (
             <button key={p.id} onClick={() => navigate(`/collection/${p.id}`)}
-              className={`snap-start flex-shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] rounded-2xl p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${fuchsia ? "border border-fuchsia-400/40 shadow-[0_4px_20px_hsl(320_90%_45%/0.35)]" : "glass-card hover:border-gold/40"}`}
-              style={fuchsia ? { background: "linear-gradient(135deg, hsl(320 85% 16%) 0%, hsl(320 95% 38%) 55%, hsl(320 100% 55%) 100%)" } : undefined}>
+              className={`snap-start flex-shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] rounded-2xl p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${fuchsia ? "border border-amber-400/30 shadow-[0_4px_20px_hsl(30_70%_25%/0.45)]" : "glass-card hover:border-gold/40"}`}
+              style={fuchsia ? { background: "linear-gradient(135deg, hsl(25 50% 10%) 0%, hsl(28 55% 24%) 55%, hsl(32 65% 38%) 100%)" } : undefined}>
               <div className="flex gap-3">
                 <div className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-muted">
                   {cover ? <img src={cover} alt="" loading="lazy" className="w-full h-full object-cover" /> :
