@@ -43,7 +43,7 @@ const Collection = () => {
 
   const queue = songs.map(toPlayerSong);
   const autoDescription = songs.length
-    ? `${songs.length} songs · ${[...new Set(songs.slice(0, 3).map((s) => s.artist))].join(", ")}${songs.length > 3 ? " and more" : ""}`
+    ? `${songs.length} songs · ${songs.slice(0, 3).map((s) => s.title).join(", ")}${songs.length > 3 ? " and more" : ""}`
     : "This playlist has no songs yet";
 
   return (
