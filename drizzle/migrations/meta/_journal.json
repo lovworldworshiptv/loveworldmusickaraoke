@@ -22,6 +22,13 @@
       "when": 1791258766256,
       "tag": "0002_add_song_motion_artwork",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791259883139,
+      "tag": "0003_phase4_stem_automation",
+      "breakpoints": true
     }
   ]
 }
