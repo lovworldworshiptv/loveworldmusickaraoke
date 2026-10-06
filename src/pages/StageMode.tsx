@@ -194,7 +194,7 @@ const StageMode = () => {
         </div>
       </div>
 
-      <div className={`absolute top-28 right-4 z-30 transition-opacity duration-500 ${controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+      <div className={`absolute top-28 right-4 z-40 transition-opacity duration-500 ${controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
         <Button
           type="button"
           size="icon"
