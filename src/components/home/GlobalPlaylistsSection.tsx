@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { ListMusic, Play } from "lucide-react";
-import { cardGradient, useGlobalCardColor } from "@/lib/siteSettings";
+import { cardGradient, GLOBAL_PLAYLISTS_CARD } from "@/lib/siteSettings";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 
 interface PlaylistSongRow {
@@ -45,7 +45,7 @@ const GlobalPlaylistsSection = () => {
   const [playlists, setPlaylists] = useState<GlobalPlaylist[]>([]);
   const navigate = useNavigate();
   const { playQueue } = usePlayer();
-  const globalColor = useGlobalCardColor();
+  const globalColor = GLOBAL_PLAYLISTS_CARD;
 
   useEffect(() => {
     const fetchGlobalPlaylists = async () => {
