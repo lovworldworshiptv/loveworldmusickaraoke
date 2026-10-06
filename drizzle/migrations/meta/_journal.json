@@ -64,6 +64,13 @@
       "when": 1791288744210,
       "tag": "0008_community_members_only_and_rate_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791293780121,
+      "tag": "0009_community_scoped_moderators",
+      "breakpoints": true
     }
   ]
 }

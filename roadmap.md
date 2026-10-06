@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Admin-only community management and community-scoped moderator appointments; signed-in permission regressions pass and admin search dialog verified.
+
 - [x] Community directory/detail pages, admin-editable profile images, white text, and neutral grey page background.
 
 - [x] Reference-matched community card colours with admin colour picker, live preview, and saved per-community settings.

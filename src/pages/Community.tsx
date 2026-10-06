@@ -8,10 +8,11 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Heart, MessageCircle, Play, Plus, Send, Share2, Sparkles, Trash2, Users, X, Music4, Flame, BookOpen, Sunrise, Globe, Check, Palette, Camera, ArrowLeft } from "lucide-react";
+import { Heart, MessageCircle, Play, Plus, Send, Share2, Sparkles, Trash2, Users, X, Music4, Flame, BookOpen, Sunrise, Globe, Check, Palette, Camera, ArrowLeft, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import communityHero from "@/assets/community-hero.jpg";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
+import CommunityModeratorsDialog from "@/components/community/CommunityModeratorsDialog";
 import { useSetting, getSetting, saveSetting, SETTING_KEYS, hexToHsl } from "@/lib/siteSettings";
 
 const rateMsg = (e: { message?: string } | null) =>
@@ -39,6 +40,8 @@ const Community = () => {
   const activeId = communityId || null;
   const activeCommunity = communities.find((c) => c.id === activeId);
   const [memberIds, setMemberIds] = useState<Set<string>>(new Set());
+  const [moderatorIds, setModeratorIds] = useState<Set<string>>(new Set());
+  const [moderatingCommunity, setModeratingCommunity] = useState<CommunityRow | null>(null);
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [content, setContent] = useState("");
   const [attachedSong, setAttachedSong] = useState<PostRow["song"]>(null);
@@ -83,6 +86,15 @@ const Community = () => {
   }, [user, communities]);
 
   const isMember = activeId ? memberIds.has(activeId) : false;
+  const canModerate = isAdmin || (!!activeId && isMember && moderatorIds.has(activeId));
+
+  useEffect(() => {
+    let cancelled = false;
+    setModeratorIds(new Set());
+    if (user) supabase.from("community_moderators").select("community_id").eq("user_id", user.id)
+      .then(({ data }) => { if (!cancelled) setModeratorIds(new Set((data || []).map((row) => row.community_id))); });
+    return () => { cancelled = true; };
+  }, [user?.id, activeId, memberIds]);
 
   const loadPosts = useCallback(async (communityId: string) => {
     let query = supabase
@@ -206,8 +218,16 @@ const Community = () => {
   };
 
   const deletePost = async (postId: string) => {
-    await supabase.from("community_posts").delete().eq("id", postId);
+    const { data, error } = await supabase.from("community_posts").delete().eq("id", postId).select("id");
+    if (error || !data?.length) { toast.error("Could not remove this post"); return; }
     setPosts((p) => p.filter((x) => x.id !== postId));
+  };
+
+  const deleteComment = async (postId: string, commentId: string) => {
+    const { data, error } = await supabase.from("community_post_comments").delete().eq("id", commentId).select("id");
+    if (error || !data?.length) { toast.error("Could not remove this comment"); return; }
+    setOpenComments((current) => ({ ...current, [postId]: (current[postId] || []).filter((comment) => comment.id !== commentId) }));
+    setPosts((current) => current.map((post) => post.id === postId ? { ...post, comment_count: Math.max(0, post.comment_count - 1) } : post));
   };
 
   const sharePost = async (post: PostRow) => {
@@ -221,7 +241,7 @@ const Community = () => {
   };
 
   const createCommunity = async () => {
-    if (!newName.trim()) return;
+    if (!isAdmin || !user || !newName.trim()) return;
     const { error } = await supabase.from("communities").insert({ name: newName.trim(), description: newDesc.trim() || null, created_by: user?.id || null });
     if (!error) { setManageOpen(false); setNewName(""); setNewDesc(""); loadCommunities(); toast.success("Community created"); }
     else toast.error("That name may already exist");
@@ -328,6 +348,10 @@ const Community = () => {
                     <Users className="w-3.5 h-3.5 text-foreground" /> {(c.member_count || 0).toLocaleString()}
                   </span>
                   {isAdmin && (
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-foreground" title="Manage moderators" aria-label={`Manage ${c.name} moderators`}
+                      onClick={(e) => { e.stopPropagation(); setModeratingCommunity(c); }}><ShieldCheck className="w-4 h-4" /></Button>
+                  )}
+                  {isAdmin && (
                     <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto text-foreground" title="Edit profile image" aria-label={`Edit ${c.name} profile image`}
                       onClick={(e) => { e.stopPropagation(); setEditingImage(c); setImageDraft(c.cover_url || ""); }}><Camera className="w-4 h-4" /></Button>
                   )}
@@ -413,8 +437,8 @@ const Community = () => {
                   <p className="text-[11px] text-foreground">{timeAgo(post.created_at)}</p>
                 </div>
                 <button onClick={() => sharePost(post)} className="p-2 rounded-full hover:bg-muted text-foreground hover:text-foreground" title="Share"><Share2 className="w-4 h-4" /></button>
-                {(isAdmin || post.user_id === user?.id) && (
-                  <button onClick={() => deletePost(post.id)} className="p-2 rounded-full hover:bg-destructive/10 text-foreground hover:text-foreground" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                {(canModerate || post.user_id === user?.id) && (
+                  <Button variant="ghost" size="icon" onClick={() => deletePost(post.id)} className="h-8 w-8 rounded-full text-foreground" title="Delete post" aria-label="Delete post"><Trash2 className="w-4 h-4" /></Button>
                 )}
               </div>
               <p className="text-sm text-foreground mt-3 whitespace-pre-wrap break-words">{post.content}</p>
@@ -448,6 +472,7 @@ const Community = () => {
                         <p className="text-[11px] font-semibold text-foreground">{c.author_name}</p>
                         <p className="text-xs text-foreground break-words">{c.content}</p>
                       </div>
+                      {(canModerate || c.user_id === user?.id) && <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-foreground" aria-label="Delete comment" title="Delete comment" onClick={() => deleteComment(post.id, c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>}
                     </div>
                   ))}
                   <div className="flex gap-2">
@@ -465,7 +490,8 @@ const Community = () => {
         </>}
       </div>
 
-      <Dialog open={!!editingImage} onOpenChange={(open) => { if (!open) setEditingImage(null); }}>
+      {isAdmin && <CommunityModeratorsDialog community={moderatingCommunity} onClose={() => setModeratingCommunity(null)} />}
+      <Dialog open={isAdmin && !!editingImage} onOpenChange={(open) => { if (!open) setEditingImage(null); }}>
         <DialogContent className="community-page glass-card border-gold/20 rounded-2xl">
           <DialogHeader><DialogTitle>Community profile image</DialogTitle></DialogHeader>
           <ImageUploadPicker bucket="song-covers" label="Profile image" value={imageDraft} onChange={setImageDraft} />
