@@ -289,23 +289,6 @@ const Community = () => {
           })}
         </div>
 
-        {activeCommunity && (
-          <div className="glass-card rounded-2xl px-4 py-3 mt-4 flex items-center justify-between">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate">{activeCommunity.name}</p>
-              {activeCommunity.description && <p className="text-xs text-foreground/70 truncate">{activeCommunity.description}</p>}
-            </div>
-            {user ? (
-              <Button size="sm" variant={isMember ? "secondary" : "default"} onClick={() => toggleMembership(activeId!)}
-                className={isMember ? "rounded-full text-foreground" : goldBtn}>
-                <Users className="w-4 h-4 mr-1" /> {isMember ? "Joined" : "Join"}
-              </Button>
-            ) : (
-              <Link to="/auth"><Button size="sm" className={goldBtn}>Sign in</Button></Link>
-            )}
-          </div>
-        )}
-
         {isMember && (
           <div className="glass-card rounded-2xl p-4 mt-4">
             <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={3}
