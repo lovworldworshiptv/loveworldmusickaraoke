@@ -38,6 +38,7 @@ import AdminSubscriptions from "./pages/AdminSubscriptions";
 import AdminKaraokeStories from "./pages/AdminKaraokeStories";
 import Profile from "./pages/Profile";
 import PublicProfile from "./pages/PublicProfile";
+import Community from "./pages/Community";
 import Discover from "./pages/Discover";
 import History from "./pages/History";
 import Playlists from "./pages/Playlists";
@@ -105,6 +106,7 @@ const App = () => (
                 <Route path="/videos" element={<AuthGate><Videos /></AuthGate>} />
                 <Route path="/collection/:id" element={<Collection />} />
                 <Route path="/moments" element={<AuthGate><Moments /></AuthGate>} />
+                <Route path="/community" element={<AuthGate><Community /></AuthGate>} />
                 <Route path="/stage" element={<AuthGate><StageMode /></AuthGate>} />
                 <Route path="/studio" element={<Studio />} />
                 <Route path="/category/:id" element={<AuthGate><CategorySongs /></AuthGate>} />

@@ -3,7 +3,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsEditor } from "@/hooks/useIsEditor";
-import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer, FileAudio, ChevronDown, Rewind, FastForward, Pencil, Check, CheckCircle, Wand2, Loader2, Search, SlidersHorizontal } from "lucide-react";
+import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer, FileAudio, ChevronDown, Rewind, FastForward, Pencil, Check, CheckCircle, Wand2, Loader2, Search, SlidersHorizontal, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
@@ -11,6 +11,7 @@ import { sortSongsByTitle, compareTitles } from "@/lib/utils";
 import { Video } from "lucide-react";
 import SongVideosManager from "@/components/admin/SongVideosManager";
 import StemStudio, { callStemAdmin, type StemStatus } from "@/components/admin/StemStudio";
+import AdminLyricsManager from "@/components/admin/AdminLyricsManager";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -174,6 +175,7 @@ const AdminSongs = () => {
   };
   const [loading, setLoading] = useState(true);
   const [videoSong, setVideoSong] = useState<{ id: string; title: string } | null>(null);
+  const [lyricsSong, setLyricsSong] = useState<{ id: string; title: string } | null>(null);
   const fetchSongsRef = useRef<(() => void) | null>(null);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
   const [editMode, setEditMode] = useState<"lrc" | "sync" | "details">("lrc");
@@ -980,6 +982,11 @@ const AdminSongs = () => {
                       <CheckCircle className="w-3 h-3 text-green-500 absolute -top-0.5 -right-0.5" />
                     )}
                   </button>
+                  <button onClick={() => setLyricsSong({ id: song.id, title: song.title })}
+                    className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors relative" title="Lyrics & Languages">
+                    <Languages className="w-4 h-4" />
+                    {(song as any).lyrics_language_count > 1 && <CheckCircle className="w-3 h-3 text-green-500 absolute -top-0.5 -right-0.5" />}
+                  </button>
                   {!isEditorOnly && (
                     <button onClick={() => setVideoSong({ id: song.id, title: song.title })}
                       className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors relative" title="Manage Videos">
@@ -1003,6 +1010,11 @@ const AdminSongs = () => {
         songId={videoSong?.id ?? null}
         songTitle={videoSong?.title}
         onClose={() => { setVideoSong(null); fetchSongsRef.current?.(); }}
+      />
+      <AdminLyricsManager
+        songId={lyricsSong?.id ?? null}
+        songTitle={lyricsSong?.title}
+        onClose={() => setLyricsSong(null)}
       />
     </AppLayout>
   );
