@@ -3,12 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { fetchSongsByIds, toPlayerSong, type SongRow } from "@/lib/homeSongs";
 import { Play, Sparkles, Mic2 } from "lucide-react";
+import { useDominantColor } from "@/lib/dominantColor";
 
 /** Once-a-day personal pick with ambient artwork background. */
 const DailyDiscover = () => {
   const [song, setSong] = useState<SongRow | null>(null);
   const [reason, setReason] = useState("");
   const { playSong, toggleKaraoke, isKaraoke } = usePlayer();
+  const dominant = useDominantColor(song?.cover_url);
 
   useEffect(() => {
     supabase.rpc("get_daily_discover").then(async ({ data }) => {
@@ -28,9 +30,27 @@ const DailyDiscover = () => {
 
   return (
     <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" aria-label="Daily Discover">
-      <div className="relative overflow-hidden rounded-2xl border border-gold/30 shadow-[0_8px_40px_hsl(43_70%_53%/0.15)]">
+      <div
+        className="relative overflow-hidden rounded-2xl border border-gold/30 transition-shadow duration-700"
+        style={{
+          boxShadow: dominant
+            ? `0 8px 40px rgba(${dominant[0]}, ${dominant[1]}, ${dominant[2]}, 0.35)`
+            : "0 8px 40px hsl(43 70% 53% / 0.15)",
+          backgroundColor: dominant
+            ? `rgba(${dominant[0]}, ${dominant[1]}, ${dominant[2]}, 0.25)`
+            : undefined,
+        }}
+      >
         {song.cover_url && (
           <img src={song.cover_url} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover scale-125 blur-2xl opacity-50" />
+        )}
+        {dominant && (
+          <div
+            className="absolute inset-0 transition-opacity duration-700"
+            style={{
+              background: `linear-gradient(120deg, rgba(${dominant[0]}, ${dominant[1]}, ${dominant[2]}, 0.55), rgba(${dominant[0]}, ${dominant[1]}, ${dominant[2]}, 0.15))`,
+            }}
+          />
         )}
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-background/40" />
         <div className="relative flex items-center gap-4 p-4 md:p-6">
