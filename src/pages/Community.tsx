@@ -306,7 +306,7 @@ const Community = () => {
             const joined = memberIds.has(c.id);
             const color = hexToHsl(communityColors[c.id] || "");
             return (
-              <div key={c.id}
+              <div key={c.id} onClick={() => { if (!activeId) navigate(`/community/${c.id}`); }}
                 style={color ? { "--community-color": color } as CSSProperties : undefined}
                 className={`glass-card ${color ? "community-color-card" : ""} rounded-2xl p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-[0_10px_30px_-12px_rgba(201,162,39,0.5)] ${active ? "border-gold/70 ring-1 ring-gold/40" : ""}`}>
                 <div className="flex items-start gap-3">
@@ -329,7 +329,7 @@ const Community = () => {
                   </span>
                   {isAdmin && (
                     <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto text-foreground" title="Edit profile image" aria-label={`Edit ${c.name} profile image`}
-                      onClick={() => { setEditingImage(c); setImageDraft(c.cover_url || ""); }}><Camera className="w-4 h-4" /></Button>
+                      onClick={(e) => { e.stopPropagation(); setEditingImage(c); setImageDraft(c.cover_url || ""); }}><Camera className="w-4 h-4" /></Button>
                   )}
                   {isAdmin && (
                     <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto mr-2 text-foreground" title="Edit background colour" aria-label={`Edit ${c.name} background colour`}
