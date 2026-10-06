@@ -30,7 +30,7 @@ const MoodCapsules = ({ value, onChange }: Props) => {
               aria-selected={active}
               onClick={() => onChange(m)}
               className={cn(
-                "flex-shrink-0 rounded-full px-4 py-2 text-xs font-semibold border transition-all duration-300 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold",
+                "flex-shrink-0 snap-start rounded-full px-4 py-2 text-xs font-semibold border transition-all duration-300 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold",
                 active
                   ? "gradient-gold text-primary-foreground border-transparent shadow-[0_0_18px_hsl(43_70%_53%/0.35)] hover:shadow-[0_0_26px_hsl(43_70%_53%/0.5)] hover:-translate-y-px"
                   : "glass border-border text-white hover:border-gold/60 hover:bg-gold/10 hover:-translate-y-px hover:shadow-[0_4px_16px_hsl(43_70%_53%/0.2)]"
