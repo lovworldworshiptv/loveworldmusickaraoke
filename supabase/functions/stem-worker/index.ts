@@ -29,15 +29,24 @@ Deno.serve(async (req) => {
   if (!got) return json({ skipped: "locked" });
 
   const report = { checked: 0, finished: 0, failed: 0, started: 0 };
+  const notify = (type: string, title: string, message: string, metadata: Record<string, unknown>) =>
+    admin.from("admin_notifications").insert({ type, title, message, metadata }).then(({ error }) => {
+      if (error) console.error("notify failed", error.message);
+    });
   const pause = async (reason: string) => {
     await admin.from("stem_worker_state").update({ paused_reason: reason, paused_at: new Date().toISOString() }).eq("id", 1);
+    await notify("stem_paused", "Stem splitting paused", reason, {});
   };
-  const failRow = async (row: { id: string; attempts: number }, error: string) => {
+  const failRow = async (row: { id: string; attempts: number; song_id?: string; songTitle?: string }, error: string) => {
     const attempts = row.attempts + 1;
+    const final = attempts >= MAX_ATTEMPTS;
     await admin.from("song_audio_versions").update({
-      status: attempts >= MAX_ATTEMPTS ? "failed" : "pending", attempts, error, prediction_id: null,
+      status: final ? "failed" : "pending", attempts, error, prediction_id: null,
     }).eq("id", row.id);
     report.failed++;
+    if (final) {
+      await notify("stem_failed", `Stem split failed: ${row.songTitle ?? "a song"}`, `${error} — needs a retry from Stem Studio.`, { song_id: row.song_id ?? null });
+    }
   };
 
   try {
