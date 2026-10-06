@@ -35,7 +35,7 @@ const PlatformRecommendations = () => {
           const unendingPraise = isUnendingPraiseCard(p.name);
           return (
             <button key={p.id} onClick={() => navigate(`/collection/${p.id}`)}
-              className={`snap-start flex-shrink-0 w-full md:w-[calc((100%-0.75rem)/2)] lg:w-[calc((100%-2.25rem)/3.25)] h-36 rounded-2xl p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${unendingPraise ? "border-0 shadow-[0_4px_20px_hsl(30_70%_25%/0.45)]" : "glass-card hover:border-gold/40"}`}
+              className={`snap-start flex-shrink-0 w-full md:w-[calc(50%_-_0.375rem)] lg:w-[29.6%] h-36 rounded-2xl p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${unendingPraise ? "border-0 shadow-[0_4px_20px_hsl(30_70%_25%/0.45)]" : "glass-card hover:border-gold/40"}`}
               style={unendingPraise ? { background: "linear-gradient(135deg, hsl(25 50% 10%) 0%, hsl(28 55% 24%) 55%, hsl(32 65% 38%) 100%)" } : undefined}>
               <div className="flex h-full gap-3">
                 <div className="aspect-square h-full rounded-xl overflow-hidden flex-shrink-0 bg-muted">
