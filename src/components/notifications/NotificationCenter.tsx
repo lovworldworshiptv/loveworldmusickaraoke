@@ -79,7 +79,7 @@ const NotificationCenter = () => {
     <>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <button className="relative w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+          <button className="relative w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/70 hover:scale-105 hover:shadow-[0_0_14px_hsl(43_70%_53%/0.25)] transition-all duration-200 ease-out active:scale-90">
             <Bell className="w-5 h-5" />
             {unreadCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center min-w-[18px] h-[18px]">

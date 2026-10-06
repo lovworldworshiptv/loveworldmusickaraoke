@@ -61,7 +61,7 @@ const ProfileMenu = () => {
     <>
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <button className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold font-serif transition-opacity overflow-hidden ${user ? "gradient-gold text-primary-foreground hover:opacity-90" : "bg-muted text-muted-foreground hover:text-foreground"}`}>
+        <button className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold font-serif transition-all duration-200 ease-out overflow-hidden hover:scale-105 active:scale-90 ${user ? "gradient-gold text-primary-foreground hover:shadow-[0_0_16px_hsl(43_70%_53%/0.45)]" : "bg-muted text-muted-foreground hover:text-foreground hover:shadow-[0_0_14px_hsl(43_70%_53%/0.25)]"}`}>
           {user ? (avatarUrl ? <img src={avatarUrl} alt={username} className="w-full h-full object-cover" /> : username.charAt(0).toUpperCase()) : <User className="w-5 h-5" />}
         </button>
       </PopoverTrigger>
