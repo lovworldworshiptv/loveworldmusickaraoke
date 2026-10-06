@@ -232,6 +232,7 @@ const AdminSongs = () => {
     if (data) setSongs(sortSongsByTitle(data));
     setLoading(false);
   };
+  fetchSongsRef.current = fetchSongs;
 
   const handleSaveLyrics = async () => {
     if (!editingSong) return;
