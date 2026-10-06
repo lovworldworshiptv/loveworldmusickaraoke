@@ -124,7 +124,7 @@ const MomentCard = ({
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/80 to-transparent" />
 
       {/* Right rail actions */}
-      <div className="absolute right-3 bottom-32 flex flex-col items-center gap-5 z-10">
+      <div className="absolute right-3 bottom-44 flex flex-col items-center gap-5 z-10">
         <button
           onClick={toggleLike}
           aria-label={liked ? "Unlike" : "Like"}
@@ -180,7 +180,7 @@ const MomentCard = ({
       </div>
 
       {/* Bottom info */}
-      <div className="absolute left-4 right-20 bottom-24 z-10">
+      <div className="absolute left-4 right-20 bottom-36 z-10">
         <span className="inline-block text-[10px] font-semibold uppercase tracking-wide bg-black/60 backdrop-blur px-2 py-0.5 rounded-full text-amber-300 mb-2">
           {TYPE_LABEL[moment.video_type] || "Video"}
         </span>
