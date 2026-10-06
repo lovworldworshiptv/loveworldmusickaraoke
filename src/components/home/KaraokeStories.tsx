@@ -177,7 +177,7 @@ const KaraokeStories = () => {
           </div>
         </div>
 
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide py-1">
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide py-1 snap-x touch-pan-x overscroll-x-contain">
           {uniqueStories.map((story) => (
             <button
               key={story.id}
