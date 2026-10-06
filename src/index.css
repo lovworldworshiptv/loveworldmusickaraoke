@@ -103,7 +103,7 @@
 }
 
 @layer utilities {
-  .community-color-card {
+  .community-color-card, .glass-card.community-color-card {
     background: hsl(var(--community-color));
     --foreground: var(--community-foreground);
   }
