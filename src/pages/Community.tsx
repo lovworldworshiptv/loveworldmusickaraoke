@@ -219,7 +219,6 @@ const Community = () => {
     return `${Math.floor(h / 24)}d ago`;
   };
 
-  const activeCommunity = communities.find((c) => c.id === activeId);
   const totalMembers = communities.reduce((sum, c) => sum + (c.member_count || 0), 0);
   const goldBtn = "rounded-full bg-gradient-to-r from-[#c9a227] to-[#8b6914] text-white font-semibold";
 
