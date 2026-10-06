@@ -55,7 +55,7 @@ const ModeSongRail = ({ mode, eyebrow, title }: Props) => {
               </span>
             </div>
             <p className="text-sm font-medium text-foreground truncate mt-2">{s.title}</p>
-            <p className="text-xs text-muted-foreground truncate">{s.artist}</p>
+            <p className="text-xs text-foreground truncate">{s.artist}</p>
           </button>
         ))}
       </div>

@@ -74,7 +74,7 @@ const QuickPicks = ({ moodId, moodName }: Props) => {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className={cn("text-sm font-medium truncate", active ? "text-gold" : "text-foreground")}>{s.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{s.artist}</p>
+                    <p className="text-xs text-foreground truncate">{s.artist}</p>
                   </div>
                 </button>
               );

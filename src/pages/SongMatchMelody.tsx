@@ -278,7 +278,7 @@ const SongMatchMelody = () => {
                   {a.correct ? <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" /> : <XCircle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />}
                   <div>
                     <p className="font-medium text-foreground">{a.question.correctTitle}</p>
-                    <p className="text-muted-foreground">by {a.question.artist}</p>
+                    <p className="text-foreground">by {a.question.artist}</p>
                     {!a.correct && <p className="text-destructive">You answered: {a.userAnswer}</p>}
                   </div>
                 </div>

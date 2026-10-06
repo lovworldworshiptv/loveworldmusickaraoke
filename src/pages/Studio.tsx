@@ -219,7 +219,7 @@ const Studio = () => {
                         </button>
                         <div className="flex-1 min-w-0">
                           <p className={`text-sm font-medium truncate ${active ? "text-gold" : "text-foreground"}`}>{t.title}</p>
-                          <p className="text-xs text-muted-foreground truncate">
+                          <p className="text-xs text-foreground truncate">
                             {t.artist} · {t.isFreeDownload ? "Free" : days === null ? "Saved" : days > 0 ? `${days} day${days === 1 ? "" : "s"} left offline` : "Reconnect to renew"}
                           </p>
                         </div>

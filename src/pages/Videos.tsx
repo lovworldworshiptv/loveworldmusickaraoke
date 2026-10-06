@@ -121,7 +121,7 @@ const Videos = () => {
                   </div>
                   <div className="p-3">
                     <p className="text-sm font-semibold text-foreground truncate">{song.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+                    <p className="text-xs text-foreground truncate">{song.artist}</p>
                   </div>
                 </button>
               );

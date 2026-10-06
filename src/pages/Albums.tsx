@@ -105,7 +105,7 @@ const Albums = () => {
             </div>
             <div>
               <h2 className="text-xl font-serif font-bold text-foreground">{selectedAlbum.title}</h2>
-              <p className="text-sm text-muted-foreground">{selectedAlbum.artist} • {albumSongs.length} songs</p>
+              <p className="text-sm text-foreground">{selectedAlbum.artist} • {albumSongs.length} songs</p>
               <div className="flex gap-2 mt-3">
                 <button onClick={() => playQueue(playerSongs)} className="px-4 py-2 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold text-white text-xs font-semibold flex items-center gap-1.5 shadow-[0_2px_12px_hsl(43_70%_53%/0.4)] hover:shadow-[0_4px_20px_hsl(43_70%_53%/0.5)] transition-shadow">
                   <Play className="w-3.5 h-3.5 drop-shadow-sm" fill="currentColor" /> Play All
@@ -151,7 +151,7 @@ const Albums = () => {
                     )}
                     <div className="flex-1 text-left min-w-0">
                       <p className={`text-sm truncate ${isActive ? "text-gold font-medium" : "text-foreground"}`}>{song.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+                      <p className="text-xs text-foreground truncate">{song.artist}</p>
                     </div>
                     <span className="text-xs text-muted-foreground">{formatDuration(song.duration_seconds)}</span>
                   </button>
@@ -207,7 +207,7 @@ const Albums = () => {
                   </div>
                 </div>
                 <p className="text-sm font-medium text-foreground truncate group-hover:text-gold transition-colors">{album.title}</p>
-                <p className="text-xs text-muted-foreground truncate">{album.artist}</p>
+                <p className="text-xs text-foreground truncate">{album.artist}</p>
               </button>
             ))}
           </div>

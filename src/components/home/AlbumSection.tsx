@@ -77,7 +77,7 @@ const AlbumSection = () => {
               </div>
             </div>
             <p className="text-sm font-medium text-foreground truncate group-hover:text-gold transition-colors duration-200">{album.title}</p>
-            <p className="text-xs text-muted-foreground truncate">{album.artist} • {album.songCount} songs</p>
+            <p className="text-xs text-foreground truncate">{album.artist} • {album.songCount} songs</p>
           </button>
         ))}
       </div>

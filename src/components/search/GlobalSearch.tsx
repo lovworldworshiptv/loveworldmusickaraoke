@@ -395,7 +395,7 @@ const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground truncate"><Highlight text={s.title} query={query} /></p>
-                      <p className="text-xs text-muted-foreground truncate"><Highlight text={s.artist} query={query} /></p>
+                      <p className="text-xs text-foreground truncate"><Highlight text={s.artist} query={query} /></p>
                       {snippet && <p className="text-[11px] text-muted-foreground/80 line-clamp-1 italic"><Highlight text={snippet} query={query} /></p>}
                     </div>
                     <CornerDownLeft className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 flex-shrink-0" />
@@ -415,7 +415,7 @@ const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground truncate"><Highlight text={a.title} query={query} /></p>
-                    <p className="text-xs text-muted-foreground truncate">{a.artist}</p>
+                    <p className="text-xs text-foreground truncate">{a.artist}</p>
                   </div>
                 </button>
               ))}

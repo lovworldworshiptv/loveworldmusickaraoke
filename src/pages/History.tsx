@@ -82,7 +82,7 @@ const History = () => {
                   )}
                   <div className="flex-1 min-w-0 text-left">
                     <p className="text-sm font-medium text-foreground truncate">{song.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{song.artist} • {formatDuration(song.duration_seconds)}</p>
+                    <p className="text-xs text-foreground truncate">{song.artist} • {formatDuration(song.duration_seconds)}</p>
                   </div>
                   {isActive && isPlaying ? (
                     <div className="flex gap-0.5 items-end h-4">

@@ -297,7 +297,7 @@ const Reminders = () => {
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">{song.title}</p>
-                          <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+                          <p className="text-xs text-foreground truncate">{song.artist}</p>
                         </div>
                       </button>
                     ))
