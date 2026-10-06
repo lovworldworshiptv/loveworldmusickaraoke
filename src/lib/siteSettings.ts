@@ -136,6 +136,8 @@ export function pageGradient(hex: string) {
 }
 
 export const DEFAULT_GLOBAL_CARD = "#e42e0a";
+/** Bright blue default for Global Playlists cards without their own override. */
+export const GLOBAL_PLAYLISTS_CARD = "#0a6cff";
 
 /** Admin-chosen default card colour for playlists without their own override. */
 export function useGlobalCardColor() {
