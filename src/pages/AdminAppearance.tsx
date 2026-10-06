@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowDown, ArrowUp, Image, Loader2, Search, Upload, Video } from "lucide-react";
+import { ArrowDown, ArrowUp, Image, Loader2, Search, Trash2, Upload, Video } from "lucide-react";
 import { toast } from "sonner";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -100,6 +100,7 @@ const AdminAppearance = () => {
   const [stageSongId, setStageSongId] = useState("global");
   const [stageSongs, setStageSongs] = useState<SongLite[]>([]);
   const [stageUploading, setStageUploading] = useState(false);
+  const [stageChoiceName, setStageChoiceName] = useState("");
 
   useEffect(() => { if (!loading && !isAdmin) navigate("/"); }, [isAdmin, loading, navigate]);
 
@@ -196,6 +197,30 @@ const AdminAppearance = () => {
     setStageUploading(false);
   };
 
+  const addStageChoice = async () => {
+    const name = stageChoiceName.trim();
+    if (!name) return toast.error("Add a name for this background");
+    const choice = {
+      id: crypto.randomUUID(),
+      name,
+      backgroundColor: stageEditor.backgroundColor,
+      mediaType: stageEditor.mediaType,
+      mediaUrl: stageEditor.mediaUrl,
+    };
+    const next = { ...stage, backgroundLibrary: [...(stage.backgroundLibrary || []), choice] };
+    setStage(next);
+    setStageChoiceName("");
+    const { error } = await saveSetting(SETTING_KEYS.stageMode, next);
+    error ? toast.error("Could not add background") : toast.success("Background added to Stage choices");
+  };
+
+  const removeStageChoice = async (id: string) => {
+    const next = { ...stage, backgroundLibrary: (stage.backgroundLibrary || []).filter((choice) => choice.id !== id) };
+    setStage(next);
+    const { error } = await saveSetting(SETTING_KEYS.stageMode, next);
+    error ? toast.error("Could not remove background") : toast.success("Background removed");
+  };
+
   if (loading) return null;
 
   return (
@@ -269,6 +294,21 @@ const AdminAppearance = () => {
               <div className="flex gap-2">
                 <Button onClick={() => saveStage()}>Save Stage Mode</Button>
                 <Button variant="outline" onClick={resetStageTarget}>{stageSongId === "global" ? "Reset" : "Use global"}</Button>
+              </div>
+              <div className="space-y-2 border-t border-border pt-3">
+                <p className="text-xs font-semibold text-foreground">Stage background choices</p>
+                <div className="flex gap-2">
+                  <Input value={stageChoiceName} onChange={(e) => setStageChoiceName(e.target.value)} placeholder="Background name" />
+                  <Button type="button" variant="outline" onClick={addStageChoice}>Add</Button>
+                </div>
+                {(stage.backgroundLibrary || []).map((choice) => (
+                  <div key={choice.id} className="flex items-center gap-2 rounded-lg bg-muted/50 px-2 py-1.5 text-sm text-foreground">
+                    <span className="flex-1 truncate">{choice.name}</span>
+                    <Button type="button" size="icon" variant="ghost" aria-label={`Remove ${choice.name}`} onClick={() => removeStageChoice(choice.id)} className="h-8 w-8">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
               </div>
             </div>
             <div className="relative aspect-video overflow-hidden rounded-xl border border-border" style={{ backgroundColor: stageEditor.backgroundColor }}>
