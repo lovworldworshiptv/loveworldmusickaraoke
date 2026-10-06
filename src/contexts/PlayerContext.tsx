@@ -121,6 +121,20 @@ type PersistedPlayerState = {
   savedAt: number;
 };
 
+// Only one player audio may ever sound at once: any audio starting playback pauses all others.
+const playerAudios: Set<HTMLAudioElement> = ((globalThis as any).__lwPlayerAudios ??= new Set<HTMLAudioElement>());
+function createExclusiveAudio(url: string): HTMLAudioElement {
+  const audio = new Audio(url);
+  playerAudios.add(audio);
+  audio.addEventListener("play", () => {
+    playerAudios.forEach((other) => { if (other !== audio && !other.paused) other.pause(); });
+    // drop stale references so they can be garbage collected
+    playerAudios.forEach((other) => { if (other !== audio && other.paused) playerAudios.delete(other); });
+    playerAudios.add(audio);
+  });
+  return audio;
+}
+
 export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [currentSong, setCurrentSong] = useState<PlayerSong | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -251,7 +265,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
     const url = toDirectUrl(karaokeMode ? song.instrumentalUrl : song.audioUrl);
     if (url) {
-      const audio = new Audio(url);
+      const audio = createExclusiveAudio(url);
       audio.volume = volumeRef.current;
       audioRef.current = audio;
       
@@ -501,15 +515,16 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   }, [isPlaying, startInterval, stopInterval, resetAutoPauseTimer, clearAutoPauseTimer]);
 
   const toggleKaraoke = useCallback(() => {
-    setIsKaraoke((k) => {
-      const next = !k;
+    {
+      const next = !isKaraokeRef.current;
+      isKaraokeRef.current = next;
       if (audioRef.current && currentSong) {
         const ct = audioRef.current.currentTime;
         audioRef.current.pause();
         audioRef.current.onended = null;
         const url = toDirectUrl(next ? currentSong.instrumentalUrl : currentSong.audioUrl);
         if (url) {
-          const audio = new Audio(url);
+          const audio = createExclusiveAudio(url);
           audio.volume = volumeRef.current;
           audioRef.current = audio;
           audio.addEventListener("loadedmetadata", () => {
@@ -534,8 +549,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
           };
         }
       }
-      return next;
-    });
+      setIsKaraoke(next);
+    }
   }, [currentSong, internalPlay, stopInterval, recordPlayFn]);
 
   const toggleExpanded = useCallback(() => setIsExpanded((e) => !e), []);
