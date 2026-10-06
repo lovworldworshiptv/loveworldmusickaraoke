@@ -67,6 +67,8 @@ const ExpandedPlayer = () => {
   const lineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
   const [showLyrics, setShowLyrics] = useState(true);
   const [motionArtworkUrl, setMotionArtworkUrl] = useState<string | null>(null);
+  const [motionArtworkReady, setMotionArtworkReady] = useState(false);
+  const [motionArtworkFailed, setMotionArtworkFailed] = useState(false);
   const [useMotionArtwork, setUseMotionArtwork] = useState(() => localStorage.getItem("player-artwork-style") !== "image");
   const [showRecorder, setShowRecorder] = useState(false);
   const [isRecordingActive, setIsRecordingActive] = useState(false);
@@ -89,6 +91,8 @@ const ExpandedPlayer = () => {
     setVideoMode(false);
     setVideos([]);
     setMotionArtworkUrl(null);
+    setMotionArtworkReady(false);
+    setMotionArtworkFailed(false);
     if (!currentSong) return;
     supabase.from("song_videos").select("id, video_url, video_type, language_code, offset_ms, thumbnail_url")
       .eq("song_id", currentSong.id).eq("is_active", true)
@@ -396,8 +400,19 @@ const ExpandedPlayer = () => {
             <div className="relative w-full max-w-[280px] aspect-square">
             <button onClick={() => setShowLyrics(true)} className="w-full h-full">
               <div className="w-full h-full rounded-3xl gradient-purple flex items-center justify-center glow-gold shadow-2xl overflow-hidden">
-                {motionArtworkUrl && useMotionArtwork ? (
-                  <video src={motionArtworkUrl} poster={currentSong.coverUrl} autoPlay muted loop playsInline preload="auto" aria-label={`${currentSong.title} motion artwork`} className="w-full h-full rounded-3xl object-cover" />
+                {motionArtworkUrl && useMotionArtwork && !motionArtworkFailed ? (
+                  <div className="relative w-full h-full">
+                    {currentSong.coverUrl ? <img src={currentSong.coverUrl} alt={currentSong.title} className="absolute inset-0 w-full h-full rounded-3xl object-cover" /> : <Music className="absolute inset-0 m-auto w-24 h-24 text-gold/30" />}
+                    <video
+                      src={motionArtworkUrl}
+                      poster={currentSong.coverUrl}
+                      autoPlay muted loop playsInline preload="metadata"
+                      onCanPlay={(event) => { setMotionArtworkReady(true); event.currentTarget.play().catch(() => {}); }}
+                      onError={() => { setMotionArtworkFailed(true); setMotionArtworkReady(false); }}
+                      aria-label={`${currentSong.title} motion artwork`}
+                      className={`absolute inset-0 w-full h-full rounded-3xl object-cover transition-opacity duration-500 ${motionArtworkReady ? "opacity-100" : "opacity-0"}`}
+                    />
+                  </div>
                 ) : currentSong.coverUrl ? (
                   <img src={currentSong.coverUrl} alt={currentSong.title} className="w-full h-full rounded-3xl object-cover" />
                 ) : (
