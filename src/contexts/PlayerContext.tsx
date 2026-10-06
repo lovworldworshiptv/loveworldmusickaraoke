@@ -51,6 +51,9 @@ interface PlayerContextType {
   cycleRepeat: () => void;
   toggleShuffle: () => void;
   setVolume: (v: number) => void;
+  applyLyrics: (lrc?: string | null, text?: string | null) => void;
+  handoffPause: () => number;
+  resumeAt: (seconds: number) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
@@ -433,13 +436,36 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [startInterval, resetAutoPauseTimer]);
 
+  const applyLyrics = useCallback((lrc?: string | null, text?: string | null) => {
+    const parsed = lrc ? parseLrc(lrc) : [];
+    setLrcLines(parsed);
+    setStaticLyrics(text || (parsed.length ? "" : lrc || ""));
+    setActiveLrcIndex(-1);
+  }, []);
+
+  const handoffPause = useCallback((): number => {
+    const a = audioRef.current;
+    if (!a) return 0;
+    a.pause();
+    stopInterval();
+    setIsPlaying(false);
+    return a.currentTime;
+  }, [stopInterval]);
+
+  const resumeAt = useCallback((seconds: number) => {
+    const a = audioRef.current;
+    if (!a) return;
+    try { a.currentTime = Math.max(0, seconds); } catch {}
+    a.play().then(() => { setIsPlaying(true); startInterval(); resetAutoPauseTimer(); }).catch(() => {});
+  }, [startInterval, resetAutoPauseTimer]);
+
   return (
     <PlayerContext.Provider value={{
       currentSong, isPlaying, isKaraoke, isExpanded, progress, duration,
       currentTime, lrcLines, staticLyrics, activeLrcIndex, repeatMode, shuffleOn,
       queue, queueIndex, volume, trackEndCount, playSong, playQueue, togglePlay,
       toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev,
-      cycleRepeat, toggleShuffle, setVolume,
+      cycleRepeat, toggleShuffle, setVolume, applyLyrics, handoffPause, resumeAt,
     }}>
       {children}
       {/* "Are you still there?" dialog */}
