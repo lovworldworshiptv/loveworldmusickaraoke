@@ -110,6 +110,24 @@ const ProfileMenu = () => {
                   <span className="flex items-center gap-2"><User className="w-4 h-4" /> Profile</span>
                   <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </button>
+                {/* Mobile-only quick links (desktop side menu covers these) */}
+                <div className="lg:hidden">
+                  {[
+                    { icon: Library, label: "My Library", path: "/library" },
+                    { icon: HardDrive, label: "My Studio", path: "/studio" },
+                    { icon: Clock, label: "History", path: "/history" },
+                    { icon: MessageSquare, label: "Feedback", path: "/feedback" },
+                  ].map((item) => (
+                    <button
+                      key={item.path}
+                      onClick={() => { setOpen(false); navigate(item.path); }}
+                      className="w-full flex items-center justify-between p-2.5 rounded-lg text-sm text-foreground hover:bg-muted transition-colors"
+                    >
+                      <span className="flex items-center gap-2"><item.icon className="w-4 h-4" /> {item.label}</span>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  ))}
+                </div>
                 {role === "admin" && (
                   <button
                     onClick={() => { setOpen(false); setAdminSheetOpen(true); }}
