@@ -146,7 +146,7 @@ const StageMode = () => {
       {activeStage.mediaType === "video" && activeStage.mediaUrl && (
         <video src={resolveStageMediaUrl(activeStage.mediaUrl)} muted loop autoPlay playsInline className="absolute inset-0 h-full w-full object-cover" />
       )}
-      <div className="absolute inset-0 bg-background/65" />
+      <div className="pointer-events-none absolute inset-0 bg-background/65" />
       {/* Top bar */}
       <div
         className={`absolute top-0 inset-x-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-500 ${
