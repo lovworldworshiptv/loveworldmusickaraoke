@@ -9,6 +9,7 @@ export const SETTING_KEYS = {
   curatedVideos: "curated_video_songs",
   curatedKaraoke: "curated_karaoke_songs",
   stageMode: "stage_mode_presentation",
+  globalCardColor: "global_playlist_card_color",
 } as const;
 
 export type ThemeColors = { gold?: string; background?: string; accent?: string; foreground?: string };
@@ -134,3 +135,9 @@ export function pageGradient(hex: string) {
 }
 
 export const DEFAULT_GLOBAL_CARD = "#e42e0a";
+
+/** Admin-chosen default card colour for playlists without their own override. */
+export function useGlobalCardColor() {
+  const v = useSetting<string>(SETTING_KEYS.globalCardColor);
+  return (typeof v === "string" && hexToHsl(v)) ? v : DEFAULT_GLOBAL_CARD;
+}

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ListMusic, Play } from "lucide-react";
-import { cardGradient } from "@/lib/siteSettings";
+import { cardGradient, useGlobalCardColor } from "@/lib/siteSettings";
 
 type Rec = { id: string; name: string; card_color: string | null; cover_url: string | null; playlist_songs: { songs: { title: string; artist: string; cover_url: string | null } | null }[] | null };
 
@@ -12,6 +12,7 @@ type Rec = { id: string; name: string; card_color: string | null; cover_url: str
 const PlatformRecommendations = () => {
   const [items, setItems] = useState<Rec[]>([]);
   const navigate = useNavigate();
+  const globalColor = useGlobalCardColor();
 
   useEffect(() => {
     supabase.from("playlists")
@@ -34,9 +35,10 @@ const PlatformRecommendations = () => {
           const songs = (p.playlist_songs || []).map((s) => s.songs).filter(Boolean) as NonNullable<Rec["playlist_songs"]>[number]["songs"][];
           const cover = p.cover_url || songs[0]?.cover_url;
           const names = songs.slice(0, 3).map((s) => s!.title).join(", ");
-          const tint = p.card_color ? cardGradient(p.card_color) : undefined;
+          const color = p.card_color || globalColor;
+          const tint = cardGradient(color);
           return (
-            <button key={p.id} onClick={() => navigate(`/collection/${p.id}${p.card_color ? `?color=${encodeURIComponent(p.card_color)}` : ""}`)}
+            <button key={p.id} onClick={() => navigate(`/collection/${p.id}?color=${encodeURIComponent(color)}`)}
               className={`snap-start flex-shrink-0 w-full md:w-[calc(50%_-_0.375rem)] lg:w-[29.6%] h-[166px] md:h-36 rounded-2xl p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${tint ? "border-0 shadow-lg" : "glass-card hover:border-gold/40"}`}
               style={tint ? { background: tint } : undefined}>
               <div className="flex h-full gap-3">
