@@ -49,7 +49,7 @@ const PlatformRecommendations = () => {
                   <p className="font-serif font-bold text-foreground truncate mt-0.5">{p.name}</p>
                   <p className="text-xs text-white line-clamp-2 mt-1">{names}</p>
                   <span className="mt-auto self-end w-9 h-9 rounded-full gradient-gold flex items-center justify-center shadow-[0_2px_12px_hsl(var(--gold)/0.4)]">
-                    <Play className="w-4 h-4 text-primary-foreground ml-0.5" fill="currentColor" />
+                    <Play className="w-4 h-4 text-white ml-0.5" fill="currentColor" />
                   </span>
                 </div>
               </div>

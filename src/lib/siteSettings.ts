@@ -133,4 +133,4 @@ export function pageGradient(hex: string) {
   return `linear-gradient(180deg, hsl(${h} ${s} 34%) 0%, hsl(${h} ${s} 20%) 45%, hsl(${h} ${s} 9%) 75%, hsl(var(--background)) 100%)`;
 }
 
-export const DEFAULT_GLOBAL_CARD = "#5b2a9e";
+export const DEFAULT_GLOBAL_CARD = "#e42e0a";
