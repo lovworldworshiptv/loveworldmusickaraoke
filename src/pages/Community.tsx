@@ -11,6 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Heart, MessageCircle, Play, Plus, Send, Share2, Trash2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 
+const rateMsg = (e: { message?: string } | null) =>
+  e?.message?.includes("rate_limited") ? "You're going a bit fast — please wait a minute and try again." : null;
+
 interface CommunityRow { id: string; name: string; description: string | null; cover_url: string | null; member_count?: number }
 interface PostRow {
   id: string; community_id: string; user_id: string; content: string; song_id: string | null; created_at: string;
@@ -45,10 +48,9 @@ const Community = () => {
   const loadCommunities = useCallback(async () => {
     const { data } = await supabase.from("communities").select("*").eq("is_active", true).order("sort_order");
     const rows = (data || []) as CommunityRow[];
-    const withCounts = await Promise.all(rows.map(async (c) => {
-      const { count } = await supabase.from("community_members").select("*", { count: "exact", head: true }).eq("community_id", c.id);
-      return { ...c, member_count: count || 0 };
-    }));
+    const { data: counts } = await (supabase.rpc as any)("get_community_member_counts");
+    const countMap = new Map<string, number>(((counts || []) as { community_id: string; member_count: number }[]).map((r) => [r.community_id, Number(r.member_count)]));
+    const withCounts = rows.map((c) => ({ ...c, member_count: countMap.get(c.id) || 0 }));
     setCommunities(withCounts);
     if (!activeId && withCounts.length) setActiveId(withCounts[0].id);
   }, [activeId]);
@@ -107,6 +109,7 @@ const Community = () => {
       if (!error) { setIsMember(true); toast.success("Welcome to the community!"); }
     }
     loadCommunities();
+    loadPosts(activeId);
   };
 
   const playAttached = (song: NonNullable<PostRow["song"]>) => {
@@ -121,7 +124,7 @@ const Community = () => {
     setSongQuery(q);
     if (q.trim().length < 2) { setSongResults([]); return; }
     const { data } = await (supabase.from("songs") as any).select("id, title, artist, cover_url, audio_url, instrumental_url")
-      .ilike("title", `%${q}%`).eq("has_audio", true).limit(6);
+      .ilike("title", `%${q}%`).not("audio_url", "is", null).limit(6);
     setSongResults((data || []) as any);
   };
 
@@ -132,7 +135,7 @@ const Community = () => {
       community_id: activeId, user_id: user.id, content: content.trim(), song_id: attachedSong?.id || null,
     });
     setPosting(false);
-    if (error) { toast.error("Could not share. Are you a member?"); return; }
+    if (error) { toast.error(rateMsg(error) || "Could not share. Are you a member?"); return; }
     setContent(""); setAttachedSong(null); setShowSongSearch(false);
     loadPosts(activeId);
     feedRef.current?.scrollTo({ top: 0, behavior: "smooth" });
@@ -145,7 +148,8 @@ const Community = () => {
       await supabase.from("community_post_likes").delete().eq("post_id", post.id).eq("user_id", user.id);
       setPosts((p) => p.map((x) => x.id === post.id ? { ...x, liked: false, like_count: x.like_count - 1 } : x));
     } else {
-      await supabase.from("community_post_likes").insert({ post_id: post.id, user_id: user.id });
+      const { error } = await supabase.from("community_post_likes").insert({ post_id: post.id, user_id: user.id });
+      if (error) { toast.error(rateMsg(error) || "Could not like this post"); return; }
       setPosts((p) => p.map((x) => x.id === post.id ? { ...x, liked: true, like_count: x.like_count + 1 } : x));
     }
   };
@@ -170,6 +174,8 @@ const Community = () => {
       setCommentDraft((c) => ({ ...c, [postId]: "" }));
       loadComments(postId);
       setPosts((p) => p.map((x) => x.id === postId ? { ...x, comment_count: x.comment_count + 1 } : x));
+    } else {
+      toast.error(rateMsg(error) || "Could not post your comment");
     }
   };
 
