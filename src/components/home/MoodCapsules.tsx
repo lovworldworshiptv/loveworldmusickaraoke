@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -9,11 +9,31 @@ interface Props { value: string | null; onChange: (mood: Mood) => void }
 /** Sticky mood filter pills driven by visible categories. */
 const MoodCapsules = ({ value, onChange }: Props) => {
   const [moods, setMoods] = useState<Mood[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
+
+  const updateFades = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 4);
+    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
 
   useEffect(() => {
     supabase.from("categories").select("id,name").eq("is_visible", true).order("sort_order")
       .then(({ data }) => setMoods((data || []).map((c) => ({ id: c.id, name: c.name }))));
   }, []);
+
+  useEffect(() => {
+    updateFades();
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", updateFades, { passive: true });
+    const ro = new ResizeObserver(updateFades);
+    ro.observe(el);
+    return () => { el.removeEventListener("scroll", updateFades); ro.disconnect(); };
+  }, [moods, updateFades]);
 
   if (!moods.length) return null;
   const all: Mood[] = [{ id: null, name: "For You" }, ...moods];
