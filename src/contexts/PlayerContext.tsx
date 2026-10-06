@@ -400,12 +400,38 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     } catch {}
   }, []);
 
+  /** Phase 10: resolve the listener's preferred lyrics language before playback —
+   *  swap in a ready audio version recorded in that language and its lyrics. */
+  const resolvePreferred = useCallback(async (song: PlayerSong): Promise<PlayerSong> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return song;
+      const { data: prefs } = await supabase.from("user_preferences").select("preferred_languages").eq("user_id", user.id).maybeSingle();
+      const pref = (prefs as { preferred_languages?: string[] } | null)?.preferred_languages?.[0];
+      if (!pref || pref === "en") return song;
+      const [ver, lyr] = await Promise.all([
+        supabase.from("song_audio_versions").select("audio_url").eq("song_id", song.id).eq("kind", "full").eq("status", "ready").eq("language_code", pref).maybeSingle(),
+        supabase.from("song_lyrics").select("lyrics_lrc, lyrics_text").eq("song_id", song.id).eq("language_code", pref).maybeSingle(),
+      ]);
+      return {
+        ...song,
+        audioUrl: (ver.data as { audio_url: string } | null)?.audio_url || song.audioUrl,
+        lyricsLrc: (lyr.data as { lyrics_lrc: string | null } | null)?.lyrics_lrc ?? song.lyricsLrc,
+        lyricsText: (lyr.data as { lyrics_text: string | null } | null)?.lyrics_text ?? song.lyricsText,
+      };
+    } catch {
+      return song;
+    }
+  }, []);
+
   const playSong = useCallback((song: PlayerSong) => {
     setQueue([song]);
     setQueueIndex(0);
-    internalPlay(song, false);
-    recordPlayFn(song.id);
-  }, [internalPlay, recordPlayFn]);
+    resolvePreferred(song).then((s) => {
+      internalPlay(s, false);
+      recordPlayFn(s.id);
+    });
+  }, [internalPlay, recordPlayFn, resolvePreferred]);
 
   const playVideo = useCallback((song: PlayerSong) => {
     playSong(song);
@@ -428,10 +454,12 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     setQueue(q);
     setQueueIndex(startIndex);
     if (q[startIndex]) {
-      internalPlay(q[startIndex], false);
-      recordPlayFn(q[startIndex].id);
+      resolvePreferred(q[startIndex]).then((s) => {
+        internalPlay(s, false);
+        recordPlayFn(s.id);
+      });
     }
-  }, [internalPlay, recordPlayFn]);
+  }, [internalPlay, recordPlayFn, resolvePreferred]);
 
   const skipNext = useCallback(() => {
     if (queue.length === 0) return;

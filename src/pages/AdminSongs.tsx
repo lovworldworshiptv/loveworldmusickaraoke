@@ -3,7 +3,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsEditor } from "@/hooks/useIsEditor";
-import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer, FileAudio, ChevronDown, Rewind, FastForward, Pencil, Check, CheckCircle, Wand2, Loader2, Search, SlidersHorizontal } from "lucide-react";
+import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer, FileAudio, ChevronDown, Rewind, FastForward, Pencil, Check, CheckCircle, Wand2, Loader2, Search, SlidersHorizontal, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
