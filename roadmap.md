@@ -14,3 +14,4 @@
 - [x] Graceful hover effects: top icons, mood capsules, bottom nav (hover-only, no other changes)
 - [x] Stage Mode CMS: colour/image/video backgrounds, audio toggle, manual scroll, and player-options shortcut
 - [x] Divinity Stage Mode: five-second ocean-and-mountains video, exclusive Sync/Manual modes, and click-to-select lyric lines
+- [x] Desktop mini player docked to the screen bottom, collapsible sidebar, and matching volume progress styling
