@@ -51,7 +51,7 @@ const GlobalPlaylistsSection = () => {
       const { data } = await supabase
         .from("playlists")
         .select(
-          "id, name, cover_url, playlist_songs(sort_order, songs(id, title, artist, album, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds))",
+          "id, name, cover_url, card_color, playlist_songs(sort_order, songs(id, title, artist, album, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds))",
         )
         .eq("is_visible_on_homepage", true)
         .order("created_at", { ascending: false })

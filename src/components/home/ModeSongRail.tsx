@@ -1,4 +1,6 @@
 import SeeAll from "./SeeAll";
+import { getSetting, SETTING_KEYS } from "@/lib/siteSettings";
+import { fetchSongsByIds } from "@/lib/homeSongs";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer } from "@/contexts/PlayerContext";
@@ -13,6 +15,10 @@ const ModeSongRail = ({ mode, eyebrow, title }: Props) => {
   const { playVideo, singThis } = usePlayer();
 
   useEffect(() => {
+    let cancelled = false;
+    getSetting<string[]>(mode === "video" ? SETTING_KEYS.curatedVideos : SETTING_KEYS.curatedKaraoke).then(async (ids) => {
+      if (cancelled) return;
+      if (ids && ids.length) { const rows = await fetchSongsByIds(ids); if (!cancelled && rows.length) { setSongs(rows as SongRow[]); return; } }
     const q = supabase.from("songs").select(SONG_COLUMNS).not("audio_url", "is", null);
     const filtered = mode === "video" ? q.eq("has_video", true) : q.not("instrumental_url", "is", null);
     filtered.order("play_count", { ascending: false }).limit(20).then(({ data }) => {
@@ -21,6 +27,8 @@ const ModeSongRail = ({ mode, eyebrow, title }: Props) => {
       const seed = new Date().getDate();
       setSongs(rows.map((r, i) => ({ r, k: (i * 7919 + seed * 31) % 97 })).sort((a, b) => a.k - b.k).map((x) => x.r).slice(0, 12));
     });
+    });
+    return () => { cancelled = true; };
   }, [mode]);
 
   if (!songs.length) return null;

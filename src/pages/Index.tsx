@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import HeroBanner from "@/components/home/HeroBanner";
@@ -19,6 +19,7 @@ import PlatformRecommendations from "@/components/home/PlatformRecommendations";
 import ModeSongRail from "@/components/home/ModeSongRail";
 import LazySection from "@/components/home/LazySection";
 import OnboardingSplash from "@/components/onboarding/OnboardingSplash";
+import { useSetting, resolveHomeLayout, SETTING_KEYS, type HomeSectionSetting } from "@/lib/siteSettings";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
@@ -28,6 +29,8 @@ const Index = () => {
   const isOnline = useOnlineStatus();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [mood, setMood] = useState<Mood>({ id: null, name: "For You" });
+
+  const layout = resolveHomeLayout(useSetting<HomeSectionSetting[]>(SETTING_KEYS.homeLayout));
 
   useEffect(() => {
     const seen = localStorage.getItem("onboarding_completed");
@@ -52,21 +55,26 @@ const Index = () => {
   return (
     <AppLayout>
       <HomepagePopup />
-      <MoodCapsules value={mood.id} onChange={setMood} />
-      <HeroBanner />
-      <QuickPicks moodId={mood.id} moodName={mood.id ? mood.name : undefined} />
-      <PlatformRecommendations />
-      <AlbumSection />
-      <KaraokeStories />
-      <DailyDiscover />
-      <SongSection title="Featured Songs" />
-      <ModeSongRail mode="video" eyebrow="Watch & worship" title="Music Videos For You" />
-      <SecondaryBanner />
-      <ModeSongRail mode="karaoke" eyebrow="Sing along" title="Soundtrack For Your Day" />
-      <LazySection><CategorySection /></LazySection>
-      <LazySection><GlobalPlaylistsSection /></LazySection>
-      <LazySection><RecentlyPlayed /></LazySection>
-      <LazySection><ArticleSection /></LazySection>
+      {layout.filter((x) => x.visible).map((x) => {
+        const node = ({
+          moods: <MoodCapsules value={mood.id} onChange={setMood} />,
+          hero: <HeroBanner />,
+          quick_picks: <QuickPicks moodId={mood.id} moodName={mood.id ? mood.name : undefined} />,
+          recommendations: <PlatformRecommendations />,
+          albums: <AlbumSection />,
+          stories: <KaraokeStories />,
+          daily_discover: <DailyDiscover />,
+          featured: <SongSection title="Featured Songs" />,
+          videos: <ModeSongRail mode="video" eyebrow="Watch & worship" title="Music Videos For You" />,
+          secondary_banner: <SecondaryBanner />,
+          karaoke: <ModeSongRail mode="karaoke" eyebrow="Sing along" title="Soundtrack For Your Day" />,
+          categories: <LazySection><CategorySection /></LazySection>,
+          global_playlists: <LazySection><GlobalPlaylistsSection /></LazySection>,
+          recent: <LazySection><RecentlyPlayed /></LazySection>,
+          articles: <LazySection><ArticleSection /></LazySection>,
+        } as Record<string, JSX.Element>)[x.id];
+        return node ? <Fragment key={x.id}>{node}</Fragment> : null;
+      })}
 
       <div className="h-8" />
     </AppLayout>
