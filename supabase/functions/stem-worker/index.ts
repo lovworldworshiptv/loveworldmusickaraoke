@@ -57,11 +57,12 @@ Deno.serve(async (req) => {
 
     for (const row of running ?? []) {
       report.checked++;
+      const songTitle = (row.songs as { title?: string } | null)?.title;
       const res = await fetch(`${GATEWAY}/predictions/${row.prediction_id}`, { headers: auth });
       if (res.status === 429) break;
       if (!res.ok) { console.error(`poll [${res.status}]: ${await res.text()}`); continue; }
       const pred = await res.json();
-      if (pred.status === "failed" || pred.status === "canceled") { await failRow(row, pred.error || "Separation failed"); continue; }
+      if (pred.status === "failed" || pred.status === "canceled") { await failRow({ ...row, songTitle }, pred.error || "Separation failed"); continue; }
       if (pred.status !== "succeeded") continue;
 
       const inst: string | undefined = pred.output?.no_vocals;
