@@ -26,6 +26,7 @@ interface Song {
   is_top: boolean;
   is_free_download: boolean;
   category_id: string | null;
+  has_video?: boolean;
 }
 
 interface AlbumOption {
@@ -166,6 +167,8 @@ const AdminSongs = () => {
     }
   };
   const [loading, setLoading] = useState(true);
+  const [videoSong, setVideoSong] = useState<{ id: string; title: string } | null>(null);
+  const fetchSongsRef = useRef<(() => void) | null>(null);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
   const [editMode, setEditMode] = useState<"lrc" | "sync" | "details">("lrc");
   const [lrcText, setLrcText] = useState("");
@@ -883,6 +886,11 @@ const AdminSongs = () => {
         )}
       </div>
       <div className="h-8" />
+      <SongVideosManager
+        songId={videoSong?.id ?? null}
+        songTitle={videoSong?.title}
+        onClose={() => { setVideoSong(null); fetchSongsRef.current?.(); }}
+      />
     </AppLayout>
   );
 };
