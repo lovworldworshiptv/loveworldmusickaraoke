@@ -57,6 +57,13 @@
       "when": 1791287482348,
       "tag": "0007_phase10_lyrics_languages_community",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791288744210,
+      "tag": "0008_community_members_only_and_rate_limits",
+      "breakpoints": true
     }
   ]
 }

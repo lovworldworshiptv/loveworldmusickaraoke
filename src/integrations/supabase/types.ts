@@ -2396,6 +2396,10 @@ export type Database = {
       }
     }
     Functions: {
+      can_view_community_post: {
+        Args: { _post_id: string; _user_id: string }
+        Returns: boolean
+      }
       claim_achievement: {
         Args: { _achievement_key: string }
         Returns: boolean
@@ -2420,6 +2424,13 @@ export type Database = {
           rank: number
           total_score: number
           username: string
+        }[]
+      }
+      get_community_member_counts: {
+        Args: never
+        Returns: {
+          community_id: string
+          member_count: number
         }[]
       }
       get_daily_discover: {
@@ -2479,6 +2490,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_community_member: {
+        Args: { _community_id: string; _user_id: string }
         Returns: boolean
       }
       move_to_dlq: {
