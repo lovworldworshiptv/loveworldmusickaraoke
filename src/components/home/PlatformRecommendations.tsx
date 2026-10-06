@@ -6,6 +6,9 @@ import { ListMusic, Play } from "lucide-react";
 type Rec = { id: string; name: string; cover_url: string | null; playlist_songs: { songs: { title: string; artist: string; cover_url: string | null } | null }[] | null };
 
 /** Spotify-style recommendation cards; each opens the playlist's collection page. */
+/** Fuchsia-pink treatment reserved for the "Pastor Chris Live Unending Praise" card. */
+const isFuchsiaCard = (name: string) => /unending praise/i.test(name);
+
 const PlatformRecommendations = () => {
   const [items, setItems] = useState<Rec[]>([]);
   const navigate = useNavigate();
