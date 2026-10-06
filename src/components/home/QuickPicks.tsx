@@ -45,7 +45,7 @@ const QuickPicks = ({ moodId, moodName }: Props) => {
         <p className="text-[11px] uppercase tracking-[0.2em] text-gold/80">{moodName ? moodName : "Start singing"}</p>
         <h3 id="quick-picks-h" className="text-xl font-serif font-bold text-foreground">Quick Picks</h3>
       </div>
-      <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 -mx-1 px-1">
+      <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 -mx-1 px-1 touch-pan-x overscroll-x-contain" style={{ WebkitOverflowScrolling: "touch" }}>
         {columns.map((col, ci) => (
           <div key={ci} className="snap-start flex-shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] flex flex-col gap-2">
             {col.map((s) => {

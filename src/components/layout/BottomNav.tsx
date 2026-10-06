@@ -2,6 +2,7 @@ import { Home, Compass, Library, Gamepad2, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
 import { memo } from "react";
+import { usePlayer } from "@/contexts/PlayerContext";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
@@ -14,9 +15,13 @@ const navItems = [
 const BottomNav = memo(() => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isExpanded } = usePlayer();
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass border-t border-border safe-left safe-right gpu">
+    <nav className={cn(
+      "lg:hidden fixed bottom-0 left-0 right-0 z-40 glass border-t border-border safe-left safe-right gpu transition-transform duration-300",
+      isExpanded && "translate-y-full pointer-events-none"
+    )}>
       <div className="flex items-center justify-around py-2" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
         {navItems.map((item) => (
           <button
