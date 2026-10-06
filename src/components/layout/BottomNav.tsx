@@ -5,6 +5,7 @@ import { memo, useState } from "react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
@@ -30,6 +31,14 @@ const BottomNav = memo(() => {
 
   const openCreateDestination = (path: string) => {
     setCreateOpen(false);
+    const label = createItems.find((item) => item.path === path)?.label ?? path;
+    supabase.auth.getUser().then(({ data }) => {
+      supabase.from("analytics_events").insert({
+        event_type: "create_menu_click",
+        user_id: data.user?.id ?? null,
+        event_data: { option: label, path },
+      } as any).then(() => {});
+    });
     navigate(path);
   };
 
