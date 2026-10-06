@@ -1,5 +1,5 @@
 import { usePlayer, RepeatMode } from "@/contexts/PlayerContext";
-import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3, Square, Volume2, VolumeX, ListMusic, MoreVertical, Maximize2, Type, Image, Film } from "lucide-react";
+import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3, Square, Volume2, VolumeX, ListMusic, MoreVertical, Maximize2, Type, Image as ImageIcon, Film } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -407,7 +407,7 @@ const ExpandedPlayer = () => {
             </button>
             {motionArtworkUrl && (
               <div className="absolute bottom-3 right-3 flex items-center p-1 rounded-full bg-background/80 border border-border backdrop-blur-md" aria-label="Artwork style">
-                <Button type="button" variant="ghost" size="icon" onClick={() => selectArtworkStyle(false)} className={`w-8 h-8 rounded-full ${!useMotionArtwork ? "bg-gold/20 text-gold" : "text-muted-foreground"}`} aria-label="Use image artwork"><Image className="w-4 h-4" /></Button>
+                <Button type="button" variant="ghost" size="icon" onClick={() => selectArtworkStyle(false)} className={`w-8 h-8 rounded-full ${!useMotionArtwork ? "bg-gold/20 text-gold" : "text-muted-foreground"}`} aria-label="Use image artwork"><ImageIcon className="w-4 h-4" /></Button>
                 <Button type="button" variant="ghost" size="icon" onClick={() => selectArtworkStyle(true)} className={`w-8 h-8 rounded-full ${useMotionArtwork ? "bg-gold/20 text-gold" : "text-muted-foreground"}`} aria-label="Use motion artwork"><Film className="w-4 h-4" /></Button>
               </div>
             )}
