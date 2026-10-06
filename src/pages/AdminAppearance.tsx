@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowDown, ArrowUp, Image, Loader2, Search, Trash2, Upload, Video } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, Image, Loader2, Search, Trash2, Upload, Video } from "lucide-react";
 import { toast } from "sonner";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -101,6 +101,8 @@ const AdminAppearance = () => {
   const [stageSongs, setStageSongs] = useState<SongLite[]>([]);
   const [stageUploading, setStageUploading] = useState(false);
   const [stageChoiceName, setStageChoiceName] = useState("");
+  const [stageDragId, setStageDragId] = useState<string | null>(null);
+  const [stageDragOverId, setStageDragOverId] = useState<string | null>(null);
 
   useEffect(() => { if (!loading && !isAdmin) navigate("/"); }, [isAdmin, loading, navigate]);
 
@@ -221,6 +223,19 @@ const AdminAppearance = () => {
     error ? toast.error("Could not remove background") : toast.success("Background removed");
   };
 
+  const reorderStageChoices = async (fromId: string, toId: string) => {
+    const list = [...(stage.backgroundLibrary || [])];
+    const from = list.findIndex((c) => c.id === fromId);
+    const to = list.findIndex((c) => c.id === toId);
+    if (from < 0 || to < 0 || from === to) return;
+    const [moved] = list.splice(from, 1);
+    list.splice(to, 0, moved);
+    const next = { ...stage, backgroundLibrary: list };
+    setStage(next);
+    const { error } = await saveSetting(SETTING_KEYS.stageMode, next);
+    error ? toast.error("Could not save order") : toast.success("Background order saved");
+  };
+
   if (loading) return null;
 
   return (
@@ -302,13 +317,28 @@ const AdminAppearance = () => {
                   <Button type="button" variant="outline" onClick={addStageChoice}>Add</Button>
                 </div>
                 {(stage.backgroundLibrary || []).map((choice) => (
-                  <div key={choice.id} className="flex items-center gap-2 rounded-lg bg-muted/50 px-2 py-1.5 text-sm text-foreground">
+                  <div
+                    key={choice.id}
+                    draggable
+                    onDragStart={(e) => { setStageDragId(choice.id); e.dataTransfer.effectAllowed = "move"; }}
+                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (stageDragOverId !== choice.id) setStageDragOverId(choice.id); }}
+                    onDragLeave={() => { if (stageDragOverId === choice.id) setStageDragOverId(null); }}
+                    onDrop={(e) => { e.preventDefault(); if (stageDragId) reorderStageChoices(stageDragId, choice.id); setStageDragId(null); setStageDragOverId(null); }}
+                    onDragEnd={() => { setStageDragId(null); setStageDragOverId(null); }}
+                    className={`flex items-center gap-2 rounded-lg bg-muted/50 px-2 py-1.5 text-sm text-foreground transition-all ${
+                      stageDragId === choice.id ? "opacity-40" : ""
+                    } ${stageDragOverId === choice.id && stageDragId !== choice.id ? "ring-1 ring-gold/60 translate-y-0.5" : ""}`}
+                  >
+                    <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing" aria-label={`Drag to reorder ${choice.name}`} />
                     <span className="flex-1 truncate">{choice.name}</span>
                     <Button type="button" size="icon" variant="ghost" aria-label={`Remove ${choice.name}`} onClick={() => removeStageChoice(choice.id)} className="h-8 w-8">
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 ))}
+                {(stage.backgroundLibrary || []).length > 1 && (
+                  <p className="text-[11px] text-muted-foreground">Drag the handles to set the order listeners see in Stage Mode.</p>
+                )}
               </div>
             </div>
             <div className="relative aspect-video overflow-hidden rounded-xl border border-border" style={{ backgroundColor: stageEditor.backgroundColor }}>
