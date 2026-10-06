@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/layout/AppLayout";
@@ -8,9 +8,10 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Heart, MessageCircle, Play, Plus, Send, Share2, Sparkles, Trash2, Users, X, Music4, Flame, BookOpen, Sunrise, Globe, Check } from "lucide-react";
+import { Heart, MessageCircle, Play, Plus, Send, Share2, Sparkles, Trash2, Users, X, Music4, Flame, BookOpen, Sunrise, Globe, Check, Palette } from "lucide-react";
 import { toast } from "sonner";
 import communityHero from "@/assets/community-hero.jpg";
+import { useSetting, getSetting, saveSetting, SETTING_KEYS, hexToHsl } from "@/lib/siteSettings";
 
 const rateMsg = (e: { message?: string } | null) =>
   e?.message?.includes("rate_limited") ? "You're going a bit fast — please wait a minute and try again." : null;
@@ -46,6 +47,12 @@ const Community = () => {
   const [manageOpen, setManageOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const savedColors = useSetting<Record<string, string>>(SETTING_KEYS.communityColors);
+  const [colorOverrides, setColorOverrides] = useState<Record<string, string>>({});
+  const communityColors = { ...savedColors, ...colorOverrides };
+  const [editingColor, setEditingColor] = useState<CommunityRow | null>(null);
+  const [colorDraft, setColorDraft] = useState("");
+  const [savingColor, setSavingColor] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
 
   const loadCommunities = useCallback(async () => {
@@ -209,6 +216,21 @@ const Community = () => {
     else toast.error("That name may already exist");
   };
 
+  const saveCommunityColor = async () => {
+    if (!isAdmin || !editingColor || !hexToHsl(colorDraft)) return;
+    setSavingColor(true);
+    try {
+      const current = await getSetting<Record<string, string>>(SETTING_KEYS.communityColors);
+      const next = { ...current, ...colorOverrides, [editingColor.id]: colorDraft };
+      const { error } = await saveSetting(SETTING_KEYS.communityColors, next);
+      if (error) { toast.error("Could not save the background colour"); return; }
+      setColorOverrides(next);
+      setEditingColor(null);
+      toast.success("Community background saved");
+    } catch { toast.error("Could not save the background colour"); }
+    finally { setSavingColor(false); }
+  };
+
   const timeAgo = (iso: string) => {
     const diff = Date.now() - new Date(iso).getTime();
     const m = Math.floor(diff / 60000);
@@ -255,9 +277,11 @@ const Community = () => {
             const Icon = COMMUNITY_ICONS[i % COMMUNITY_ICONS.length];
             const active = c.id === activeId;
             const joined = memberIds.has(c.id);
+            const color = hexToHsl(communityColors[c.id] || "");
             return (
               <div key={c.id} onClick={() => setActiveId(c.id)}
-                className={`glass-card rounded-2xl p-4 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-[0_10px_30px_-12px_rgba(201,162,39,0.5)] ${active ? "border-gold/70 ring-1 ring-gold/40" : ""}`}>
+                style={color ? { "--community-color": color } as CSSProperties : undefined}
+                className={`glass-card ${color ? "community-color-card" : ""} rounded-2xl p-4 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-[0_10px_30px_-12px_rgba(201,162,39,0.5)] ${active ? "border-gold/70 ring-1 ring-gold/40" : ""}`}>
                 <div className="flex items-start gap-3">
                   <div className={`w-11 h-11 rounded-xl shrink-0 flex items-center justify-center transition-colors ${active ? "bg-gradient-to-br from-[#c9a227] to-[#8b6914]" : "bg-gold/15 border border-gold/25"}`}>
                     <Icon className={`w-5 h-5 ${active ? "text-white" : "text-gold"}`} />
@@ -276,6 +300,12 @@ const Community = () => {
                   <span className="inline-flex items-center gap-1.5 text-[11px] text-foreground/60">
                     <Users className="w-3.5 h-3.5 text-gold/70" /> {(c.member_count || 0).toLocaleString()}
                   </span>
+                  {isAdmin && (
+                    <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto mr-2 text-foreground" title="Edit background colour" aria-label={`Edit ${c.name} background colour`}
+                      onClick={(e) => { e.stopPropagation(); setEditingColor(c); setColorDraft(communityColors[c.id] || ""); }}>
+                      <Palette className="w-4 h-4" />
+                    </Button>
+                  )}
                   {user && (
                     <Button size="sm" variant={joined ? "secondary" : "default"} onClick={(e) => { e.stopPropagation(); toggleMembership(c.id); }}
                       className={`${joined ? "rounded-full text-foreground" : goldBtn} h-7 px-3 text-xs`}>
@@ -355,7 +385,7 @@ const Community = () => {
               </div>
               <p className="text-sm text-foreground mt-3 whitespace-pre-wrap break-words">{post.content}</p>
               {post.song && (
-                <button onClick={() => playAttached(post.song!)} className="mt-3 w-full flex items-center gap-3 bg-secondary/50 hover:bg-secondary/80 rounded-xl p-2 text-left transition-colors">
+                <button onClick={() => { if (post.song) playAttached(post.song); }} className="mt-3 w-full flex items-center gap-3 bg-secondary/50 hover:bg-secondary/80 rounded-xl p-2 text-left transition-colors">
                   {post.song.cover_url && <img src={post.song.cover_url} alt="" className="w-11 h-11 rounded-lg object-cover" />}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{post.song.title}</p>
@@ -399,6 +429,29 @@ const Community = () => {
           ))}
         </div>
       </div>
+
+      <Dialog open={!!editingColor} onOpenChange={(open) => { if (!open) setEditingColor(null); }}>
+        <DialogContent className="glass-card border-gold/20 rounded-2xl">
+          <DialogHeader><DialogTitle>Community background</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="community-color-card rounded-2xl p-5 border border-border"
+              style={{ "--community-color": hexToHsl(colorDraft) || "var(--card)" } as CSSProperties}>
+              <Users className="w-6 h-6 text-foreground mb-2" />
+              <p className="font-semibold text-foreground break-words">{editingColor?.name}</p>
+              <p className="text-sm text-foreground mt-1">{editingColor?.description}</p>
+            </div>
+            <label className="block text-sm text-foreground" htmlFor="community-color">Background colour</label>
+            <div className="flex gap-3">
+              <input id="community-color" type="color" value={hexToHsl(colorDraft) ? colorDraft : "#ffffff"}
+                onChange={(e) => setColorDraft(e.target.value)} className="h-10 w-14 shrink-0 cursor-pointer rounded border border-border bg-background" />
+              <Input aria-label="Background hex colour" value={colorDraft} onChange={(e) => setColorDraft(e.target.value)} placeholder="#RRGGBB" />
+            </div>
+            <Button onClick={saveCommunityColor} disabled={savingColor || !hexToHsl(colorDraft)} className="w-full">
+              {savingColor ? "Saving…" : "Save background"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={manageOpen} onOpenChange={setManageOpen}>
         <DialogContent className="glass-card border-gold/20 rounded-2xl">

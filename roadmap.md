@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Reference-matched community card colours with admin colour picker, live preview, and saved per-community settings.
+
 - [x] Neon-green Daily Discover (CMS colour control) and 18 centralized admin feature switches across routes, menus, home sections, and player modes; six regression tests pass and disabled direct links verified
 
 - [ ] "Resounding Praise" stem test still processing on Replicate (~17 min, unusually slow — likely their queue). Worker cron keeps polling; it will finish on its own.

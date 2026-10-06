@@ -57,6 +57,7 @@
     --daily-discover-background: linear-gradient(120deg, hsl(var(--daily-discover) / 0.8), hsl(var(--daily-discover)));
     --glass-bg: 220 35% 12%;
     --glass-border: 220 25% 22%;
+    --community-foreground: 0 0% 100%;
   }
 
   .dark {
@@ -102,6 +103,11 @@
 }
 
 @layer utilities {
+  .community-color-card, .glass-card.community-color-card {
+    background: hsl(var(--community-color));
+    --foreground: var(--community-foreground);
+  }
+
   .gradient-gold {
     background: linear-gradient(135deg, hsl(43 70% 53%), hsl(43 80% 65%));
   }

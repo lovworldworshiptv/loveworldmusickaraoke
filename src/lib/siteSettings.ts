@@ -12,6 +12,7 @@ export const SETTING_KEYS = {
   globalCardColor: "global_playlist_card_color",
   dailyDiscoverConfig: "daily_discover_config",
   dailyDiscoverSongs: "daily_discover_songs",
+  communityColors: "community_background_colors",
 } as const;
 
 export type ThemeColors = { gold?: string; background?: string; accent?: string; foreground?: string; dailyDiscover?: string };
