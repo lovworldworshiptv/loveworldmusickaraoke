@@ -258,7 +258,7 @@ const ExpandedPlayer = () => {
             <ChevronDown className="w-7 h-7" />
           </button>
           <div className="text-center">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-medium">Now Playing</p>
+            <p className="text-[10px] text-foreground uppercase tracking-[0.2em] font-medium">Now Playing</p>
           </div>
           <div className="flex items-center gap-3">
             {/* Desktop: show all action buttons inline */}
@@ -333,7 +333,7 @@ const ExpandedPlayer = () => {
             </div>
             <div className="text-left min-w-0">
               <h2 className="text-base font-serif font-bold text-foreground truncate">{currentSong.title}</h2>
-              <p className="text-xs text-muted-foreground">{currentSong.artist}</p>
+              <p className="text-xs font-semibold text-foreground">{currentSong.artist}</p>
             </div>
           </button>
           {/* Artwork / Lyrics toggle — always visible in every view */}
@@ -364,7 +364,7 @@ const ExpandedPlayer = () => {
                 aria-selected={mode === id}
                 onClick={() => switchMode(id as PlayerMode)}
                 className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 ${
-                  mode === id ? "gradient-gold text-primary-foreground shadow-lg" : "text-muted-foreground hover:text-foreground"
+                  mode === id ? "gradient-gold text-primary-foreground shadow-lg" : "text-foreground hover:text-gold"
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" /> {label}

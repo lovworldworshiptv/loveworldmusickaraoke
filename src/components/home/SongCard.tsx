@@ -100,7 +100,7 @@ const SongCard = memo(({ song, index, allSongs }: SongCardProps) => {
             )
           )}
         </div>
-        <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+        <p className="text-xs text-foreground truncate">{song.artist}</p>
       </div>
 
       <Dialog open={showUpgrade} onOpenChange={setShowUpgrade}>
