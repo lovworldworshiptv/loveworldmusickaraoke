@@ -46,12 +46,12 @@ const Collection = () => {
       <div className="min-h-full transition-[background] duration-700" style={{ background: bg }}>
       <div className="px-4 lg:px-6 pt-4">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"><ArrowLeft className="w-4 h-4" /> Back</button>
-        <div className="relative w-full max-w-md mx-auto aspect-square rounded-3xl overflow-hidden shadow-2xl mb-5">
+        <div className="relative w-full max-w-md mx-auto aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl mb-5">
           {cover ? <img src={cover} alt={name} className="w-full h-full object-cover" /> : <div className="w-full h-full gradient-purple flex items-center justify-center"><ListMusic className="w-16 h-16 text-gold/60" /></div>}
           <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-background/90 via-background/50 to-transparent">
             <p className="text-[11px] uppercase tracking-[0.2em] text-gold">Playlist</p>
             <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground">{name}</h1>
-            <p className="text-xs text-white/90">{songs.length} songs</p>
+            <p className="text-xs text-white/90 line-clamp-2 mt-0.5">{description || autoDescription}</p>
           </div>
         </div>
         {songs.length > 0 && (
