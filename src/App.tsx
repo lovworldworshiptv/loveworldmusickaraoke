@@ -44,6 +44,7 @@ import Playlists from "./pages/Playlists";
 import Feedback from "./pages/Feedback";
 import Albums from "./pages/Albums";
 import Videos from "./pages/Videos";
+import Collection from "./pages/Collection";
 import Moments from "./pages/Moments";
 import StageMode from "./pages/StageMode";
 import Studio from "./pages/Studio";
@@ -101,6 +102,7 @@ const App = () => (
                 <Route path="/feedback" element={<AuthGate><Feedback /></AuthGate>} />
                 <Route path="/albums" element={<AuthGate><Albums /></AuthGate>} />
                 <Route path="/videos" element={<AuthGate><Videos /></AuthGate>} />
+                <Route path="/collection/:id" element={<Collection />} />
                 <Route path="/moments" element={<AuthGate><Moments /></AuthGate>} />
                 <Route path="/stage" element={<AuthGate><StageMode /></AuthGate>} />
                 <Route path="/studio" element={<Studio />} />

@@ -15,6 +15,8 @@ import HomepagePopup from "@/components/home/HomepagePopup";
 import MoodCapsules, { type Mood } from "@/components/home/MoodCapsules";
 import QuickPicks from "@/components/home/QuickPicks";
 import DailyDiscover from "@/components/home/DailyDiscover";
+import PlatformRecommendations from "@/components/home/PlatformRecommendations";
+import ModeSongRail from "@/components/home/ModeSongRail";
 import LazySection from "@/components/home/LazySection";
 import OnboardingSplash from "@/components/onboarding/OnboardingSplash";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,11 +55,14 @@ const Index = () => {
       <MoodCapsules value={mood.id} onChange={setMood} />
       <HeroBanner />
       <QuickPicks moodId={mood.id} moodName={mood.id ? mood.name : undefined} />
+      <PlatformRecommendations />
       <AlbumSection />
       <KaraokeStories />
       <DailyDiscover />
       <SongSection title="Featured Songs" />
+      <ModeSongRail mode="video" eyebrow="Watch & worship" title="Music Videos For You" />
       <SecondaryBanner />
+      <ModeSongRail mode="karaoke" eyebrow="Sing along" title="Soundtrack For Your Day" />
       <LazySection><CategorySection /></LazySection>
       <LazySection><GlobalPlaylistsSection /></LazySection>
       <LazySection><RecentlyPlayed /></LazySection>
