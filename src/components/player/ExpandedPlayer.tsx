@@ -120,6 +120,7 @@ const ExpandedPlayer = () => {
       setVideoMode(true);
       return;
     }
+
     if (videoMode) {
       const pos = videoPosRef.current();
       setVideoMode(false);
