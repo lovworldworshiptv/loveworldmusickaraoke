@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePlayer } from "@/contexts/PlayerContext";
-import { X, Play, Pause, SkipBack, SkipForward, Minus, Plus, Music } from "lucide-react";
+import { X, Play, Pause, SkipBack, SkipForward, Minus, Plus, Music, Volume2, VolumeX, Hand, WandSparkles } from "lucide-react";
+import { DEFAULT_STAGE_MODE, SETTING_KEYS, type StageModeSetting, useSetting } from "@/lib/siteSettings";
 
 const FONT_STEPS = ["text-2xl", "text-3xl", "text-4xl", "text-5xl", "text-6xl"];
 
@@ -18,10 +19,17 @@ const StageMode = () => {
     activeLrcIndex,
     duration,
     currentTime,
+    volume,
+    setVolume,
   } = usePlayer();
 
   const [fontStep, setFontStep] = useState(2);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [audioOn, setAudioOn] = useState(volume > 0);
+  const [manualScroll, setManualScroll] = useState(false);
+  const previousVolume = useRef(volume > 0 ? volume : 0.7);
+  const setting = useSetting<StageModeSetting>(SETTING_KEYS.stageMode);
+  const stage = { ...DEFAULT_STAGE_MODE, ...(setting || {}) };
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
@@ -58,18 +66,18 @@ const StageMode = () => {
 
   // Keep the active lyric line centered.
   useEffect(() => {
-    if (!hasSync || activeLrcIndex < 0) return;
+    if (manualScroll || !hasSync || activeLrcIndex < 0) return;
     lineRefs.current[activeLrcIndex]?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [activeLrcIndex, hasSync]);
+  }, [activeLrcIndex, hasSync, manualScroll]);
 
   // Unsynced lyrics: slow auto-scroll across the song's duration.
   useEffect(() => {
-    if (hasSync || !isPlaying) return;
+    if (manualScroll || hasSync || !isPlaying) return;
     const el = scrollRef.current;
     if (!el || duration <= 0) return;
     const target = ((el.scrollHeight - el.clientHeight) * currentTime) / duration;
     el.scrollTo({ top: target, behavior: "smooth" });
-  }, [currentTime, hasSync, isPlaying, duration]);
+  }, [currentTime, hasSync, isPlaying, duration, manualScroll]);
 
   if (!currentSong) {
     return (
@@ -89,10 +97,18 @@ const StageMode = () => {
 
   return (
     <div
-      className="h-[100dvh] bg-black text-white flex flex-col select-none overflow-hidden"
+      className="h-[100dvh] bg-background text-foreground flex flex-col select-none overflow-hidden relative"
+      style={{ backgroundColor: stage.backgroundColor }}
       onPointerMove={pokeControls}
       onPointerDown={pokeControls}
     >
+      {stage.mediaType === "image" && stage.mediaUrl && (
+        <img src={stage.mediaUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      )}
+      {stage.mediaType === "video" && stage.mediaUrl && (
+        <video src={stage.mediaUrl} muted loop autoPlay playsInline className="absolute inset-0 h-full w-full object-cover" />
+      )}
+      <div className="absolute inset-0 bg-background/65" />
       {/* Top bar */}
       <div
         className={`absolute top-0 inset-x-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-500 ${
@@ -111,6 +127,25 @@ const StageMode = () => {
           <p className="text-[11px] text-white truncate">{currentSong.artist}</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const next = !audioOn;
+              if (!next && volume > 0) previousVolume.current = volume;
+              setAudioOn(next);
+              setVolume(next ? previousVolume.current : 0);
+            }}
+            aria-label={audioOn ? "Turn audio off" : "Turn audio on"}
+            className="w-10 h-10 rounded-full bg-foreground/10 backdrop-blur flex items-center justify-center"
+          >
+            {audioOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </button>
+          <button
+            onClick={() => setManualScroll((v) => !v)}
+            aria-label={manualScroll ? "Turn automatic scrolling on" : "Use manual scrolling"}
+            className={`w-10 h-10 rounded-full backdrop-blur flex items-center justify-center ${manualScroll ? "bg-gold/25 text-gold" : "bg-foreground/10"}`}
+          >
+            {manualScroll ? <Hand className="w-4 h-4" /> : <WandSparkles className="w-4 h-4" />}
+          </button>
           <button
             onClick={() => setFontStep((s) => Math.max(0, s - 1))}
             aria-label="Smaller lyrics"
@@ -131,7 +166,7 @@ const StageMode = () => {
       {/* Lyrics */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-6 py-[40dvh]"
+        className={`relative z-10 flex-1 overflow-y-auto px-6 py-[40dvh] ${manualScroll ? "touch-pan-y" : "scroll-smooth"}`}
         style={{ scrollbarWidth: "none" }}
       >
         {hasSync ? (

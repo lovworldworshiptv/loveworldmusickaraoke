@@ -5,3 +5,4 @@
 - Stem separation runs through a queue in song_audio_versions (kind='instrumental' is the job row), processed by the stem-worker function on a cron that arms on enqueue and unschedules when drained — why: bounded, single-flight, retry-safe background AI work with a persisted pause on billing errors.
 - Song, Karaoke, mini-player, and Video playback timelines use the shared PlaybackProgress component — why: progress tracks and position markers must remain visually consistent.
 - Admin-managed look & home layout (theme colours, home section order/visibility, curated rails) live in app_settings via src/lib/siteSettings.ts; playlist card colours live in playlists.card_color — why: no hardcoded styling, CMS controls it.
+- Stage Mode presentation media and fallback colour live in app_settings via src/lib/siteSettings.ts — why: one admin-managed presentation applies consistently to every song.
