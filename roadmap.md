@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Admin-only community management and community-scoped moderator appointments with enforced permissions and regression checks.
+- [x] Admin-only community management and community-scoped moderator appointments; signed-in permission regressions pass and admin search dialog verified.
 
 - [x] Community directory/detail pages, admin-editable profile images, white text, and neutral grey page background.
 
