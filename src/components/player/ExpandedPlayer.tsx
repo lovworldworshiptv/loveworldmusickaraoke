@@ -1,5 +1,5 @@
 import { usePlayer, RepeatMode } from "@/contexts/PlayerContext";
-import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3, Square, Volume2, VolumeX, ListMusic, MoreVertical, Maximize2, Type } from "lucide-react";
+import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3, Square, Volume2, VolumeX, ListMusic, MoreVertical, Maximize2, Type, Image, Film } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -66,6 +66,8 @@ const ExpandedPlayer = () => {
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
   const [showLyrics, setShowLyrics] = useState(true);
+  const [motionArtworkUrl, setMotionArtworkUrl] = useState<string | null>(null);
+  const [useMotionArtwork, setUseMotionArtwork] = useState(() => localStorage.getItem("player-artwork-style") !== "image");
   const [showRecorder, setShowRecorder] = useState(false);
   const [isRecordingActive, setIsRecordingActive] = useState(false);
   const [recorderMinimized, setRecorderMinimized] = useState(false);
@@ -86,6 +88,7 @@ const ExpandedPlayer = () => {
   useEffect(() => {
     setVideoMode(false);
     setVideos([]);
+    setMotionArtworkUrl(null);
     if (!currentSong) return;
     supabase.from("song_videos").select("id, video_url, video_type, language_code, offset_ms, thumbnail_url")
       .eq("song_id", currentSong.id).eq("is_active", true)
@@ -95,7 +98,14 @@ const ExpandedPlayer = () => {
         list.sort((a, b) => order.indexOf(a.video_type) - order.indexOf(b.video_type));
         setVideos(list);
       });
+    supabase.from("song_motion_artwork").select("video_url").eq("song_id", currentSong.id).eq("is_active", true).maybeSingle()
+      .then(({ data }) => setMotionArtworkUrl(data?.video_url || null));
   }, [currentSong?.id]);
+
+  const selectArtworkStyle = (motion: boolean) => {
+    setUseMotionArtwork(motion);
+    localStorage.setItem("player-artwork-style", motion ? "motion" : "image");
+  };
 
   const switchMode = useCallback((next: PlayerMode) => {
     if (next === mode) return;
@@ -383,15 +393,25 @@ const ExpandedPlayer = () => {
           <VideoMode video={videos[0]} startAt={videoStart} positionRef={videoPosRef} />
         ) : !showLyrics ? (
           <div className="flex-1 flex flex-col items-center justify-center px-8 min-h-0">
-            <button onClick={() => setShowLyrics(true)} className="w-full max-w-[280px] aspect-square">
+            <div className="relative w-full max-w-[280px] aspect-square">
+            <button onClick={() => setShowLyrics(true)} className="w-full h-full">
               <div className="w-full h-full rounded-3xl gradient-purple flex items-center justify-center glow-gold shadow-2xl overflow-hidden">
-                {currentSong.coverUrl ? (
+                {motionArtworkUrl && useMotionArtwork ? (
+                  <video src={motionArtworkUrl} poster={currentSong.coverUrl} autoPlay muted loop playsInline preload="auto" aria-label={`${currentSong.title} motion artwork`} className="w-full h-full rounded-3xl object-cover" />
+                ) : currentSong.coverUrl ? (
                   <img src={currentSong.coverUrl} alt={currentSong.title} className="w-full h-full rounded-3xl object-cover" />
                 ) : (
                   <Music className="w-24 h-24 text-gold/30" />
                 )}
               </div>
             </button>
+            {motionArtworkUrl && (
+              <div className="absolute bottom-3 right-3 flex items-center p-1 rounded-full bg-background/80 border border-border backdrop-blur-md" aria-label="Artwork style">
+                <Button type="button" variant="ghost" size="icon" onClick={() => selectArtworkStyle(false)} className={`w-8 h-8 rounded-full ${!useMotionArtwork ? "bg-gold/20 text-gold" : "text-muted-foreground"}`} aria-label="Use image artwork"><Image className="w-4 h-4" /></Button>
+                <Button type="button" variant="ghost" size="icon" onClick={() => selectArtworkStyle(true)} className={`w-8 h-8 rounded-full ${useMotionArtwork ? "bg-gold/20 text-gold" : "text-muted-foreground"}`} aria-label="Use motion artwork"><Film className="w-4 h-4" /></Button>
+              </div>
+            )}
+            </div>
             <div className="mt-6 text-center w-full px-4">
               {currentSong.album && <p className="text-xs text-muted-foreground/60 mt-0.5">{currentSong.album}</p>}
             </div>

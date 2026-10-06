@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, RotateCcw, RotateCw } from "lucide-react";
+import { Play, Pause, RotateCcw, RotateCw, Loader2 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
 export interface SongVideo {
@@ -35,6 +35,7 @@ const VideoMode = ({ video, startAt, positionRef }: Props) => {
   const [playing, setPlaying] = useState(true);
   const [time, setTime] = useState(start);
   const [dur, setDur] = useState(0);
+  const [ready, setReady] = useState(false);
   const timeRef = useRef(start);
   timeRef.current = time;
 
@@ -74,6 +75,14 @@ const VideoMode = ({ video, startAt, positionRef }: Props) => {
     if (v.paused) v.play().catch(() => {}); else v.pause();
   };
 
+  useEffect(() => {
+    if (yt) return;
+    const player = videoRef.current;
+    if (!player) return;
+    player.load();
+    player.play().catch(() => setPlaying(false));
+  }, [video.video_url, yt]);
+
   const seek = (t: number) => {
     const target = Math.max(0, dur ? Math.min(t, dur) : t);
     if (yt) ytCmd("seekTo", [target, true]);
@@ -84,6 +93,7 @@ const VideoMode = ({ video, startAt, positionRef }: Props) => {
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-4 min-h-0 gap-4">
       <div className="w-full max-w-3xl aspect-video rounded-2xl overflow-hidden glass-card glow-gold bg-background">
+        {!ready && <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70"><Loader2 className="w-7 h-7 animate-spin text-gold" /></div>}
         {yt ? (
           <iframe
             ref={iframeRef}
@@ -93,6 +103,7 @@ const VideoMode = ({ video, startAt, positionRef }: Props) => {
             title="Song video"
             allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
             allowFullScreen
+            loading="eager"
           />
         ) : (
           <video
@@ -101,9 +112,12 @@ const VideoMode = ({ video, startAt, positionRef }: Props) => {
             poster={video.thumbnail_url || undefined}
             className="w-full h-full object-contain"
             autoPlay
+            preload="auto"
             playsInline
             onClick={toggle}
             onLoadedMetadata={(e) => { e.currentTarget.currentTime = start; setDur(e.currentTarget.duration); }}
+            onCanPlay={(e) => { setReady(true); e.currentTarget.play().catch(() => setPlaying(false)); }}
+            onWaiting={() => setReady(false)}
             onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
             onPlay={() => setPlaying(true)}
             onPause={() => setPlaying(false)}
