@@ -6,8 +6,8 @@ import { ListMusic, Play } from "lucide-react";
 type Rec = { id: string; name: string; cover_url: string | null; playlist_songs: { songs: { title: string; artist: string; cover_url: string | null } | null }[] | null };
 
 /** Spotify-style recommendation cards; each opens the playlist's collection page. */
-/** Fuchsia-pink treatment reserved for the "Pastor Chris Live Unending Praise" card. */
-const isFuchsiaCard = (name: string) => /unending praise/i.test(name);
+/** Deep brown treatment reserved for the "Pastor Chris Live Unending Praise" card. */
+const isUnendingPraiseCard = (name: string) => /unending praise/i.test(name);
 
 const PlatformRecommendations = () => {
   const [items, setItems] = useState<Rec[]>([]);
@@ -32,13 +32,13 @@ const PlatformRecommendations = () => {
           const songs = (p.playlist_songs || []).map((s) => s.songs).filter(Boolean) as NonNullable<Rec["playlist_songs"]>[number]["songs"][];
           const cover = p.cover_url || songs[0]?.cover_url;
           const names = songs.slice(0, 3).map((s) => s!.title).join(", ");
-          const fuchsia = isFuchsiaCard(p.name);
+          const unendingPraise = isUnendingPraiseCard(p.name);
           return (
             <button key={p.id} onClick={() => navigate(`/collection/${p.id}`)}
-              className={`snap-start flex-shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] rounded-2xl p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${fuchsia ? "border border-amber-400/30 shadow-[0_4px_20px_hsl(30_70%_25%/0.45)]" : "glass-card hover:border-gold/40"}`}
-              style={fuchsia ? { background: "linear-gradient(135deg, hsl(25 50% 10%) 0%, hsl(28 55% 24%) 55%, hsl(32 65% 38%) 100%)" } : undefined}>
-              <div className="flex gap-3">
-                <div className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-muted">
+              className={`snap-start flex-shrink-0 w-full md:w-[calc(50%_-_0.375rem)] lg:w-[29.6%] h-36 rounded-2xl p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${unendingPraise ? "border-0 shadow-[0_4px_20px_hsl(30_70%_25%/0.45)]" : "glass-card hover:border-gold/40"}`}
+              style={unendingPraise ? { background: "linear-gradient(135deg, hsl(25 50% 10%) 0%, hsl(28 55% 24%) 55%, hsl(32 65% 38%) 100%)" } : undefined}>
+              <div className="flex h-full gap-3">
+                <div className="aspect-square h-full rounded-xl overflow-hidden flex-shrink-0 bg-muted">
                   {cover ? <img src={cover} alt="" loading="lazy" className="w-full h-full object-cover" /> :
                     <div className="w-full h-full gradient-purple flex items-center justify-center"><ListMusic className="w-8 h-8 text-gold/60" /></div>}
                 </div>
