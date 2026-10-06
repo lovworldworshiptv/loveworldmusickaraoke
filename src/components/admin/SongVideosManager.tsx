@@ -56,12 +56,13 @@ const SongVideosManager = ({ songId, songTitle, onClose }: Props) => {
   }, []);
 
   const add = async () => {
+    if (!songId) return;
     const u = url.trim();
     if (!/^https:\/\//.test(u)) { toast.error("Enter a full https:// video link"); return; }
     setSaving(true);
     const thumb = ytId(u) ? `https://img.youtube.com/vi/${ytId(u)}/hqdefault.jpg` : null;
     const { data, error } = await supabase.from("song_videos").insert({
-      song_id: songId!, video_url: u, video_type: type, language_code: lang,
+      song_id: songId, video_url: u, video_type: type, language_code: lang,
       offset_ms: Math.round((parseFloat(offset) || 0) * 1000), thumbnail_url: thumb, is_active: true,
     }).select("id, video_url, video_type, language_code, offset_ms, is_active").single();
     setSaving(false);

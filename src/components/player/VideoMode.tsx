@@ -61,6 +61,7 @@ const VideoMode = ({ video, startAt, positionRef }: Props) => {
   }, [yt]);
 
   const onIframeLoad = () => {
+    setReady(true);
     iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: video.id }), "*");
   };
 
@@ -92,7 +93,7 @@ const VideoMode = ({ video, startAt, positionRef }: Props) => {
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-4 min-h-0 gap-4">
-      <div className="w-full max-w-3xl aspect-video rounded-2xl overflow-hidden glass-card glow-gold bg-background">
+      <div className="relative w-full max-w-3xl aspect-video rounded-2xl overflow-hidden glass-card glow-gold bg-background">
         {!ready && <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70"><Loader2 className="w-7 h-7 animate-spin text-gold" /></div>}
         {yt ? (
           <iframe
