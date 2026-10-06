@@ -44,3 +44,11 @@ export function useDominantColor(imageUrl: string | null | undefined): [number, 
 
   return color;
 }
+
+/** Spotify-style tone: keeps the artwork hue but darkens it so white text stays readable. */
+export function playerTone(c: [number, number, number] | null, maxLum = 110): string | null {
+  if (!c) return null;
+  const lum = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  const k = lum > maxLum ? maxLum / lum : 1;
+  return c.map((v) => Math.round(v * k)).join(", ");
+}

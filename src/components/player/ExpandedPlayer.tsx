@@ -1,3 +1,4 @@
+import { useDominantColor as useSharedDominantColor, playerTone } from "@/lib/dominantColor";
 import { usePlayer, RepeatMode } from "@/contexts/PlayerContext";
 import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3, Square, Volume2, VolumeX, ListMusic, MoreVertical, Maximize2, Type, Image as ImageIcon, Film } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
@@ -141,7 +142,7 @@ const ExpandedPlayer = () => {
     if (recorderMinimized && !isRecordingActive) setRecorderMinimized(false);
   }, [isRecordingActive, recorderMinimized]);
 
-  const dominantColor = useDominantColor(currentSong?.coverUrl);
+  const dominantColor = playerTone(useSharedDominantColor(currentSong?.coverUrl), 130);
   const { user } = useAuth();
   const { isAdmin } = useIsAdmin();
   const { isPremium } = useIsPremium();
@@ -229,7 +230,7 @@ const ExpandedPlayer = () => {
     <>
     <div className="fixed inset-0 z-50 flex flex-col overflow-hidden">
       <div className="absolute inset-0 bg-background" />
-      <div className="absolute inset-0" style={dominantColor ? { background: `linear-gradient(180deg, rgba(${dominantColor}, 0.35) 0%, hsl(var(--background)) 60%)` } : undefined}>
+      <div className="absolute inset-0 transition-all duration-700" style={dominantColor ? { background: `linear-gradient(180deg, rgb(${dominantColor}) 0%, rgba(${dominantColor}, 0.75) 40%, hsl(var(--background)) 100%)`, transition: 'background 700ms ease' } : undefined}>
         {!dominantColor && <div className="absolute inset-0 gradient-purple opacity-30" />}
       </div>
 

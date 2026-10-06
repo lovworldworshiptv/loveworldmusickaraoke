@@ -1,3 +1,4 @@
+import { useDominantColor, playerTone } from "@/lib/dominantColor";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, VolumeX, Mic2, ListMusic, ChevronUp, X, Download, Check, Lock, Crown, Disc3, MoreVertical } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -87,6 +88,7 @@ const PlayerBar = () => {
     }
   }, [currentSong, canDownload]);
 
+  const tone = playerTone(useDominantColor(currentSong?.coverUrl), 90);
   if (!currentSong) return null;
   if (hidden) return (
     <button onClick={() => setHidden(false)} className="fixed z-30 w-12 h-12 rounded-full gradient-gold flex items-center justify-center text-primary-foreground shadow-lg hover:opacity-90 transition-opacity touch-target active:scale-95 lg:bottom-2 right-3" style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
@@ -100,7 +102,7 @@ const PlayerBar = () => {
 
   return (
     <>
-      <div className="fixed left-0 right-0 z-30 glass border-t border-border gpu lg:left-64 lg:bottom-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))]">
+      <div style={tone ? { backgroundColor: `rgba(${tone}, 0.92)`, borderColor: `rgba(${tone}, 1)`, transition: "background-color 700ms ease" } : undefined} className="fixed left-0 right-0 z-30 glass border-t border-border gpu lg:left-64 lg:bottom-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))]">
         <div className="px-5 pt-2">
           <div className="relative w-[96%] mx-auto group/progress">
             <Slider
