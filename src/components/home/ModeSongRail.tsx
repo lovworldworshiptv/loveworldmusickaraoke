@@ -34,8 +34,8 @@ const ModeSongRail = ({ mode, eyebrow, title }: Props) => {
           <button key={s.id}
             onClick={() => (mode === "video" ? playVideo(toPlayerSong(s)) : singThis(toPlayerSong(s)))}
             aria-label={`${mode === "video" ? "Watch" : "Sing"} ${s.title}`}
-            className={`snap-start flex-shrink-0 text-left group ${mode === "video" ? "w-56" : "w-36"}`}>
-            <div className={`relative rounded-2xl overflow-hidden bg-muted ${mode === "video" ? "aspect-video" : "aspect-square"}`}>
+            className={`snap-start flex-shrink-0 text-left group ${mode === "video" ? "w-[calc(80%-0.6rem)] md:w-[calc(44.4%_-_0.4rem)] lg:w-[29.6%]" : "w-36"}`}>
+            <div className={`relative rounded-2xl overflow-hidden bg-muted ${mode === "video" ? "aspect-[16/10.8]" : "aspect-square"}`}>
               {s.cover_url ? <img src={s.cover_url} alt="" loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> :
                 <div className="w-full h-full gradient-purple flex items-center justify-center"><Music2 className="w-6 h-6 text-gold/50" /></div>}
               <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
