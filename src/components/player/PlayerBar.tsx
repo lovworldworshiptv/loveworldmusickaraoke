@@ -103,19 +103,19 @@ const PlayerBar = () => {
   return (
     <>
       <div style={tone ? { backgroundColor: `rgba(${tone}, 0.92)`, borderColor: `rgba(${tone}, 0.4)`, transition: "background-color 700ms ease, border-color 700ms ease" } : undefined} className="fixed left-2 right-2 z-30 glass rounded-2xl border border-border gpu shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] lg:left-[16.75rem] lg:right-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] lg:bottom-2">
-        <div className="px-4 pt-2.5">
+        <div className="px-4 pt-2">
           <div className="relative w-[96%] mx-auto group/progress">
             <Slider
               value={[progress]}
               onValueChange={([v]) => seekTo(v)}
               max={100}
               step={0.5}
-              className="w-full [&_.relative]:h-1 [&_[class*=Range]]:bg-gradient-to-r [&_[class*=Range]]:from-gold [&_[class*=Range]]:via-gold-light [&_[class*=Range]]:to-gold [&_[class*=Track]]:h-1 [&_[class*=Track]]:bg-muted-foreground/20 [&_[class*=Thumb]]:w-[7px] [&_[class*=Thumb]]:h-[7px] [&_[class*=Thumb]]:bg-gold [&_[class*=Thumb]]:border-0 [&_[class*=Thumb]]:shadow-[0_0_8px_hsl(43_70%_53%/0.6)] [&_[class*=Thumb]]:opacity-0 [&_[class*=Thumb]]:group-hover/progress:opacity-100 [&_[class*=Thumb]]:transition-opacity"
+              className="w-full [&_.relative]:h-1 [&_[class*=Range]]:bg-gradient-to-r [&_[class*=Range]]:from-gold [&_[class*=Range]]:via-gold-light [&_[class*=Range]]:to-gold [&_[class*=Track]]:h-1 [&_[class*=Track]]:bg-muted-foreground/20 [&_[class*=Thumb]]:w-[5.6px] [&_[class*=Thumb]]:h-[5.6px] [&_[class*=Thumb]]:bg-gold [&_[class*=Thumb]]:border-0 [&_[class*=Thumb]]:shadow-[0_0_6px_hsl(43_70%_53%/0.6)] [&_[class*=Thumb]]:opacity-0 [&_[class*=Thumb]]:group-hover/progress:opacity-100 [&_[class*=Thumb]]:transition-opacity"
             />
           </div>
         </div>
 
-        <div className="flex items-center justify-between px-3.5 pb-2.5 pt-2">
+        <div className="flex items-center justify-between px-3.5 pb-1.5 pt-1.5">
           {/* Song Info */}
           <button onClick={toggleExpanded} className="flex items-center gap-3 min-w-0 flex-1">
             <div className="w-10 h-10 rounded-lg gradient-gold flex-shrink-0 flex items-center justify-center overflow-hidden">
