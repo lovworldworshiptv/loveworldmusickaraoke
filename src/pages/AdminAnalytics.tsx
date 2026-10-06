@@ -54,6 +54,7 @@ const AdminAnalytics = () => {
         supabase.from("song_audio_versions").select("song_id, status, error, updated_at").eq("kind", "instrumental").order("updated_at", { ascending: false }),
         supabase.from("articles").select("id", { count: "exact", head: true }),
         supabase.from("game_sessions").select("user_id, score").limit(5000),
+        supabase.from("analytics_events").select("event_data, created_at").eq("event_type", "create_menu_click").order("created_at", { ascending: false }).limit(5000),
       ]);
       const failed = results.find((result) => result.error);
       if (failed?.error) throw failed.error;
@@ -62,6 +63,7 @@ const AdminAnalytics = () => {
         favorites: results[3].data ?? [], downloads: results[4].data ?? [], karaoke: results[5].data ?? [],
         subscriptions: results[6].data ?? [], notifications: results[7].data ?? [], stems: results[8].data ?? [],
         articles: results[9].count ?? 0, games: results[10].data ?? [],
+        createClicks: (results[11].data ?? []) as { event_data: any; created_at: string }[],
       };
     },
   });
@@ -154,6 +156,10 @@ const AdminAnalytics = () => {
                 <div className={panel}><h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground"><Users className="h-4 w-4 text-gold" /> New users</h2><div className="h-64">{model.profileDays.length ? <ResponsiveContainer width="100%" height="100%"><LineChart data={model.profileDays}><CartesianGrid stroke="hsl(var(--border))" vertical={false} /><XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} /><YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} /><Tooltip contentStyle={tooltipStyle} /><Line dataKey="users" stroke="hsl(var(--gold))" strokeWidth={2} dot={false} /></LineChart></ResponsiveContainer> : empty("No new users in this period")}</div></div>
               </div>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4"><StatCard icon={Heart} label="Favorites" value={data.favorites.length} /><StatCard icon={Download} label="Downloads" value={data.downloads.length} /><StatCard icon={Mic2} label="Recordings" value={data.karaoke.length} /><StatCard icon={BookOpen} label="Articles" value={data.articles} /></div>
+              <div className={panel}>
+                <h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground"><BarChart3 className="h-4 w-4 text-gold" /> Create menu usage <span className="text-xs font-normal text-muted-foreground">({rangeLabel})</span></h2>
+                <div className="h-56">{model.createMenu.some((c) => c.clicks > 0) ? <ResponsiveContainer width="100%" height="100%"><BarChart data={model.createMenu} layout="vertical" margin={{ left: 20 }}><CartesianGrid stroke="hsl(var(--border))" horizontal={false} /><XAxis type="number" allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} /><YAxis type="category" dataKey="option" stroke="hsl(var(--muted-foreground))" fontSize={11} width={90} /><Tooltip contentStyle={tooltipStyle} /><Bar dataKey="clicks" fill="hsl(var(--gold))" radius={[0, 4, 4, 0]} /></BarChart></ResponsiveContainer> : empty("No Create menu taps in this period yet")}</div>
+              </div>
             </TabsContent>
 
             <TabsContent value="content" className="space-y-6">
