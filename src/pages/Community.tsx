@@ -13,6 +13,9 @@ import { toast } from "sonner";
 import communityHero from "@/assets/community-hero.jpg";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
 import CommunityModeratorsDialog from "@/components/community/CommunityModeratorsDialog";
+import CommunityManageDialog from "@/components/community/CommunityManageDialog";
+import ShareMenu from "@/components/share/ShareMenu";
+import { Settings2 } from "lucide-react";
 import { useSetting, getSetting, saveSetting, SETTING_KEYS, hexToHsl } from "@/lib/siteSettings";
 
 const rateMsg = (e: { message?: string } | null) =>
@@ -42,6 +45,7 @@ const Community = () => {
   const [memberIds, setMemberIds] = useState<Set<string>>(new Set());
   const [moderatorIds, setModeratorIds] = useState<Set<string>>(new Set());
   const [moderatingCommunity, setModeratingCommunity] = useState<CommunityRow | null>(null);
+  const [managingCommunity, setManagingCommunity] = useState<CommunityRow | null>(null);
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [content, setContent] = useState("");
   const [attachedSong, setAttachedSong] = useState<PostRow["song"]>(null);
@@ -347,6 +351,14 @@ const Community = () => {
                   <span className="inline-flex items-center gap-1.5 text-[11px] text-foreground">
                     <Users className="w-3.5 h-3.5 text-foreground" /> {(c.member_count || 0).toLocaleString()}
                   </span>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <ShareMenu url={`${SHARE_BASE}/community/${c.id}`} title={c.name} text={`Join "${c.name}" on Loveworld Music`} kingschatFirst
+                      trigger={<Button variant="ghost" size="icon" className="h-7 w-7 text-foreground" title="Share community" aria-label={`Share ${c.name}`}><Share2 className="w-4 h-4" /></Button>} />
+                  </div>
+                  {isAdmin && (
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-foreground" title="Edit details & members" aria-label={`Manage ${c.name}`}
+                      onClick={(e) => { e.stopPropagation(); setManagingCommunity(c); }}><Settings2 className="w-4 h-4" /></Button>
+                  )}
                   {isAdmin && (
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-foreground" title="Manage moderators" aria-label={`Manage ${c.name} moderators`}
                       onClick={(e) => { e.stopPropagation(); setModeratingCommunity(c); }}><ShieldCheck className="w-4 h-4" /></Button>
@@ -491,6 +503,8 @@ const Community = () => {
       </div>
 
       {isAdmin && <CommunityModeratorsDialog community={moderatingCommunity} onClose={() => setModeratingCommunity(null)} />}
+      {isAdmin && <CommunityManageDialog community={managingCommunity} onClose={() => setManagingCommunity(null)}
+        onSaved={(id, { memberDelta, ...patch }) => setCommunities((rows) => rows.map((c) => c.id === id ? { ...c, ...patch, member_count: Math.max(0, (c.member_count || 0) + (memberDelta || 0)) } : c))} />}
       <Dialog open={isAdmin && !!editingImage} onOpenChange={(open) => { if (!open) setEditingImage(null); }}>
         <DialogContent className="community-page glass-card border-gold/20 rounded-2xl">
           <DialogHeader><DialogTitle>Community profile image</DialogTitle></DialogHeader>
