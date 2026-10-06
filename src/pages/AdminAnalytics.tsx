@@ -118,7 +118,12 @@ const AdminAnalytics = () => {
       video: data.songs.filter((s) => !s.has_video).length, category: data.songs.filter((s) => !s.category_id).length,
     };
     const activeUsers = new Set(plays.map((p) => p.user_id).filter(Boolean)).size;
-    return { plays, contentRows, playDays: [...dayMap.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, value]) => value), profileDays: [...profileDays.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, users]) => ({ date: date.slice(5), users })), engaged, locations, subscriptions, expiring, issues, activeUsers, songMap };
+    const createCounts: Record<string, number> = { Playlist: 0, "Studio Mode": 0, Reminders: 0, "Stage Mode": 0 };
+    data.createClicks.filter((c) => new Date(c.created_at).getTime() >= cutoff).forEach((c) => {
+      const key = c.event_data?.option; if (key) createCounts[key] = (createCounts[key] ?? 0) + 1;
+    });
+    const createMenu = Object.entries(createCounts).map(([option, clicks]) => ({ option, clicks })).sort((a, b) => b.clicks - a.clicks);
+    return { createMenu, plays, contentRows, playDays: [...dayMap.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, value]) => value), profileDays: [...profileDays.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, users]) => ({ date: date.slice(5), users })), engaged, locations, subscriptions, expiring, issues, activeUsers, songMap };
   }, [data, range]);
 
   if (adminLoading) return <AppLayout><div className="p-6 text-center text-muted-foreground">Loading...</div></AppLayout>;
