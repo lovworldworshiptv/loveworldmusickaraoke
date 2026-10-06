@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { User, Settings, ChevronRight, LogOut, Crown, Shield, Palette, AtSign, Music2, Disc3, List, Newspaper, Grid3X3, Image, Gamepad2, MessageSquare, Sparkles, Users, BarChart3, Bell, Mic2, Clock, Trophy } from "lucide-react";
+import { User, Settings, ChevronRight, LogOut, Crown, Shield, Palette, AtSign, Music2, Disc3, List, Newspaper, Grid3X3, Image, Gamepad2, MessageSquare, Sparkles, Users, BarChart3, Bell, Mic2, Clock, Trophy, Library, HardDrive } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useTheme, ThemeName } from "@/contexts/ThemeContext";
@@ -110,6 +110,24 @@ const ProfileMenu = () => {
                   <span className="flex items-center gap-2"><User className="w-4 h-4" /> Profile</span>
                   <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </button>
+                {/* Mobile-only quick links (desktop side menu covers these) */}
+                <div className="lg:hidden">
+                  {[
+                    { icon: Library, label: "My Library", path: "/library" },
+                    { icon: HardDrive, label: "My Studio", path: "/studio" },
+                    { icon: Clock, label: "History", path: "/history" },
+                    { icon: MessageSquare, label: "Feedback", path: "/feedback" },
+                  ].map((item) => (
+                    <button
+                      key={item.path}
+                      onClick={() => { setOpen(false); navigate(item.path); }}
+                      className="w-full flex items-center justify-between p-2.5 rounded-lg text-sm text-foreground hover:bg-muted transition-colors"
+                    >
+                      <span className="flex items-center gap-2"><item.icon className="w-4 h-4" /> {item.label}</span>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  ))}
+                </div>
                 {role === "admin" && (
                   <button
                     onClick={() => { setOpen(false); setAdminSheetOpen(true); }}
