@@ -10,6 +10,7 @@ import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
 import { sortSongsByTitle, compareTitles } from "@/lib/utils";
 import { Video } from "lucide-react";
 import SongVideosManager from "@/components/admin/SongVideosManager";
+import StemStudio, { callStemAdmin, type StemStatus } from "@/components/admin/StemStudio";
 
 interface Song {
   id: string;
@@ -811,6 +812,8 @@ const AdminSongs = () => {
           </div>
         )}
 
+        {isAdmin && !isEditorOnly && <StemStudio onStatusChange={handleStemStatus} refreshKey={stemRefresh} />}
+
         {/* Songs List */}
         {loading ? (
           <p className="text-muted-foreground text-sm">Loading...</p>
@@ -836,9 +839,21 @@ const AdminSongs = () => {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{song.title}</p>
                   <p className="text-xs text-muted-foreground truncate">{song.artist} {song.album ? `• ${song.album}` : ""}</p>
-                  <div className="flex gap-2 mt-1">
+                  <div className="flex flex-wrap gap-2 mt-1">
                     {song.audio_url && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded">Audio</span>}
                     {song.instrumental_url && <span className="text-[10px] bg-accent/20 text-accent-foreground px-1.5 py-0.5 rounded">Instrumental</span>}
+                    {isAdmin && stemStatus[song.id] && stemStatus[song.id].status !== "ready" && (
+                      <span title={stemStatus[song.id].error ?? undefined}
+                        className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 ${stemStatus[song.id].status === "failed" ? "bg-destructive/20 text-destructive" : "bg-primary/20 text-primary"}`}>
+                        {stemStatus[song.id].status === "pending" ? "Stems: Pending" : stemStatus[song.id].status === "processing" ? "Stems: Processing" : "Stems: Failed"}
+                        {stemStatus[song.id].status === "failed" && (
+                          <button className="underline" onClick={async () => {
+                            try { await callStemAdmin({ action: "retry", songId: song.id }); toast.success("Retry queued"); setStemRefresh(k => k + 1); }
+                            catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+                          }}>Retry</button>
+                        )}
+                      </span>
+                    )}
                     {song.lyrics_lrc && <span className="text-[10px] bg-gold/20 text-gold px-1.5 py-0.5 rounded">LRC</span>}
                     {song.is_top && <span className="text-[10px] bg-accent/30 text-accent-foreground px-1.5 py-0.5 rounded">Top</span>}
                     {song.is_featured && <span className="text-[10px] bg-accent/30 text-accent-foreground px-1.5 py-0.5 rounded">Featured</span>}
