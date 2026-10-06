@@ -77,10 +77,10 @@ const BottomNav = memo(() => {
               <span className="text-[10px] font-medium">Create</span>
             </Button>
           </DrawerTrigger>
-          <DrawerContent className="rounded-t-3xl border-border bg-background/95 px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
+          <DrawerContent className="glass rounded-t-3xl border-gold/20 bg-gold/5 px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_40px_hsl(43_70%_53%/0.15)]">
             <DrawerHeader className="px-0 pb-5 pt-3 text-left">
-              <DrawerTitle className="text-xl text-foreground">Create</DrawerTitle>
-              <DrawerDescription>Choose what you want to open.</DrawerDescription>
+              <DrawerTitle className="text-xl text-white">Create</DrawerTitle>
+              <DrawerDescription className="text-white/80">Choose what you want to open.</DrawerDescription>
             </DrawerHeader>
             <div className="grid grid-cols-2 gap-3 pb-2">
               {createItems.map((item) => (
@@ -89,9 +89,9 @@ const BottomNav = memo(() => {
                   variant="outline"
                   onClick={() => openCreateDestination(item.path)}
                   className={cn(
-                    "h-24 flex-col gap-3 rounded-2xl border-border bg-card/70 text-foreground shadow-sm backdrop-blur-md hover:border-gold/50 hover:bg-accent",
-                    "[&_svg]:!size-6",
-                    location.pathname === item.path && "border-gold/60 bg-gold/10 text-gold",
+                    "h-24 flex-col gap-3 rounded-2xl border-gold/20 bg-gold/10 text-white shadow-sm backdrop-blur-md transition-all duration-300 ease-out hover:border-gold/50 hover:bg-gold/20 hover:shadow-[0_0_20px_hsl(43_70%_53%/0.3)]",
+                    "[&_svg]:!size-6 [&_svg]:text-white",
+                    location.pathname === item.path && "border-gold/60 bg-gold/25 text-gold hover:text-gold",
                   )}
                 >
                   <item.icon />
