@@ -1,3 +1,4 @@
+import SeeAll from "./SeeAll";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BookOpen } from "lucide-react";
@@ -32,12 +33,12 @@ const ArticleSection = () => {
         <h3 className="text-xl font-serif font-bold text-foreground">Featured Articles</h3>
         <button onClick={() => navigate("/articles")} className="text-xs text-gold hover:text-gold-light font-medium transition-colors duration-200">See All</button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 touch-pan-x overscroll-x-contain md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible">
         {articles.map((article, i) => (
           <article
             key={article.id}
             onClick={() => navigate(`/articles?id=${article.id}`)}
-            className="glass-card p-5 hover:glow-gold transition-all duration-300 cursor-pointer group hover:-translate-y-1 animate-fade-in-up"
+            className="snap-start flex-shrink-0 w-[85%] md:w-auto glass-card p-5 hover:glow-gold transition-all duration-300 cursor-pointer group hover:-translate-y-1 animate-fade-in-up"
             style={{ animationDelay: `${i * 0.1}s` }}
           >
             <div className="flex items-center gap-2 mb-3">

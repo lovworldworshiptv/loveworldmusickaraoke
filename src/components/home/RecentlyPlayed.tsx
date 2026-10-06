@@ -1,3 +1,4 @@
+import SeeAll from "./SeeAll";
 import { Clock, Play, Pause, Music } from "lucide-react";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -65,6 +66,7 @@ const RecentlyPlayed = () => {
     <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-serif font-bold text-foreground">Recently Played</h3>
+        <SeeAll to="/history" />
       </div>
       <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory touch-pan-x overscroll-x-contain" style={{ WebkitOverflowScrolling: "touch" }}>
         {items.map((item: any, idx: number) => {

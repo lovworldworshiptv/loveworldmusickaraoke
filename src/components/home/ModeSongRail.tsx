@@ -1,3 +1,4 @@
+import SeeAll from "./SeeAll";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer } from "@/contexts/PlayerContext";
@@ -27,9 +28,11 @@ const ModeSongRail = ({ mode, eyebrow, title }: Props) => {
 
   return (
     <section className="px-4 lg:px-6 mt-8 animate-fade-in-up">
+      <div className="flex items-end justify-between gap-3 mb-4"><div>
       <p className="text-[11px] uppercase tracking-[0.2em] text-gold/80">{eyebrow}</p>
-      <h3 className="text-xl font-serif font-bold text-foreground mb-4">{title}</h3>
-      <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x pb-2 touch-pan-x">
+      <h3 className="text-xl font-serif font-bold text-foreground">{title}</h3>
+      </div><SeeAll to={mode === "video" ? "/videos" : "/discover"} /></div>
+      <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 touch-pan-x overscroll-x-contain">
         {songs.map((s) => (
           <button key={s.id}
             onClick={() => (mode === "video" ? playVideo(toPlayerSong(s)) : singThis(toPlayerSong(s)))}

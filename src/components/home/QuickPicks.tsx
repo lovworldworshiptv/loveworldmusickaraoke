@@ -1,3 +1,4 @@
+import SeeAll from "./SeeAll";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer } from "@/contexts/PlayerContext";
@@ -41,10 +42,10 @@ const QuickPicks = ({ moodId, moodName }: Props) => {
 
   return (
     <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" aria-labelledby="quick-picks-h">
-      <div className="mb-4">
+      <div className="mb-4 flex items-end justify-between gap-3"><div>
         <p className="text-[11px] uppercase tracking-[0.2em] text-gold/80">{moodName ? moodName : "Start singing"}</p>
         <h3 id="quick-picks-h" className="text-xl font-serif font-bold text-foreground">Quick Picks</h3>
-      </div>
+      </div><SeeAll to="/discover" /></div>
       <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 -mx-1 px-1 touch-pan-x overscroll-x-contain" style={{ WebkitOverflowScrolling: "touch" }}>
         {columns.map((col, ci) => (
           <div key={ci} className="snap-start flex-shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] flex flex-col gap-2">
