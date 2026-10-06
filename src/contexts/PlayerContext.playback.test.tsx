@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, act, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
 
+const featureState = vi.hoisted(() => ({ karaoke: true, video: true, translations: true }));
+vi.mock("@/contexts/FeatureContext", () => ({
+  useFeatures: () => ({ enabled: (id: keyof typeof featureState) => featureState[id] !== false }),
+}));
+
 // Backend mock: signed-out listener, every query resolves empty.
 vi.mock("@/integrations/supabase/client", () => {
   const query: any = new Proxy({}, {
@@ -44,7 +49,10 @@ const songB = { id: "b", title: "B", artist: "Loveworld Singers", audioUrl: "htt
 const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
 
 describe("playback exclusivity", () => {
-  beforeEach(() => { created.length = 0; localStorage.clear(); vi.stubGlobal("Audio", FakeAudio as any); });
+  beforeEach(() => {
+    created.length = 0; localStorage.clear(); vi.stubGlobal("Audio", FakeAudio as any);
+    featureState.karaoke = true; featureState.video = true; featureState.translations = true;
+  });
 
   it("keeps only one audio source active across mode switches and track changes", async () => {
     render(<StrictMode><PlayerProvider><Grab /></PlayerProvider></StrictMode>);
@@ -64,5 +72,20 @@ describe("playback exclusivity", () => {
     act(() => api.playSong(songB));
     await waitFor(() => expect(playing()[0]?.src).toContain("b.mp3"));
     expect(playing()).toHaveLength(1);
+  });
+
+  it("blocks disabled karaoke and video requests without interrupting the song", async () => {
+    featureState.karaoke = false;
+    featureState.video = false;
+    render(<PlayerProvider><Grab /></PlayerProvider>);
+    act(() => api.playSong(songA));
+    await waitFor(() => expect(playing()).toHaveLength(1));
+    act(() => { api.toggleKaraoke(); api.singThis(songB); api.playVideo(songB); });
+    await flush();
+    expect(api.isKaraoke).toBe(false);
+    expect(api.videoModeRequest).toBe(false);
+    expect(api.karaokeModeRequest).toBe(false);
+    expect(playing()).toHaveLength(1);
+    expect(playing()[0].src).toMatch(/a\.mp3$/);
   });
 });
