@@ -234,7 +234,7 @@ const Moments = () => {
   }, [moments.length]);
 
   return (
-    <AppLayout hidePlayerBar>
+    <AppLayout>
       <div
         ref={containerRef}
         className="h-[100dvh] w-full overflow-y-scroll snap-y snap-mandatory scrollbar-none"
