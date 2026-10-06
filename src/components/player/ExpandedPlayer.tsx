@@ -132,6 +132,14 @@ const ExpandedPlayer = () => {
     toggleKaraoke();
   }, [mode, videoMode, isKaraoke, toggleKaraoke, handoffPause, resumeAt]);
 
+  // Honor a "watch video" request from the Videos hub: switch to Video mode once videos load.
+  useEffect(() => {
+    if (videoModeRequest && videos.length > 0 && !videoMode) {
+      switchMode("video");
+      clearVideoModeRequest();
+    }
+  }, [videoModeRequest, videos, videoMode, switchMode, clearVideoModeRequest]);
+
   useEffect(() => {
     supabase.from("app_settings" as any).select("value").eq("key", "karaoke_record_enabled").single()
       .then(({ data }: any) => {
