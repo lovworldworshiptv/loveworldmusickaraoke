@@ -557,6 +557,35 @@ export type Database = {
           },
         ]
       }
+      community_moderators: {
+        Row: {
+          appointed_by: string
+          community_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          appointed_by: string
+          community_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          appointed_by?: string
+          community_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_moderators_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_post_comments: {
         Row: {
           content: string
@@ -2396,6 +2425,10 @@ export type Database = {
       }
     }
     Functions: {
+      can_moderate_community: {
+        Args: { p_community_id: string }
+        Returns: boolean
+      }
       can_view_community_post: {
         Args: { _post_id: string; _user_id: string }
         Returns: boolean
@@ -2520,6 +2553,19 @@ export type Database = {
           p_seconds?: number
           p_song_id: string
         }
+        Returns: undefined
+      }
+      search_community_moderators: {
+        Args: { p_community_id: string; p_query?: string }
+        Returns: {
+          avatar_url: string
+          is_moderator: boolean
+          user_id: string
+          username: string
+        }[]
+      }
+      set_community_moderator: {
+        Args: { p_community_id: string; p_enabled: boolean; p_user_id: string }
         Returns: undefined
       }
       stem_queue_disarm: { Args: never; Returns: undefined }
