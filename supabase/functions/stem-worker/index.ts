@@ -88,8 +88,9 @@ Deno.serve(async (req) => {
           }, { onConflict: "song_id,language_code,kind" });
         }
         report.finished++;
+        await notify("stem_completed", `Karaoke track ready: ${songTitle ?? "a song"}`, "The instrumental and vocals stems were saved and Karaoke mode is now available.", { song_id: row.song_id });
       } catch (e) {
-        await failRow(row, e instanceof Error ? e.message : "Save failed");
+        await failRow({ ...row, songTitle }, e instanceof Error ? e.message : "Save failed");
       }
     }
 
