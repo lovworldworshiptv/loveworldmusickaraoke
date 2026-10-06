@@ -45,6 +45,7 @@ import Feedback from "./pages/Feedback";
 import Albums from "./pages/Albums";
 import Videos from "./pages/Videos";
 import Moments from "./pages/Moments";
+import StageMode from "./pages/StageMode";
 import Studio from "./pages/Studio";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
