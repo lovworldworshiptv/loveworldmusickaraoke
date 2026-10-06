@@ -31,7 +31,7 @@ const Articles = () => {
   const { user } = useAuth();
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-  const [fontSize, setFontSize] = useState(16);
+  const [fontSize, setFontSize] = useState(18);
   const [contentMode, setContentMode] = useState<ContentMode>("text");
   const [showSongSuggestion, setShowSongSuggestion] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -195,28 +195,31 @@ const Articles = () => {
 
           {/* Hero image */}
           {selectedArticle.image_url && (
-            <div className="w-full h-48 rounded-xl overflow-hidden mb-6">
+            <div className="w-full aspect-[16/9] rounded-3xl overflow-hidden mb-6 shadow-2xl">
               <img src={selectedArticle.image_url} alt={selectedArticle.title} className="w-full h-full object-cover" />
             </div>
           )}
 
           {/* Title */}
-          <h1 className="text-3xl font-serif font-bold text-foreground mb-2 leading-tight">
+          <h1 className="text-3xl lg:text-4xl font-serif font-bold text-foreground mb-3 leading-tight tracking-tight">
             {selectedArticle.title}
           </h1>
-          <div className="flex items-center justify-between mb-6">
-            <p className="text-sm text-muted-foreground">By {selectedArticle.author}</p>
+          <div className="flex items-center justify-between gap-3 mb-6 pb-5 border-b border-border/60">
+            <p className="text-sm text-foreground font-medium">
+              By {selectedArticle.author}
+              <span className="text-foreground/70"> · {Math.max(1, Math.round((selectedArticle.content || "").split(/\s+/).length / 200))} min read</span>
+            </p>
             <ShareInviteButton article={selectedArticle} />
           </div>
 
           {/* Font Size Control */}
-          <div className="flex items-center gap-3 mb-6 glass-card px-4 py-2.5 w-fit">
-            <Type className="w-4 h-4 text-muted-foreground" />
-            <button onClick={() => setFontSize(Math.max(12, fontSize - 2))} className="text-muted-foreground hover:text-foreground p-1">
+          <div className="flex items-center gap-2 mb-8 rounded-full glass-card px-3 py-1.5 w-fit">
+            <Type className="w-4 h-4 text-gold" />
+            <button aria-label="Smaller text" onClick={() => setFontSize(Math.max(14, fontSize - 2))} className="text-foreground hover:text-gold p-1.5 rounded-full hover:bg-gold/10 transition-colors">
               <Minus className="w-4 h-4" />
             </button>
-            <span className="text-xs text-foreground font-medium w-8 text-center">{fontSize}</span>
-            <button onClick={() => setFontSize(Math.min(28, fontSize + 2))} className="text-muted-foreground hover:text-foreground p-1">
+            <span className="text-xs text-foreground font-semibold w-8 text-center tabular-nums">{fontSize}</span>
+            <button aria-label="Larger text" onClick={() => setFontSize(Math.min(28, fontSize + 2))} className="text-foreground hover:text-gold p-1.5 rounded-full hover:bg-gold/10 transition-colors">
               <Plus className="w-4 h-4" />
             </button>
           </div>
@@ -227,8 +230,8 @@ const Articles = () => {
           {/* Content */}
           {contentMode === "text" && (
             <article
-              className="font-serif leading-relaxed text-foreground/90 whitespace-pre-line mb-12"
-              style={{ fontSize: `${fontSize}px`, lineHeight: "1.8" }}
+              className="font-serif text-foreground whitespace-pre-line mb-12 max-w-[65ch] first-letter:text-5xl first-letter:font-bold first-letter:text-gold first-letter:float-left first-letter:mr-2 first-letter:leading-none"
+              style={{ fontSize: `${fontSize}px`, lineHeight: "1.9", letterSpacing: "0.005em" }}
             >
               {selectedArticle.content}
             </article>
@@ -337,51 +340,69 @@ const Articles = () => {
   }
 
   // Articles list view
+  const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+  const readMins = (a: Article) => Math.max(1, Math.round((a.content || "").split(/\s+/).length / 200));
+  const [featured, ...rest] = articles;
+  const openArticle = (a: Article) => { setSelectedArticle(a); setContentMode("text"); window.scrollTo({ top: 0 }); };
+
   return (
     <AppLayout>
-      <div className="px-4 lg:px-6 pt-4 lg:pt-6 max-w-3xl">
-        <div className="flex items-center gap-3 mb-6">
-          <BookOpen className="w-6 h-6 text-gold" />
-          <h2 className="text-2xl font-serif font-bold text-foreground">Articles</h2>
+      <div className="px-4 lg:px-6 pt-4 lg:pt-6 max-w-4xl mx-auto">
+        <div className="mb-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold">Read & Reflect</p>
+          <h2 className="mt-1 flex items-center gap-2 text-3xl font-serif font-bold text-foreground">
+            <BookOpen className="w-7 h-7 text-gold" /> Articles
+          </h2>
         </div>
 
         {loading ? (
-          <p className="text-muted-foreground text-sm">Loading...</p>
+          <div className="space-y-4">{[0, 1, 2].map(i => <div key={i} className="h-32 rounded-3xl bg-muted/40 animate-pulse" />)}</div>
         ) : articles.length === 0 ? (
-          <p className="text-center text-muted-foreground py-12">No articles yet.</p>
+          <p className="text-center text-foreground py-12">No articles yet.</p>
         ) : (
-          <div className="space-y-4">
-            {articles.map(article => (
-              <button
-                key={article.id}
-                onClick={() => { setSelectedArticle(article); setContentMode("text"); }}
-                className="glass-card w-full text-left hover:glow-gold transition-all duration-300 group overflow-hidden"
-              >
-                {article.image_url && (
-                  <div className="w-full h-40 overflow-hidden">
-                    <img src={article.image_url} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                  </div>
+          <>
+            {featured && (
+              <button onClick={() => openArticle(featured)}
+                className="relative w-full text-left rounded-3xl overflow-hidden glass-card group mb-6 min-h-[260px] flex items-end transition-all duration-300 hover:glow-gold">
+                {featured.image_url && (
+                  <img src={featured.image_url} alt={featured.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                 )}
-                <div className="p-5">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-gold bg-gold/10 px-2 py-0.5 rounded-full">
-                      {article.category}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {article.published_at ? new Date(article.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
-                    </span>
-                    {article.video_url && <Video className="w-3 h-3 text-muted-foreground" />}
-                    {article.audio_url && <Headphones className="w-3 h-3 text-muted-foreground" />}
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
+                <div className="relative p-6 lg:p-8">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-primary-foreground gradient-gold px-2.5 py-1 rounded-full">Featured</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-gold bg-gold/15 px-2.5 py-1 rounded-full">{featured.category}</span>
                   </div>
-                  <h3 className="text-base font-serif font-semibold text-foreground mb-1.5 group-hover:text-gold transition-colors line-clamp-2">
-                    {article.title}
-                  </h3>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{article.excerpt || article.content.slice(0, 120)}</p>
-                  <p className="text-xs text-muted-foreground">By {article.author}</p>
+                  <h3 className="text-2xl lg:text-3xl font-serif font-bold text-foreground leading-tight mb-2 line-clamp-3">{featured.title}</h3>
+                  <p className="text-sm text-foreground/90 line-clamp-2 mb-3 max-w-2xl">{featured.excerpt || featured.content.slice(0, 160)}</p>
+                  <p className="text-xs text-foreground font-medium">By {featured.author} · {fmtDate(featured.published_at)} · {readMins(featured)} min read</p>
                 </div>
               </button>
-            ))}
-          </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {rest.map(article => (
+                <button key={article.id} onClick={() => openArticle(article)}
+                  className="glass-card rounded-3xl w-full text-left hover:-translate-y-0.5 hover:glow-gold transition-all duration-300 group overflow-hidden flex flex-col">
+                  {article.image_url && (
+                    <div className="w-full aspect-[16/9] overflow-hidden">
+                      <img src={article.image_url} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                    </div>
+                  )}
+                  <div className="p-5 flex-1 flex flex-col">
+                    <div className="flex items-center gap-2 mb-2.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-gold bg-gold/10 px-2 py-0.5 rounded-full">{article.category}</span>
+                      {article.video_url && <Video className="w-3.5 h-3.5 text-foreground" />}
+                      {article.audio_url && <Headphones className="w-3.5 h-3.5 text-foreground" />}
+                    </div>
+                    <h3 className="text-lg font-serif font-bold text-foreground mb-2 leading-snug group-hover:text-gold transition-colors line-clamp-2">{article.title}</h3>
+                    <p className="text-sm text-foreground/90 leading-relaxed line-clamp-3 mb-4">{article.excerpt || article.content.slice(0, 140)}</p>
+                    <p className="mt-auto text-xs text-foreground font-medium">By {article.author} · {readMins(article)} min read</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
         )}
       </div>
       <div className="h-8" />
