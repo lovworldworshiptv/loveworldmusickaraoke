@@ -33,7 +33,7 @@ const MoodCapsules = ({ value, onChange }: Props) => {
                 "flex-shrink-0 rounded-full px-4 py-2 text-xs font-semibold border transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold",
                 active
                   ? "gradient-gold text-primary-foreground border-transparent shadow-[0_0_18px_hsl(43_70%_53%/0.35)]"
-                  : "glass border-border text-muted-foreground hover:text-foreground hover:border-gold/50"
+                  : "glass border-border text-white hover:border-gold/50"
               )}
             >
               {m.name}

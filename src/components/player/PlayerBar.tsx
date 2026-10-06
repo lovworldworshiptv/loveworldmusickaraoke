@@ -122,7 +122,7 @@ const PlayerBar = () => {
             </div>
             <div className="min-w-0 text-left">
               <p className="text-sm font-medium truncate text-foreground">{currentSong?.title || "No song selected"}</p>
-              <p className="text-xs text-muted-foreground truncate">{currentSong?.artist || "Tap a song to play"}</p>
+              <p className="text-xs font-bold text-white truncate">{currentSong?.artist || "Tap a song to play"}</p>
             </div>
           </button>
 
