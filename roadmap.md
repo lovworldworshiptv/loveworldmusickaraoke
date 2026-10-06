@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Neon-green Daily Discover (CMS colour control) and 18 centralized admin feature switches across routes, menus, home sections, and player modes; six regression tests pass and disabled direct links verified
+
 - [ ] "Resounding Praise" stem test still processing on Replicate (~17 min, unusually slow — likely their queue). Worker cron keeps polling; it will finish on its own.
 - [x] Admin notifications for stem jobs: started / completed / needs retry (admin_notifications table + worker hooks)
 - [x] Stem Studio: live list of individual songs being processed + recent results
@@ -10,7 +12,7 @@
 - [x] Phase 9: Admin v2 — unified dashboard, content performance, audience insights, operational alerts, and bulk song management
 - [x] Phase 10: renewal reminders (7/3/1/0-day in-app + push, deduped), multilingual lyrics & audio versions management (AdminSongs "Lyrics & Languages"), preferred-language playback, social community (/community with join, posts, song attachments, likes, comments)
 
-- [ ] Home UX polish: fuchsia-pink card for "Pastor Chris Live Unending Praise", bright gradient background for Daily Discover card
+- [x] Home card colours updated; earlier fuchsia/bright-gradient request superseded by global playlist colour and neon-green Daily Discover
 
 - [x] Graceful hover effects: top icons, mood capsules, bottom nav (hover-only, no other changes)
 - [x] Stage Mode CMS: colour/image/video backgrounds, audio toggle, manual scroll, and player-options shortcut

@@ -1,3 +1,4 @@
+import { useFeatures } from "@/contexts/FeatureContext";
 import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3, List, Image, Gamepad2, Sparkles, Users, BarChart3, Bell, Crown, Compass, Mic2, AlarmClock, Trophy, Clapperboard, HardDrive, Film, Presentation, Palette, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,7 @@ interface SidebarProps {
 
 const Sidebar = ({ collapsed, onCollapsedChange }: SidebarProps) => {
   const navigate = useNavigate();
+  const { pathEnabled } = useFeatures();
   const location = useLocation();
   const { signOut, user } = useAuth();
   const { isAdmin } = useIsAdmin();
@@ -75,7 +77,7 @@ const Sidebar = ({ collapsed, onCollapsedChange }: SidebarProps) => {
       </div>
 
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-        {navItems.map((item) => (
+        {navItems.filter((item) => pathEnabled(item.path)).map((item) => (
           <button
             key={item.label}
             onClick={() => navigate(item.path)}

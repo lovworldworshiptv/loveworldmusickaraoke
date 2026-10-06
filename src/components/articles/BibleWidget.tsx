@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { BookOpen, Search, X, Sparkles, Copy, Check, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { useFeatures } from "@/contexts/FeatureContext";
 
 const VERSIONS = [
   { id: "kjv", label: "KJV", full: "King James Version" },
@@ -50,7 +51,7 @@ interface BibleResult {
   translation_name: string;
 }
 
-const BibleWidget = () => {
+const BibleWidgetContent = () => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [version, setVersion] = useState("kjv");
@@ -426,6 +427,11 @@ const BibleWidget = () => {
       </div>
     </div>
   );
+};
+
+const BibleWidget = () => {
+  const { enabled } = useFeatures();
+  return enabled("bible") ? <BibleWidgetContent /> : null;
 };
 
 export default BibleWidget;

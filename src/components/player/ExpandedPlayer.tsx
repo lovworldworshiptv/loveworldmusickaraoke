@@ -1,3 +1,4 @@
+import { useFeatures } from "@/contexts/FeatureContext";
 import { useDominantColor as useSharedDominantColor, playerTone } from "@/lib/dominantColor";
 import { usePlayer, RepeatMode } from "@/contexts/PlayerContext";
 import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2, Music, Heart, Download, Check, Lock, Disc3, Square, Volume2, VolumeX, ListMusic, MoreVertical, Maximize2, Type, Image as ImageIcon, Film, Presentation } from "lucide-react";
@@ -59,6 +60,7 @@ function useDominantColor(imageUrl?: string) {
 }
 
 const ExpandedPlayer = () => {
+  const { enabled } = useFeatures();
   const {
     currentSong, isPlaying, isKaraoke, progress, duration, currentTime,
     lrcLines, staticLyrics, activeLrcIndex, togglePlay, toggleKaraoke, toggleExpanded, seekTo,
@@ -76,7 +78,7 @@ const ExpandedPlayer = () => {
   const [isRecordingActive, setIsRecordingActive] = useState(false);
   const [recorderMinimized, setRecorderMinimized] = useState(false);
   const recorderStopRef = useRef<(() => void) | null>(null);
-  const [recordFeatureEnabled, setRecordFeatureEnabled] = useState(true);
+  const recordFeatureEnabled = enabled("recording");
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
   const isMobile = useIsMobile();
@@ -114,6 +116,8 @@ const ExpandedPlayer = () => {
   };
 
   const switchMode = useCallback((next: PlayerMode) => {
+    if (next === "video" && !enabled("video")) return;
+    if (next === "karaoke" && !enabled("karaoke")) return;
     if (next === mode) return;
     if (next === "video") {
       setVideoStart(handoffPause());
@@ -130,7 +134,16 @@ const ExpandedPlayer = () => {
       return;
     }
     toggleKaraoke();
-  }, [mode, videoMode, isKaraoke, toggleKaraoke, handoffPause, resumeAt]);
+  }, [mode, videoMode, isKaraoke, toggleKaraoke, handoffPause, resumeAt, enabled]);
+
+  useEffect(() => {
+    if (videoMode && !enabled("video")) {
+      const position = videoPosRef.current();
+      setVideoMode(false);
+      resumeAt(position);
+    }
+    if (!enabled("recording")) setShowRecorder(false);
+  }, [enabled, videoMode, resumeAt]);
 
   // Honor a "watch video" request from the Videos hub: switch to Video mode once videos load.
   useEffect(() => {
@@ -146,13 +159,6 @@ const ExpandedPlayer = () => {
     if (mode !== "karaoke") switchMode("karaoke");
     clearKaraokeModeRequest();
   }, [karaokeModeRequest, mode, switchMode, clearKaraokeModeRequest]);
-
-  useEffect(() => {
-    supabase.from("app_settings" as any).select("value").eq("key", "karaoke_record_enabled").single()
-      .then(({ data }: any) => {
-        if (data) setRecordFeatureEnabled(data.value === true);
-      });
-  }, []);
 
   // Auto-expand recorder when recording stops while minimized
   useEffect(() => {
@@ -264,7 +270,7 @@ const ExpandedPlayer = () => {
             {/* Desktop: show all action buttons inline */}
             {!isMobile && (
               <>
-                {user && (
+                {user && enabled("playlists") && (
                   <button onClick={() => setShowAddToPlaylist(true)} className="text-muted-foreground hover:text-foreground p-1" title="Add to Playlist">
                     <ListPlus className="w-5 h-5" />
                   </button>
@@ -355,8 +361,8 @@ const ExpandedPlayer = () => {
           <div className="flex items-center p-1 rounded-full bg-secondary/60 glass-card" role="tablist" aria-label="Player mode">
             {([
               { id: "song", label: "Song", Icon: Music },
-              { id: "karaoke", label: "Karaoke", Icon: Mic2 },
-              ...(videos.length ? [{ id: "video", label: "Video", Icon: Video }] : []),
+              ...(enabled("karaoke") ? [{ id: "karaoke", label: "Karaoke", Icon: Mic2 }] : []),
+              ...(enabled("video") && videos.length ? [{ id: "video", label: "Video", Icon: Video }] : []),
             ] as const).map(({ id, label, Icon }) => (
               <button
                 key={id}
@@ -371,7 +377,7 @@ const ExpandedPlayer = () => {
               </button>
             ))}
           </div>
-          {mode !== "video" && <LyricsLanguageSheet />}
+          {mode !== "video" && enabled("translations") && <LyricsLanguageSheet />}
           {recordFeatureEnabled && (isPremium ? (
             <button
               onClick={() => { if (!isKaraoke) toggleKaraoke(); setShowRecorder(true); setShowLyrics(true); }}
@@ -418,7 +424,7 @@ const ExpandedPlayer = () => {
             <div className="relative w-full max-w-[280px] aspect-square">
             <button onClick={() => setShowLyrics(true)} className="w-full h-full">
               <div className="w-full h-full rounded-3xl gradient-purple flex items-center justify-center glow-gold shadow-2xl overflow-hidden">
-                {motionArtworkUrl && useMotionArtwork && !motionArtworkFailed ? (
+                {enabled("motion") && motionArtworkUrl && useMotionArtwork && !motionArtworkFailed ? (
                   <div className="relative w-full h-full">
                     {currentSong.coverUrl ? <img src={currentSong.coverUrl} alt={currentSong.title} className="absolute inset-0 w-full h-full rounded-3xl object-cover" /> : <Music className="absolute inset-0 m-auto w-24 h-24 text-gold/30" />}
                     <video
@@ -438,7 +444,7 @@ const ExpandedPlayer = () => {
                 )}
               </div>
             </button>
-            {motionArtworkUrl && (
+            {enabled("motion") && motionArtworkUrl && (
               <div className="absolute bottom-3 right-3 flex items-center p-1 rounded-full bg-background/80 border border-border backdrop-blur-md" aria-label="Artwork style">
                 <Button type="button" variant="ghost" size="icon" onClick={() => selectArtworkStyle(false)} className={`w-8 h-8 rounded-full ${!useMotionArtwork ? "bg-gold/20 text-gold" : "text-muted-foreground"}`} aria-label="Use image artwork"><ImageIcon className="w-4 h-4" /></Button>
                 <Button type="button" variant="ghost" size="icon" onClick={() => selectArtworkStyle(true)} className={`w-8 h-8 rounded-full ${useMotionArtwork ? "bg-gold/20 text-gold" : "text-muted-foreground"}`} aria-label="Use motion artwork"><Film className="w-4 h-4" /></Button>
@@ -592,20 +598,20 @@ const ExpandedPlayer = () => {
             </button>
           )}
           {/* Karaoke Toggle */}
-          <button
+          {enabled("karaoke") && <button
             onClick={() => { setShowMobileMenu(false); toggleKaraoke(); }}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors text-foreground"
           >
             <Mic2 className={`w-5 h-5 ${isKaraoke ? "text-gold" : ""}`} />
             {isKaraoke ? "Switch to Full Song" : "Switch to Karaoke"}
-          </button>
-          <button
+          </button>}
+          {enabled("stage") && <button
             onClick={() => { setShowMobileMenu(false); navigate("/stage"); }}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors text-foreground"
           >
             <Presentation className="w-5 h-5 text-gold" />
             Open Stage Mode
-          </button>
+          </button>}
           {/* Queue */}
           <button
             onClick={() => { setShowMobileMenu(false); setShowQueue(q => !q); }}
@@ -622,7 +628,7 @@ const ExpandedPlayer = () => {
             <Slider value={[volume * 100]} onValueChange={([v]) => setVolume(v / 100)} max={100} step={1} className="flex-1" />
           </div>
           {/* Add to Playlist */}
-          {user && (
+          {user && enabled("playlists") && (
             <button
               onClick={() => { setShowMobileMenu(false); setShowAddToPlaylist(true); }}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors text-foreground"

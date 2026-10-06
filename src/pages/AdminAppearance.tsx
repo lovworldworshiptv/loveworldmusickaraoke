@@ -18,6 +18,7 @@ const THEME_FIELDS: { key: keyof ThemeColors; label: string; def: string }[] = [
   { key: "gold", label: "Main accent (gold)", def: "#d4a72c" },
   { key: "background", label: "App background", def: "#090e16" },
   { key: "accent", label: "Secondary accent (blue)", def: "#24508f" },
+  { key: "dailyDiscover", label: "Daily Discover background", def: "#39ff14" },
   { key: "foreground", label: "Main text", def: "#f5f3ef" },
 ];
 

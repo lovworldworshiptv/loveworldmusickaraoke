@@ -1,3 +1,4 @@
+import { useFeatures } from "@/contexts/FeatureContext";
 import { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -136,6 +137,9 @@ function createExclusiveAudio(url: string): HTMLAudioElement {
 }
 
 export const PlayerProvider = ({ children }: { children: ReactNode }) => {
+  const { enabled } = useFeatures();
+  const featuresRef = useRef(enabled);
+  featuresRef.current = enabled;
   const [currentSong, setCurrentSong] = useState<PlayerSong | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isKaraoke, setIsKaraoke] = useState(false);
@@ -230,6 +234,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
   // The core function that creates an audio, plays it, and attaches ended handler
   const internalPlay = useCallback((song: PlayerSong, karaokeMode: boolean, startAt = 0, autoplay = true) => {
+    karaokeMode = karaokeMode && featuresRef.current("karaoke");
     stopInterval();
     if (audioRef.current) {
       audioRef.current.pause();
@@ -419,6 +424,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   /** Phase 10: resolve the listener's preferred lyrics language before playback —
    *  swap in a ready audio version recorded in that language and its lyrics. */
   const resolvePreferred = useCallback(async (song: PlayerSong): Promise<PlayerSong> => {
+    if (!featuresRef.current("translations")) return song;
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return song;
@@ -450,6 +456,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   }, [internalPlay, recordPlayFn, resolvePreferred]);
 
   const playVideo = useCallback((song: PlayerSong) => {
+    if (!featuresRef.current("video")) return;
     playSong(song);
     setIsExpanded(true);
     setVideoModeRequest(true);
@@ -458,6 +465,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const clearVideoModeRequest = useCallback(() => setVideoModeRequest(false), []);
 
   const singThis = useCallback((song: PlayerSong) => {
+    if (!featuresRef.current("karaoke")) return;
     playSong(song);
     setIsExpanded(true);
     setKaraokeModeRequest(true);
@@ -519,6 +527,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const toggleKaraoke = useCallback(() => {
     {
       const next = !isKaraokeRef.current;
+      if (next && !featuresRef.current("karaoke")) return;
       isKaraokeRef.current = next;
       if (audioRef.current && currentSong) {
         const ct = audioRef.current.currentTime;
@@ -554,6 +563,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       setIsKaraoke(next);
     }
   }, [currentSong, internalPlay, stopInterval, recordPlayFn]);
+
+  useEffect(() => {
+    if (!enabled("karaoke") && isKaraoke) toggleKaraoke();
+  }, [enabled, isKaraoke, toggleKaraoke]);
 
   const toggleExpanded = useCallback(() => setIsExpanded((e) => !e), []);
 
