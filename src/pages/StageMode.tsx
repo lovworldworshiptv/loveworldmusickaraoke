@@ -175,7 +175,7 @@ const StageMode = () => {
       </div>
 
       <div
-        className={`absolute top-16 left-1/2 z-20 -translate-x-1/2 flex items-center rounded-full border border-gold/20 bg-background/45 p-1 backdrop-blur-xl transition-opacity duration-500 ${
+        className={`absolute top-16 left-1/2 z-30 -translate-x-1/2 flex items-center rounded-full border border-gold/20 bg-background/45 p-1 backdrop-blur-xl transition-opacity duration-500 ${
           controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         role="group"
