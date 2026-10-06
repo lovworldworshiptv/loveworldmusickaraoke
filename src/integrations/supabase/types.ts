@@ -2466,6 +2466,15 @@ export type Database = {
           member_count: number
         }[]
       }
+      get_community_members_admin: {
+        Args: { p_community_id: string }
+        Returns: {
+          avatar_url: string
+          joined_at: string
+          user_id: string
+          username: string
+        }[]
+      }
       get_daily_discover: {
         Args: never
         Returns: {
