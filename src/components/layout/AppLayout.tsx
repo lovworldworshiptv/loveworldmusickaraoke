@@ -10,9 +10,10 @@ import ProfileUpdateModal from "@/components/profile/ProfileUpdateModal";
 
 interface AppLayoutProps {
   children: ReactNode;
+  mainClassName?: string;
 }
 
-const AppLayout = memo(({ children }: AppLayoutProps) => {
+const AppLayout = memo(({ children, mainClassName = "" }: AppLayoutProps) => {
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
   const { currentSong } = usePlayer();
   const { user, profileCompleted, profileData, markProfileCompleted } = useAuth();
@@ -24,7 +25,7 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
     <div className="h-[100dvh] bg-background overflow-hidden safe-top flex flex-col">
       <Sidebar collapsed={desktopSidebarCollapsed} onCollapsedChange={setDesktopSidebarCollapsed} />
       <TopNavbar desktopSidebarCollapsed={desktopSidebarCollapsed} />
-      <main className={`${desktopSidebarCollapsed ? "lg:ml-20" : "lg:ml-64"} flex-1 overflow-x-hidden overflow-y-auto pull-to-refresh transition-[margin] duration-300 ${currentSong ? "pb-44 lg:pb-20" : "pb-20 lg:pb-6"}`}>
+      <main className={`${mainClassName} ${desktopSidebarCollapsed ? "lg:ml-20" : "lg:ml-64"} flex-1 overflow-x-hidden overflow-y-auto pull-to-refresh transition-[margin] duration-300 ${currentSong ? "pb-44 lg:pb-20" : "pb-20 lg:pb-6"}`}>
         {children}
       </main>
       <PlayerBar desktopSidebarCollapsed={desktopSidebarCollapsed} />
