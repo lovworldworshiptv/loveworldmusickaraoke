@@ -4,9 +4,11 @@ import { usePlayer } from "@/contexts/PlayerContext";
 import { fetchSongsByIds, toPlayerSong, type SongRow } from "@/lib/homeSongs";
 import { Play, Sparkles, Mic2 } from "lucide-react";
 import { useDominantColor } from "@/lib/dominantColor";
+import { useFeatures } from "@/contexts/FeatureContext";
 
 /** Once-a-day personal pick with ambient artwork background. */
 const DailyDiscover = () => {
+  const { enabled } = useFeatures();
   const [song, setSong] = useState<SongRow | null>(null);
   const [reason, setReason] = useState("");
   const { playSong, toggleKaraoke, isKaraoke } = usePlayer();
@@ -59,7 +61,7 @@ const DailyDiscover = () => {
             <p className="font-serif font-bold text-foreground truncate mt-0.5">{song.title}</p>
             <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{reason}</p>
             <div className="mt-auto self-end flex items-center gap-2">
-              {song.instrumental_url && (
+              {enabled("karaoke") && song.instrumental_url && (
                 <button
                   onClick={(e) => { e.stopPropagation(); play(true); }}
                   aria-label="Sing in karaoke mode"

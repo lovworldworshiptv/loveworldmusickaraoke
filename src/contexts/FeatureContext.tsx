@@ -5,8 +5,8 @@ import { Navigate, useLocation } from "react-router-dom";
 
 const FeatureContext = createContext({
   values: {} as FeatureValues, loading: false,
-  enabled: (_id: FeatureId) => true,
-  pathEnabled: (_path: string) => true,
+  enabled: (_id: FeatureId): boolean => true,
+  pathEnabled: (_path: string): boolean => true,
   refresh: async () => {},
 });
 
@@ -33,11 +33,11 @@ export function FeatureProvider({ children }: { children: ReactNode }) {
     window.addEventListener("focus", refresh);
     return () => { clearInterval(timer); window.removeEventListener("focus", refresh); };
   }, [refresh]);
-  const enabled = (id: FeatureId) => !loading && isFeatureEnabled(values, id);
-  const pathEnabled = (path: string) => {
+  const enabled = useCallback((id: FeatureId) => !loading && isFeatureEnabled(values, id), [loading, values]);
+  const pathEnabled = useCallback((path: string) => {
     const feature = featureForPath(path);
     return !feature || enabled(feature);
-  };
+  }, [enabled]);
   return <FeatureContext.Provider value={{ values, loading, enabled, pathEnabled, refresh }}>{children}</FeatureContext.Provider>;
 }
 

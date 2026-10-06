@@ -13,6 +13,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import ExpandedPlayer from "./ExpandedPlayer";
 import PlaybackProgress from "./PlaybackProgress";
+import { useFeatures } from "@/contexts/FeatureContext";
 
 const formatTime = (s: number) => {
   const m = Math.floor(s / 60);
@@ -25,6 +26,7 @@ interface PlayerBarProps {
 }
 
 const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
+  const { enabled } = useFeatures();
   const {
     currentSong, isPlaying, isKaraoke, isExpanded, progress, currentTime, duration,
     togglePlay, toggleKaraoke, toggleExpanded, seekTo,
@@ -41,14 +43,7 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
   const [downloading, setDownloading] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const prevTrackEndRef = useRef(trackEndCount);
-  const [recordFeatureEnabled, setRecordFeatureEnabled] = useState(true);
-
-  useEffect(() => {
-    supabase.from("app_settings" as any).select("value").eq("key", "karaoke_record_enabled").single()
-      .then(({ data }: any) => {
-        if (data) setRecordFeatureEnabled(data.value === true);
-      });
-  }, []);
+  const recordFeatureEnabled = enabled("recording");
 
   // Show premium modal after each track ends for free users
   useEffect(() => {
@@ -169,9 +164,9 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
                 </button>
               )
             )}
-            <button onClick={toggleKaraoke} className={`transition-opacity ${isKaraoke ? "text-gold" : "text-foreground hover:text-gold"}`}>
+            {enabled("karaoke") && <button onClick={toggleKaraoke} className={`transition-opacity ${isKaraoke ? "text-gold" : "text-foreground hover:text-gold"}`}>
               <Mic2 className="w-4 h-4" />
-            </button>
+            </button>}
             {recordFeatureEnabled && (
               isPremium ? (
                 <button onClick={() => { if (!isExpanded) toggleExpanded(); }} className="text-destructive/70 hover:text-destructive transition-colors" title="Record Karaoke">

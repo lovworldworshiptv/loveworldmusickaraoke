@@ -5,6 +5,7 @@ import { Music, Clock, Play, Pause, Trash2, Share2, Copy, ExternalLink, MessageC
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { useFeatures } from "@/contexts/FeatureContext";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface Recording {
@@ -28,7 +29,8 @@ const MyKaraoke = () => {
   const { user } = useAuth();
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
-  const [featureEnabled, setFeatureEnabled] = useState(true);
+  const { enabled } = useFeatures();
+  const featureEnabled = enabled("myKaraoke");
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [shareRec, setShareRec] = useState<Recording | null>(null);
@@ -41,11 +43,8 @@ const MyKaraoke = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    supabase.from("app_settings" as any).select("value").eq("key", "my_karaoke_visible").single()
-      .then(({ data }: any) => {
-        if (data) setFeatureEnabled(data.value === true);
-      });
-  }, []);
+    if (!featureEnabled) { audioRef.current?.pause(); setPlayingId(null); }
+  }, [featureEnabled]);
 
   const fetchRecordings = async () => {
     if (!user) return;
