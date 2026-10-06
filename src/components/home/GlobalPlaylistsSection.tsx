@@ -112,7 +112,7 @@ const GlobalPlaylistsSection = () => {
                 <div className="min-w-0 flex-1 flex flex-col">
                   <span className="text-[10px] uppercase tracking-wider text-gold">Playlist · {orderedSongs.length} songs</span>
                   <p className="font-serif font-bold text-foreground truncate mt-0.5">{playlist.name}</p>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{names || "Worship collection"}</p>
+                  <p className="text-xs text-white/90 line-clamp-2 mt-1">{names || "Worship collection"}</p>
                   {orderedSongs.length > 0 && (
                     <button
                       onClick={(e) => {
