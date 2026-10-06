@@ -1,0 +1,1 @@
+alter table public.playlists add column if not exists description text;

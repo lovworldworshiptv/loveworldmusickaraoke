@@ -14,6 +14,7 @@ const Collection = () => {
   const navigate = useNavigate();
   const { playQueue, currentSong } = usePlayer();
   const [name, setName] = useState("");
+  const [description, setDescription] = useState<string | null>(null);
   const [cover, setCover] = useState<string | null>(null);
   const [songs, setSongs] = useState<SongRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,10 +29,11 @@ const Collection = () => {
 
   useEffect(() => {
     if (!id) return;
-    supabase.from("playlists").select(`name,cover_url,playlist_songs(sort_order,songs(${SONG_COLUMNS}))`).eq("id", id).maybeSingle()
+    supabase.from("playlists").select(`name,description,cover_url,playlist_songs(sort_order,songs(${SONG_COLUMNS}))`).eq("id", id).maybeSingle()
       .then(({ data }) => {
         const d = data as any;
         setName(d?.name || "Collection");
+        setDescription(d?.description || null);
         const rows = ((d?.playlist_songs || []) as any[]).sort((a, b) => a.sort_order - b.sort_order).map((x) => x.songs).filter(Boolean) as SongRow[];
         setSongs(rows);
         setCover(d?.cover_url || rows[0]?.cover_url || null);
@@ -40,18 +42,21 @@ const Collection = () => {
   }, [id]);
 
   const queue = songs.map(toPlayerSong);
+  const autoDescription = songs.length
+    ? `${songs.length} songs · ${songs.slice(0, 3).map((s) => s.title).join(", ")}${songs.length > 3 ? " and more" : ""}`
+    : "This playlist has no songs yet";
 
   return (
     <AppLayout>
       <div className="min-h-full transition-[background] duration-700" style={{ background: bg }}>
       <div className="px-4 lg:px-6 pt-4">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"><ArrowLeft className="w-4 h-4" /> Back</button>
-        <div className="relative w-full max-w-md mx-auto aspect-square rounded-3xl overflow-hidden shadow-2xl mb-5">
+        <div className="relative w-full max-w-md mx-auto aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl mb-5">
           {cover ? <img src={cover} alt={name} className="w-full h-full object-cover" /> : <div className="w-full h-full gradient-purple flex items-center justify-center"><ListMusic className="w-16 h-16 text-gold/60" /></div>}
           <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-background/90 via-background/50 to-transparent">
             <p className="text-[11px] uppercase tracking-[0.2em] text-gold">Playlist</p>
             <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground">{name}</h1>
-            <p className="text-xs text-white/90">{songs.length} songs</p>
+            <p className="text-xs text-white/90 line-clamp-2 mt-0.5">{description || autoDescription}</p>
           </div>
         </div>
         {songs.length > 0 && (
