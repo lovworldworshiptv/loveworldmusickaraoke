@@ -139,6 +139,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [currentSong, setCurrentSong] = useState<PlayerSong | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isKaraoke, setIsKaraoke] = useState(false);
+  const isKaraokeRef = useRef(false);
+  useEffect(() => { isKaraokeRef.current = isKaraoke; }, [isKaraoke]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [videoModeRequest, setVideoModeRequest] = useState(false);
   const [karaokeModeRequest, setKaraokeModeRequest] = useState(false);
