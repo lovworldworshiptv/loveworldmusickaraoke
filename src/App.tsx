@@ -106,6 +106,7 @@ const App = () => (
                 <Route path="/user/:userId" element={<PublicProfile />} />
                 <Route path="/discover" element={<AuthGate><Discover /></AuthGate>} />
                 <Route path="/discover/tag/:tag" element={<AuthGate><DiscoverTag /></AuthGate>} />
+                <Route path="/discover/music" element={<AuthGate><DiscoverCollection kind="music" /></AuthGate>} />
                 <Route path="/discover/karaoke" element={<AuthGate><DiscoverCollection kind="karaoke" /></AuthGate>} />
                 <Route path="/discover/videos" element={<AuthGate><DiscoverCollection kind="videos" /></AuthGate>} />
                 <Route path="/discover/featured/:id" element={<AuthGate><DiscoverCollection kind="featured" /></AuthGate>} />

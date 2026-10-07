@@ -7,7 +7,7 @@ import { usePlayer } from "@/contexts/PlayerContext";
 import { fallbackImage } from "@/lib/discover";
 import { SONG_COLUMNS, toPlayerSong, type SongRow } from "@/lib/homeSongs";
 
-type Kind = "karaoke" | "videos" | "featured";
+type Kind = "music" | "karaoke" | "videos" | "featured";
 
 const db = supabase as any;
 
@@ -19,6 +19,10 @@ const DiscoverCollection = ({ kind }: { kind: Kind }) => {
   const { data, isLoading } = useQuery({
     queryKey: ["discover-collection", kind, id],
     queryFn: async () => {
+      if (kind === "music") {
+        const { data } = await db.from("songs").select(SONG_COLUMNS).order("title");
+        return { title: "Music", subtitle: "Every song on the platform", cover: null, songs: (data || []) as SongRow[] };
+      }
       if (kind === "karaoke") {
         const { data } = await db.from("songs").select(SONG_COLUMNS).not("instrumental_url", "is", null).order("title");
         return { title: "Karaoke", subtitle: "Every song you can sing along to", cover: null, songs: (data || []) as SongRow[] };
@@ -46,7 +50,7 @@ const DiscoverCollection = ({ kind }: { kind: Kind }) => {
   const queue = songs.map(toPlayerSong);
   const play = (i: number) =>
     kind === "videos" ? playVideoQueue(queue, i) : playQueue(queue, i, { karaoke: kind === "karaoke" });
-  const Icon = kind === "karaoke" ? Mic2 : kind === "videos" ? Clapperboard : Play;
+  const Icon = kind === "karaoke" ? Mic2 : kind === "videos" ? Clapperboard : kind === "music" ? Music : Play;
   const cover = data?.cover || songs[0]?.cover_url || fallbackImage(kind === "featured" ? data?.title || "" : kind);
 
   return (
@@ -62,6 +66,7 @@ const DiscoverCollection = ({ kind }: { kind: Kind }) => {
               {data?.subtitle && <p className="text-sm line-clamp-2">{data.subtitle}</p>}
               <p className="text-xs mt-1">
                 {songs.length} songs
+                {kind === "music" && " · plays continuously in Song mode"}
                 {kind === "karaoke" && " · plays continuously in Karaoke mode"}
                 {kind === "videos" && " · plays continuously in Video mode"}
               </p>
