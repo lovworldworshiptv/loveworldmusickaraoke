@@ -238,15 +238,57 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  // --- Slow-network resilience: next-track preloading, stall recovery, resolved-song cache ---
+  const preloadRef = useRef<{ url: string; audio: HTMLAudioElement } | null>(null);
+  const resolvedCacheRef = useRef<Map<string, PlayerSong>>(new Map());
+  const resolvePreferredRef = useRef<(song: PlayerSong) => Promise<PlayerSong>>(async (s) => s);
+  const advanceToRef = useRef<(idx: number, karaoke: boolean, autoplay?: boolean) => void>(() => {});
+  const wantPlayingRef = useRef(false);
+  const [isBuffering, setIsBuffering] = useState(false);
+
+  const discardPreload = useCallback((keepUrl?: string) => {
+    const p = preloadRef.current;
+    if (!p || p.url === keepUrl) return;
+    p.audio.removeAttribute("src");
+    try { p.audio.load(); } catch {}
+    playerAudios.delete(p.audio);
+    preloadRef.current = null;
+  }, []);
+
+  /** Warm the next queued track (resolved language + audio bytes) so the hand-off is instant. */
+  const prefetchNext = useCallback((karaokeMode: boolean) => {
+    const q = queueRef.current;
+    const idx = findNextIndex(q, queueIndexRef.current, repeatModeRef.current);
+    if (idx < 0 || idx === queueIndexRef.current) return;
+    const base = q[idx];
+    const cached = resolvedCacheRef.current.get(base.id);
+    const run = (song: PlayerSong) => {
+      const url = sourceFor(song, karaokeMode);
+      if (!url || preloadRef.current?.url === url || audioRef.current?.src === url) return;
+      discardPreload();
+      const audio = new Audio();
+      audio.preload = "auto";
+      audio.src = url;
+      try { audio.load(); } catch {}
+      preloadRef.current = { url, audio };
+    };
+    if (cached) run(cached);
+    else resolvePreferredRef.current(base).then((s) => { resolvedCacheRef.current.set(base.id, s); run(s); });
+  }, [discardPreload]);
+
   // The core function that creates an audio, plays it, and attaches ended handler
   const internalPlay = useCallback((song: PlayerSong, karaokeMode: boolean, startAt = 0, autoplay = true) => {
     karaokeMode = karaokeMode && featuresRef.current("karaoke");
     stopInterval();
     if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.onended = null;
+      const old = audioRef.current;
+      old.pause();
+      old.onended = null;
+      old.onerror = null;
       audioRef.current = null;
     }
+    wantPlayingRef.current = autoplay;
+    setIsBuffering(false);
     setCurrentSong(song);
     setIsKaraoke(karaokeMode);
     setProgress(song.durationSeconds ? (startAt / song.durationSeconds) * 100 : 0);
@@ -276,61 +318,128 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       });
     }
 
-    const url = toDirectUrl(karaokeMode ? song.instrumentalUrl : song.audioUrl);
+    const url = sourceFor(song, karaokeMode);
     if (url) {
-      const audio = createExclusiveAudio(url);
+      // Reuse the warmed-up element for this track when available (already buffered).
+      let audio: HTMLAudioElement;
+      if (preloadRef.current?.url === url) {
+        audio = preloadRef.current.audio;
+        preloadRef.current = null;
+        playerAudios.add(audio);
+        audio.addEventListener("play", () => {
+          playerAudios.forEach((other) => { if (other !== audio && !other.paused) other.pause(); });
+        });
+      } else {
+        discardPreload();
+        audio = createExclusiveAudio(url);
+        audio.preload = "auto";
+      }
       audio.volume = volumeRef.current;
       audioRef.current = audio;
-      
+      const isCurrent = () => audioRef.current === audio;
+      let seekOnLoad = startAt;
+      let retries = 0;
+      let stallTimer: number | null = null;
+      let prefetched = false;
+      const clearStall = () => { if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; } };
+
+      const goNext = () => {
+        const idx = findNextIndex(queueRef.current, queueIndexRef.current, repeatModeRef.current);
+        if (idx >= 0 && idx !== queueIndexRef.current) advanceToRef.current(idx, karaokeMode, true);
+        else { setIsPlaying(false); stopInterval(); clearAutoPauseTimer(); }
+      };
+
+      // Re-request the stream from where it stopped (network drop / long stall).
+      const reconnect = () => {
+        if (!isCurrent()) return;
+        seekOnLoad = audio.currentTime || seekOnLoad;
+        try { audio.load(); } catch {}
+        if (wantPlayingRef.current) audio.play().catch(() => {});
+      };
+
       audio.onended = () => {
-        const rm = repeatModeRef.current;
-        const q = queueRef.current;
-        const qi = queueIndexRef.current;
-
+        clearStall();
+        if (!isCurrent()) return;
         setTrackEndCount(c => c + 1);
-
-        if (rm === "one") {
+        if (repeatModeRef.current === "one") {
           audio.currentTime = 0;
           audio.play().catch(() => {});
           return;
         }
-
-        if (q.length > 0 && qi >= 0) {
-          let nextIdx = qi + 1;
-          if (nextIdx >= q.length) {
-            if (rm === "all") {
-              nextIdx = 0;
-            } else {
-              setIsPlaying(false);
-              stopInterval();
-              clearAutoPauseTimer();
-              return;
-            }
-          }
-          setQueueIndex(nextIdx);
-          internalPlayRef.current(q[nextIdx], karaokeMode);
-          recordPlayFn(q[nextIdx].id);
-        } else {
-          // No queue but repeat off — still try next sequential track
+        const idx = findNextIndex(queueRef.current, queueIndexRef.current, repeatModeRef.current);
+        if (idx < 0) {
+          wantPlayingRef.current = false;
           setIsPlaying(false);
           stopInterval();
           clearAutoPauseTimer();
+          return;
+        }
+        advanceToRef.current(idx, karaokeMode, true);
+      };
+
+      audio.onerror = () => {
+        clearStall();
+        if (!isCurrent()) return;
+        if (retries < 4) {
+          retries += 1;
+          setIsBuffering(true);
+          window.setTimeout(reconnect, 800 * 2 ** (retries - 1));
+        } else {
+          goNext(); // unplayable after retries — keep the session moving
         }
       };
 
+      audio.addEventListener("waiting", () => {
+        if (!isCurrent()) return;
+        setIsBuffering(true);
+        clearStall();
+        stallTimer = window.setTimeout(reconnect, 12000);
+      });
+      audio.addEventListener("stalled", () => {
+        if (!isCurrent() || stallTimer) return;
+        stallTimer = window.setTimeout(reconnect, 12000);
+      });
+      audio.addEventListener("playing", () => { clearStall(); retries = 0; if (isCurrent()) setIsBuffering(false); });
+      audio.addEventListener("canplay", () => { if (isCurrent()) setIsBuffering(false); });
+
+      // Start warming the next track once this one is safely buffered or nearing its end.
+      const maybePrefetch = () => {
+        if (prefetched || !isCurrent()) return;
+        const dur = audio.duration;
+        if (!dur || !isFinite(dur)) return;
+        const buffered = audio.buffered.length ? audio.buffered.end(audio.buffered.length - 1) : 0;
+        if (buffered >= dur - 1 || dur - audio.currentTime < 60) {
+          prefetched = true;
+          prefetchNext(karaokeMode);
+        }
+      };
+      audio.addEventListener("progress", maybePrefetch);
+      audio.addEventListener("timeupdate", maybePrefetch);
+
       audio.addEventListener("loadedmetadata", () => {
+        if (!isCurrent()) return;
+        setDuration(audio.duration);
+        if (seekOnLoad > 0 && seekOnLoad < audio.duration) audio.currentTime = seekOnLoad;
+      });
+      // Preloaded element may already have metadata.
+      if (audio.readyState >= 1) {
         setDuration(audio.duration);
         if (startAt > 0 && startAt < audio.duration) audio.currentTime = startAt;
-      });
+      }
       if (autoplay) {
-        audio.play().then(() => { setIsPlaying(true); startInterval(); resetAutoPauseTimer(); }).catch(() => {});
+        if (audio.readyState < 3) setIsBuffering(true);
+        audio.play().then(() => { if (isCurrent()) { setIsPlaying(true); startInterval(); resetAutoPauseTimer(); } }).catch(() => {});
       } else {
         setIsPlaying(false);
       }
     } else {
-      setDuration(song.durationSeconds || 240);
-      setIsPlaying(true);
-      startInterval();
+      // Nothing playable for this track — skip ahead instead of stalling the queue.
+      setDuration(song.durationSeconds || 0);
+      setIsPlaying(false);
+      const idx = findNextIndex(queueRef.current, queueIndexRef.current, repeatModeRef.current);
+      if (autoplay && idx >= 0 && idx !== queueIndexRef.current) {
+        window.setTimeout(() => advanceToRef.current(idx, karaokeMode, true), 0);
+      }
     }
 
     // MediaSession API
@@ -342,11 +451,13 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         artwork: song.coverUrl ? [{ src: song.coverUrl, sizes: "512x512", type: "image/jpeg" }] : [],
       });
       navigator.mediaSession.setActionHandler("play", () => {
+        wantPlayingRef.current = true;
         audioRef.current?.play();
         setIsPlaying(true);
         startInterval();
       });
       navigator.mediaSession.setActionHandler("pause", () => {
+        wantPlayingRef.current = false;
         audioRef.current?.pause();
         setIsPlaying(false);
         stopInterval();
@@ -354,9 +465,35 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       navigator.mediaSession.setActionHandler("previoustrack", () => skipPrevRef.current());
       navigator.mediaSession.setActionHandler("nexttrack", () => skipNextRef.current());
     }
-  }, [startInterval, stopInterval, resetAutoPauseTimer, clearAutoPauseTimer]);
+  }, [startInterval, stopInterval, resetAutoPauseTimer, clearAutoPauseTimer, discardPreload, prefetchNext]);
 
   internalPlayRef.current = internalPlay;
+
+  // Move to a queue position, using the cached language-resolved song when prefetched.
+  advanceToRef.current = (idx: number, karaoke: boolean, autoplay = true) => {
+    const base = queueRef.current[idx];
+    if (!base) return;
+    queueIndexRef.current = idx;
+    setQueueIndex(idx);
+    const cached = resolvedCacheRef.current.get(base.id);
+    internalPlayRef.current(cached || base, karaoke, 0, autoplay);
+    recordPlayFn(base.id);
+  };
+
+  // Resume immediately when the connection comes back.
+  useEffect(() => {
+    const onOnline = () => {
+      const a = audioRef.current;
+      if (a && wantPlayingRef.current && a.readyState < 3) {
+        const t = a.currentTime;
+        try { a.load(); } catch {}
+        a.addEventListener("loadedmetadata", () => { try { a.currentTime = t; } catch {} }, { once: true });
+        a.play().catch(() => {});
+      }
+    };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, []);
 
   // Restore the last listening session once. Browsers require a user gesture before
   // audio can resume, so the track returns paused at the saved position.
