@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useActiveChallenge, useMyEntry, useMyScore, useLeaderboard, buildReferralUrl } from "@/hooks/useChallenge";
 import { CHALLENGE_RESUME_KEY } from "@/hooks/useReferralGateGuard";
 import ChallengeCountdown from "@/components/games/ChallengeCountdown";
-import { Trophy, Copy, ArrowLeft, Crown, Target, CheckCircle, LogOut, AlertCircle, Medal, Award, Play } from "lucide-react";
+import { Trophy, Copy, ArrowLeft, Crown, Target, CheckCircle, LogOut, AlertCircle, Medal, Award, Play, Gamepad2, Sparkles, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -115,19 +115,19 @@ const Challenge = () => {
         )}
 
         {entry?.status === "approved" && (
-          <div className="glass-card p-5 mb-5">
-            <h3 className="font-bold mb-3 flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> Your Progress</h3>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div><p className="text-2xl font-bold text-amber-400">#{myRow?.rank ?? "—"}</p><p className="text-xs text-muted-foreground">Rank</p></div>
-              <div><p className="text-2xl font-bold text-foreground">{myScore?.total_score ?? 0}</p><p className="text-xs text-muted-foreground">Points</p></div>
-              <div><p className="text-2xl font-bold text-foreground">{myScore?.games_played ?? 0}</p><p className="text-xs text-muted-foreground">Games</p></div>
+          <section className="challenge-arcade challenge-progress p-5 mb-5" aria-label="Your Progress">
+            <h3 className="font-bold mb-4 flex items-center gap-2"><Target className="w-4 h-4 challenge-current-icon game-icon-pulse" /> Your Progress</h3>
+            <div className="grid grid-cols-3 text-center">
+              <div className="challenge-progress-column game-tone-cyan"><Medal aria-hidden="true" className="w-5 h-5 mx-auto mb-2 game-achievement-icon game-icon-float" /><p className="text-2xl font-bold tabular-nums game-achievement-icon">#{myRow?.rank ?? "—"}</p><p className="text-xs mt-1">Rank</p></div>
+              <div className="challenge-progress-column game-tone-amber"><Sparkles aria-hidden="true" className="w-5 h-5 mx-auto mb-2 game-achievement-icon game-icon-pulse" /><p className="text-2xl font-bold tabular-nums game-achievement-icon">{myScore?.total_score ?? 0}</p><p className="text-xs mt-1">Points</p></div>
+              <div className="challenge-progress-column game-tone-rose"><Gamepad2 aria-hidden="true" className="w-5 h-5 mx-auto mb-2 game-achievement-icon game-controller" /><p className="text-2xl font-bold tabular-nums game-achievement-icon">{myScore?.games_played ?? 0}</p><p className="text-xs mt-1">Games</p></div>
             </div>
-            <div className="mt-3 text-center">
+            <div className="mt-4 text-center">
               {myScore?.qualified
-                ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-500"><CheckCircle className="w-3 h-3" /> Qualified</span>
-                : <span className="text-xs text-muted-foreground">Participating — {Math.max(0, (ch.qualification_min_games - (myScore?.games_played || 0)))} more games to qualify</span>}
+                ? <span className="challenge-qualified inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> Qualified</span>
+                : <span className="text-xs">Participating — {Math.max(0, (ch.qualification_min_games - (myScore?.games_played || 0)))} more games to qualify</span>}
             </div>
-          </div>
+          </section>
         )}
 
         {entry?.status === "approved" && ch.referral_gate_score != null && (ch.referral_gate_required_invites ?? 0) > 0 && (
@@ -157,47 +157,48 @@ const Challenge = () => {
           </button>
         )}
 
-        <div className="glass-card p-5">
-          <h3 className="font-bold mb-4 flex items-center gap-2"><Trophy className="w-4 h-4 text-amber-400" /> Live Leaderboard</h3>
+        <section className="challenge-arcade challenge-leaderboard" aria-label="Live Leaderboard">
+          <h3 className="font-bold mb-4 flex items-center gap-2"><Trophy aria-hidden="true" className="w-5 h-5 game-tone-amber game-achievement-icon game-icon-float" /> Live Leaderboard</h3>
           {board.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">No players yet. Be the first!</p>
+            <p className="text-sm text-center py-6">No players yet. Be the first!</p>
           ) : (
-            <div className="space-y-1.5">
+            <ol className="space-y-2.5">
               {(() => {
                 const dist = (ch.prize_distribution || {}) as Record<string, number>;
                 const prizeRanks = new Set(Object.keys(dist).filter(k => Number(dist[k]) > 0).map(k => Number(k)));
                 const medalFor = (rank: number) => {
-                  if (rank === 1) return <Medal className="w-5 h-5 text-amber-400" />;
-                  if (rank === 2) return <Medal className="w-5 h-5 text-foreground" />;
-                  if (rank === 3) return <Medal className="w-5 h-5 text-orange-500" />;
-                  if (prizeRanks.has(rank)) return <Award className="w-5 h-5 text-primary" />;
+                  if (rank === 1) return <Trophy aria-hidden="true" className="w-4 h-4 game-icon-float" />;
+                  if (rank === 2 || rank === 3) return <Medal aria-hidden="true" className="w-4 h-4 game-icon-float" />;
+                  if (prizeRanks.has(rank)) return <Award aria-hidden="true" className="w-4 h-4 game-icon-pulse" />;
                   return null;
                 };
                 return board.map((r: any) => {
                   const isMe = r.user_id === user?.id;
                   const medal = medalFor(r.rank);
                   return (
-                    <div key={r.user_id}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${isMe ? "bg-amber-500/15 ring-1 ring-amber-500/40" : "bg-background/30"}`}>
-                      <span className="w-8 flex items-center justify-center font-bold text-muted-foreground">
-                        {medal ?? <span>#{r.rank}</span>}
+                    <li key={r.user_id} aria-current={isMe ? "true" : undefined}
+                      className={`challenge-rank-row ${isMe ? "challenge-rank-current game-tone-cyan" : r.rank === 1 ? "game-tone-amber" : r.rank === 2 ? "game-tone-blue" : r.rank === 3 ? "game-tone-rose" : r.rank % 2 === 0 ? "game-tone-green" : "game-tone-purple"} flex items-center gap-2 sm:gap-3 px-3 py-3 rounded-xl text-sm`}>
+                      <span className="challenge-rank-badge shrink-0 flex flex-col items-center justify-center font-bold text-xs">
+                        {medal}<span>#{r.rank}</span>
                       </span>
                       {r.avatar_url
-                        ? <img src={r.avatar_url} className="w-7 h-7 rounded-full object-cover" alt="" />
-                        : <div className="w-7 h-7 rounded-full bg-muted" />}
-                      <span className="flex-1 truncate font-medium">
-                        {isMe ? "You" : r.username}
-                        {medal && <span className="ml-1.5 text-[10px] text-muted-foreground font-normal">#{r.rank}</span>}
+                        ? <img src={r.avatar_url} className="challenge-rank-avatar w-8 h-8 shrink-0 rounded-full object-cover" alt="" loading="lazy" />
+                        : <span className="challenge-rank-avatar w-8 h-8 shrink-0 rounded-full flex items-center justify-center"><UserRound aria-hidden="true" className="w-4 h-4" /></span>}
+                      <span className="flex-1 min-w-0 font-semibold">
+                        <span className="block truncate">{isMe ? "You" : r.username}</span>
+                        {isMe && <span className="challenge-current-label block text-[10px] font-semibold">Current Position</span>}
                       </span>
-                      {r.qualified && <CheckCircle className="w-3.5 h-3.5 text-green-500" />}
-                      <span className="font-bold text-amber-400 tabular-nums">{r.total_score.toLocaleString()}</span>
-                    </div>
+                      <span className="challenge-rank-score shrink-0 flex items-center gap-1.5 font-bold tabular-nums">
+                        {r.qualified && <CheckCircle aria-label="Qualified" className="w-3.5 h-3.5 challenge-qualified-icon" />}
+                        {r.total_score.toLocaleString()}
+                      </span>
+                    </li>
                   );
                 });
               })()}
-            </div>
+            </ol>
           )}
-        </div>
+        </section>
       </div>
     </AppLayout>
   );
