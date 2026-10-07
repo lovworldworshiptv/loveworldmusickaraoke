@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type CSSProperties } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +10,10 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useIsPremium } from "@/hooks/useIsPremium";
+import { Button } from "@/components/ui/button";
+import { TiltedGamePhoto } from "@/components/games/GameHubCard";
+import { resolveGameCard, type GameCardSettings } from "@/lib/gameCards";
+import { hexToHsl, SETTING_KEYS, useSetting } from "@/lib/siteSettings";
 
 
 const Challenge = () => {
@@ -22,6 +26,8 @@ const Challenge = () => {
   const { data: myScore } = useMyScore(ch?.id);
   const { data: board = [] } = useLeaderboard(ch?.id);
   const { isPremium, loading: premiumLoading } = useIsPremium();
+  const cardSettings = useSetting<GameCardSettings>(SETTING_KEYS.gameCards);
+  const presentation = resolveGameCard("challenge", cardSettings);
 
 
   // Capture ?ref= referrer (username or user_id) to localStorage
@@ -65,11 +71,11 @@ const Challenge = () => {
 
 
   const leaveChallenge = async () => {
-    if (!entry || !ch) return;
+    if (!entry || !ch || !user) return;
     if (!confirm("Leave this challenge? Your entry and progress will be removed and any entry fee is not refunded.")) return;
     const { error } = await supabase.from("challenge_entries" as any).delete().eq("id", entry.id);
     if (error) { toast.error(error.message); return; }
-    await supabase.from("challenge_scores" as any).delete().eq("challenge_id", ch.id).eq("user_id", user!.id);
+    await supabase.from("challenge_scores" as any).delete().eq("challenge_id", ch.id).eq("user_id", user.id);
     toast.success("You left the challenge");
     qc.invalidateQueries({ queryKey: ["challenge-entry", ch.id] });
     qc.invalidateQueries({ queryKey: ["challenge-leaderboard", ch.id] });
@@ -85,16 +91,22 @@ const Challenge = () => {
           <ArrowLeft className="w-4 h-4" /> Back to Games
         </button>
 
-        <div className="glass-card p-5 mb-5">
-          <div className="flex items-center gap-2 mb-2">
-            <Trophy className="w-5 h-5 text-amber-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Song Master Challenge</span>
+        <section aria-label="Song Master Challenge" className="game-hub-card challenge-detail-card relative overflow-hidden rounded-2xl p-5 sm:p-6 mb-5"
+          style={{ "--game-card-background": hexToHsl(presentation.color) } as CSSProperties}>
+          <TiltedGamePhoto imageUrl={presentation.imageUrl} title="Challenge" />
+          <div className="relative min-h-[150px] w-[calc(100%_-_144px)] sm:w-[calc(100%_-_160px)] pointer-events-none">
+            <div className="flex items-start gap-2 mb-2">
+              <Trophy className="w-5 h-5 shrink-0 text-foreground game-icon-pulse" />
+              <span className="text-xs font-bold uppercase text-foreground">Song Master Challenge</span>
+            </div>
           </div>
-          <h1 className="text-2xl font-serif font-bold mb-1">{ch.name}</h1>
-          {ch.description && <p className="text-sm text-muted-foreground mb-4">{ch.description}</p>}
-          <div className="mb-2 text-xs text-center text-muted-foreground">Ends In</div>
-          <ChallengeCountdown endDate={ch.end_date} />
-        </div>
+          <h1 className="relative text-2xl font-serif font-bold mb-3 break-words">{ch.name}</h1>
+          {ch.description && <p className="relative text-sm text-foreground mb-5">{ch.description}</p>}
+          <div className="challenge-detail-countdown relative">
+            <div className="mb-2 text-xs text-center text-foreground">Ends In</div>
+            <ChallengeCountdown endDate={ch.end_date} />
+          </div>
+        </section>
 
         {entry?.status === "approved" && !premiumLoading && !isPremium && (
           <div className="glass-card p-5 mb-5 border border-amber-500/50 bg-amber-500/5">
@@ -130,10 +142,10 @@ const Challenge = () => {
           </section>
         )}
 
-        {entry?.status === "approved" && ch.referral_gate_score != null && (ch.referral_gate_required_invites ?? 0) > 0 && (
+        {user && entry?.status === "approved" && ch.referral_gate_score != null && (ch.referral_gate_required_invites ?? 0) > 0 && (
           <ReferralGateCard
             challengeId={ch.id}
-            userId={user!.id}
+            userId={user.id}
             currentScore={myScore?.total_score ?? 0}
             gateScore={Number(ch.referral_gate_score)}
             required={Number(ch.referral_gate_required_invites)}
@@ -144,10 +156,10 @@ const Challenge = () => {
         {/* Referral link card removed per product request; +50pts per referral logic still active. */}
 
         {entry && (
-          <button onClick={leaveChallenge}
-            className="w-full mb-5 py-2.5 rounded-lg border border-destructive/40 text-destructive text-xs font-semibold flex items-center justify-center gap-2 hover:bg-destructive/10">
+          <Button variant="outline" onClick={leaveChallenge}
+            className="challenge-arcade-cta game-tone-rose w-full h-auto min-h-12 mb-5 py-3 rounded-xl text-sm font-semibold gap-2">
             <LogOut className="w-3.5 h-3.5" /> Leave Challenge
-          </button>
+          </Button>
         )}
 
         {!entry && (
@@ -223,24 +235,24 @@ function ReferralGateCard({ challengeId, userId, currentScore, gateScore, requir
   const met = refCount >= required;
   if (!gateReached) {
     return (
-      <div className="glass-card p-4 mb-5 border border-amber-500/20">
-        <p className="text-xs text-muted-foreground flex items-center gap-2">
-          <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+      <section aria-label="Referral notification" className="challenge-arcade challenge-referral game-tone-amber p-5 mb-5 rounded-2xl">
+        <p className="text-sm leading-relaxed">
+          <AlertCircle aria-hidden="true" className="inline-block align-middle w-5 h-5 mr-2 game-achievement-icon game-icon-pulse" />
           Milestone Advancement Score at <span className="font-semibold text-foreground">{gateScore} pts</span> — you'll need <span className="font-semibold text-foreground">{required}</span> referrals to advance past this milestone and keep playing.
         </p>
-      </div>
+      </section>
     );
   }
   const resumePath = (() => {
     try { return localStorage.getItem(CHALLENGE_RESUME_KEY); } catch { return null; }
   })();
   return (
-    <div className={`glass-card p-5 mb-5 border ${met ? "border-green-500/40" : "border-amber-500/50 bg-amber-500/5"}`}>
-      <div className="flex items-center gap-2 mb-2">
-        <AlertCircle className={`w-4 h-4 ${met ? "text-green-500" : "text-amber-400"}`} />
+    <section aria-label="Referral notification" className={`challenge-arcade challenge-referral p-5 mb-5 rounded-2xl ${met ? "game-tone-green" : "game-tone-amber"}`}>
+      <div className="flex items-start gap-2 mb-3">
+        <AlertCircle className="w-5 h-5 shrink-0 game-achievement-icon game-icon-pulse" />
         <h3 className="font-bold text-sm">{met ? "Milestone Advancement Cleared" : "Refer to Advance Past Milestone"}</h3>
       </div>
-      <p className="text-xs text-muted-foreground mb-3">
+      <p className="text-sm leading-relaxed mb-4">
         {met
           ? `You've cleared the ${gateScore}-point Milestone Advancement Score with ${refCount}/${required} referrals. Your future games count normally.`
           : `You've reached the Milestone Advancement Score of ${currentScore} points. Games won't count until you refer ${required - refCount} more player${required - refCount === 1 ? "" : "s"} (${refCount}/${required}).`}
@@ -248,14 +260,14 @@ function ReferralGateCard({ challengeId, userId, currentScore, gateScore, requir
       {met ? (
         <ContinuePlayingButton resumePath={resumePath} />
       ) : (
-        <div className="flex gap-2">
-          <input readOnly value={refUrl} className="flex-1 px-3 py-2 rounded-lg bg-background border border-border text-xs font-mono" />
-          <button onClick={() => { navigator.clipboard.writeText(refUrl); toast.success("Referral link copied!"); }} className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs flex items-center gap-1">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input aria-label="Referral link" readOnly value={refUrl} className="min-w-0 w-full flex-1 px-3 py-2 rounded-lg bg-background/40 border border-foreground/20 text-foreground text-xs font-mono" />
+          <Button variant="outline" onClick={() => { navigator.clipboard.writeText(refUrl); toast.success("Referral link copied!"); }} className="challenge-arcade-cta game-tone-amber h-auto min-h-11 px-4 py-2 text-sm gap-2">
             <Copy className="w-3 h-3" /> Copy
-          </button>
+          </Button>
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -267,12 +279,12 @@ function ContinuePlayingButton({ resumePath }: { resumePath: string | null }) {
     navigate(target);
   };
   return (
-    <button
+    <Button variant="outline"
       onClick={go}
-      className="w-full py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold text-xs flex items-center justify-center gap-2"
+      className="challenge-arcade-cta game-tone-green w-full h-auto min-h-11 py-3 rounded-xl font-semibold text-sm gap-2"
     >
       <Play className="w-3.5 h-3.5" /> Continue Playing
-    </button>
+    </Button>
   );
 }
 
