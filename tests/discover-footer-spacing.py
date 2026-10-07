@@ -86,8 +86,12 @@ async def restore_session(page):
 
 async def dismiss_onboarding(page):
     skip = page.get_by_role("button", name="Skip")
-    if await skip.count():
+    try:
+        await skip.first.wait_for(state="visible", timeout=4000)
         await skip.first.click()
+        await page.wait_for_timeout(800)
+    except Exception:
+        pass
 
 
 async def scenario(pw, name, viewport, with_player):
