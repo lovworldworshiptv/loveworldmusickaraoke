@@ -13,6 +13,7 @@ export const SETTING_KEYS = {
   dailyDiscoverConfig: "daily_discover_config",
   dailyDiscoverSongs: "daily_discover_songs",
   communityColors: "community_background_colors",
+  gameCards: "game_hub_cards",
 } as const;
 
 export type ThemeColors = { gold?: string; background?: string; accent?: string; foreground?: string; dailyDiscover?: string };

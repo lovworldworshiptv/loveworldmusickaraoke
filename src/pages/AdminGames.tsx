@@ -6,6 +6,7 @@ import { Plus, Trash2, Edit3, Save, X, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
+import GameCardsEditor from "@/components/admin/GameCardsEditor";
 
 interface GameLevel {
   id: string;
@@ -235,6 +236,7 @@ const AdminGames = () => {
           </div>
         )}
 
+        <GameCardsEditor />
         {loading ? (
           <p className="text-muted-foreground text-sm">Loading...</p>
         ) : levels.length === 0 ? (

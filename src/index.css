@@ -59,6 +59,10 @@
     --glass-border: 220 25% 22%;
     --community-foreground: 0 0% 100%;
     --community-page-background: 0 0% 22%;
+    --game-card-foreground: 0 0% 100%;
+    --game-card-control: 0 0% 100%;
+    --game-card-control-foreground: 220 40% 8%;
+    --game-card-shadow: 0 10px 24px hsl(220 40% 6% / 0.25);
   }
 
   .dark {
@@ -104,6 +108,29 @@
 }
 
 @layer utilities {
+  .game-hub-card {
+    background: hsl(var(--game-card-background));
+    color: hsl(var(--game-card-foreground));
+    --foreground: var(--game-card-foreground);
+    --border: var(--game-card-foreground);
+  }
+  .game-card-photo {
+    transform: rotate(12deg);
+    box-shadow: var(--game-card-shadow);
+    transition: transform 350ms cubic-bezier(.2,.8,.2,1);
+  }
+  .game-hub-card.is-leaning .game-card-photo,
+  .game-card-photo:active { transform: rotate(23deg) translateY(-4px); }
+  @media (hover: hover) {
+    .game-hub-card:hover .game-card-photo { transform: rotate(23deg) translateY(-4px); }
+  }
+  .game-card-play, .game-card-play:hover {
+    background: hsl(var(--game-card-control));
+    color: hsl(var(--game-card-control-foreground));
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .game-card-photo { transition: none; }
+  }
   .community-page {
     background: hsl(var(--community-page-background));
     --foreground: var(--community-foreground);
