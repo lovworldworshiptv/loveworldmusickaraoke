@@ -21,12 +21,14 @@ interface Props {
   startAt: number;
   /** Ref the parent reads to get the current video position (song time) on exit */
   positionRef: React.MutableRefObject<() => number>;
+  /** Called when the video finishes playing. */
+  onEnded?: () => void;
 }
 
 const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
 
 /** Plays a song's video from the audio position with its own transport controls. */
-const VideoMode = ({ video, startAt, positionRef }: Props) => {
+const VideoMode = ({ video, startAt, positionRef, onEnded }: Props) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const offset = (video.offset_ms || 0) / 1000;
@@ -37,6 +39,8 @@ const VideoMode = ({ video, startAt, positionRef }: Props) => {
   const [dur, setDur] = useState(0);
   const [ready, setReady] = useState(false);
   const timeRef = useRef(start);
+  const endedRef = useRef(onEnded);
+  endedRef.current = onEnded;
   timeRef.current = time;
 
   // YouTube: talk to the iframe player via postMessage
@@ -53,7 +57,10 @@ const VideoMode = ({ video, startAt, positionRef }: Props) => {
         if (!info) return;
         if (typeof info.currentTime === "number") setTime(info.currentTime);
         if (typeof info.duration === "number" && info.duration > 0) setDur(info.duration);
-        if (typeof info.playerState === "number") setPlaying(info.playerState === 1 || info.playerState === 3);
+        if (typeof info.playerState === "number") {
+          setPlaying(info.playerState === 1 || info.playerState === 3);
+          if (info.playerState === 0) endedRef.current?.();
+        }
       } catch {}
     };
     window.addEventListener("message", onMsg);
@@ -122,6 +129,7 @@ const VideoMode = ({ video, startAt, positionRef }: Props) => {
             onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
             onPlay={() => setPlaying(true)}
             onPause={() => setPlaying(false)}
+            onEnded={() => endedRef.current?.()}
           />
         )}
       </div>

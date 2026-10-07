@@ -42,8 +42,11 @@ interface PlayerContextType {
   volume: number;
   trackEndCount: number;
   playSong: (song: PlayerSong) => void;
-  playQueue: (songs: PlayerSong[], startIndex?: number) => void;
+  playQueue: (songs: PlayerSong[], startIndex?: number, opts?: { karaoke?: boolean }) => void;
   playVideo: (song: PlayerSong) => void;
+  /** Play a queue that stays in Video mode, advancing when each video ends. */
+  playVideoQueue: (songs: PlayerSong[], startIndex?: number) => void;
+  requestVideoMode: () => void;
   videoModeRequest: boolean;
   clearVideoModeRequest: () => void;
   singThis: (song: PlayerSong) => void;
@@ -463,6 +466,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   }, [playSong]);
 
   const clearVideoModeRequest = useCallback(() => setVideoModeRequest(false), []);
+  const requestVideoMode = useCallback(() => setVideoModeRequest(true), []);
 
   const singThis = useCallback((song: PlayerSong) => {
     if (!featuresRef.current("karaoke")) return;
@@ -473,17 +477,24 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
   const clearKaraokeModeRequest = useCallback(() => setKaraokeModeRequest(false), []);
 
-  const playQueue = useCallback((songs: PlayerSong[], startIndex = 0) => {
+  const playQueue = useCallback((songs: PlayerSong[], startIndex = 0, opts?: { karaoke?: boolean }) => {
     const q = shuffleOnRef.current ? shuffleArray(songs) : songs;
     setQueue(q);
     setQueueIndex(startIndex);
     if (q[startIndex]) {
       resolvePreferred(q[startIndex]).then((s) => {
-        internalPlay(s, false);
+        internalPlay(s, !!opts?.karaoke);
         recordPlayFn(s.id);
       });
     }
   }, [internalPlay, recordPlayFn, resolvePreferred]);
+
+  const playVideoQueue = useCallback((songs: PlayerSong[], startIndex = 0) => {
+    if (!featuresRef.current("video")) return;
+    playQueue(songs, startIndex);
+    setIsExpanded(true);
+    setVideoModeRequest(true);
+  }, [playQueue]);
 
   const skipNext = useCallback(() => {
     if (queue.length === 0) return;
@@ -629,7 +640,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       currentSong, isPlaying, isKaraoke, isExpanded, progress, duration,
       currentTime, lrcLines, staticLyrics, activeLrcIndex, repeatMode, shuffleOn,
       queue, queueIndex, volume, trackEndCount, playSong, playQueue, togglePlay,
-      playVideo, videoModeRequest, clearVideoModeRequest,
+      playVideo, playVideoQueue, requestVideoMode, videoModeRequest, clearVideoModeRequest,
       singThis, karaokeModeRequest, clearKaraokeModeRequest,
       toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev,
       cycleRepeat, toggleShuffle, setVolume, applyLyrics, handoffPause, resumeAt,
