@@ -6,7 +6,7 @@ import ShareMenu, { buildShareUrl } from "@/components/share/ShareMenu";
 import ChallengeBanner from "@/components/games/ChallengeBanner";
 import GameHubCard from "@/components/games/GameHubCard";
 import { Button } from "@/components/ui/button";
-import { resolveGameCard, type GameCardKey, type GameCardSettings } from "@/lib/gameCards";
+import { GAME_CARD_DEFAULTS, resolveGameCard, type GameCardKey, type GameCardSettings } from "@/lib/gameCards";
 import { SETTING_KEYS, useSetting } from "@/lib/siteSettings";
 
 const achievementPresentation = [
@@ -77,7 +77,7 @@ const Games = () => {
         {/* Game cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
           {games.map(g => (
-            <GameHubCard key={g.key} presentation={resolveGameCard(g.key as GameCardKey, cardSettings)} tag={g.tag} onPlay={() => navigate(g.path)}
+            <GameHubCard key={g.key} presentation={resolveGameCard(g.key as GameCardKey, cardSettings)} fallbackImageUrl={GAME_CARD_DEFAULTS[g.key as GameCardKey].imageUrl} tag={g.tag} onPlay={() => navigate(g.path)}
               stats={g.played > 0 ? <div className="flex items-center gap-4 text-xs">
                 <span className="flex items-center gap-1.5"><Target className="w-3.5 h-3.5" />{g.played} played</span>
                 <span className="flex items-center gap-1.5"><Star className="w-3.5 h-3.5" />{g.points} pts</span>
