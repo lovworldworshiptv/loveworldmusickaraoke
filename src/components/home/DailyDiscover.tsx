@@ -84,8 +84,8 @@ const DailyDiscover = () => {
             {cover ? <img src={cover} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full gradient-purple flex items-center justify-center"><Sparkles className="w-8 h-8 text-gold/60" /></div>}
           </div>
           <div className="min-w-0 flex-1 flex flex-col">
-            <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-gold"><Sparkles className="w-3 h-3" /> Daily Discover · {songs.length} {songs.length === 1 ? "song" : "songs"}</span>
-            <p className="font-serif font-bold text-foreground truncate mt-0.5">{cfg.title || song.title}</p>
+            <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/90"><Sparkles className="w-3 h-3" /> Daily Discover · {songs.length} {songs.length === 1 ? "song" : "songs"}</span>
+            <p className="font-serif font-bold text-white truncate mt-0.5">{cfg.title || song.title}</p>
             <p className="text-xs text-white line-clamp-2 mt-1">{desc}</p>
             <div className="mt-auto self-end flex items-center gap-2">
               {enabled("karaoke") && song.instrumental_url && (

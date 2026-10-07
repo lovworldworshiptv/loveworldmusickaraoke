@@ -47,8 +47,8 @@ const PlatformRecommendations = () => {
                     <div className="w-full h-full gradient-purple flex items-center justify-center"><ListMusic className="w-8 h-8 text-gold/60" /></div>}
                 </div>
                 <div className="min-w-0 flex-1 flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-gold">Playlist · {songs.length} songs</span>
-                  <p className="font-serif font-bold text-foreground truncate mt-0.5">{p.name}</p>
+                  <span className="text-[10px] uppercase tracking-wider text-white/90">Playlist · {songs.length} songs</span>
+                  <p className="font-serif font-bold text-white truncate mt-0.5">{p.name}</p>
                   <p className="text-xs text-white line-clamp-2 mt-1">{p.description?.trim() || names}</p>
                   <span className="mt-auto self-end w-9 h-9 rounded-full gradient-gold flex items-center justify-center shadow-[0_2px_12px_hsl(var(--gold)/0.4)]">
                     <Play className="w-4 h-4 text-white ml-0.5" fill="currentColor" />
