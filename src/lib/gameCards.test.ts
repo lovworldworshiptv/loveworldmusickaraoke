@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { GAME_CARD_DEFAULTS, resolveGameCard } from "./gameCards";
+import { GAME_CARD_DEFAULTS, CHALLENGE_STATS_DEFAULTS, resolveChallengeStats, resolveGameCard } from "./gameCards";
 
 describe("game hub card presentation", () => {
+  it("resolves bright challenge figures and validates CMS overrides", () => {
+    expect(resolveChallengeStats()).toEqual(CHALLENGE_STATS_DEFAULTS);
+    const resolved = resolveChallengeStats({ challengeStats: { prizePool: { label: " Rewards ", color: "#ffff00" }, players: { label: "", color: "invalid" }, espColor: "#00ff00" } });
+    expect(resolved.prizePool).toEqual({ label: "Rewards", color: "#ffff00" });
+    expect(resolved.players).toEqual(CHALLENGE_STATS_DEFAULTS.players);
+    expect(resolved.espColor).toBe("#00ff00");
+  });
   it("uses relevant photo and bright defaults when no CMS entry exists", () => {
     expect(resolveGameCard("songmatch")).toEqual(GAME_CARD_DEFAULTS.songmatch);
     expect(resolveGameCard("articles").imageUrl).toBeTruthy();
