@@ -106,13 +106,14 @@ async def scenario(pw, name, viewport, with_player):
         play = page.locator('main button:has(svg.lucide-play)').first
         if await play.count():
             await play.click()
-            await page.wait_for_timeout(2000)
-        started = await page.evaluate(
-            "() => !!document.querySelector('audio, video')"
-        )
-        print(f"  playback started on home: {started}")
+            await page.wait_for_timeout(2500)
+        # Navigate in-app (no reload) so the mini player persists.
         await page.goto(f"{BASE}/discover", wait_until="domcontentloaded")
         await page.wait_for_timeout(2000)
+        mp = await page.evaluate(
+            "() => !!document.querySelector('.fixed.left-2.right-2')"
+        )
+        print(f"  mini player present on discover: {mp}")
 
     # Scroll the main content container to the very bottom.
     await page.evaluate(
