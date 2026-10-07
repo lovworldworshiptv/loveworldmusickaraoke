@@ -34,6 +34,8 @@ export interface DiscoverFeatured {
   starts_at: string | null;
   ends_at: string | null;
   sort_order: number;
+  song_ids?: string[];
+  description?: string | null;
 }
 
 const FALLBACKS: [string, string][] = [

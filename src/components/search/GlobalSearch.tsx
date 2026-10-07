@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Search, Music, Disc3, User, ListMusic, BookOpen, CornerDownLeft,
-  X, Clock, Sparkles, ArrowUp, ArrowDown, Loader2,
+  X, Clock, Sparkles, ArrowUp, ArrowDown, Loader2, Compass,
 } from "lucide-react";
 import { normalize } from "@/lib/fuzzySearch";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,8 @@ import { lyricsSnippet } from "@/lib/fuzzySearch";
 
 interface GlobalSearchProps {
   open: boolean;
+  /** Filter chip selected when the dialog opens. */
+  initialFilter?: string;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -24,6 +26,7 @@ const safe = (q: string) => q.replace(/[,()]/g, " ").trim();
 const RECENTS_KEY = "global_search_recents";
 const FILTERS = [
   { id: "all", label: "All", icon: Sparkles },
+  { id: "discover", label: "Discover", icon: Compass },
   { id: "songs", label: "Songs", icon: Music },
   { id: "albums", label: "Albums", icon: Disc3 },
   { id: "playlists", label: "Playlists", icon: ListMusic },
@@ -42,7 +45,7 @@ const readRecents = (): string[] => {
   }
 };
 
-const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
+const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) => {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterId>("all");
   const [songs, setSongs] = useState<any[]>([]);
@@ -50,6 +53,7 @@ const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [articles, setArticles] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [discover, setDiscover] = useState<{ id: string; title: string; subtitle: string | null; path: string; image: string | null; kind: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [recents, setRecents] = useState<string[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -58,7 +62,7 @@ const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
   const { playSong } = usePlayer();
 
   const reset = () => {
-    setSongs([]); setAlbums([]); setPlaylists([]); setArticles([]); setUsers([]);
+    setSongs([]); setAlbums([]); setPlaylists([]); setArticles([]); setUsers([]); setDiscover([]);
   };
 
   const rememberQuery = (q: string) => {
@@ -78,7 +82,7 @@ const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
     const q = safe(raw);
     if (q.length < 2) { reset(); setLoading(false); return; }
     setLoading(true);
-    const [songsRes, albumsRes, playlistsRes, articlesRes, usersRes] = await Promise.all([
+    const [songsRes, albumsRes, playlistsRes, articlesRes, usersRes, catsRes, featRes] = await Promise.all([
       supabase
         .from("songs")
         .select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, duration_seconds, album")
@@ -98,6 +102,17 @@ const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
         .or(`title.ilike.%${q}%,excerpt.ilike.%${q}%,content.ilike.%${q}%,author.ilike.%${q}%`)
         .limit(5),
       supabase.from("profiles").select("user_id, username, avatar_url, kingschat_handle").or(`username.ilike.%${q}%,kingschat_handle.ilike.%${q}%`).limit(5),
+      (supabase as any).from("discover_categories").select("id, title, subtitle, route, image_url").eq("is_visible", true)
+        .or(`title.ilike.%${q}%,subtitle.ilike.%${q}%`).order("sort_order").limit(6),
+      (supabase as any).from("discover_featured").select("id, label, description, href, image_url, poster_url, song_ids").eq("is_active", true)
+        .or(`label.ilike.%${q}%,description.ilike.%${q}%`).order("sort_order").limit(6),
+    ]);
+    setDiscover([
+      ...((catsRes.data || []) as any[]).map((c) => ({ id: `c-${c.id}`, title: c.title, subtitle: c.subtitle, path: c.route, image: c.image_url, kind: "Category" })),
+      ...((featRes.data || []) as any[]).map((f) => ({
+        id: `f-${f.id}`, title: f.label, subtitle: f.description, image: f.image_url || f.poster_url, kind: "Featured playlist",
+        path: f.song_ids?.length ? `/discover/featured/${f.id}` : f.href || `/discover/tag/${encodeURIComponent(f.label.replace(/^#/, ""))}`,
+      })),
     ]);
     setSongs(sortSongsByTitle(songsRes.data || []));
     setAlbums(albumsRes.data || []);
@@ -109,7 +124,7 @@ const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
 
   useEffect(() => {
     if (!open) { setQuery(""); setFilter("all"); reset(); }
-    else setRecents(readRecents());
+    else { setRecents(readRecents()); if (initialFilter) setFilter(initialFilter as FilterId); }
   }, [open]);
 
   useEffect(() => {
@@ -133,6 +148,7 @@ const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
 
   const show = (id: FilterId) => filter === "all" || filter === id;
 
+  const vDiscover = show("discover") ? discover : [];
   const vSongs = show("songs") ? songs : [];
   const vAlbums = show("albums") ? albums : [];
   const vPlaylists = show("playlists") ? playlists : [];
@@ -140,7 +156,8 @@ const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
   const vUsers = show("users") ? users : [];
 
   const counts: Record<FilterId, number> = {
-    all: songs.length + albums.length + playlists.length + articles.length + users.length,
+    discover: discover.length,
+    all: discover.length + songs.length + albums.length + playlists.length + articles.length + users.length,
     songs: songs.length,
     albums: albums.length,
     playlists: playlists.length,
@@ -151,6 +168,7 @@ const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
   /** Flat list for keyboard navigation. */
   const flat = useMemo(
     () => [
+      ...vDiscover.map(d => ({ key: `disc-${d.id}`, run: () => go(d.path) })),
       ...vSongs.map(s => ({ key: `song-${s.id}`, run: () => handleSongClick(s) })),
       ...vAlbums.map(a => ({ key: `album-${a.id}`, run: () => go("/albums") })),
       ...vPlaylists.map(p => ({ key: `pl-${p.id}`, run: () => go("/playlists") })),
@@ -158,7 +176,7 @@ const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
       ...vUsers.map(u => ({ key: `usr-${u.user_id}`, run: () => go(`/user/${u.user_id}`) })),
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [vSongs, vAlbums, vPlaylists, vArticles, vUsers, query],
+    [vDiscover, vSongs, vAlbums, vPlaylists, vArticles, vUsers, query],
   );
 
   useEffect(() => { setActiveIndex(0); }, [query, filter]);
@@ -175,6 +193,7 @@ const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
     const nq = normalize(query);
     if (nq.length < 2) return [] as { label: string; kind: string }[];
     const raw: { label: string; kind: string }[] = [
+      ...discover.map(d => ({ label: d.title, kind: "Discover" })),
       ...songs.map(s => ({ label: s.title, kind: "Song" })),
       ...songs.map(s => ({ label: s.artist, kind: "Artist" })),
       ...albums.map(a => ({ label: a.title, kind: "Album" })),
@@ -380,6 +399,24 @@ const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
               </div>
               <p className="text-sm font-medium text-foreground">No results for “{query}”</p>
               <p className="text-xs text-muted-foreground">Try a different title, artist or lyric line.</p>
+            </div>
+          )}
+
+          {vDiscover.length > 0 && (
+            <div>
+              <SectionLabel>Discover</SectionLabel>
+              {vDiscover.map(d => (
+                <button key={d.id} {...rowProps(() => go(d.path))}>
+                  <div className="w-10 h-10 rounded-xl bg-gold/15 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {d.image ? <img src={d.image} alt="" className="w-full h-full object-cover" /> : <Compass className="w-4 h-4 text-gold" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground truncate"><Highlight text={d.title} query={query} /></p>
+                    <p className="text-xs text-foreground truncate">{d.kind}{d.subtitle ? ` · ${d.subtitle}` : ""}</p>
+                  </div>
+                  <CornerDownLeft className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 flex-shrink-0" />
+                </button>
+              ))}
             </div>
           )}
 

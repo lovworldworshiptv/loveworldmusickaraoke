@@ -85,6 +85,13 @@
       "when": 1791347663705,
       "tag": "0011_discover_cms",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791350031685,
+      "tag": "0012_discover_featured_playlists",
+      "breakpoints": true
     }
   ]
 }

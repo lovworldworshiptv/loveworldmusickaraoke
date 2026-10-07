@@ -19,7 +19,7 @@ const FeaturedCard = ({ f }: { f: DiscoverFeatured }) => {
   const tag = f.label.replace(/^#/, "");
   return (
     <Link
-      to={f.href || `/discover/tag/${encodeURIComponent(tag)}`}
+      to={f.song_ids?.length ? `/discover/featured/${f.id}` : f.href || `/discover/tag/${encodeURIComponent(tag)}`}
       className="relative flex-shrink-0 w-36 md:w-44 aspect-[2/3] rounded-2xl overflow-hidden snap-start group focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
     >
       {f.media_type === "video" && f.video_url ? (

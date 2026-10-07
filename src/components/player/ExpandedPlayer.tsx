@@ -82,7 +82,7 @@ const ExpandedPlayer = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
   const isMobile = useIsMobile();
-  const { handoffPause, resumeAt, videoModeRequest, clearVideoModeRequest, karaokeModeRequest, clearKaraokeModeRequest } = usePlayer();
+  const { handoffPause, resumeAt, requestVideoMode, videoModeRequest, clearVideoModeRequest, karaokeModeRequest, clearKaraokeModeRequest } = usePlayer();
 
   // --- 3-mode player (Song | Karaoke | Video) with seamless position transfer ---
   const [videos, setVideos] = useState<SongVideo[]>([]);
@@ -418,7 +418,15 @@ const ExpandedPlayer = () => {
 
         {/* Main view: video, artwork or synced lyrics */}
         {mode === "video" && videos[0] ? (
-          <VideoMode video={videos[0]} startAt={videoStart} positionRef={videoPosRef} />
+          <VideoMode
+            video={videos[0]}
+            startAt={videoStart}
+            positionRef={videoPosRef}
+            onEnded={() => {
+              // Continuous Video mode: move to the next song and stay in Video mode.
+              if (queueIndex < queue.length - 1 || repeatMode === "all") { skipNext(); requestVideoMode(); }
+            }}
+          />
         ) : !showLyrics ? (
           <div className="flex-1 flex flex-col items-center justify-center px-8 min-h-0">
             <div className="relative w-full max-w-[280px] aspect-square">

@@ -781,6 +781,7 @@ export type Database = {
       discover_featured: {
         Row: {
           created_at: string
+          description: string | null
           ends_at: string | null
           href: string | null
           id: string
@@ -789,6 +790,7 @@ export type Database = {
           label: string
           media_type: string
           poster_url: string | null
+          song_ids: string[]
           sort_order: number
           starts_at: string | null
           updated_at: string
@@ -797,6 +799,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          description?: string | null
           ends_at?: string | null
           href?: string | null
           id?: string
@@ -805,6 +808,7 @@ export type Database = {
           label: string
           media_type?: string
           poster_url?: string | null
+          song_ids?: string[]
           sort_order?: number
           starts_at?: string | null
           updated_at?: string
@@ -813,6 +817,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          description?: string | null
           ends_at?: string | null
           href?: string | null
           id?: string
@@ -821,6 +826,7 @@ export type Database = {
           label?: string
           media_type?: string
           poster_url?: string | null
+          song_ids?: string[]
           sort_order?: number
           starts_at?: string | null
           updated_at?: string

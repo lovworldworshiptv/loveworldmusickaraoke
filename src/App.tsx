@@ -63,6 +63,7 @@ import AdminChallenges from "./pages/AdminChallenges";
 import AdminAppearance from "./pages/AdminAppearance";
 import AdminDiscover from "./pages/AdminDiscover";
 import DiscoverTag from "./pages/DiscoverTag";
+import DiscoverCollection from "./pages/DiscoverCollection";
 
 const queryClient = new QueryClient();
 
@@ -105,6 +106,9 @@ const App = () => (
                 <Route path="/user/:userId" element={<PublicProfile />} />
                 <Route path="/discover" element={<AuthGate><Discover /></AuthGate>} />
                 <Route path="/discover/tag/:tag" element={<AuthGate><DiscoverTag /></AuthGate>} />
+                <Route path="/discover/karaoke" element={<AuthGate><DiscoverCollection kind="karaoke" /></AuthGate>} />
+                <Route path="/discover/videos" element={<AuthGate><DiscoverCollection kind="videos" /></AuthGate>} />
+                <Route path="/discover/featured/:id" element={<AuthGate><DiscoverCollection kind="featured" /></AuthGate>} />
                 <Route path="/history" element={<AuthGate><History /></AuthGate>} />
                 <Route path="/playlists" element={<AuthGate><Playlists /></AuthGate>} />
                 <Route path="/feedback" element={<AuthGate><Feedback /></AuthGate>} />
