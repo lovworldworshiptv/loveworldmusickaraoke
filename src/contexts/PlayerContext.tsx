@@ -56,7 +56,10 @@ interface PlayerContextType {
   toggleKaraoke: () => void;
   toggleExpanded: () => void;
   seekTo: (percent: number) => void;
-  skipNext: () => void;
+  /** Pass { autoplay: false } to load the next track paused (e.g. before handing off to Video mode). */
+  skipNext: (opts?: { autoplay?: boolean }) => void;
+  /** True while the current track is waiting on the network. */
+  isBuffering: boolean;
   skipPrev: () => void;
   cycleRepeat: () => void;
   toggleShuffle: () => void;
@@ -496,17 +499,12 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     setVideoModeRequest(true);
   }, [playQueue]);
 
-  const skipNext = useCallback(() => {
-    if (queue.length === 0) return;
-    let nextIdx = queueIndex + 1;
-    if (nextIdx >= queue.length) {
-      if (repeatMode === "all") nextIdx = 0;
-      else return;
-    }
-    setQueueIndex(nextIdx);
-    internalPlay(queue[nextIdx], isKaraoke);
-    recordPlayFn(queue[nextIdx].id);
-  }, [queue, queueIndex, repeatMode, isKaraoke, internalPlay, recordPlayFn]);
+  const skipNext = useCallback((opts?: { autoplay?: boolean }) => {
+    const autoplay = typeof opts?.autoplay === "boolean" ? opts.autoplay : true;
+    const nextIdx = findNextIndex(queueRef.current, queueIndexRef.current, repeatModeRef.current);
+    if (nextIdx < 0) return;
+    advanceToRef.current(nextIdx, isKaraokeRef.current, autoplay);
+  }, []);
 
   const skipPrev = useCallback(() => {
     if (queue.length === 0) return;
@@ -536,44 +534,16 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   }, [isPlaying, startInterval, stopInterval, resetAutoPauseTimer, clearAutoPauseTimer]);
 
   const toggleKaraoke = useCallback(() => {
-    {
-      const next = !isKaraokeRef.current;
-      if (next && !featuresRef.current("karaoke")) return;
-      isKaraokeRef.current = next;
-      if (audioRef.current && currentSong) {
-        const ct = audioRef.current.currentTime;
-        audioRef.current.pause();
-        audioRef.current.onended = null;
-        const url = toDirectUrl(next ? currentSong.instrumentalUrl : currentSong.audioUrl);
-        if (url) {
-          const audio = createExclusiveAudio(url);
-          audio.volume = volumeRef.current;
-          audioRef.current = audio;
-          audio.addEventListener("loadedmetadata", () => {
-            audio.currentTime = ct;
-            setDuration(audio.duration);
-            if (isPlayingRef.current) audio.play();
-          });
-          // Re-attach ended handler
-          audio.onended = () => {
-            const rm = repeatModeRef.current;
-            const q = queueRef.current;
-            const qi = queueIndexRef.current;
-            setTrackEndCount(c => c + 1);
-            if (rm === "one") { audio.currentTime = 0; audio.play().catch(() => {}); return; }
-            if (q.length > 0 && qi >= 0) {
-              let nextIdx = qi + 1;
-              if (nextIdx >= q.length) { if (rm === "all") nextIdx = 0; else { setIsPlaying(false); stopInterval(); return; } }
-              setQueueIndex(nextIdx);
-              internalPlayRef.current(q[nextIdx], next);
-              recordPlayFn(q[nextIdx].id);
-            } else { setIsPlaying(false); stopInterval(); }
-          };
-        }
-      }
+    const next = !isKaraokeRef.current;
+    if (next && !featuresRef.current("karaoke")) return;
+    isKaraokeRef.current = next;
+    if (audioRef.current && currentSong) {
+      // Reuse the shared playback pipeline so retries, preloading and auto-advance stay consistent.
+      internalPlay(currentSong, next, audioRef.current.currentTime, isPlayingRef.current);
+    } else {
       setIsKaraoke(next);
     }
-  }, [currentSong, internalPlay, stopInterval, recordPlayFn]);
+  }, [currentSong, internalPlay]);
 
   useEffect(() => {
     if (!enabled("karaoke") && isKaraoke) toggleKaraoke();
