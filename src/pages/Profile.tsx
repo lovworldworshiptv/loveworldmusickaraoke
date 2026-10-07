@@ -130,6 +130,7 @@ const Profile = () => {
     { label: "My Favorites", path: "/library", icon: ChevronRight },
     { label: "My Playlists", path: "/library", icon: ChevronRight },
     { label: subscription === "premium" ? "Manage Subscription" : "Upgrade to Premium", path: "/subscription", icon: Crown },
+    { label: "Settings", path: "", icon: Settings, action: () => setSettingsOpen(true) },
     ...(role === "admin" ? [{ label: "Admin Panel", path: "/admin/songs", icon: Shield }] : []),
   ];
 
