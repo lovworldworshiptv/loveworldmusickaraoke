@@ -49,7 +49,16 @@ MEASURE_JS = """() => {
     const r = el.getBoundingClientRect();
     return r.height > 30 && r.width > 200 && r.top > window.innerHeight * 0.5 && r.top < window.innerHeight;
   });
-  if (!bars.length) return { error: "no mini player or bottom nav found" };
+  if (!bars.length) {
+    // Desktop with no mini player: content should reach the viewport bottom.
+    return {
+      lastCardBottom: last.bottom,
+      belowTop: window.innerHeight,
+      belowKind: "viewport-bottom",
+      gap: Math.round((window.innerHeight - last.bottom) * 10) / 10,
+      viewportH: window.innerHeight,
+    };
+  }
   const below = bars.reduce((a, b) =>
     a.getBoundingClientRect().top < b.getBoundingClientRect().top ? a : b);
   const b = below.getBoundingClientRect();
@@ -98,6 +107,10 @@ async def scenario(pw, name, viewport, with_player):
         if await play.count():
             await play.click()
             await page.wait_for_timeout(2000)
+        started = await page.evaluate(
+            "() => !!document.querySelector('audio, video')"
+        )
+        print(f"  playback started on home: {started}")
         await page.goto(f"{BASE}/discover", wait_until="domcontentloaded")
         await page.wait_for_timeout(2000)
 
