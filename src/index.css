@@ -70,6 +70,10 @@
     --game-achievement-rose: 347 95% 68%;
     --game-achievement-cyan: 187 90% 57%;
     --challenge-stat-background: 222 60% 14%;
+    --game-hover-edge: 0 0% 100%;
+    --game-hover-shadow: 0 14px 30px -16px hsl(var(--background) / .65);
+    --game-cta-shadow: 0 5px 14px hsl(var(--game-hover-edge) / .18);
+    --game-hover-ease: cubic-bezier(.2,.8,.2,1);
   }
 
   .dark {
@@ -177,8 +181,62 @@
     color: hsl(var(--challenge-stat-accent));
     border: 1px solid hsl(var(--challenge-stat-accent) / .55);
   }
+  /* Scoped to the listener's Games page, leaving CMS layouts unaffected. */
+  .games-interactive :is(.game-hub-card, .game-hub-intro, .game-achievement-card, .challenge-stat) {
+    transition: transform 300ms var(--game-hover-ease), box-shadow 300ms var(--game-hover-ease), border-color 300ms ease;
+  }
+  .games-interactive .game-hub-card button:not(.game-card-photo) {
+    backdrop-filter: blur(12px);
+    transition: transform 200ms var(--game-hover-ease), box-shadow 200ms ease, background-color 200ms ease, border-color 200ms ease;
+  }
+  .games-interactive .game-card-play,
+  .games-interactive .game-card-play:hover {
+    background: hsl(var(--game-card-control));
+    color: hsl(var(--game-card-control-foreground));
+  }
+  .games-interactive .game-hub-card:focus-within {
+    box-shadow: var(--game-hover-shadow), inset 0 0 0 1px hsl(var(--game-hover-edge) / .35);
+  }
+  .games-interactive .game-hub-card button:focus-visible {
+    outline: 2px solid hsl(var(--game-hover-edge));
+    outline-offset: 3px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .games-interactive :is(.game-hub-card, .game-hub-intro):hover {
+      transform: translateY(-3px);
+      box-shadow: var(--game-hover-shadow), inset 0 0 0 1px hsl(var(--game-hover-edge) / .25);
+    }
+    .games-interactive .game-achievement-card:hover {
+      transform: translateY(-2px);
+      border-color: hsl(var(--achievement-tone) / .85);
+      box-shadow: 0 8px 22px -12px hsl(var(--achievement-tone) / .5), inset 0 0 0 1px hsl(var(--achievement-tone) / .12);
+    }
+    .games-interactive .challenge-stat:hover {
+      border-color: hsl(var(--challenge-stat-accent) / .9);
+      box-shadow: 0 6px 18px -10px hsl(var(--challenge-stat-accent) / .5);
+    }
+    .games-interactive .game-hub-card button:not(.game-card-photo):not(:disabled):hover {
+      transform: translateY(-1px);
+      box-shadow: var(--game-cta-shadow);
+      border-color: hsl(var(--game-hover-edge) / .7);
+    }
+  }
+  .games-interactive .game-hub-card button:not(.game-card-photo):not(:disabled):active {
+    transform: scale(.97);
+    box-shadow: none;
+  }
+  @media (hover: none) {
+    .games-interactive :is(.game-achievement-card, .challenge-stat):active {
+      transform: scale(.98);
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
     .game-card-photo { transition: none; }
+    .games-interactive :is(.game-hub-card, .game-hub-intro, .game-achievement-card, .challenge-stat),
+    .games-interactive .game-hub-card button:not(.game-card-photo) {
+      transition: none;
+      transform: none !important;
+    }
   }
   .community-page {
     background: hsl(var(--community-page-background));
