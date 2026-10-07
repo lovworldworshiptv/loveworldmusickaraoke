@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
+import { Textarea } from "@/components/ui/textarea";
 import { sortSongsByTitle, compareTitles } from "@/lib/utils";
 
 interface Playlist {
@@ -16,6 +18,7 @@ interface Playlist {
   name: string;
   user_id: string;
   cover_url: string | null;
+  description?: string | null;
   created_at: string;
   is_visible_on_homepage: boolean;
   is_admin_owned?: boolean;
@@ -46,6 +49,8 @@ const AdminPlaylists = () => {
   // Edit playlist
   const [editing, setEditing] = useState<Playlist | null>(null);
   const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editCover, setEditCover] = useState("");
 
   // Add songs dialog
   const [addingSongsTo, setAddingSongsTo] = useState<string | null>(null);
@@ -67,7 +72,7 @@ const AdminPlaylists = () => {
 
     const { data: playlistData } = await supabase
       .from("playlists")
-      .select("id, name, user_id, cover_url, created_at, is_visible_on_homepage")
+      .select("id, name, description, user_id, cover_url, created_at, is_visible_on_homepage")
       .order("created_at", { ascending: false });
 
     if (!playlistData) {
@@ -137,7 +142,7 @@ const AdminPlaylists = () => {
 
     const { error } = await supabase
       .from("playlists")
-      .update({ name: editName.trim() })
+      .update({ name: editName.trim(), description: editDesc.trim() || null, cover_url: editCover.trim() || null } as any)
       .eq("id", editing.id);
 
     if (error) {
@@ -321,12 +326,14 @@ const AdminPlaylists = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="flex gap-2">
-              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
-              <Button onClick={handleUpdate} className="gradient-gold text-primary-foreground gap-1">
-                <Save className="w-4 h-4" /> Save
-              </Button>
-            </div>
+            <label className="text-xs text-white">Title</label>
+            <Input value={editName} maxLength={80} onChange={(e) => setEditName(e.target.value)} />
+            <label className="text-xs text-white">Description (shown on the Recommended Playlists card)</label>
+            <Textarea value={editDesc} maxLength={200} onChange={(e) => setEditDesc(e.target.value)} placeholder="Leave empty to show the first song titles" />
+            <ImageUploadPicker bucket="song-covers" label="Artwork (leave empty to use the first song's cover)" value={editCover} onChange={setEditCover} />
+            <Button onClick={handleUpdate} className="gradient-gold text-primary-foreground gap-1">
+              <Save className="w-4 h-4" /> Save
+            </Button>
           </div>
         )}
 
@@ -378,6 +385,8 @@ const AdminPlaylists = () => {
                     onClick={() => {
                       setEditing(pl);
                       setEditName(pl.name);
+                      setEditDesc(pl.description || "");
+                      setEditCover(pl.cover_url || "");
                     }}
                     className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors"
                   >
