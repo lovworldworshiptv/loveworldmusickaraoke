@@ -175,7 +175,6 @@ const Discover = () => {
           </div>
         </section>
       </div>
-      <div className="h-8" />
     </AppLayout>
   );
 };
