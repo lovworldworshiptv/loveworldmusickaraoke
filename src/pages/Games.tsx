@@ -4,9 +4,14 @@ import { Music, Newspaper, Trophy, Gamepad2, Star, Target, Share2, ArrowRight, S
 import { useGameStats, ACHIEVEMENTS } from "@/hooks/useGameStats";
 import ShareMenu, { buildShareUrl } from "@/components/share/ShareMenu";
 import ChallengeBanner from "@/components/games/ChallengeBanner";
+import GameHubCard from "@/components/games/GameHubCard";
+import { Button } from "@/components/ui/button";
+import { resolveGameCard, type GameCardKey, type GameCardSettings } from "@/lib/gameCards";
+import { SETTING_KEYS, useSetting } from "@/lib/siteSettings";
 
 const Games = () => {
   const navigate = useNavigate();
+  const cardSettings = useSetting<GameCardSettings>(SETTING_KEYS.gameCards);
   const { data: stats } = useGameStats();
   const earnedCount = stats?.achievements.length || 0;
 
@@ -65,51 +70,15 @@ const Games = () => {
 
         {/* Game cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-          {games.map((g, i) => (
-            <div
-              key={g.key}
-              role="button"
-              tabIndex={0}
-              onClick={() => navigate(g.path)}
-              onKeyDown={(e) => e.key === "Enter" && navigate(g.path)}
-              className="relative overflow-hidden rounded-3xl glass-card p-6 text-left cursor-pointer group transition-all duration-300 hover:-translate-y-1 hover:glow-gold animate-scale-in"
-              style={{ animationDelay: `${i * 0.08}s` }}
-            >
-              <div className={`absolute inset-0 bg-gradient-to-br ${g.gradient} pointer-events-none`} />
-              <div className="relative">
-                <div className="flex items-start justify-between mb-5">
-                  <div className={`w-14 h-14 rounded-2xl ${g.iconBg} flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300`}>
-                    <g.icon className="w-7 h-7 text-primary-foreground" />
-                  </div>
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-gold bg-gold/10 border border-gold/20 px-2.5 py-1 rounded-full">{g.tag}</span>
-                </div>
-                <h3 className="text-2xl font-serif font-bold text-foreground mb-2">{g.title}</h3>
-                <p className="text-sm text-foreground/90 leading-relaxed mb-4 line-clamp-2">{g.desc}</p>
-                {g.played > 0 && (
-                  <div className="flex items-center gap-4 mb-5 text-xs text-foreground/90">
-                    <span className="flex items-center gap-1.5"><Target className="w-3.5 h-3.5 text-gold" /> {g.played} played</span>
-                    <span className="flex items-center gap-1.5"><Star className="w-3.5 h-3.5 text-gold" /> {g.points} pts</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full gradient-gold text-primary-foreground text-sm font-semibold shadow-md">
-                    Play Now <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                  </span>
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <ShareMenu
-                      url={buildShareUrl(g.path)}
-                      title={g.shareTitle}
-                      text={g.shareText}
-                      trigger={
-                        <button className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-border bg-background/40 backdrop-blur text-foreground text-sm font-medium hover:border-gold/50 hover:bg-gold/10 transition-colors">
-                          <Share2 className="w-4 h-4" /> Invite
-                        </button>
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+          {games.map(g => (
+            <GameHubCard key={g.key} presentation={resolveGameCard(g.key as GameCardKey, cardSettings)} tag={g.tag} onPlay={() => navigate(g.path)}
+              stats={g.played > 0 ? <div className="flex items-center gap-4 text-xs">
+                <span className="flex items-center gap-1.5"><Target className="w-3.5 h-3.5" />{g.played} played</span>
+                <span className="flex items-center gap-1.5"><Star className="w-3.5 h-3.5" />{g.points} pts</span>
+              </div> : undefined}>
+              <ShareMenu url={buildShareUrl(g.path)} title={g.shareTitle} text={g.shareText}
+                trigger={<Button variant="ghost" className="gap-1.5 rounded-full border border-foreground/40 text-foreground hover:bg-foreground/10 hover:text-foreground"><Share2 className="w-4 h-4" />Invite</Button>} />
+            </GameHubCard>
           ))}
         </div>
 
