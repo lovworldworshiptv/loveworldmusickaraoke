@@ -1,7 +1,7 @@
 - v2 media data lives in child tables (song_lyrics, song_audio_versions, song_videos) keyed by song + language; songs columns stay as legacy defaults — why: non-destructive multi-language extension.
 - Motion artwork lives in song_motion_artwork rather than songs or song_videos — why: keep short muted artwork separate from full-length Video mode media.
 - Game hub card presentation uses app_settings and a shared card component for listener display and CMS previews — why: admin edits remain consistent without changing game rules or routes.
-- Tilted photos load eagerly with async decoding and lightweight CDN fallbacks — why: reliable artwork across views without failed-request loops.
+- Tilted photos load eagerly with async decoding and bundled per-game fallbacks — why: reliable artwork across views without failed-request loops.
 - Games hover and press styling is scoped under games-interactive in global CSS, with token-based effects and reduced-motion overrides — why: preserve CMS previews and existing icon/photo animations without adding state or changing game behaviour.
 - Challenge leaderboard and progress presentation is scoped under challenge-arcade using shared game tone/motion tokens and reduced-motion overrides — why: brighten server-owned rankings without affecting challenge rules or unrelated screens.
 - Challenge banner and detail heading share game_hub_cards artwork/colour settings and the tilted-photo control; the detail keeps live challenge copy/countdown, challengeStats uses a shared listener/CMS preview, and operational values remain in challenges — why: consistent CMS presentation must not alter competition rules or prizes.
