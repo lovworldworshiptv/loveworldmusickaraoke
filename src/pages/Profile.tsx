@@ -3,21 +3,25 @@ import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Crown, Shield, LogOut, ChevronRight, AtSign, Trash2, Camera, Sparkles, Edit } from "lucide-react";
+import { User, Crown, Shield, LogOut, ChevronRight, AtSign, Trash2, Camera, Sparkles, Edit, Settings, Palette } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/sonner";
 import ProfileUpdateModal from "@/components/profile/ProfileUpdateModal";
 import MyKaraoke from "@/components/profile/MyKaraoke";
+import { useTheme, ThemeName } from "@/contexts/ThemeContext";
 
 const Profile = () => {
   const { user, username, avatarUrl, kingschatHandle, profileData, signOut, loading, markProfileCompleted, refetchProfile } = useAuth();
   const navigate = useNavigate();
+  const { theme, setTheme, themes } = useTheme();
   const [role, setRole] = useState<string>("user");
   const [subscription, setSubscription] = useState<string>("free");
   const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [localAvatar, setLocalAvatar] = useState<string | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleDeleteAccount = async () => {
@@ -126,6 +130,7 @@ const Profile = () => {
     { label: "My Favorites", path: "/library", icon: ChevronRight },
     { label: "My Playlists", path: "/library", icon: ChevronRight },
     { label: subscription === "premium" ? "Manage Subscription" : "Upgrade to Premium", path: "/subscription", icon: Crown },
+    { label: "Settings", path: "", icon: Settings, action: () => setSettingsOpen(true) },
     ...(role === "admin" ? [{ label: "Admin Panel", path: "/admin/songs", icon: Shield }] : []),
   ];
 
@@ -259,6 +264,38 @@ const Profile = () => {
           editMode={true}
         />
       )}
+
+      {/* Settings Modal */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="glass-card border-border max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground text-base">
+              <Settings className="w-4 h-4 text-primary" /> Settings
+            </DialogTitle>
+          </DialogHeader>
+          <div className="pb-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Palette className="w-3.5 h-3.5" /> Theme
+            </p>
+            <div className="grid grid-cols-1 gap-1.5">
+              {themes.map((t) => (
+                <button
+                  key={t.name}
+                  onClick={() => setTheme(t.name as ThemeName)}
+                  className={`flex items-center gap-3 p-2.5 rounded-lg text-sm transition-all ${
+                    theme === t.name
+                      ? "bg-primary/15 text-primary ring-1 ring-primary/30"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  <span className="w-5 h-5 rounded-full flex-shrink-0 ring-1 ring-border" style={{ background: t.preview }} />
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };
