@@ -63,6 +63,12 @@
     --game-card-control: 0 0% 100%;
     --game-card-control-foreground: 220 40% 8%;
     --game-card-shadow: 0 10px 24px hsl(220 40% 6% / 0.25);
+    --game-achievement-blue: 213 94% 65%;
+    --game-achievement-green: 142 71% 58%;
+    --game-achievement-amber: 43 96% 60%;
+    --game-achievement-purple: 275 95% 72%;
+    --game-achievement-rose: 347 95% 68%;
+    --game-achievement-cyan: 187 90% 57%;
   }
 
   .dark {
@@ -108,6 +114,41 @@
 }
 
 @layer utilities {
+  .game-tone-blue { --achievement-tone: var(--game-achievement-blue); }
+  .game-tone-green { --achievement-tone: var(--game-achievement-green); }
+  .game-tone-amber { --achievement-tone: var(--game-achievement-amber); }
+  .game-tone-purple { --achievement-tone: var(--game-achievement-purple); }
+  .game-tone-rose { --achievement-tone: var(--game-achievement-rose); }
+  .game-tone-cyan { --achievement-tone: var(--game-achievement-cyan); }
+  .game-achievement-card {
+    --foreground: var(--game-card-foreground);
+    color: hsl(var(--foreground));
+    background: linear-gradient(135deg, hsl(var(--achievement-tone) / .3), hsl(var(--achievement-tone) / .1));
+    border: 1px solid hsl(var(--achievement-tone) / .45);
+  }
+  .game-achievement-icon { color: hsl(var(--achievement-tone)); }
+  .game-icon-float { animation: game-icon-float 3.6s ease-in-out infinite; }
+  .game-icon-pulse { animation: game-icon-pulse 4s ease-in-out infinite; }
+  .game-controller { animation: game-controller-rock 4s ease-in-out infinite; }
+  .game-controller circle { stroke: hsl(var(--game-achievement-rose)); animation: game-icon-pulse 2s ease-in-out infinite; }
+  .game-controller path { stroke: hsl(var(--game-achievement-cyan)); }
+  .game-achievement-card:nth-child(2n) .game-icon-float { animation-delay: -.9s; }
+  .game-achievement-card:nth-child(3n) .game-icon-float { animation-delay: -1.8s; }
+  @keyframes game-icon-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+  @keyframes game-icon-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .8; transform: scale(1.06); }
+  }
+  @keyframes game-controller-rock {
+    0%, 100% { transform: translateY(0) rotate(-5deg); }
+    50% { transform: translateY(-4px) rotate(5deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .game-icon-float, .game-icon-pulse, .game-controller, .game-controller circle { animation: none; }
+  }
   .game-hub-card {
     background: hsl(var(--game-card-background));
     color: hsl(var(--game-card-foreground));
