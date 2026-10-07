@@ -1,6 +1,6 @@
 import AppLayout from "@/components/layout/AppLayout";
 import { useNavigate } from "react-router-dom";
-import { Music, Newspaper, Trophy, Gamepad2, Star, Target, Share2, ArrowRight, Sparkles } from "lucide-react";
+import { Trophy, Gamepad2, Star, Target, Share2, Sparkles } from "lucide-react";
 import { useGameStats, ACHIEVEMENTS } from "@/hooks/useGameStats";
 import ShareMenu, { buildShareUrl } from "@/components/share/ShareMenu";
 import ChallengeBanner from "@/components/games/ChallengeBanner";
@@ -17,16 +17,12 @@ const Games = () => {
 
   const games = [
     {
-      key: "songmatch", path: "/games/songmatch", icon: Music, title: "SongMatch", tag: "Music quiz",
-      desc: "Learn and recognize Loveworld praise and worship songs through lyrics, melodies, and categories.",
-      gradient: "from-gold/30 via-gold/10 to-transparent", iconBg: "gradient-gold",
+      key: "songmatch", path: "/games/songmatch", tag: "Music quiz",
       played: stats?.totalGamesPlayed ?? 0, points: stats?.totalPoints ?? 0,
       shareTitle: "Song Master Challenge", shareText: "I challenge you to play SongMatch! Test your music knowledge on Loveworld Music Karaoke+",
     },
     {
-      key: "articles", path: "/games/songmatch/articles", icon: Newspaper, title: "Articles Game", tag: "Knowledge quiz",
-      desc: "Test your knowledge of Loveworld articles, authors and categories.",
-      gradient: "from-accent/50 via-accent/15 to-transparent", iconBg: "bg-accent",
+      key: "articles", path: "/games/songmatch/articles", tag: "Knowledge quiz",
       played: (stats as any)?.articlesGames ?? 0, points: (stats as any)?.articlesPoints ?? 0,
       shareTitle: "Articles Game", shareText: "I challenge you to the Articles Game on Loveworld Music Karaoke+",
     },

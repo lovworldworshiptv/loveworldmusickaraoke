@@ -10,7 +10,7 @@ export default function GameHubCard({ presentation, tag, onPlay, children, stats
   return (
     <article className={`game-hub-card group relative overflow-hidden rounded-2xl p-6 ${leaning ? "is-leaning" : ""}`}
       style={{ "--game-card-background": hexToHsl(presentation.color) } as CSSProperties}>
-      <Button variant="ghost" aria-label={`Tilt ${presentation.title} photo`} className="game-card-photo absolute right-[-14px] top-5 h-32 w-32 sm:h-36 sm:w-36 p-0 overflow-hidden rounded-xl"
+      <Button variant="ghost" aria-label={`Tilt ${presentation.title} photo`} className="game-card-photo absolute right-2 top-5 h-32 w-32 sm:h-36 sm:w-36 p-0 overflow-hidden rounded-xl"
         onClick={() => setLeaning(value => !value)}>
         <img src={presentation.imageUrl} alt={presentation.title === "Music Quiz" ? "Microphone and headphones" : `${presentation.title} artwork`} loading="lazy" width={768} height={768}
           className="h-full w-full object-cover" />

@@ -1,5 +1,6 @@
 # Roadmap
-- [ ] Bright Music Quiz and Articles cards with tilted photos and admin presentation controls; verify interactions and saving.
+- [x] Bright Music Quiz and Articles cards with tilted photos and admin presentation controls; settings tests and isolated hover/tap checks pass.
+- [ ] Signed-in game-card CMS save verification — blocked until the user signs in in the preview.
 
 - [x] Admin-only community management and community-scoped moderator appointments; signed-in permission regressions pass and admin search dialog verified.
 

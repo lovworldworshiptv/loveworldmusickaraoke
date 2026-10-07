@@ -216,7 +216,6 @@ const AdminGames = () => {
         </div>
 
         {showLevelForm && (
-          <>
           <div className="glass-card p-5 mb-6 space-y-4">
             <h3 className="font-serif font-bold text-foreground">{editingLevel ? "Edit Level" : "New Level"}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -235,7 +234,6 @@ const AdminGames = () => {
               <Save className="w-4 h-4" /> {editingLevel ? "Update" : "Create"}
             </Button>
           </div>
-          </>
         )}
 
         <GameCardsEditor />
