@@ -1,7 +1,7 @@
 - v2 media data lives in child tables (song_lyrics, song_audio_versions, song_videos) keyed by song + language; songs columns stay as legacy defaults — why: non-destructive multi-language extension.
 - Motion artwork lives in song_motion_artwork rather than songs or song_videos — why: keep short muted artwork separate from full-length Video mode media.
 - Game hub card presentation uses app_settings and a shared card component for listener display and CMS previews — why: admin edits remain consistent without changing game rules or routes.
-- Challenge banner presentation shares game_hub_cards settings and the tilted-photo control; blank copy inherits live challenge content and operational values remain in challenges — why: CMS styling must not alter competition rules or prizes.
+- Challenge banner presentation shares game_hub_cards settings and the tilted-photo control; challengeStats labels/colours use a shared listener/CMS preview; blank copy inherits live content and operational values remain in challenges — why: CMS styling must not alter competition rules or prizes.
 - Plays are logged only via the record_play RPC into play_events (no client inserts); discovery reads go through get_trending/get_quick_picks/get_daily_discover — why: privacy and consistent counters.
 - Playback continuity is stored locally and restored paused without logging a new play — why: preserve position across navigation and app exits without inflating analytics.
 - Stem separation runs through a queue in song_audio_versions (kind='instrumental' is the job row), processed by the stem-worker function on a cron that arms on enqueue and unschedules when drained — why: bounded, single-flight, retry-safe background AI work with a persisted pause on billing errors.
