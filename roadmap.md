@@ -1,8 +1,8 @@
 # Roadmap
-- [ ] Match Challenges to Games colours, add tilted artwork and CMS presentation controls, preserve challenge rules and verify.
+- [x] Match Challenges to Games colours, add tilted artwork and CMS presentation controls; signed-in CMS save, artwork taps and leaderboard navigation pass; challenge rules preserved.
 - [x] Apply Vibrant Gamified Hub achievement cards and animated Play & Grow icons; signed-in desktop/phone rendering, reduced motion and card settings tests pass.
 - [x] Bright Music Quiz and Articles cards with tilted photos and admin presentation controls; settings tests and isolated hover/tap checks pass.
-- [ ] Signed-in game-card CMS save verification — blocked until the user signs in in the preview.
+- [x] Signed-in game-card CMS save verification — saved existing values successfully and reloaded the editor.
 
 - [x] Admin-only community management and community-scoped moderator appointments; signed-in permission regressions pass and admin search dialog verified.
 

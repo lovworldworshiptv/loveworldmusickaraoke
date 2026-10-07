@@ -38,7 +38,7 @@ export default function ChallengeBanner() {
     <div className="game-hub-card relative rounded-2xl overflow-hidden p-5 sm:p-6 mb-6" style={{ "--game-card-background": hexToHsl(presentation.color) } as CSSProperties}>
       <TiltedGamePhoto imageUrl={presentation.imageUrl} title="Challenge" />
       <div className="relative">
-        <div className="relative min-h-[150px] max-w-[calc(100%-112px)] pointer-events-none">
+        <div className="relative min-h-[150px] w-[calc(100%_-_144px)] sm:w-[calc(100%_-_160px)] pointer-events-none">
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           <Trophy className="w-5 h-5 shrink-0 text-foreground game-icon-pulse" />
           <span className="text-xs font-bold uppercase tracking-wider text-foreground">Song Master Challenge</span>
@@ -54,19 +54,19 @@ export default function ChallengeBanner() {
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
           <div className="bg-background/30 rounded-lg p-3">
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Prize Pool</p>
+            <p className="text-[10px] uppercase text-foreground tracking-wide">Prize Pool</p>
             <p className="text-lg font-bold text-foreground">{ch.prize_pool} Espees</p>
           </div>
           <div className="bg-background/30 rounded-lg p-3">
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Entry Fee</p>
+            <p className="text-[10px] uppercase text-foreground tracking-wide">Entry Fee</p>
             <p className="text-lg font-bold text-foreground">{feeLabel}</p>
           </div>
           <div className="bg-background/30 rounded-lg p-3">
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wide flex items-center gap-1"><Users className="w-3 h-3" /> Players</p>
+            <p className="text-[10px] uppercase text-foreground tracking-wide flex items-center gap-1"><Users className="w-3 h-3" /> Players</p>
             <p className="text-lg font-bold text-foreground">{participants ?? 0}</p>
           </div>
           <div className="bg-background/30 rounded-lg p-3">
-            <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Top Prize</p>
+            <p className="text-[10px] uppercase text-foreground tracking-wide">Top Prize</p>
             <p className="text-lg font-bold text-foreground">{ranks.length ? `${dist[String(ranks[0])]} ESP` : "—"}</p>
           </div>
         </div>
@@ -74,13 +74,13 @@ export default function ChallengeBanner() {
         <div className="flex flex-wrap gap-2 mb-4 text-xs">
           {ranks.map((r) => (
             <span key={r} className="px-2.5 py-1 rounded-full bg-background/20 border border-foreground/30 text-foreground">
-              {r === 1 ? "🥇" : r === 2 ? "🥈" : r === 3 ? "🥉" : `#${r}`} {dist[String(r)]} ESP
+              #{r} · {dist[String(r)]} ESP
             </span>
           ))}
         </div>
 
         <div className="mb-4">
-          <p className="text-xs text-muted-foreground text-center mb-2">{closed ? "Challenge Ended" : "Ends In"}</p>
+          <p className="text-xs text-foreground text-center mb-2">{closed ? "Challenge Ended" : "Ends In"}</p>
           {!closed && <ChallengeCountdown endDate={ch.end_date} />}
         </div>
 
