@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Apply selected Arcade Neon Glass leaderboard and current-position styling; verify live ranks, soft hover/touch feedback and reduced motion.
+- [x] Apply selected Arcade Neon Glass leaderboard and current-position styling; signed-in checks verify 12 real ranks, desktop lift, press feedback, mobile fit and reduced motion; five tests pass and build is clean.
 - [x] Apply Interactive Arcade Glass hover/press/focus effects to Games cards and CTAs; desktop hover, touch artwork, keyboard focus, disabled CTA, reduced motion and leaderboard navigation verified.
 - [x] Bright challenge labels and figures with CMS label/colour controls and shared live preview; five tests and signed-in save/reload checks pass.
 - [x] Match Challenges to Games colours, add tilted artwork and CMS presentation controls; signed-in CMS save, artwork taps and leaderboard navigation pass; challenge rules preserved.
