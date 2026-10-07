@@ -309,6 +309,48 @@
     background: linear-gradient(110deg, hsl(var(--challenge-arcade-current) / .2), hsl(var(--glass-bg) / .65));
   }
   .challenge-rank-row:nth-child(2n) .game-icon-float { animation-delay: -.9s; }
+  .challenge-detail-card {
+    border: 1px solid hsl(var(--game-card-foreground) / .35);
+    box-shadow: var(--game-card-shadow);
+    transition: box-shadow 280ms var(--game-hover-ease), border-color 280ms ease;
+  }
+  .challenge-detail-countdown .text-amber-400,
+  .challenge-detail-countdown .text-muted-foreground { color: hsl(var(--game-card-foreground)); }
+  .challenge-detail-countdown .min-w-\[58px\] { min-width: 0; flex: 1; max-width: 80px; padding-inline: 8px; }
+  .challenge-referral {
+    border: 1px solid hsl(var(--achievement-tone) / .5);
+    border-top: 2px solid hsl(var(--achievement-tone) / .8);
+    background: linear-gradient(120deg, hsl(var(--achievement-tone) / .18), hsl(var(--glass-bg) / .65));
+    backdrop-filter: blur(16px);
+    box-shadow: 0 8px 24px -16px hsl(var(--achievement-tone) / .4);
+    transition: transform 280ms var(--game-hover-ease), box-shadow 280ms ease;
+  }
+  .challenge-arcade-cta {
+    color: hsl(var(--game-card-foreground));
+    border: 1px solid hsl(var(--achievement-tone) / .6);
+    background: linear-gradient(120deg, hsl(var(--achievement-tone) / .25), hsl(var(--glass-bg) / .7));
+    backdrop-filter: blur(12px);
+    transition: transform 220ms var(--game-hover-ease), box-shadow 220ms ease, border-color 220ms ease;
+  }
+  .challenge-arcade-cta svg { color: hsl(var(--achievement-tone)); }
+  .challenge-arcade-cta:hover {
+    color: hsl(var(--game-card-foreground));
+    background: linear-gradient(120deg, hsl(var(--achievement-tone) / .3), hsl(var(--glass-bg) / .8));
+  }
+  .challenge-arcade-cta:focus-visible { outline: 2px solid hsl(var(--achievement-tone)); outline-offset: 3px; }
+  .challenge-arcade-cta:active { transform: scale(.985); }
+  @media (hover: hover) and (pointer: fine) {
+    .challenge-detail-card:hover { border-color: hsl(var(--game-card-foreground) / .7); box-shadow: var(--game-hover-shadow); }
+    .challenge-detail-card:hover .game-card-photo { transform: rotate(23deg) translateY(-4px); }
+    .challenge-referral:hover { transform: translateY(-2px); box-shadow: 0 10px 26px -14px hsl(var(--achievement-tone) / .5); }
+    .challenge-arcade-cta:hover { transform: translateY(-1px); box-shadow: 0 6px 18px -8px hsl(var(--achievement-tone) / .5); }
+    .challenge-arcade-cta:active { transform: scale(.985); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .challenge-detail-card, .challenge-referral, .challenge-arcade-cta { transition: none; }
+    .challenge-referral:hover, .challenge-arcade-cta:hover, .challenge-arcade-cta:active { transform: none; }
+    .challenge-detail-card:hover .game-card-photo { transform: rotate(12deg); }
+  }
   @media (hover: hover) and (pointer: fine) {
     .challenge-rank-row:hover {
       transform: translateY(-2px);
