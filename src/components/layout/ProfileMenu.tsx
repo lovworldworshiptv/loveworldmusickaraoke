@@ -119,6 +119,7 @@ const ProfileMenu = () => {
                     { icon: Library, label: "My Library", path: "/library" },
                     { icon: HardDrive, label: "My Studio", path: "/studio" },
                     { icon: Clock, label: "History", path: "/history" },
+                    { icon: Users, label: "Community", path: "/community" },
                     { icon: MessageSquare, label: "Feedback", path: "/feedback" },
                   ].filter((item) => pathEnabled(item.path)).map((item) => (
                     <button
