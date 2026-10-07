@@ -14,12 +14,14 @@ import { useTheme, ThemeName } from "@/contexts/ThemeContext";
 const Profile = () => {
   const { user, username, avatarUrl, kingschatHandle, profileData, signOut, loading, markProfileCompleted, refetchProfile } = useAuth();
   const navigate = useNavigate();
+  const { theme, setTheme, themes } = useTheme();
   const [role, setRole] = useState<string>("user");
   const [subscription, setSubscription] = useState<string>("free");
   const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [localAvatar, setLocalAvatar] = useState<string | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleDeleteAccount = async () => {
