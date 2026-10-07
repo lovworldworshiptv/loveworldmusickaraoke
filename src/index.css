@@ -189,6 +189,11 @@
     backdrop-filter: blur(12px);
     transition: transform 200ms var(--game-hover-ease), box-shadow 200ms ease, background-color 200ms ease, border-color 200ms ease;
   }
+  .games-interactive .game-card-play,
+  .games-interactive .game-card-play:hover {
+    background: hsl(var(--game-card-control));
+    color: hsl(var(--game-card-control-foreground));
+  }
   .games-interactive .game-hub-card:focus-within {
     box-shadow: var(--game-hover-shadow), inset 0 0 0 1px hsl(var(--game-hover-edge) / .35);
   }
