@@ -108,7 +108,10 @@ async def scenario(pw, name, viewport, with_player):
             await play.click()
             await page.wait_for_timeout(2500)
         # Navigate in-app via the Discover nav button (keeps the player alive).
-        await page.locator('nav button:has-text("Discover")').first.click()
+        print("  url before nav click:", page.url)
+        print("  nav buttons:", await page.locator('nav button:has-text("Discover")').count())
+        print("  any Discover text:", await page.locator('button:has-text("Discover")').count())
+        await page.locator('button:has-text("Discover")').first.click()
         await page.wait_for_timeout(2500)
         mp = await page.evaluate(
             "() => !!document.querySelector('.fixed.left-2.right-2')"
