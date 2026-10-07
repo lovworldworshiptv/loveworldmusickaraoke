@@ -605,7 +605,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  resolvePreferredRef.current = resolvePreferred;
+
   const playSong = useCallback((song: PlayerSong) => {
+    resolvedCacheRef.current.clear();
     setQueue([song]);
     setQueueIndex(0);
     resolvePreferred(song).then((s) => {
@@ -635,6 +638,9 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
   const playQueue = useCallback((songs: PlayerSong[], startIndex = 0, opts?: { karaoke?: boolean }) => {
     const q = shuffleOnRef.current ? shuffleArray(songs) : songs;
+    resolvedCacheRef.current.clear();
+    queueRef.current = q;
+    queueIndexRef.current = startIndex;
     setQueue(q);
     setQueueIndex(startIndex);
     if (q[startIndex]) {
@@ -680,8 +686,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
   const togglePlay = useCallback(() => {
     if (audioRef.current) {
-      if (isPlaying) { audioRef.current.pause(); stopInterval(); clearAutoPauseTimer(); }
-      else { audioRef.current.play(); startInterval(); resetAutoPauseTimer(); }
+      if (isPlaying) { wantPlayingRef.current = false; audioRef.current.pause(); stopInterval(); clearAutoPauseTimer(); }
+      else { wantPlayingRef.current = true; audioRef.current.play().catch(() => {}); startInterval(); resetAutoPauseTimer(); }
     }
     setIsPlaying((p) => !p);
   }, [isPlaying, startInterval, stopInterval, resetAutoPauseTimer, clearAutoPauseTimer]);
@@ -745,6 +751,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const handoffPause = useCallback((): number => {
     const a = audioRef.current;
     if (!a) return 0;
+    wantPlayingRef.current = false;
     a.pause();
     stopInterval();
     setIsPlaying(false);
@@ -755,6 +762,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     const a = audioRef.current;
     if (!a) return;
     try { a.currentTime = Math.max(0, seconds); } catch {}
+    wantPlayingRef.current = true;
     a.play().then(() => { setIsPlaying(true); startInterval(); resetAutoPauseTimer(); }).catch(() => {});
   }, [startInterval, resetAutoPauseTimer]);
 
@@ -765,7 +773,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       queue, queueIndex, volume, trackEndCount, playSong, playQueue, togglePlay,
       playVideo, playVideoQueue, requestVideoMode, videoModeRequest, clearVideoModeRequest,
       singThis, karaokeModeRequest, clearKaraokeModeRequest,
-      toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev,
+      toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev, isBuffering,
       cycleRepeat, toggleShuffle, setVolume, applyLyrics, handoffPause, resumeAt,
     }}>
       {children}
