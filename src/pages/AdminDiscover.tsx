@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useIsEditor } from "@/hooks/useIsEditor";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
 import CategoryTile from "@/components/discover/CategoryTile";
 import { type DiscoverCategory, type DiscoverFeatured, contrastRatio } from "@/lib/discover";
@@ -15,9 +16,61 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
   <label className="block text-xs text-foreground space-y-1"><span>{label}</span>{children}</label>
 );
 
+/** Ordered song picker for a curated Featured playlist. */
+const SongPicker = ({ ids, onChange }: { ids: string[]; onChange: (ids: string[]) => void }) => {
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState<{ id: string; title: string; artist: string }[]>([]);
+  const [names, setNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const missing = ids.filter((i) => !names[i]);
+    if (!missing.length) return;
+    db.from("songs").select("id, title").in("id", missing).then(({ data }: any) =>
+      setNames((n) => ({ ...n, ...Object.fromEntries((data || []).map((r: any) => [r.id, r.title])) })));
+  }, [ids]);
+  useEffect(() => {
+    const t = q.replace(/[,()%]/g, " ").trim();
+    if (t.length < 2) { setResults([]); return; }
+    const h = setTimeout(async () => {
+      const { data } = await db.from("songs").select("id, title, artist").or(`title.ilike.%${t}%,artist.ilike.%${t}%`).limit(8);
+      setResults(data || []);
+    }, 200);
+    return () => clearTimeout(h);
+  }, [q]);
+  const mv = (i: number, d: number) => {
+    const j = i + d; if (j < 0 || j >= ids.length) return;
+    const n = [...ids]; [n[i], n[j]] = [n[j], n[i]]; onChange(n);
+  };
+  return (
+    <div className="space-y-2">
+      <p className="text-xs">Songs ({ids.length})</p>
+      {ids.map((id, i) => (
+        <div key={id} className="flex items-center gap-2 text-sm bg-muted/50 rounded-lg px-2 py-1.5">
+          <span className="w-5 text-xs">{i + 1}</span>
+          <span className="flex-1 truncate">{names[id] || "…"}</span>
+          <button aria-label="Move up" onClick={() => mv(i, -1)}><ArrowUp className="w-4 h-4" /></button>
+          <button aria-label="Move down" onClick={() => mv(i, 1)}><ArrowDown className="w-4 h-4" /></button>
+          <button aria-label="Remove" onClick={() => onChange(ids.filter((x) => x !== id))}><Trash2 className="w-4 h-4 text-destructive" /></button>
+        </div>
+      ))}
+      <input className={input} placeholder="Search songs to add…" value={q} onChange={(e) => setQ(e.target.value)} />
+      {results.filter((r) => !ids.includes(r.id)).map((r) => (
+        <button key={r.id} onClick={() => { setNames((n) => ({ ...n, [r.id]: r.title })); onChange([...ids, r.id]); }}
+          className="w-full flex items-center gap-2 text-left text-sm px-2 py-1.5 rounded-lg hover:bg-muted">
+          <Plus className="w-4 h-4 text-gold" /><span className="truncate">{r.title} · {r.artist}</span>
+        </button>
+      ))}
+    </div>
+  );
+};
+
 const AdminDiscover = () => {
-  const { isAdmin, loading } = useIsAdmin();
-  const [tab, setTab] = useState<"categories" | "featured">("categories");
+  const { isAdmin, loading: adminLoading } = useIsAdmin();
+  const { isEditor, loading: editorLoading } = useIsEditor();
+  const loading = adminLoading || editorLoading;
+  const canManage = isAdmin || isEditor;
+  const [tabState, setTab] = useState<"categories" | "featured">("categories");
+  // Editors manage only the curated Featured playlists.
+  const tab = isAdmin ? tabState : "featured";
   const [cats, setCats] = useState<DiscoverCategory[]>([]);
   const [feat, setFeat] = useState<DiscoverFeatured[]>([]);
   const [editCat, setEditCat] = useState<DiscoverCategory | null>(null);
@@ -31,10 +84,10 @@ const AdminDiscover = () => {
     setCats(c.data || []);
     setFeat(f.data || []);
   };
-  useEffect(() => { if (isAdmin) load(); }, [isAdmin]);
+  useEffect(() => { if (canManage) load(); }, [canManage]);
 
   if (loading) return null;
-  if (!isAdmin) return <Navigate to="/" replace />;
+  if (!canManage) return <Navigate to="/" replace />;
 
   const move = async (table: string, list: { id: string }[], i: number, d: -1 | 1) => {
     const j = i + d;
@@ -83,7 +136,7 @@ const AdminDiscover = () => {
       <div className="px-4 lg:px-6 pt-4 lg:pt-6 max-w-5xl mx-auto pb-28 text-foreground">
         <h1 className="text-2xl font-serif font-bold mb-4">Discover page</h1>
         <div className="flex gap-2 mb-5">
-          {(["categories", "featured"] as const).map((t) => (
+          {(isAdmin ? (["categories", "featured"] as const) : (["featured"] as const)).map((t) => (
             <button key={t} onClick={() => setTab(t)} className={`px-4 py-1.5 rounded-full text-sm capitalize ${tab === t ? "gradient-gold" : "bg-muted"}`}>{t}</button>
           ))}
         </div>
@@ -144,7 +197,7 @@ const AdminDiscover = () => {
         {tab === "featured" && (
           <div className="grid lg:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <button onClick={() => setEditFeat({ id: "", label: "#", media_type: "image", image_url: null, video_url: null, poster_url: null, href: null, is_active: true, starts_at: null, ends_at: null, sort_order: 0 })}
+              <button onClick={() => setEditFeat({ id: "", label: "#", media_type: "image", image_url: null, video_url: null, poster_url: null, href: null, is_active: true, starts_at: null, ends_at: null, sort_order: 0, song_ids: [], description: "" })}
                 className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-dashed border-gold/50 text-sm"><Plus className="w-4 h-4" /> Add featured item</button>
               {feat.map((f, i) => (
                 <div key={f.id} className={`glass-card p-3 flex items-center gap-3 ${editFeat?.id === f.id ? "ring-2 ring-gold" : ""}`}>
@@ -161,7 +214,9 @@ const AdminDiscover = () => {
             </div>
             {editFeat && (
               <div className="glass-card p-4 space-y-3">
-                <Field label="Label (e.g. #praise)"><input className={input} maxLength={30} value={editFeat.label} onChange={(e) => setEditFeat({ ...editFeat, label: e.target.value })} /></Field>
+                <Field label="Playlist title (e.g. #praise)"><input className={input} maxLength={30} value={editFeat.label} onChange={(e) => setEditFeat({ ...editFeat, label: e.target.value })} /></Field>
+                <Field label="Description"><input className={input} maxLength={160} value={editFeat.description || ""} onChange={(e) => setEditFeat({ ...editFeat, description: e.target.value })} /></Field>
+                <SongPicker ids={editFeat.song_ids || []} onChange={(song_ids) => setEditFeat({ ...editFeat, song_ids })} />
                 <div className="flex gap-2">
                   {(["image", "video"] as const).map((m) => (
                     <button key={m} onClick={() => setEditFeat({ ...editFeat, media_type: m })} className={`px-3 py-1 rounded-full text-xs capitalize ${editFeat.media_type === m ? "gradient-gold" : "bg-muted"}`}>{m}</button>
@@ -175,7 +230,7 @@ const AdminDiscover = () => {
                     <ImageUploadPicker bucket="song-covers" label="Poster image" value={editFeat.poster_url || ""} onChange={(url) => setEditFeat({ ...editFeat, poster_url: url || null })} />
                   </>
                 )}
-                <Field label="Opens (leave empty for its tag page)"><input className={input} value={editFeat.href || ""} onChange={(e) => setEditFeat({ ...editFeat, href: e.target.value || null })} /></Field>
+                <Field label="Opens (only used when no songs are picked)"><input className={input} value={editFeat.href || ""} onChange={(e) => setEditFeat({ ...editFeat, href: e.target.value || null })} /></Field>
                 <div className="grid grid-cols-2 gap-2">
                   <Field label="Starts"><input type="datetime-local" className={input} value={editFeat.starts_at?.slice(0, 16) || ""} onChange={(e) => setEditFeat({ ...editFeat, starts_at: e.target.value ? new Date(e.target.value).toISOString() : null })} /></Field>
                   <Field label="Ends"><input type="datetime-local" className={input} value={editFeat.ends_at?.slice(0, 16) || ""} onChange={(e) => setEditFeat({ ...editFeat, ends_at: e.target.value ? new Date(e.target.value).toISOString() : null })} /></Field>
