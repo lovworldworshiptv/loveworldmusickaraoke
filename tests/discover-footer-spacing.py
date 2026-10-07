@@ -39,15 +39,23 @@ MEASURE_JS = """() => {
     .filter(el => el.closest('main') || el.closest('[class*="overflow"]'));
   if (!tiles.length) return { error: "no category tiles found" };
   const last = tiles[tiles.length - 1].getBoundingClientRect();
-  const mini = document.querySelector('[data-testid="mini-player"], .mini-player, [class*="MiniPlayer"]');
-  const nav = document.querySelector('nav');
-  const below = mini || nav;
-  if (!below) return { error: "no mini player or bottom nav found" };
+  // The element directly below the cards is the topmost fixed bar in the
+  // lower half of the screen: the mini player when playing, else the
+  // bottom navigation.
+  const bars = Array.from(document.querySelectorAll('body *')).filter(el => {
+    const cs = getComputedStyle(el);
+    if (cs.position !== 'fixed' || cs.display === 'none' || cs.visibility === 'hidden') return false;
+    const r = el.getBoundingClientRect();
+    return r.height > 30 && r.width > 200 && r.top > window.innerHeight * 0.5 && r.top < window.innerHeight;
+  });
+  if (!bars.length) return { error: "no mini player or bottom nav found" };
+  const below = bars.reduce((a, b) =>
+    a.getBoundingClientRect().top < b.getBoundingClientRect().top ? a : b);
   const b = below.getBoundingClientRect();
   return {
     lastCardBottom: last.bottom,
     belowTop: b.top,
-    belowKind: mini ? "mini-player" : "bottom-nav",
+    belowKind: below.tagName.toLowerCase() === 'nav' ? "bottom-nav" : "mini-player",
     gap: Math.round((b.top - last.bottom) * 10) / 10,
     viewportH: window.innerHeight,
   };
