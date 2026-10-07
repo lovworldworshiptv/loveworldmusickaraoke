@@ -109,8 +109,11 @@ async def scenario(pw, name, viewport, with_player):
             await page.wait_for_timeout(2500)
         # Navigate in-app via the Discover nav button (keeps the player alive).
         print("  url before nav click:", page.url)
+        print("  play btn count:", await page.locator('main button:has(svg.lucide-play)').count())
         print("  nav buttons:", await page.locator('nav button:has-text("Discover")').count())
         print("  any Discover text:", await page.locator('button:has-text("Discover")').count())
+        print("  body snippet:", (await page.evaluate("() => document.body.innerText.slice(0,200)")).replace("\n", " | "))
+        await page.screenshot(path=str(OUT / f"debug-{name}.png"))
         await page.locator('button:has-text("Discover")').first.click()
         await page.wait_for_timeout(2500)
         mp = await page.evaluate(
