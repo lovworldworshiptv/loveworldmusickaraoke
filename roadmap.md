@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Apply Vibrant Gamified Hub achievement cards and animated Play & Grow icons; verify signed-in rendering and reduced motion.
 - [x] Bright Music Quiz and Articles cards with tilted photos and admin presentation controls; settings tests and isolated hover/tap checks pass.
 - [ ] Signed-in game-card CMS save verification — blocked until the user signs in in the preview.
 
