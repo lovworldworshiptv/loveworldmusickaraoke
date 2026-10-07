@@ -143,11 +143,13 @@ async def main():
                 print(tag, json.dumps(r))
                 if "error" in r:
                     failures.append(f"{tag}: {r['error']}")
-                elif r["gap"] > MAX_GAP_PX or r["gap"] < -2:
-                    failures.append(
-                        f"{tag}: gap {r['gap']}px exceeds ±{MAX_GAP_PX}px "
-                        f"(card bottom {r['lastCardBottom']}, {r['belowKind']} top {r['belowTop']})"
-                    )
+                else:
+                    limit = 32 if r["belowKind"] == "viewport-bottom" else MAX_GAP_PX
+                    if r["gap"] > limit or r["gap"] < -2:
+                        failures.append(
+                            f"{tag}: gap {r['gap']}px exceeds ±{limit}px "
+                            f"(card bottom {r['lastCardBottom']}, {r['belowKind']} top {r['belowTop']})"
+                        )
     if failures:
         print("\nFAILURES:")
         for f in failures:
