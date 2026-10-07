@@ -87,7 +87,8 @@ const ExpandedPlayer = () => {
   // --- 3-mode player (Song | Karaoke | Video) with seamless position transfer ---
   const [videos, setVideos] = useState<SongVideo[]>([]);
   const [videoMode, setVideoMode] = useState(false);
-  const [videosLoaded, setVideosLoaded] = useState(false);
+  const [videosLoadedFor, setVideosLoadedFor] = useState<string | null>(null);
+  const videosLoaded = !!currentSong && videosLoadedFor === currentSong.id;
   const [videoStart, setVideoStart] = useState(0);
   const videoPosRef = useRef<() => number>(() => 0);
   const mode: PlayerMode = videoMode ? "video" : isKaraoke ? "karaoke" : "song";
@@ -95,11 +96,11 @@ const ExpandedPlayer = () => {
   useEffect(() => {
     setVideoMode(false);
     setVideos([]);
-    setVideosLoaded(false);
     setMotionArtworkUrl(null);
     setMotionArtworkReady(false);
     setMotionArtworkFailed(false);
     if (!currentSong) return;
+    const songId = currentSong.id;
     supabase.from("song_videos").select("id, video_url, video_type, language_code, offset_ms, thumbnail_url")
       .eq("song_id", currentSong.id).eq("is_active", true)
       .then(({ data }) => {
@@ -107,8 +108,8 @@ const ExpandedPlayer = () => {
         const order = ["official", "lyric", "live", "karaoke"];
         list.sort((a, b) => order.indexOf(a.video_type) - order.indexOf(b.video_type));
         setVideos(list);
-        setVideosLoaded(true);
-      }, () => setVideosLoaded(true));
+        setVideosLoadedFor(songId);
+      }, () => setVideosLoadedFor(songId));
     supabase.from("song_motion_artwork").select("video_url").eq("song_id", currentSong.id).eq("is_active", true).maybeSingle()
       .then(({ data }) => setMotionArtworkUrl(data?.video_url || null));
   }, [currentSong?.id]);
@@ -150,11 +151,11 @@ const ExpandedPlayer = () => {
 
   // Honor a "watch video" request from the Videos hub: switch to Video mode once videos load.
   useEffect(() => {
-    if (videoModeRequest && videos.length > 0 && !videoMode) {
+    if (videoModeRequest && videosLoaded && videos.length > 0 && !videoMode) {
       switchMode("video");
       clearVideoModeRequest();
     }
-  }, [videoModeRequest, videos, videoMode, switchMode, clearVideoModeRequest]);
+  }, [videoModeRequest, videosLoaded, videos, videoMode, switchMode, clearVideoModeRequest]);
 
   // Next song in a video queue has no video: keep the session going with its audio.
   useEffect(() => {
