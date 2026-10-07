@@ -119,7 +119,7 @@ async def scenario(pw, name, viewport, with_player):
         print("  any Discover text:", await page.locator('button:has-text("Discover")').count())
         print("  body snippet:", (await page.evaluate("() => document.body.innerText.slice(0,200)")).replace("\n", " | "))
         await page.screenshot(path=str(OUT / f"debug-{name}.png"))
-        await page.locator('button:has-text("Discover")').first.click()
+        await page.locator('button:has-text("Discover"):visible').first.click()
         await page.wait_for_timeout(2500)
         mp = await page.evaluate(
             "() => !!document.querySelector('.fixed.left-2.right-2')"
