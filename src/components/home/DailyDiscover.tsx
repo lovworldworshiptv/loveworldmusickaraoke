@@ -67,7 +67,7 @@ const DailyDiscover = () => {
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
         }}
-        className="relative overflow-hidden rounded-2xl p-3 text-left cursor-pointer transition-transform duration-300 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold h-[166px] md:h-36"
+        className="relative overflow-hidden rounded-2xl p-3 text-left cursor-pointer transition-transform duration-300 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold h-[199px] md:h-[173px]"
         style={{
           boxShadow: dominant
             ? `0 8px 40px rgba(${dominant[0]}, ${dominant[1]}, ${dominant[2]}, 0.35)`
@@ -80,7 +80,7 @@ const DailyDiscover = () => {
         )}
         <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/50 to-transparent" />
         <div className="relative flex h-full gap-3">
-          <div className="aspect-square h-full rounded-xl overflow-hidden flex-shrink-0 bg-muted ring-1 ring-gold/40">
+          <div className="aspect-square h-[88px] md:h-[73px] rounded-xl overflow-hidden flex-shrink-0 bg-muted ring-1 ring-gold/40">
             {cover ? <img src={cover} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full gradient-purple flex items-center justify-center"><Sparkles className="w-8 h-8 text-gold/60" /></div>}
           </div>
           <div className="min-w-0 flex-1 flex flex-col">
