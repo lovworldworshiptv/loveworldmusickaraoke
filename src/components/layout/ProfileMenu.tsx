@@ -29,6 +29,7 @@ const adminItems = [
   { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
   { icon: Mic2, label: "Feature Toggles", path: "/admin/karaoke-stories" },
   { icon: Palette, label: "Appearance & Home", path: "/admin/appearance" },
+  { icon: Sparkles, label: "Discover Page", path: "/admin/discover" },
 ];
 const ProfileMenu = () => {
   const { user, username, avatarUrl, kingschatHandle, signOut } = useAuth();

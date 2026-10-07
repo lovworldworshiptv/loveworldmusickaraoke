@@ -721,6 +721,114 @@ export type Database = {
           },
         ]
       }
+      discover_categories: {
+        Row: {
+          created_at: string
+          gradient_from: string
+          gradient_to: string
+          gradient_via: string | null
+          id: string
+          image_alt: string | null
+          image_url: string | null
+          is_hero: boolean
+          is_visible: boolean
+          route: string
+          sort_order: number
+          subtitle: string | null
+          text_color: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          gradient_from?: string
+          gradient_to?: string
+          gradient_via?: string | null
+          id?: string
+          image_alt?: string | null
+          image_url?: string | null
+          is_hero?: boolean
+          is_visible?: boolean
+          route?: string
+          sort_order?: number
+          subtitle?: string | null
+          text_color?: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          gradient_from?: string
+          gradient_to?: string
+          gradient_via?: string | null
+          id?: string
+          image_alt?: string | null
+          image_url?: string | null
+          is_hero?: boolean
+          is_visible?: boolean
+          route?: string
+          sort_order?: number
+          subtitle?: string | null
+          text_color?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      discover_featured: {
+        Row: {
+          created_at: string
+          ends_at: string | null
+          href: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          label: string
+          media_type: string
+          poster_url: string | null
+          sort_order: number
+          starts_at: string | null
+          updated_at: string
+          updated_by: string | null
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          ends_at?: string | null
+          href?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          label: string
+          media_type?: string
+          poster_url?: string | null
+          sort_order?: number
+          starts_at?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string | null
+          href?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          label?: string
+          media_type?: string
+          poster_url?: string | null
+          sort_order?: number
+          starts_at?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       downloads: {
         Row: {
           downloaded_at: string

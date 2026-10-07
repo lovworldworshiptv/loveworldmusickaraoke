@@ -5,15 +5,10 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
-import { sortSongsByTitle, compareTitles } from "@/lib/utils";
-
-const tabs = [
-  { id: "articles", label: "Articles", icon: BookOpen, path: "/articles", desc: "Read inspiring articles and devotionals" },
-  { id: "music", label: "Music", icon: Music2, path: "/", desc: "Browse and play songs, karaoke, and more" },
-  { id: "games", label: "Games", icon: Gamepad2, path: "/games", desc: "Test your knowledge with trivia games" },
-  { id: "reminders", label: "Reminders", icon: Bell, path: "/reminders", desc: "Set prayer & study time reminders", mobileOnly: true },
-  { id: "feedback", label: "Feedback", icon: MessageSquare, path: "/feedback", desc: "Share your feedback with us", mobileOnly: true },
-];
+import { sortSongsByTitle } from "@/lib/utils";
+import FeaturedCarousel from "@/components/discover/FeaturedCarousel";
+import CategoryTile from "@/components/discover/CategoryTile";
+import type { DiscoverCategory, DiscoverFeatured } from "@/lib/discover";
 
 const Discover = () => {
   const navigate = useNavigate();
@@ -52,22 +47,39 @@ const Discover = () => {
     },
   });
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ["discover-categories"],
+    queryFn: async () => {
+      const { data } = await supabase.from("discover_categories").select("*").eq("is_visible", true).order("sort_order");
+      return (data || []) as DiscoverCategory[];
+    },
+  });
+  const { data: featured = [] } = useQuery({
+    queryKey: ["discover-featured"],
+    queryFn: async () => {
+      const now = new Date().toISOString();
+      const { data } = await supabase.from("discover_featured").select("*").eq("is_active", true).order("sort_order");
+      return ((data || []) as DiscoverFeatured[]).filter((f) => (!f.starts_at || f.starts_at <= now) && (!f.ends_at || f.ends_at > now));
+    },
+  });
+
   const hasResults = search.trim().length >= 2 && (songResults.length > 0 || articleResults.length > 0);
 
   return (
     <AppLayout>
-      <div className="px-4 lg:px-6 pt-4 lg:pt-6 max-w-2xl mx-auto">
-        <h1 className="text-2xl font-serif font-bold text-foreground mb-4">Discover</h1>
+      <div className="px-4 lg:px-6 pt-4 lg:pt-6 max-w-6xl mx-auto pb-28 lg:pb-32">
+        <h1 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-1">Discover</h1>
+        <p className="text-sm text-foreground/80 mb-4">Music, karaoke, videos and more — all in one place.</p>
 
         {/* Search */}
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <div className="relative mb-6 max-w-2xl">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-background/70" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search songs, lyrics, articles..."
-            className="w-full pl-11 pr-4 py-3 rounded-xl bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+            className="w-full pl-12 pr-4 py-3.5 rounded-[14px] bg-foreground/95 text-sm text-background placeholder:text-background/60 focus:outline-none focus:ring-2 focus:ring-gold focus:scale-[1.01] transition-all"
           />
         </div>
 
@@ -149,25 +161,19 @@ const Discover = () => {
           <p className="text-sm text-muted-foreground text-center py-4 mb-4">No results found for "{search}"</p>
         )}
 
-        {/* Category Cards */}
-        <div className="grid gap-4">
-          {tabs.map((tab, i) => (
-            <button
-              key={tab.id}
-              onClick={() => navigate(tab.path)}
-              className={`glass-card p-5 flex items-center gap-4 hover:glow-gold transition-all duration-300 group text-left ${(tab as any).mobileOnly ? "lg:hidden" : ""}`}
-              style={{ animationDelay: `${i * 100}ms` }}
-            >
-              <div className="w-12 h-12 rounded-xl gradient-gold flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                <tab.icon className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold text-foreground">{tab.label}</h3>
-                <p className="text-xs text-muted-foreground">{tab.desc}</p>
-              </div>
-            </button>
-          ))}
-        </div>
+        {featured.length > 0 && (
+          <section className="mb-6">
+            <h2 className="text-xl font-serif font-bold text-foreground mb-3">Featured</h2>
+            <FeaturedCarousel items={featured} />
+          </section>
+        )}
+
+        <section>
+          <h2 className="text-xl font-serif font-bold text-foreground mb-3">Browse all</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+            {categories.map((c) => <CategoryTile key={c.id} c={c} />)}
+          </div>
+        </section>
       </div>
       <div className="h-8" />
     </AppLayout>
