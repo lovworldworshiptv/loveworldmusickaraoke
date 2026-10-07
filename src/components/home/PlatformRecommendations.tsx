@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ListMusic, Play } from "lucide-react";
 import { cardGradient, useGlobalCardColor } from "@/lib/siteSettings";
 
-type Rec = { id: string; name: string; card_color: string | null; cover_url: string | null; playlist_songs: { songs: { title: string; artist: string; cover_url: string | null } | null }[] | null };
+type Rec = { id: string; name: string; description: string | null; card_color: string | null; cover_url: string | null; playlist_songs: { songs: { title: string; artist: string; cover_url: string | null } | null }[] | null };
 
 /** Spotify-style recommendation cards; each opens the playlist's collection page. */
 
@@ -16,7 +16,7 @@ const PlatformRecommendations = () => {
 
   useEffect(() => {
     supabase.from("playlists")
-      .select("id,name,cover_url,card_color,playlist_songs(songs(title,artist,cover_url))")
+      .select("id,name,description,cover_url,card_color,playlist_songs(songs(title,artist,cover_url))")
       .eq("is_visible_on_homepage", true)
       .order("created_at", { ascending: false }).limit(8)
       .then(({ data }) => setItems(((data as unknown as Rec[]) || []).filter((p) => (p.playlist_songs || []).some((s) => s.songs))));
@@ -42,14 +42,14 @@ const PlatformRecommendations = () => {
               className={`snap-start flex-shrink-0 w-full md:w-[calc(50%_-_0.375rem)] lg:w-[29.6%] h-[199px] md:h-[173px] rounded-2xl p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${tint ? "border-0 shadow-lg" : "glass-card hover:border-gold/40"}`}
               style={tint ? { background: tint } : undefined}>
               <div className="flex h-full gap-3">
-                <div className="aspect-square h-[103px] md:h-[86px] rounded-xl overflow-hidden flex-shrink-0 bg-muted">
+                <div className="aspect-square h-[88px] md:h-[73px] rounded-xl overflow-hidden flex-shrink-0 bg-muted">
                   {cover ? <img src={cover} alt="" loading="lazy" className="w-full h-full object-cover" /> :
                     <div className="w-full h-full gradient-purple flex items-center justify-center"><ListMusic className="w-8 h-8 text-gold/60" /></div>}
                 </div>
                 <div className="min-w-0 flex-1 flex flex-col">
                   <span className="text-[10px] uppercase tracking-wider text-gold">Playlist · {songs.length} songs</span>
                   <p className="font-serif font-bold text-foreground truncate mt-0.5">{p.name}</p>
-                  <p className="text-xs text-white line-clamp-2 mt-1">{names}</p>
+                  <p className="text-xs text-white line-clamp-2 mt-1">{p.description?.trim() || names}</p>
                   <span className="mt-auto self-end w-9 h-9 rounded-full gradient-gold flex items-center justify-center shadow-[0_2px_12px_hsl(var(--gold)/0.4)]">
                     <Play className="w-4 h-4 text-white ml-0.5" fill="currentColor" />
                   </span>
