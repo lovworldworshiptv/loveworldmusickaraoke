@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Verify lightweight tilted artwork, immediate loading and failed-photo fallbacks across Games and Challenge views.
+- [x] Tilted photos load eagerly with lightweight CDN defaults and per-game fallbacks, including CMS previews; eight tests pass and all Games/Challenge artwork loads at 320, 394, 768 and 1280px.
 - [x] Match challenge heading to CMS-managed tilted-image card; arcade-glass referral notices and Leave Challenge verified signed-in, with artwork taps, countdown, copy, cancelled leave confirmation, mobile fit and reduced motion; five tests pass.
 - [x] Apply selected Arcade Neon Glass leaderboard and current-position styling; signed-in checks verify 12 real ranks, desktop lift, press feedback, mobile fit and reduced motion; five tests pass and build is clean.
 - [x] Apply Interactive Arcade Glass hover/press/focus effects to Games cards and CTAs; desktop hover, touch artwork, keyboard focus, disabled CTA, reduced motion and leaderboard navigation verified.
