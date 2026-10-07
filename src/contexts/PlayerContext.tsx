@@ -103,6 +103,22 @@ function toDirectUrl(url?: string): string | undefined {
   return url;
 }
 
+/** Playable source for a mode; Karaoke falls back to the full track when no instrumental exists. */
+function sourceFor(song: PlayerSong, karaoke: boolean): string | undefined {
+  return toDirectUrl((karaoke && song.instrumentalUrl) || song.audioUrl);
+}
+
+/** Next queue position with a playable source, honouring repeat-all wrap-around; -1 when the queue is done. */
+function findNextIndex(q: PlayerSong[], from: number, repeat: RepeatMode): number {
+  for (let step = 1; step <= q.length; step++) {
+    const raw = from + step;
+    if (raw >= q.length && repeat !== "all") return -1;
+    const i = raw % q.length;
+    if (q[i] && (q[i].audioUrl || q[i].instrumentalUrl)) return i;
+  }
+  return -1;
+}
+
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
