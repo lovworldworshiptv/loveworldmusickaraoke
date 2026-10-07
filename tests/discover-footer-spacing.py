@@ -43,6 +43,7 @@ MEASURE_JS = """() => {
   // lower half of the screen: the mini player when playing, else the
   // bottom navigation.
   const bars = Array.from(document.querySelectorAll('body *')).filter(el => {
+    if (['OL', 'UL'].includes(el.tagName)) return false; // toast containers
     const cs = getComputedStyle(el);
     if (cs.position !== 'fixed' || cs.display === 'none' || cs.visibility === 'hidden') return false;
     const r = el.getBoundingClientRect();
@@ -90,19 +91,21 @@ async def scenario(pw, name, viewport, with_player):
     await page.wait_for_timeout(2500)
 
     if with_player:
-        # Start the first playable song so the mini player appears.
-        play = page.locator('button:has(svg.lucide-play)').first
+        # Start a song from the home page so the mini player appears.
+        await page.goto(BASE, wait_until="domcontentloaded")
+        await page.wait_for_timeout(2500)
+        play = page.locator('main button:has(svg.lucide-play)').first
         if await play.count():
             await play.click()
-            await page.wait_for_timeout(1500)
+            await page.wait_for_timeout(2000)
+        await page.goto(f"{BASE}/discover", wait_until="domcontentloaded")
+        await page.wait_for_timeout(2000)
 
-    # Scroll the page's scroll container to the very bottom.
+    # Scroll the main content container to the very bottom.
     await page.evaluate(
         """() => {
-          const els = Array.from(document.querySelectorAll('*'))
-            .filter(e => e.scrollHeight > e.clientHeight + 50
-                      && getComputedStyle(e).overflowY !== 'visible');
-          (els[0] || document.scrollingElement).scrollTop = 1e6;
+          const main = document.querySelector('main');
+          (main || document.scrollingElement).scrollTop = 1e6;
         }"""
     )
     await page.wait_for_timeout(800)
