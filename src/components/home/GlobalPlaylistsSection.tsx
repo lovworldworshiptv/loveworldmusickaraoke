@@ -99,11 +99,11 @@ const GlobalPlaylistsSection = () => {
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") navigate(`/collection/${playlist.id}?color=${encodeURIComponent(playlist.card_color || globalColor)}`);
               }}
-              className="snap-start flex-shrink-0 w-full md:w-[calc(50%_-_0.375rem)] lg:w-[29.6%] h-[166px] md:h-36 rounded-2xl p-3 text-left cursor-pointer border-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+              className="snap-start flex-shrink-0 w-full md:w-[calc(50%_-_0.375rem)] lg:w-[29.6%] h-[199px] md:h-[173px] rounded-2xl p-3 text-left cursor-pointer border-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
               style={{ background: cardGradient(playlist.card_color || globalColor) }}
             >
               <div className="flex h-full gap-3">
-                <div className="aspect-square h-full rounded-xl overflow-hidden flex-shrink-0 bg-muted">
+                <div className="aspect-square h-[88px] md:h-[73px] rounded-xl overflow-hidden flex-shrink-0 bg-muted">
                   {cover ? (
                     <img src={cover} alt={playlist.name} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
