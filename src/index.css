@@ -161,6 +161,7 @@
     transition: transform 350ms cubic-bezier(.2,.8,.2,1);
   }
   .game-hub-card.is-leaning .game-card-photo,
+  .game-card-photo.is-leaning,
   .game-card-photo:active { transform: rotate(23deg) translateY(-4px); }
   @media (hover: hover) {
     .game-hub-card:hover .game-card-photo { transform: rotate(23deg) translateY(-4px); }

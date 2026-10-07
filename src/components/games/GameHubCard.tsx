@@ -13,9 +13,8 @@ export function TiltedGamePhoto({ imageUrl, title }: { imageUrl: string; title: 
   </Button>;
 }
 export default function GameHubCard({ presentation, tag, onPlay, children, stats }: Props) {
-  const [leaning, setLeaning] = useState(false);
   return (
-    <article className={`game-hub-card group relative overflow-hidden rounded-2xl p-6 ${leaning ? "is-leaning" : ""}`}
+    <article className="game-hub-card group relative overflow-hidden rounded-2xl p-6"
       style={{ "--game-card-background": hexToHsl(presentation.color) } as CSSProperties}>
       <TiltedGamePhoto imageUrl={presentation.imageUrl} title={presentation.title} />
       <div className="relative max-w-[calc(100%-100px)] min-h-[142px] pointer-events-none">
