@@ -57,7 +57,7 @@ interface PlayerContextType {
   toggleExpanded: () => void;
   seekTo: (percent: number) => void;
   /** Pass { autoplay: false } to load the next track paused (e.g. before handing off to Video mode). */
-  skipNext: (opts?: { autoplay?: boolean }) => void;
+  skipNext: (opts?: { autoplay?: boolean } | unknown) => void;
   /** True while the current track is waiting on the network. */
   isBuffering: boolean;
   skipPrev: () => void;
@@ -658,8 +658,9 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     setVideoModeRequest(true);
   }, [playQueue]);
 
-  const skipNext = useCallback((opts?: { autoplay?: boolean }) => {
-    const autoplay = typeof opts?.autoplay === "boolean" ? opts.autoplay : true;
+  const skipNext = useCallback((opts?: { autoplay?: boolean } | unknown) => {
+    const flag = (opts as { autoplay?: unknown } | undefined)?.autoplay;
+    const autoplay = typeof flag === "boolean" ? flag : true;
     const nextIdx = findNextIndex(queueRef.current, queueIndexRef.current, repeatModeRef.current);
     if (nextIdx < 0) return;
     advanceToRef.current(nextIdx, isKaraokeRef.current, autoplay);
