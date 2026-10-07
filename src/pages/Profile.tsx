@@ -264,6 +264,38 @@ const Profile = () => {
           editMode={true}
         />
       )}
+
+      {/* Settings Modal */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="glass-card border-border max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground text-base">
+              <Settings className="w-4 h-4 text-primary" /> Settings
+            </DialogTitle>
+          </DialogHeader>
+          <div className="pb-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Palette className="w-3.5 h-3.5" /> Theme
+            </p>
+            <div className="grid grid-cols-1 gap-1.5">
+              {themes.map((t) => (
+                <button
+                  key={t.name}
+                  onClick={() => setTheme(t.name as ThemeName)}
+                  className={`flex items-center gap-3 p-2.5 rounded-lg text-sm transition-all ${
+                    theme === t.name
+                      ? "bg-primary/15 text-primary ring-1 ring-primary/30"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  <span className="w-5 h-5 rounded-full flex-shrink-0 ring-1 ring-border" style={{ background: t.preview }} />
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };
