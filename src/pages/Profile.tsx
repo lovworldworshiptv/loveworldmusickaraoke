@@ -3,11 +3,13 @@ import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Crown, Shield, LogOut, ChevronRight, AtSign, Trash2, Camera, Sparkles, Edit } from "lucide-react";
+import { User, Crown, Shield, LogOut, ChevronRight, AtSign, Trash2, Camera, Sparkles, Edit, Settings, Palette } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/sonner";
 import ProfileUpdateModal from "@/components/profile/ProfileUpdateModal";
 import MyKaraoke from "@/components/profile/MyKaraoke";
+import { useTheme, ThemeName } from "@/contexts/ThemeContext";
 
 const Profile = () => {
   const { user, username, avatarUrl, kingschatHandle, profileData, signOut, loading, markProfileCompleted, refetchProfile } = useAuth();
