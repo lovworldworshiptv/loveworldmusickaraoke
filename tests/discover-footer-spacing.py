@@ -108,7 +108,7 @@ async def scenario(pw, name, viewport, with_player):
             await play.click()
             await page.wait_for_timeout(2500)
         # Navigate in-app (no reload) so the mini player persists.
-        await page.get_by_role("link", name="Discover").first.click()
+        await page.locator('a[href="/discover"]').first.click()
         await page.wait_for_timeout(2500)
         mp = await page.evaluate(
             "() => !!document.querySelector('.fixed.left-2.right-2')"
