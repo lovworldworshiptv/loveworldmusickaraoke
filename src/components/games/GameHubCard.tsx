@@ -7,7 +7,7 @@ import type { GameCardPresentation } from "@/lib/gameCards";
 type Props = { presentation: GameCardPresentation; tag: string; onPlay?: () => void; children?: ReactNode; stats?: ReactNode };
 export function TiltedGamePhoto({ imageUrl, title }: { imageUrl: string; title: string }) {
   const [leaning, setLeaning] = useState(false);
-  return <Button variant="ghost" aria-label={`Tilt ${title} photo`} className={`game-card-photo absolute right-2 top-5 h-32 w-32 sm:h-36 sm:w-36 p-0 overflow-hidden rounded-xl ${leaning ? "is-leaning" : ""}`}
+  return <Button variant="ghost" aria-label={`Tilt ${title} photo`} className={`game-card-photo absolute z-10 right-2 top-5 h-32 w-32 sm:h-36 sm:w-36 p-0 overflow-hidden rounded-xl ${leaning ? "is-leaning" : ""}`}
     onClick={() => setLeaning(value => !value)}>
     <img src={imageUrl} alt={`${title} artwork`} loading="lazy" width={768} height={768} className="h-full w-full object-cover" />
   </Button>;
