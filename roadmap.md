@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Bright Music Quiz and Articles cards with tilted photos and admin presentation controls; verify interactions and saving.
 
 - [x] Admin-only community management and community-scoped moderator appointments; signed-in permission regressions pass and admin search dialog verified.
 
