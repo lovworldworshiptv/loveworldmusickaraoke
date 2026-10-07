@@ -15,7 +15,7 @@ const toPlayer = (s: any): PlayerSong => ({
 
 const DiscoverTag = () => {
   const { tag = "" } = useParams();
-  const { playSong } = usePlayer();
+  const { playQueue } = usePlayer();
   const isKaraoke = tag.toLowerCase().startsWith("karaoke");
   const term = tag.replace(/[^a-z0-9 ]/gi, "");
 
@@ -44,7 +44,7 @@ const DiscoverTag = () => {
               <p className="text-sm text-foreground">{songs.length} songs</p>
             </div>
             {queue.length > 0 && (
-              <button onClick={() => playSong(queue[0], queue)} aria-label="Play all" className="w-12 h-12 rounded-full gradient-gold flex items-center justify-center glow-gold">
+              <button onClick={() => playQueue(queue, 0)} aria-label="Play all" className="w-12 h-12 rounded-full gradient-gold flex items-center justify-center glow-gold">
                 <Play className="w-5 h-5 text-foreground fill-current ml-0.5" />
               </button>
             )}
@@ -53,8 +53,8 @@ const DiscoverTag = () => {
         {isLoading && <p className="text-sm text-foreground/70">Loading…</p>}
         {!isLoading && songs.length === 0 && <p className="text-sm text-foreground/80 text-center py-8">No songs found for #{tag} yet.</p>}
         <div className="space-y-1">
-          {queue.map((s) => (
-            <button key={s.id} onClick={() => playSong(s, queue)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/40 transition-colors text-left">
+          {queue.map((s, i) => (
+            <button key={s.id} onClick={() => playQueue(queue, i)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/40 transition-colors text-left">
               <div className="w-11 h-11 rounded-lg bg-primary/20 flex items-center justify-center overflow-hidden flex-shrink-0">
                 {s.coverUrl ? <img src={s.coverUrl} alt="" className="w-full h-full object-cover" /> : <Music className="w-4 h-4 text-gold" />}
               </div>
