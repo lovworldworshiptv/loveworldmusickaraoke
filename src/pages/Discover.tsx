@@ -67,7 +67,7 @@ const Discover = () => {
 
   return (
     <AppLayout>
-      <div className="px-4 lg:px-6 pt-4 lg:pt-6 max-w-6xl mx-auto pb-16 lg:pb-20">
+      <div className="px-4 lg:px-6 pt-4 lg:pt-6 max-w-6xl mx-auto">
         <h1 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-1">Discover</h1>
         <p className="text-sm text-foreground/80 mb-4">Music, karaoke, videos and more — all in one place.</p>
 
