@@ -102,6 +102,7 @@ async def scenario(pw, name, viewport, with_player):
     if with_player:
         # Start a song from the home page so the mini player appears.
         await page.goto(BASE, wait_until="domcontentloaded")
+        await dismiss_onboarding(page)
         await page.wait_for_timeout(2500)
         play = page.locator('main button:has(svg.lucide-play)').first
         if await play.count():
