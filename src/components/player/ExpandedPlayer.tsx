@@ -151,11 +151,11 @@ const ExpandedPlayer = () => {
 
   // Honor a "watch video" request from the Videos hub: switch to Video mode once videos load.
   useEffect(() => {
-    if (videoModeRequest && videos.length > 0 && !videoMode) {
+    if (videoModeRequest && videosLoaded && videos.length > 0 && !videoMode) {
       switchMode("video");
       clearVideoModeRequest();
     }
-  }, [videoModeRequest, videos, videoMode, switchMode, clearVideoModeRequest]);
+  }, [videoModeRequest, videosLoaded, videos, videoMode, switchMode, clearVideoModeRequest]);
 
   // Next song in a video queue has no video: keep the session going with its audio.
   useEffect(() => {
