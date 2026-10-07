@@ -12,4 +12,11 @@ describe("game hub card presentation", () => {
   it("falls back safely for blank fields and invalid colours", () => {
     expect(resolveGameCard("songmatch", { songmatch: { title: " ", color: "invalid", imageUrl: "" } })).toEqual(GAME_CARD_DEFAULTS.songmatch);
   });
+  it("keeps challenge content live by default and supports CMS overrides", () => {
+    expect(resolveGameCard("challenge").title).toBe("");
+    expect(resolveGameCard("challenge").description).toBe("");
+    expect(resolveGameCard("challenge").imageUrl).toBeTruthy();
+    expect(resolveGameCard("challenge", { challenge: { title: "Praise Challenge", description: "Join today", color: "#d82d57", imageUrl: "/photo.jpg" } })).toEqual({ title: "Praise Challenge", description: "Join today", color: "#d82d57", imageUrl: "/photo.jpg" });
+    expect(resolveGameCard("challenge", { songmatch: { title: "Music" } })).toEqual(GAME_CARD_DEFAULTS.challenge);
+  });
 });
