@@ -107,9 +107,13 @@ async def scenario(pw, name, viewport, with_player):
         if await play.count():
             await play.click()
             await page.wait_for_timeout(2500)
-        # Reload to Discover; playback continuity restores the player paused.
-        await page.goto(f"{BASE}/discover", wait_until="domcontentloaded")
-        await page.wait_for_timeout(3500)
+        # Navigate in-app via the bottom nav / sidebar Discover button.
+        nav = page.locator("nav, aside").last
+        disc = nav.get_by_role("button", name="Discover")
+        if not await disc.count():
+            disc = page.get_by_role("button", name="Discover").first
+        await disc.first.click()
+        await page.wait_for_timeout(2500)
         mp = await page.evaluate(
             "() => !!document.querySelector('.fixed.left-2.right-2')"
         )
