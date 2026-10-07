@@ -25,7 +25,7 @@ const AppLayout = memo(({ children, mainClassName = "" }: AppLayoutProps) => {
     <div className="h-[100dvh] bg-background overflow-hidden safe-top flex flex-col">
       <Sidebar collapsed={desktopSidebarCollapsed} onCollapsedChange={setDesktopSidebarCollapsed} />
       <TopNavbar desktopSidebarCollapsed={desktopSidebarCollapsed} />
-      <main className={`${mainClassName} ${desktopSidebarCollapsed ? "lg:ml-20" : "lg:ml-64"} flex-1 overflow-x-hidden overflow-y-auto pull-to-refresh transition-[margin] duration-300 ${currentSong ? "pb-[calc(9.25rem+env(safe-area-inset-bottom,0px))] lg:pb-20" : "pb-20 lg:pb-6"}`}>
+      <main className={`${mainClassName} ${desktopSidebarCollapsed ? "lg:ml-20" : "lg:ml-64"} flex-1 overflow-x-hidden overflow-y-auto pull-to-refresh transition-[margin] duration-300 ${currentSong ? "pb-[calc(9.25rem+env(safe-area-inset-bottom,0px))] lg:pb-[4.25rem]" : "pb-20 lg:pb-6"}`}>
         {children}
       </main>
       <PlayerBar desktopSidebarCollapsed={desktopSidebarCollapsed} />
