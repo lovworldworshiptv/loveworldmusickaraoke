@@ -41,11 +41,11 @@ const Games = () => {
 
   return (
     <AppLayout>
-      <div className="px-4 lg:px-6 pt-6 lg:pt-10 pb-10 max-w-4xl mx-auto">
+      <div className="games-interactive px-4 lg:px-6 pt-6 lg:pt-10 pb-10 max-w-4xl mx-auto">
         <ChallengeBanner />
 
         {/* Header */}
-        <div className="relative overflow-hidden rounded-3xl glass-card p-6 lg:p-8 mb-6">
+        <div className="game-hub-intro relative overflow-hidden rounded-3xl glass-card p-6 lg:p-8 mb-6">
           <div className="relative flex items-start gap-4">
             <div className="h-14 w-14 shrink-0 rounded-2xl gradient-gold flex items-center justify-center shadow-lg glow-gold game-icon-float">
               <Gamepad2 aria-hidden="true" className="h-8 w-8 text-primary-foreground game-controller" />
