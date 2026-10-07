@@ -2,12 +2,19 @@ import { Trophy, Crown, Users, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useActiveChallenge, useMyEntry, useParticipantCount, isChallengeClosed } from "@/hooks/useChallenge";
 import ChallengeCountdown from "./ChallengeCountdown";
+import { Button } from "@/components/ui/button";
+import { TiltedGamePhoto } from "./GameHubCard";
+import { resolveGameCard, type GameCardSettings } from "@/lib/gameCards";
+import { hexToHsl, SETTING_KEYS, useSetting } from "@/lib/siteSettings";
+import type { CSSProperties } from "react";
 
 export default function ChallengeBanner() {
   const navigate = useNavigate();
   const { data: ch } = useActiveChallenge();
   const { data: entry } = useMyEntry(ch?.id);
   const { data: participants } = useParticipantCount(ch?.id);
+  const cardSettings = useSetting<GameCardSettings>(SETTING_KEYS.gameCards);
+  const presentation = resolveGameCard("challenge", cardSettings);
   if (!ch) return null;
 
   const dist = ch.prize_distribution || {};
@@ -28,29 +35,31 @@ export default function ChallengeBanner() {
     : "You're Participating";
 
   return (
-    <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-amber-700/20 border border-amber-500/30 p-5 sm:p-6 mb-6 shadow-[0_8px_40px_-12px_rgba(251,191,36,0.4)]">
-      <div className="absolute top-0 right-0 -mt-8 -mr-8 w-40 h-40 rounded-full bg-amber-400/10 blur-3xl pointer-events-none" />
+    <div className="game-hub-card relative rounded-2xl overflow-hidden p-5 sm:p-6 mb-6" style={{ "--game-card-background": hexToHsl(presentation.color) } as CSSProperties}>
+      <TiltedGamePhoto imageUrl={presentation.imageUrl} title="Challenge" />
       <div className="relative">
+        <div className="relative min-h-[150px] max-w-[calc(100%-112px)] pointer-events-none">
         <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <Trophy className="w-5 h-5 text-amber-400" />
-          <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Song Master Challenge</span>
+          <Trophy className="w-5 h-5 shrink-0 text-foreground game-icon-pulse" />
+          <span className="text-xs font-bold uppercase tracking-wider text-foreground">Song Master Challenge</span>
           {closed && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-background/20 text-foreground border border-foreground/40">
               <CheckCircle2 className="w-3 h-3" /> Completed
             </span>
           )}
         </div>
-        <h2 className="text-2xl sm:text-3xl font-serif font-bold text-foreground mb-1">{ch.name}</h2>
-        {ch.description && <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{ch.description}</p>}
+        <h2 className="text-xl sm:text-3xl font-serif font-bold text-foreground mb-3 break-words">{presentation.title || ch.name}</h2>
+        </div>
+        {(presentation.description || ch.description) && <p className="text-sm text-foreground mb-4">{presentation.description || ch.description}</p>}
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
           <div className="bg-background/30 rounded-lg p-3">
             <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Prize Pool</p>
-            <p className="text-lg font-bold text-amber-400">{ch.prize_pool} Espees</p>
+            <p className="text-lg font-bold text-foreground">{ch.prize_pool} Espees</p>
           </div>
           <div className="bg-background/30 rounded-lg p-3">
             <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Entry Fee</p>
-            <p className={`text-lg font-bold ${isFree ? "text-green-400" : "text-foreground"}`}>{feeLabel}</p>
+            <p className="text-lg font-bold text-foreground">{feeLabel}</p>
           </div>
           <div className="bg-background/30 rounded-lg p-3">
             <p className="text-[10px] uppercase text-muted-foreground tracking-wide flex items-center gap-1"><Users className="w-3 h-3" /> Players</p>
@@ -64,7 +73,7 @@ export default function ChallengeBanner() {
 
         <div className="flex flex-wrap gap-2 mb-4 text-xs">
           {ranks.map((r) => (
-            <span key={r} className="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300">
+            <span key={r} className="px-2.5 py-1 rounded-full bg-background/20 border border-foreground/30 text-foreground">
               {r === 1 ? "🥇" : r === 2 ? "🥈" : r === 3 ? "🥉" : `#${r}`} {dist[String(r)]} ESP
             </span>
           ))}
@@ -76,19 +85,19 @@ export default function ChallengeBanner() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2">
-          <button
+          <Button
             onClick={() => navigate(entry?.status === "approved" ? "/games/challenge" : "/games/challenge/enter")}
             disabled={closed || entry?.status === "pending"}
-            className="flex-1 py-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+            className="game-card-play flex-1 h-auto py-3 rounded-full font-bold text-sm gap-2 whitespace-normal"
           >
             <Crown className="w-4 h-4" /> {ctaLabel}
-          </button>
-          <button
+          </Button>
+          <Button variant="outline"
             onClick={() => navigate("/games/challenge")}
-            className="flex-1 sm:flex-none py-3 px-5 rounded-lg border border-border text-foreground text-sm font-medium hover:bg-accent transition-colors"
+            className="flex-1 sm:flex-none h-auto py-3 px-5 rounded-full border-foreground/40 bg-background/20 text-foreground text-sm font-medium hover:bg-background/30 hover:text-foreground"
           >
             View Leaderboard
-          </button>
+          </Button>
         </div>
       </div>
     </div>

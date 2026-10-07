@@ -12,7 +12,7 @@ export default function GameCardsEditor() {
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   useEffect(() => { getSetting<GameCardSettings>(SETTING_KEYS.gameCards).then(value => {
-    setCards({ songmatch: resolveGameCard("songmatch", value), articles: resolveGameCard("articles", value) }); setLoaded(true);
+    setCards({ songmatch: resolveGameCard("songmatch", value), articles: resolveGameCard("articles", value), challenge: resolveGameCard("challenge", value) }); setLoaded(true);
   }); }, []);
   function update(key: GameCardKey, patch: Partial<GameCardPresentation>) {
     setCards(value => ({ ...value, [key]: { ...value[key], ...patch } }));
@@ -27,10 +27,10 @@ export default function GameCardsEditor() {
   return <section className="mb-8 space-y-4">
     <h3 className="text-xl font-bold">Game Cards</h3>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {(["songmatch", "articles"] as const).map(key => <div key={key} className="space-y-4 min-w-0">
-        <GameHubCard presentation={cards[key]} tag={key === "songmatch" ? "Music quiz" : "Knowledge quiz"} />
-        <label className="block text-sm space-y-1"><span>Title</span><input maxLength={80} value={cards[key].title} onChange={event => update(key, { title: event.target.value })} className="w-full rounded-lg border bg-muted p-2 text-foreground" /></label>
-        <label className="block text-sm space-y-1"><span>Description</span><textarea maxLength={300} value={cards[key].description} onChange={event => update(key, { description: event.target.value })} className="w-full rounded-lg border bg-muted p-2 text-foreground" /></label>
+      {(["songmatch", "articles", "challenge"] as const).map(key => <div key={key} className="space-y-4 min-w-0">
+        <GameHubCard presentation={key === "challenge" ? { ...cards[key], title: cards[key].title || "Challenges", description: cards[key].description || "Uses the current challenge description" } : cards[key]} tag={key === "songmatch" ? "Music quiz" : key === "challenge" ? "Song Master Challenge" : "Knowledge quiz"} />
+        <label className="block text-sm space-y-1"><span>{key === "challenge" ? "Challenge card title" : "Title"}</span><input placeholder={key === "challenge" ? "Use current challenge name" : undefined} maxLength={80} value={cards[key].title} onChange={event => update(key, { title: event.target.value })} className="w-full rounded-lg border bg-muted p-2 text-foreground" /></label>
+        <label className="block text-sm space-y-1"><span>{key === "challenge" ? "Challenge card description" : "Description"}</span><textarea placeholder={key === "challenge" ? "Use current challenge description" : undefined} maxLength={300} value={cards[key].description} onChange={event => update(key, { description: event.target.value })} className="w-full rounded-lg border bg-muted p-2 text-foreground" /></label>
         <label className="flex items-center gap-3 text-sm">Background colour<input aria-label={`${key} background colour`} type="color" value={cards[key].color} onChange={event => update(key, { color: event.target.value })} className="h-10 w-12 rounded border cursor-pointer" /></label>
         <ImageUploadPicker bucket="game-images" label="Card Photo" value={cards[key].imageUrl} onChange={imageUrl => update(key, { imageUrl })} />
       </div>)}
