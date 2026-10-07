@@ -69,6 +69,7 @@
     --game-achievement-purple: 275 95% 72%;
     --game-achievement-rose: 347 95% 68%;
     --game-achievement-cyan: 187 90% 57%;
+    --challenge-stat-background: 222 60% 14%;
   }
 
   .dark {
@@ -156,6 +157,7 @@
     --border: var(--game-card-foreground);
   }
   .game-card-photo {
+    /* Artwork remains independent from the live competition figures. */
     transform: rotate(12deg);
     box-shadow: var(--game-card-shadow);
     transition: transform 350ms cubic-bezier(.2,.8,.2,1);
@@ -169,6 +171,11 @@
   .game-card-play, .game-card-play:hover {
     background: hsl(var(--game-card-control));
     color: hsl(var(--game-card-control-foreground));
+  }
+  .challenge-stat, .challenge-prize {
+    background: hsl(var(--challenge-stat-background));
+    color: hsl(var(--challenge-stat-accent));
+    border: 1px solid hsl(var(--challenge-stat-accent) / .55);
   }
   @media (prefers-reduced-motion: reduce) {
     .game-card-photo { transition: none; }
