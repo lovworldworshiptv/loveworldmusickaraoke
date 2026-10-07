@@ -4,7 +4,7 @@ import { useActiveChallenge, useMyEntry, useParticipantCount, isChallengeClosed 
 import ChallengeCountdown from "./ChallengeCountdown";
 import { Button } from "@/components/ui/button";
 import { TiltedGamePhoto } from "./GameHubCard";
-import { resolveGameCard, resolveChallengeStats, type GameCardSettings } from "@/lib/gameCards";
+import { GAME_CARD_DEFAULTS, resolveGameCard, resolveChallengeStats, type GameCardSettings } from "@/lib/gameCards";
 import ChallengeStats from "./ChallengeStats";
 import { hexToHsl, SETTING_KEYS, useSetting } from "@/lib/siteSettings";
 import type { CSSProperties } from "react";
@@ -37,7 +37,7 @@ export default function ChallengeBanner() {
 
   return (
     <div className="game-hub-card relative rounded-2xl overflow-hidden p-5 sm:p-6 mb-6" style={{ "--game-card-background": hexToHsl(presentation.color) } as CSSProperties}>
-      <TiltedGamePhoto imageUrl={presentation.imageUrl} title="Challenge" />
+      <TiltedGamePhoto imageUrl={presentation.imageUrl} fallbackImageUrl={GAME_CARD_DEFAULTS.challenge.imageUrl} title="Challenge" />
       <div className="relative">
         <div className="relative min-h-[150px] w-[calc(100%_-_144px)] sm:w-[calc(100%_-_160px)] pointer-events-none">
         <div className="flex items-center gap-2 mb-2 flex-wrap">

@@ -12,7 +12,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useIsPremium } from "@/hooks/useIsPremium";
 import { Button } from "@/components/ui/button";
 import { TiltedGamePhoto } from "@/components/games/GameHubCard";
-import { resolveGameCard, type GameCardSettings } from "@/lib/gameCards";
+import { GAME_CARD_DEFAULTS, resolveGameCard, type GameCardSettings } from "@/lib/gameCards";
 import { hexToHsl, SETTING_KEYS, useSetting } from "@/lib/siteSettings";
 
 
@@ -93,7 +93,7 @@ const Challenge = () => {
 
         <section aria-label="Song Master Challenge" className="game-hub-card challenge-detail-card relative overflow-hidden rounded-2xl p-5 sm:p-6 mb-5"
           style={{ "--game-card-background": hexToHsl(presentation.color) } as CSSProperties}>
-          <TiltedGamePhoto imageUrl={presentation.imageUrl} title="Challenge" />
+          <TiltedGamePhoto imageUrl={presentation.imageUrl} fallbackImageUrl={GAME_CARD_DEFAULTS.challenge.imageUrl} title="Challenge" />
           <div className="relative min-h-[150px] w-[calc(100%_-_144px)] sm:w-[calc(100%_-_160px)] pointer-events-none">
             <div className="flex items-start gap-2 mb-2">
               <Trophy className="w-5 h-5 shrink-0 text-foreground game-icon-pulse" />

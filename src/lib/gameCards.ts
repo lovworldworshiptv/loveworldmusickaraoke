@@ -1,7 +1,11 @@
-import musicPhoto from "@/assets/music-quiz-card.jpg";
-import articlesPhoto from "@/assets/articles-game-card.jpg";
-import challengePhoto from "@/assets/challenge-card.jpg";
+import musicAsset from "@/assets/music-quiz-card.webp.asset.json";
+import articlesAsset from "@/assets/articles-game-card.webp.asset.json";
+import challengeAsset from "@/assets/challenge-card.webp.asset.json";
 import { hexToHsl } from "@/lib/siteSettings";
+
+const musicPhoto = musicAsset.url;
+const articlesPhoto = articlesAsset.url;
+const challengePhoto = challengeAsset.url;
 
 export type GameCardKey = "songmatch" | "articles" | "challenge";
 export type GameCardPresentation = { title: string; description: string; imageUrl: string; color: string };
