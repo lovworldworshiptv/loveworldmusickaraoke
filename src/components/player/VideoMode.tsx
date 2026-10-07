@@ -40,7 +40,13 @@ const VideoMode = ({ video, startAt, positionRef, onEnded }: Props) => {
   const [ready, setReady] = useState(false);
   const timeRef = useRef(start);
   const endedRef = useRef(onEnded);
-  endedRef.current = onEnded;
+  const endedFiredRef = useRef(false);
+  endedRef.current = () => {
+    // YouTube can report "ended" repeatedly; advance only once per video.
+    if (endedFiredRef.current) return;
+    endedFiredRef.current = true;
+    onEnded?.();
+  };
   timeRef.current = time;
 
   // YouTube: talk to the iframe player via postMessage
@@ -83,6 +89,22 @@ const VideoMode = ({ video, startAt, positionRef, onEnded }: Props) => {
     if (v.paused) v.play().catch(() => {}); else v.pause();
   };
 
+  useEffect(() => { endedFiredRef.current = false; }, [video.video_url]);
+
+  // Slow network: if the video stalls for 10s, re-request it from the same position.
+  useEffect(() => {
+    if (yt || ready) return;
+    const t = window.setTimeout(() => {
+      const v = videoRef.current;
+      if (!v || v.readyState >= 3) return;
+      const at = v.currentTime;
+      v.load();
+      v.addEventListener("loadedmetadata", () => { v.currentTime = at; }, { once: true });
+      v.play().catch(() => {});
+    }, 10000);
+    return () => clearTimeout(t);
+  }, [ready, yt]);
+
   useEffect(() => {
     if (yt) return;
     const player = videoRef.current;
@@ -123,7 +145,8 @@ const VideoMode = ({ video, startAt, positionRef, onEnded }: Props) => {
             preload="auto"
             playsInline
             onClick={toggle}
-            onLoadedMetadata={(e) => { e.currentTarget.currentTime = start; setDur(e.currentTarget.duration); }}
+            onLoadedMetadata={(e) => { if (e.currentTarget.currentTime < 0.5) e.currentTarget.currentTime = start; setDur(e.currentTarget.duration); }}
+            onPlaying={() => setReady(true)}
             onCanPlay={(e) => { setReady(true); e.currentTarget.play().catch(() => setPlaying(false)); }}
             onWaiting={() => setReady(false)}
             onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}

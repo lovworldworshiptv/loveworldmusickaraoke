@@ -87,6 +87,7 @@ const ExpandedPlayer = () => {
   // --- 3-mode player (Song | Karaoke | Video) with seamless position transfer ---
   const [videos, setVideos] = useState<SongVideo[]>([]);
   const [videoMode, setVideoMode] = useState(false);
+  const [videosLoaded, setVideosLoaded] = useState(false);
   const [videoStart, setVideoStart] = useState(0);
   const videoPosRef = useRef<() => number>(() => 0);
   const mode: PlayerMode = videoMode ? "video" : isKaraoke ? "karaoke" : "song";
@@ -94,6 +95,7 @@ const ExpandedPlayer = () => {
   useEffect(() => {
     setVideoMode(false);
     setVideos([]);
+    setVideosLoaded(false);
     setMotionArtworkUrl(null);
     setMotionArtworkReady(false);
     setMotionArtworkFailed(false);
@@ -105,7 +107,8 @@ const ExpandedPlayer = () => {
         const order = ["official", "lyric", "live", "karaoke"];
         list.sort((a, b) => order.indexOf(a.video_type) - order.indexOf(b.video_type));
         setVideos(list);
-      });
+        setVideosLoaded(true);
+      }, () => setVideosLoaded(true));
     supabase.from("song_motion_artwork").select("video_url").eq("song_id", currentSong.id).eq("is_active", true).maybeSingle()
       .then(({ data }) => setMotionArtworkUrl(data?.video_url || null));
   }, [currentSong?.id]);
@@ -152,6 +155,14 @@ const ExpandedPlayer = () => {
       clearVideoModeRequest();
     }
   }, [videoModeRequest, videos, videoMode, switchMode, clearVideoModeRequest]);
+
+  // Next song in a video queue has no video: keep the session going with its audio.
+  useEffect(() => {
+    if (videoModeRequest && videosLoaded && videos.length === 0 && !videoMode) {
+      clearVideoModeRequest();
+      resumeAt(0);
+    }
+  }, [videoModeRequest, videosLoaded, videos, videoMode, clearVideoModeRequest, resumeAt]);
 
   // Honor a "sing this" request from the Moments feed: switch to Karaoke mode.
   useEffect(() => {
@@ -424,7 +435,8 @@ const ExpandedPlayer = () => {
             positionRef={videoPosRef}
             onEnded={() => {
               // Continuous Video mode: move to the next song and stay in Video mode.
-              if (queueIndex < queue.length - 1 || repeatMode === "all") { skipNext(); requestVideoMode(); }
+              // Load the next track paused so its audio never overlaps the video hand-off.
+              if (queueIndex < queue.length - 1 || repeatMode === "all") { requestVideoMode(); skipNext({ autoplay: false }); }
             }}
           />
         ) : !showLyrics ? (
