@@ -107,12 +107,8 @@ async def scenario(pw, name, viewport, with_player):
         if await play.count():
             await play.click()
             await page.wait_for_timeout(2500)
-        # Navigate in-app via the bottom nav / sidebar Discover button.
-        nav = page.locator("nav, aside").last
-        disc = nav.get_by_role("button", name="Discover")
-        if not await disc.count():
-            disc = page.get_by_role("button", name="Discover").first
-        await disc.first.click()
+        # Navigate in-app via the Discover nav button (keeps the player alive).
+        await page.get_by_role("button", name="Discover", exact=True).first.click()
         await page.wait_for_timeout(2500)
         mp = await page.evaluate(
             "() => !!document.querySelector('.fixed.left-2.right-2')"
