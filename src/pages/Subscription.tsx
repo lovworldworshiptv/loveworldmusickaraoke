@@ -1,3 +1,4 @@
+import { useFeatures } from "@/contexts/FeatureContext";
 import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,7 +54,8 @@ const Subscription = () => {
     supabase.from("referral_ledger").select("amount").eq("user_id", user.id)
       .then(({ data }) => setCreditBalance((data || []).reduce((s, r: any) => s + Number(r.amount), 0)));
   }, [user, successDialog]);
-  const creditApplied = chosenPlan && chosenPlan.amount > 0 ? Math.min(Math.max(creditBalance, 0), chosenPlan.amount) : 0;
+  const referralsOn = useFeatures().enabled("referrals");
+  const creditApplied = referralsOn && chosenPlan && chosenPlan.amount > 0 ? Math.min(Math.max(creditBalance, 0), chosenPlan.amount) : 0;
   const amountDue = chosenPlan ? Math.max(chosenPlan.amount - creditApplied, 0) : 0;
   const chosenGiftPlan = GIFT_PLANS.find(p => p.id === giftPlan);
   const giftTotalAmount = chosenGiftPlan ? chosenGiftPlan.amount * Math.max(selectedRecipients.length, 1) : 0;
