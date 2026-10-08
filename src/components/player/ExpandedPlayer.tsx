@@ -272,7 +272,7 @@ const ExpandedPlayer = () => {
       <div className="relative flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 flex-shrink-0 safe-top">
-          <button onClick={toggleExpanded} className="text-muted-foreground hover:text-foreground transition-colors p-1">
+          <button onClick={toggleExpanded} aria-label="Minimize player" className="text-white hover:text-white/80 transition-colors p-1">
             <ChevronDown className="w-7 h-7" />
           </button>
           <div className="text-center">
@@ -323,16 +323,16 @@ const ExpandedPlayer = () => {
             {currentSong && (
               <ShareTrackButton
                 track={{ id: currentSong.id, title: currentSong.title, artist: currentSong.artist, coverUrl: currentSong.coverUrl }}
-                className="text-muted-foreground hover:text-gold transition-colors p-1"
+                className="text-white hover:text-white/80 transition-colors p-1"
                 iconClassName="w-5 h-5"
               />
             )}
-            <button onClick={toggleFavorite} className={`transition-colors p-1 ${isFav ? "text-gold" : "text-muted-foreground hover:text-gold"}`}>
+            <button onClick={toggleFavorite} className={`transition-colors p-1 ${isFav ? "text-gold" : "text-white hover:text-white/80"}`}>
               <Heart className="w-5 h-5" fill={isFav ? "currentColor" : "none"} />
             </button>
             {/* Mobile: 3-dot menu */}
             {isMobile && (
-              <button onClick={() => setShowMobileMenu(true)} className="text-muted-foreground hover:text-foreground p-1">
+              <button onClick={() => setShowMobileMenu(true)} aria-label="More options" className="text-white hover:text-white/80 p-1">
                 <MoreVertical className="w-5 h-5" />
               </button>
             )}

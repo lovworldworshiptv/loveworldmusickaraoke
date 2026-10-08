@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity, AlertTriangle, BarChart3, BookOpen, CheckCircle2, Clock3, Crown,
-  Download, Gamepad2, Heart, MapPin, Mic2, Music, Play, RefreshCw, Users,
+  Download, Gamepad2, Share2, UserPlus, Heart, MapPin, Mic2, Music, Play, RefreshCw, Users,
 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import AppLayout from "@/components/layout/AppLayout";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { supabase } from "@/integrations/supabase/client";
+import { CHANNEL_LABELS } from "@/lib/acquisitionAnalytics";
 
 type Range = "7d" | "30d" | "all";
 type Song = {
@@ -55,6 +56,7 @@ const AdminAnalytics = () => {
         supabase.from("articles").select("id", { count: "exact", head: true }),
         supabase.from("game_sessions").select("user_id, score").limit(5000),
         supabase.from("analytics_events").select("event_data, created_at").eq("event_type", "create_menu_click").order("created_at", { ascending: false }).limit(5000),
+        supabase.from("analytics_events").select("event_type, event_data, created_at").in("event_type", ["share_click", "share_visit", "app_download_click", "referral_signup"]).order("created_at", { ascending: false }).limit(10000),
       ]);
       const failed = results.find((result) => result.error);
       if (failed?.error) throw failed.error;
@@ -64,6 +66,7 @@ const AdminAnalytics = () => {
         subscriptions: results[6].data ?? [], notifications: results[7].data ?? [], stems: results[8].data ?? [],
         articles: results[9].count ?? 0, games: results[10].data ?? [],
         createClicks: (results[11].data ?? []) as { event_data: any; created_at: string }[],
+        acquisition: (results[12].data ?? []) as { event_type: string; event_data: any; created_at: string }[],
       };
     },
   });
@@ -123,7 +126,20 @@ const AdminAnalytics = () => {
       const key = c.event_data?.option; if (key) createCounts[key] = (createCounts[key] ?? 0) + 1;
     });
     const createMenu = Object.entries(createCounts).map(([option, clicks]) => ({ option, clicks })).sort((a, b) => b.clicks - a.clicks);
-    return { createMenu, plays, contentRows, playDays: [...dayMap.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, value]) => value), profileDays: [...profileDays.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, users]) => ({ date: date.slice(5), users })), engaged, locations, subscriptions, expiring, issues, activeUsers, songMap };
+    const acq = data.acquisition.filter((e) => new Date(e.created_at).getTime() >= cutoff);
+    const chan = new Map<string, { channel: string; shares: number; visits: number; signups: number; downloads: number }>();
+    const slot = (c?: string) => { const k = c || "direct"; const v = chan.get(k) ?? { channel: CHANNEL_LABELS[k] ?? k, shares: 0, visits: 0, signups: 0, downloads: 0 }; chan.set(k, v); return v; };
+    const surfaces = new Map<string, number>();
+    acq.forEach((e) => {
+      if (e.event_type === "share_click") slot(e.event_data?.channel).shares++;
+      if (e.event_type === "share_visit") slot(e.event_data?.channel).visits++;
+      if (e.event_type === "referral_signup") slot(e.event_data?.channel).signups++;
+      if (e.event_type === "app_download_click") { slot(e.event_data?.source).downloads++; const k = `${e.event_data?.surface ?? "unknown"} · ${e.event_data?.platform ?? "web"}`; surfaces.set(k, (surfaces.get(k) ?? 0) + 1); }
+    });
+    const channels = [...chan.values()].sort((a, b) => b.signups - a.signups || b.shares - a.shares);
+    const acqTotals = channels.reduce((t, c) => ({ shares: t.shares + c.shares, visits: t.visits + c.visits, signups: t.signups + c.signups, downloads: t.downloads + c.downloads }), { shares: 0, visits: 0, signups: 0, downloads: 0 });
+    const downloadSurfaces = [...surfaces.entries()].map(([name, clicks]) => ({ name, clicks })).sort((a, b) => b.clicks - a.clicks);
+    return { channels, acqTotals, downloadSurfaces, createMenu, plays, contentRows, playDays: [...dayMap.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, value]) => value), profileDays: [...profileDays.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, users]) => ({ date: date.slice(5), users })), engaged, locations, subscriptions, expiring, issues, activeUsers, songMap };
   }, [data, range]);
 
   if (adminLoading) return <AppLayout><div className="p-6 text-center text-muted-foreground">Loading...</div></AppLayout>;
@@ -145,8 +161,8 @@ const AdminAnalytics = () => {
 
         {analytics.isLoading || !data || !model ? <div className="py-20 text-center text-muted-foreground">Loading live insights...</div> : analytics.error ? <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-destructive">Dashboard data could not be loaded.</div> : (
           <Tabs defaultValue="overview">
-            <TabsList className="mb-5 grid h-auto w-full grid-cols-4 overflow-x-auto">
-              <TabsTrigger value="overview">Overview</TabsTrigger><TabsTrigger value="content">Content</TabsTrigger><TabsTrigger value="audience">Audience</TabsTrigger><TabsTrigger value="operations">Operations</TabsTrigger>
+            <TabsList className="mb-5 grid h-auto w-full grid-cols-5 overflow-x-auto">
+              <TabsTrigger value="overview">Overview</TabsTrigger><TabsTrigger value="content">Content</TabsTrigger><TabsTrigger value="audience">Audience</TabsTrigger><TabsTrigger value="operations">Operations</TabsTrigger><TabsTrigger value="sharing">Sharing</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
@@ -179,6 +195,23 @@ const AdminAnalytics = () => {
                 <div className={panel}><h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground"><Crown className="h-4 w-4 text-gold" /> Subscription mix</h2><div className="space-y-4">{["premium", "trial", "free"].map((tier) => <div key={tier} className="flex items-center justify-between rounded-lg bg-muted/40 px-4 py-3"><span className="capitalize text-foreground">{tier}</span><span className="font-bold text-foreground">{model.subscriptions[tier] ?? 0}</span></div>)}</div></div>
               </div>
               <div className={panel}><h2 className="mb-4 font-semibold text-foreground">Most engaged listeners</h2>{model.engaged.length ? <div className="grid gap-2 sm:grid-cols-2">{model.engaged.map((person, index) => <div key={person.user_id ?? index} className="flex items-center gap-3 rounded-lg bg-muted/30 p-3"><span className="w-5 text-center text-xs font-bold text-gold">{index + 1}</span>{person.avatar_url ? <img src={person.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" /> : <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-bold">{person.username?.[0]?.toUpperCase() ?? "U"}</div>}<div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-foreground">{person.username ?? "Listener"}</p><p className="text-xs text-muted-foreground">{person.count} plays</p></div></div>)}</div> : empty("No listening activity in this period")}</div>
+            </TabsContent>
+
+            <TabsContent value="sharing" className="space-y-6">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <StatCard icon={Share2} label="Share taps" value={model.acqTotals.shares} sub={rangeLabel} />
+                <StatCard icon={Users} label="Visits from shares" value={model.acqTotals.visits} sub={rangeLabel} />
+                <StatCard icon={UserPlus} label="Referral sign-ups" value={model.acqTotals.signups} sub={model.acqTotals.shares ? `${Math.round(model.acqTotals.signups / model.acqTotals.shares * 100)}% of share taps` : rangeLabel} />
+                <StatCard icon={Download} label="App download taps" value={model.acqTotals.downloads} sub={rangeLabel} />
+              </div>
+              <div className={panel}>
+                <h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground"><Share2 className="h-4 w-4 text-gold" /> Channels bringing new users <span className="text-xs font-normal text-muted-foreground">({rangeLabel})</span></h2>
+                <div className="h-64">{model.channels.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={model.channels}><CartesianGrid stroke="hsl(var(--border))" vertical={false} /><XAxis dataKey="channel" stroke="hsl(var(--muted-foreground))" fontSize={11} /><YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} /><Tooltip contentStyle={tooltipStyle} /><Bar dataKey="shares" name="Share taps" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} /><Bar dataKey="visits" name="Visits" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} /><Bar dataKey="signups" name="Sign-ups" fill="hsl(var(--gold))" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer> : empty("No sharing activity in this period yet")}</div>
+              </div>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <div className={`${panel} overflow-hidden p-0`}><div className="border-b border-border p-4"><h2 className="font-semibold text-foreground">Channel breakdown</h2></div><div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-muted/40 text-left text-xs text-muted-foreground"><tr><th className="px-4 py-3">Channel</th><th className="px-3 py-3 text-right">Shares</th><th className="px-3 py-3 text-right">Visits</th><th className="px-3 py-3 text-right">Sign-ups</th><th className="px-4 py-3 text-right">Downloads</th></tr></thead><tbody>{model.channels.map((c) => <tr key={c.channel} className="border-t border-border/70"><td className="px-4 py-3 text-foreground">{c.channel}</td><td className="px-3 py-3 text-right tabular-nums">{c.shares}</td><td className="px-3 py-3 text-right tabular-nums">{c.visits}</td><td className="px-3 py-3 text-right tabular-nums">{c.signups}</td><td className="px-4 py-3 text-right tabular-nums">{c.downloads}</td></tr>)}</tbody></table>{!model.channels.length && empty("Nothing yet")}</div></div>
+                <div className={panel}><h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground"><Download className="h-4 w-4 text-gold" /> Where app downloads start</h2>{model.downloadSurfaces.length ? <div className="space-y-2">{model.downloadSurfaces.map((d) => <div key={d.name} className="flex items-center justify-between rounded-lg bg-muted/40 px-4 py-3 text-sm"><span className="capitalize text-foreground">{d.name.replace("_", " ")}</span><span className="font-bold text-foreground">{d.clicks}</span></div>)}</div> : empty("No download taps in this period yet")}</div>
+              </div>
             </TabsContent>
 
             <TabsContent value="operations" className="space-y-6">
