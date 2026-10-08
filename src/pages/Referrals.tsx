@@ -63,7 +63,7 @@ const Referrals = () => {
   };
   const share = async () => {
     if (navigator.share) {
-      try { await navigator.share({ title: "Join Loveworld Music Karaoke+", url: link }); } catch { /* cancelled */ }
+      try { await navigator.share({ title: "Join Loveworld Music Karaoke+", text: "Join me on Loveworld Music Karaoke+!\n\nGet the app: https://web.lwappstore.com/share/lW-APP-Y26-XX5010", url: link }); } catch { /* cancelled */ }
     } else copy();
   };
 

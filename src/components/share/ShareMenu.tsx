@@ -3,6 +3,7 @@ import { Share2, Mail, Copy, Check } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { nativeShare, openExternal, isMedianApp } from "@/lib/median";
+import { APP_DOWNLOAD_URL } from "@/components/share/AppDownloadPrompt";
 import kingschatLogo from "@/assets/kingschat_logo.png";
 
 interface ShareMenuProps {
@@ -45,7 +46,7 @@ export function buildShareUrl(path: string) {
 const ShareMenu = ({ url, title, text, imageUrl, kingschatFirst = false, trigger }: ShareMenuProps) => {
   const [copied, setCopied] = useState(false);
 
-  const shareText = text || title;
+  const shareText = `${text || title}\n\nGet the app: ${APP_DOWNLOAD_URL}`;
   const encodedText = encodeURIComponent(shareText);
   const encodedUrl = encodeURIComponent(url);
   const emailSubject = encodeURIComponent(title);
