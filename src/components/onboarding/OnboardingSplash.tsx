@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { logOnboarding } from "@/lib/onboardingAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronRight } from "lucide-react";
 import logoFull from "@/assets/logo-full.png";
@@ -39,6 +40,22 @@ const OnboardingSplash = ({ onComplete }: OnboardingSplashProps) => {
       });
   }, []);
 
+  const finishedRef = useRef(false);
+  useEffect(() => {
+    if (screens.length === 0) return;
+    logOnboarding("onboarding_view", { index: current, screenId: screens[current]?.id, total: screens.length });
+  }, [current, screens]);
+  useEffect(() => {
+    if (screens.length === 0) return;
+    const onLeave = () => {
+      if (!finishedRef.current) logOnboarding("onboarding_leave", { index: currentRef.current, total: screens.length });
+    };
+    window.addEventListener("pagehide", onLeave);
+    return () => window.removeEventListener("pagehide", onLeave);
+  }, [screens]);
+  const currentRef = useRef(0);
+  currentRef.current = current;
+
   const goTo = useCallback(
     (index: number) => {
       if (animating || index === current) return;
@@ -56,11 +73,17 @@ const OnboardingSplash = ({ onComplete }: OnboardingSplashProps) => {
     if (current < screens.length - 1) {
       goTo(current + 1);
     } else {
+      finishedRef.current = true;
+      logOnboarding("onboarding_complete", { index: current, screenId: screens[current]?.id, total: screens.length });
       onComplete();
     }
   };
 
-  const handleSkip = () => onComplete();
+  const handleSkip = () => {
+    finishedRef.current = true;
+    logOnboarding("onboarding_skip", { index: current, screenId: screens[current]?.id, total: screens.length });
+    onComplete();
+  };
 
   if (screens.length === 0) return null;
 
