@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { FeatureProvider, FeatureRouteGate } from "@/contexts/FeatureContext";
 import { PlayerProvider } from "@/contexts/PlayerContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import AdminRouteGate from "@/components/auth/AdminRouteGate";
 import AuthGate from "@/components/auth/AuthGate";
 import OfflineBanner from "@/components/offline/OfflineBanner";
 import Index from "./pages/Index";
@@ -104,7 +105,7 @@ const App = () => (
                 <Route path="/games/challenge/enter" element={<AuthGate><ChallengeEntry /></AuthGate>} />
                 <Route path="/games/challenge/referrals" element={<AuthGate><ChallengeReferrals /></AuthGate>} />
                 <Route path="/smchallenge" element={<Challenge />} />
-                <Route path="/admin/challenges" element={<AuthGate><AdminChallenges /></AuthGate>} />
+                <Route path="/admin/challenges" element={<AdminRouteGate><AdminChallenges /></AdminRouteGate>} />
                 <Route path="/articles" element={<AuthGate><Articles /></AuthGate>} />
                 <Route path="/profile" element={<AuthGate><Profile /></AuthGate>} />
                 <Route path="/user/:userId" element={<PublicProfile />} />
@@ -128,26 +129,26 @@ const App = () => (
                 <Route path="/category/:id" element={<AuthGate><CategorySongs /></AuthGate>} />
                 <Route path="/subscription" element={<AuthGate><Subscription /></AuthGate>} />
                 <Route path="/reminders" element={<AuthGate><Reminders /></AuthGate>} />
-                <Route path="/admin/songs" element={<AuthGate><AdminSongs /></AuthGate>} />
-                <Route path="/admin/albums" element={<AuthGate><AdminAlbums /></AuthGate>} />
-                <Route path="/admin/articles" element={<AuthGate><AdminArticles /></AuthGate>} />
-                <Route path="/admin/categories" element={<AuthGate><AdminCategories /></AuthGate>} />
-                <Route path="/admin/playlists" element={<AuthGate><AdminPlaylists /></AuthGate>} />
-                <Route path="/admin/banners" element={<AuthGate><AdminBanners /></AuthGate>} />
-                <Route path="/admin/games" element={<AuthGate><AdminGames /></AuthGate>} />
-                <Route path="/admin/feedback" element={<AuthGate><AdminFeedback /></AuthGate>} />
-                <Route path="/admin/onboarding" element={<AuthGate><AdminOnboarding /></AuthGate>} />
-                <Route path="/admin/premium-ads" element={<AuthGate><AdminPremiumAds /></AuthGate>} />
-                <Route path="/admin/users" element={<AuthGate><AdminUsers /></AuthGate>} />
-                <Route path="/admin/analytics" element={<AuthGate><AdminAnalytics /></AuthGate>} />
-                <Route path="/admin/popup" element={<AuthGate><AdminPopup /></AuthGate>} />
-                <Route path="/admin/notifications" element={<AuthGate><AdminNotifications /></AuthGate>} />
-                <Route path="/admin/subscriptions" element={<AuthGate><AdminSubscriptions /></AuthGate>} />
-                <Route path="/admin/referral-payouts" element={<AuthGate><AdminReferralPayouts /></AuthGate>} />
+                <Route path="/admin/songs" element={<AdminRouteGate allowEditor><AdminSongs /></AdminRouteGate>} />
+                <Route path="/admin/albums" element={<AdminRouteGate><AdminAlbums /></AdminRouteGate>} />
+                <Route path="/admin/articles" element={<AdminRouteGate><AdminArticles /></AdminRouteGate>} />
+                <Route path="/admin/categories" element={<AdminRouteGate><AdminCategories /></AdminRouteGate>} />
+                <Route path="/admin/playlists" element={<AdminRouteGate><AdminPlaylists /></AdminRouteGate>} />
+                <Route path="/admin/banners" element={<AdminRouteGate><AdminBanners /></AdminRouteGate>} />
+                <Route path="/admin/games" element={<AdminRouteGate><AdminGames /></AdminRouteGate>} />
+                <Route path="/admin/feedback" element={<AdminRouteGate><AdminFeedback /></AdminRouteGate>} />
+                <Route path="/admin/onboarding" element={<AdminRouteGate><AdminOnboarding /></AdminRouteGate>} />
+                <Route path="/admin/premium-ads" element={<AdminRouteGate><AdminPremiumAds /></AdminRouteGate>} />
+                <Route path="/admin/users" element={<AdminRouteGate><AdminUsers /></AdminRouteGate>} />
+                <Route path="/admin/analytics" element={<AdminRouteGate><AdminAnalytics /></AdminRouteGate>} />
+                <Route path="/admin/popup" element={<AdminRouteGate><AdminPopup /></AdminRouteGate>} />
+                <Route path="/admin/notifications" element={<AdminRouteGate><AdminNotifications /></AdminRouteGate>} />
+                <Route path="/admin/subscriptions" element={<AdminRouteGate><AdminSubscriptions /></AdminRouteGate>} />
+                <Route path="/admin/referral-payouts" element={<AdminRouteGate><AdminReferralPayouts /></AdminRouteGate>} />
                 <Route path="/referrals" element={<AuthGate><Referrals /></AuthGate>} />
-                <Route path="/admin/karaoke-stories" element={<AuthGate><AdminKaraokeStories /></AuthGate>} />
-                <Route path="/admin/appearance" element={<AuthGate><AdminAppearance /></AuthGate>} />
-                <Route path="/admin/discover" element={<AuthGate><AdminDiscover /></AuthGate>} />
+                <Route path="/admin/karaoke-stories" element={<AdminRouteGate><AdminKaraokeStories /></AdminRouteGate>} />
+                <Route path="/admin/appearance" element={<AdminRouteGate><AdminAppearance /></AdminRouteGate>} />
+                <Route path="/admin/discover" element={<AdminRouteGate allowEditor><AdminDiscover /></AdminRouteGate>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </FeatureRouteGate>
