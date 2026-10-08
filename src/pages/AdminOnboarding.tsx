@@ -16,6 +16,7 @@ const PRESETS = [
 ];
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import OnboardingInsights from "@/components/admin/OnboardingInsights";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
 
 interface Screen {
@@ -166,6 +167,8 @@ const AdminOnboarding = () => {
           </div>
           </div>
         )}
+
+        <OnboardingInsights titles={screens.filter((x) => x.is_active).map((x) => x.title)} />
 
         {loading ? (
           <p className="text-muted-foreground text-sm">Loading...</p>
