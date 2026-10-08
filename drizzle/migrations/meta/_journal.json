@@ -120,6 +120,13 @@
       "when": 1791490000000,
       "tag": "0016_acquisition_analytics",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791483994485,
+      "tag": "0017_handle_new_user_avatar",
+      "breakpoints": true
     }
   ]
 }
