@@ -134,6 +134,13 @@
       "when": 1791487500130,
       "tag": "0018_strict_role_guards",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791487519095,
+      "tag": "0019_editor_guard_allow_counters",
+      "breakpoints": true
     }
   ]
 }
