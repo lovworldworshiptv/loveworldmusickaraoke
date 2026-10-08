@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { buildInviteUrl, PAYOUT_MIN_ESPEES } from "@/lib/platformReferral";
+import { logShareClick, tagShareUrl } from "@/lib/acquisitionAnalytics";
 
 const fmt = (n: number) => `${Number(n || 0).toFixed(2)} ESP`;
 
@@ -58,12 +59,14 @@ const Referrals = () => {
 
   const copy = async () => {
     if (!link) return;
-    await navigator.clipboard.writeText(link);
+    logShareClick("copy", link);
+    await navigator.clipboard.writeText(tagShareUrl(link, "copy"));
     toast.success("Invite link copied");
   };
   const share = async () => {
     if (navigator.share) {
-      try { await navigator.share({ title: "Join Loveworld Music Karaoke+", text: "Join me on Loveworld Music Karaoke+!\n\nGet the app: https://web.lwappstore.com/share/lW-APP-Y26-XX5010", url: link }); } catch { /* cancelled */ }
+      logShareClick("native", link);
+      try { await navigator.share({ title: "Join Loveworld Music Karaoke+", text: "Join me on Loveworld Music Karaoke+!\n\nGet the app: https://web.lwappstore.com/share/lW-APP-Y26-XX5010", url: tagShareUrl(link, "native") }); } catch { /* cancelled */ }
     } else copy();
   };
 
