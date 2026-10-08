@@ -21,7 +21,10 @@ export const claimStoredInvite = async () => {
   try { code = localStorage.getItem(KEY); } catch { return; }
   if (!code) return;
   const { error } = await supabase.rpc("claim_platform_referral", { p_code: code });
-  if (!error) { try { localStorage.removeItem(KEY); } catch { /* ignore */ } }
+  if (!error) {
+    try { localStorage.removeItem(KEY); } catch { /* ignore */ }
+    if (data !== false) logReferralSignup(code);
+  }
 };
 
 export const PAYOUT_MIN_ESPEES = 5;
