@@ -484,11 +484,12 @@ Deno.serve(async (req) => {
     // Update profile
     // -----------------------------------------------------------
 
+    // Never wipe an existing avatar when the profile fetch fails or returns none.
     await supabase
       .from("profiles")
       .update({
         username: kcUsername,
-        avatar_url: kcAvatar,
+        ...(kcAvatar ? { avatar_url: kcAvatar } : {}),
         kingschat_handle: kcHandle,
         updated_at:
           new Date().toISOString()

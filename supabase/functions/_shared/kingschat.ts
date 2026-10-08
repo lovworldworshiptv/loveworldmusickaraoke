@@ -96,27 +96,42 @@ export function safeInternalPath(value: unknown): string {
   return value;
 }
 
-function parseProtobufProfile(buffer: ArrayBuffer) {
+/** Read a protobuf varint at `pos`; returns [value, bytesUsed] or null. */
+function readVarint(bytes: Uint8Array, pos: number): [number, number] | null {
+  let value = 0, shift = 0, used = 0;
+  while (pos + used < bytes.length && used < 5) {
+    const b = bytes[pos + used++];
+    value += (b & 0x7f) * 2 ** shift;
+    if ((b & 0x80) === 0) return [value, used];
+    shift += 7;
+  }
+  return null;
+}
+
+const IMAGE_URL = /^https?:\/\/[^\s]+$/i;
+const looksLikeAvatar = (s: string) =>
+  IMAGE_URL.test(s) && (/\.(webp|jpe?g|png|gif)(\?|$)/i.test(s) || /\/uploads\/|\/media\/|\/avatars?\//i.test(s) || /^https?:\/\/cdn/i.test(s));
+
+export function parseProtobufProfile(buffer: ArrayBuffer) {
   const bytes = new Uint8Array(buffer);
+  const decoder = new TextDecoder("utf-8", { fatal: true });
   const strings: string[] = [];
-  let i = 0;
-  while (i < bytes.length) {
-    const tag = bytes[i];
-    if ((tag & 0x07) === 2 && i + 1 < bytes.length) {
-      const len = bytes[i + 1];
-      if (len > 0 && len < 255 && i + 2 + len <= bytes.length) {
-        try {
-          const str = new TextDecoder().decode(bytes.slice(i + 2, i + 2 + len));
-          if (str.length > 1 && /^[\x20-\x7E\u00A0-\uFFFF]+$/.test(str)) strings.push(str);
-        } catch { /* skip */ }
-      }
-    }
-    i++;
+  for (let i = 0; i < bytes.length; i++) {
+    if ((bytes[i] & 0x07) !== 2) continue;
+    const v = readVarint(bytes, i + 1);
+    if (!v) continue;
+    const [len, used] = v;
+    const start = i + 1 + used;
+    if (len < 2 || len > 4096 || start + len > bytes.length) continue;
+    try {
+      const str = decoder.decode(bytes.subarray(start, start + len));
+      if (/^[\x20-\x7E\u00A0-\uFFFF]+$/.test(str)) strings.push(str);
+    } catch { /* not text */ }
   }
   let userId = "", displayName = "", username = "";
   let avatarUrl: string | null = null;
   for (const s of strings) {
-    if (/^https?:\/\/cdn/.test(s)) avatarUrl = s;
+    if (looksLikeAvatar(s)) { if (!avatarUrl || s.length > avatarUrl.length) avatarUrl = s; }
     else if (/^[a-f0-9]{24}$/.test(s)) userId = s;
     else if (!displayName && s.length > 2 && s.includes(" ") && !s.includes("|") && !s.includes("/")) displayName = s;
     else if (!username && /^[a-zA-Z0-9_]{2,30}$/.test(s) && s !== userId) username = s;
