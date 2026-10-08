@@ -38,3 +38,6 @@
 - [x] Desktop mini player docked to the screen bottom, collapsible sidebar, and matching volume progress styling
 - [x] Global playlist card background → RGB(228,46,10) (#e42e0a default) — done, build OK
 - [x] Play icon inside every circle on every home playlist card → white (verified rgb(255,255,255) on home)
+- [ ] Onboarding analytics (screen views, completion, skip/leave points) in admin
+- [ ] Verify referral invite link + its share link
+- [ ] Check all share icons; prompt web visitors to download the app (LW App Store link)
