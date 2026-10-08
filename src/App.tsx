@@ -66,6 +66,7 @@ import AdminAppearance from "./pages/AdminAppearance";
 import AdminDiscover from "./pages/AdminDiscover";
 import DiscoverTag from "./pages/DiscoverTag";
 import DiscoverCollection from "./pages/DiscoverCollection";
+import AppDownloadPrompt from "@/components/share/AppDownloadPrompt";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +77,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <OfflineBanner />
+        <AppDownloadPrompt />
         <BrowserRouter>
           <AuthProvider>
             <FeatureProvider>
