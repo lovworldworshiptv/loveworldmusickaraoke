@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 import { isMedianApp } from "@/lib/median";
+import { logAppDownloadClick } from "@/lib/acquisitionAnalytics";
 
 export const APP_DOWNLOAD_URL = "https://web.lwappstore.com/share/lW-APP-Y26-XX5010";
 const DISMISS_KEY = "lw_app_prompt_dismissed_at";
@@ -38,7 +39,7 @@ const AppDownloadPrompt = () => {
         <p className="text-sm font-semibold text-foreground">Get the Loveworld Music Karaoke+ app</p>
         <p className="text-xs text-muted-foreground">Smoother playback, offline songs and alerts.</p>
       </div>
-      <a href={APP_DOWNLOAD_URL} target="_blank" rel="noopener noreferrer" onClick={dismiss}
+      <a href={APP_DOWNLOAD_URL} target="_blank" rel="noopener noreferrer" onClick={() => { logAppDownloadClick("download_banner"); dismiss(); }}
         className="px-3 py-1.5 rounded-full gradient-gold text-primary-foreground text-xs font-semibold">Download</a>
       <button onClick={dismiss} aria-label="Close" className="p-1 text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
     </div>

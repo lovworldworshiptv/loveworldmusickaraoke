@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { nativeShare, openExternal, isMedianApp } from "@/lib/median";
 import { APP_DOWNLOAD_URL } from "@/components/share/AppDownloadPrompt";
 import kingschatLogo from "@/assets/kingschat_logo.png";
+import { logShareClick, tagShareUrl, type ShareChannel } from "@/lib/acquisitionAnalytics";
 
 interface ShareMenuProps {
   url: string;
@@ -48,46 +49,40 @@ const ShareMenu = ({ url, title, text, imageUrl, kingschatFirst = false, trigger
 
   const shareText = `${text || title}\n\nGet the app: ${APP_DOWNLOAD_URL}`;
   const encodedText = encodeURIComponent(shareText);
-  const encodedUrl = encodeURIComponent(url);
   const emailSubject = encodeURIComponent(title);
-  const emailBody = encodeURIComponent(`${shareText}\n\n${url}`);
+  /** Each channel gets its own tagged link so admins can see which channel brings people in. */
+  const link = (channel: ShareChannel) => { logShareClick(channel, url); return tagShareUrl(url, channel); };
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(url);
+    await navigator.clipboard.writeText(link("copy"));
     setCopied(true);
     toast.success("Link copied!");
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const open = (link: string) => {
+  const open = (target: string) => {
     if (isMedianApp()) {
-      openExternal(link);
+      openExternal(target);
     } else {
-      window.open(link, "_blank", "noopener,noreferrer");
+      window.open(target, "_blank", "noopener,noreferrer");
     }
   };
 
-  const handleKingsChat = () => open(`https://kingschat.online/?share=${encodedUrl}&text=${encodedText}`);
-  const handleWhatsApp = () => open(`https://wa.me/?text=${encodedText}%0A${encodedUrl}`);
-  const handleTwitter = () => {
-    // X/Twitter doesn't support image in intent, but text + url works
-    open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`);
-  };
-  const handleFacebook = () => {
-    // Facebook uses OG tags from the URL; we pass the URL
-    open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`);
-  };
+  const handleKingsChat = () => open(`https://kingschat.online/?share=${encodeURIComponent(link("kingschat"))}&text=${encodedText}`);
+  const handleWhatsApp = () => open(`https://wa.me/?text=${encodedText}%0A${encodeURIComponent(link("whatsapp"))}`);
+  const handleTwitter = () => open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodeURIComponent(link("x"))}`);
+  const handleFacebook = () => open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link("facebook"))}`);
   const handleEmail = () => {
-    const body = imageUrl
-      ? encodeURIComponent(`${shareText}\n\n${url}\n\n${imageUrl}`)
-      : emailBody;
+    const shared = link("email");
+    const body = encodeURIComponent(imageUrl ? `${shareText}\n\n${shared}\n\n${imageUrl}` : `${shareText}\n\n${shared}`);
     open(`mailto:?subject=${emailSubject}&body=${body}`);
   };
 
   const handleNative = () => {
-    if (nativeShare(url, shareText)) return;
+    const shared = link("native");
+    if (nativeShare(shared, shareText)) return;
     if (navigator.share) {
-      navigator.share({ title, text: shareText, url }).catch(() => {});
+      navigator.share({ title, text: shareText, url: shared }).catch(() => {});
     }
   };
 
