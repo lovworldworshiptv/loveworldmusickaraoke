@@ -127,6 +127,13 @@
       "when": 1791483994485,
       "tag": "0017_handle_new_user_avatar",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791487500130,
+      "tag": "0018_strict_role_guards",
+      "breakpoints": true
     }
   ]
 }
