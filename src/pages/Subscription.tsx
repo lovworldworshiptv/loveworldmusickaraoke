@@ -47,6 +47,14 @@ const Subscription = () => {
   const [searching, setSearching] = useState(false);
 
   const chosenPlan = PLANS.find(p => p.id === selectedPlan);
+  const [creditBalance, setCreditBalance] = useState(0);
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("referral_ledger").select("amount").eq("user_id", user.id)
+      .then(({ data }) => setCreditBalance((data || []).reduce((s, r: any) => s + Number(r.amount), 0)));
+  }, [user, successDialog]);
+  const creditApplied = chosenPlan && chosenPlan.amount > 0 ? Math.min(Math.max(creditBalance, 0), chosenPlan.amount) : 0;
+  const amountDue = chosenPlan ? Math.max(chosenPlan.amount - creditApplied, 0) : 0;
   const chosenGiftPlan = GIFT_PLANS.find(p => p.id === giftPlan);
   const giftTotalAmount = chosenGiftPlan ? chosenGiftPlan.amount * Math.max(selectedRecipients.length, 1) : 0;
 
@@ -108,7 +116,7 @@ const Subscription = () => {
       return;
     }
 
-    if (!proofFile) { toast.error("Please upload proof of payment"); return; }
+    if (amountDue > 0 && !proofFile) { toast.error("Please upload proof of payment"); return; }
     if (!subFullName.trim()) { toast.error("Please enter your full name"); return; }
 
     setSubmitting(true);
@@ -116,13 +124,11 @@ const Subscription = () => {
       let proofUrl = "";
       if (proofFile) proofUrl = await uploadProof(proofFile);
 
-      const { error } = await supabase.from("subscription_requests").insert({
-        user_id: user.id,
-        full_name: subFullName.trim(),
-        kingschat_username: subKcUsername.trim() || null,
-        plan: selectedPlan,
-        amount: chosenPlan?.amount || 0,
-        proof_url: proofUrl || null,
+      const { error } = await supabase.rpc("request_subscription_with_credit", {
+        p_plan: selectedPlan,
+        p_full_name: subFullName.trim(),
+        p_kingschat: subKcUsername.trim() || null,
+        p_proof_url: proofUrl || null,
       });
       if (error) throw error;
 
