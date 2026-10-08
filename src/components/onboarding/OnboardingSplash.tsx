@@ -13,6 +13,7 @@ interface Screen {
   title: string;
   subtitle: string | null;
   description: string | null;
+  badge?: string | null;
   image_url: string | null;
   sort_order: number;
 }
@@ -130,6 +131,11 @@ const OnboardingSplash = ({ onComplete }: OnboardingSplashProps) => {
               : "translate-x-0 opacity-100"
           }`}
         >
+          {screen.badge && (
+            <span className="inline-block mb-3 px-3 py-1 rounded-full border border-gold/40 bg-background/40 backdrop-blur-md text-gold text-[11px] font-semibold tracking-[0.18em] uppercase">
+              {screen.badge}
+            </span>
+          )}
           {screen.subtitle && (
             <p className="text-gold font-medium text-sm mb-2 tracking-wider uppercase">
               {screen.subtitle}
