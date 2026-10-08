@@ -10,6 +10,7 @@ export const FEATURES = [
   { id: "myKaraoke", key: "my_karaoke_visible", label: "My Karaoke", group: "Experiences" },
   { id: "moments", key: "moments_enabled", label: "Moments", group: "Experiences" },
   { id: "studio", key: "studio_enabled", label: "My Studio", group: "Experiences" },
+  { id: "referrals", key: "referrals_enabled", label: "Referrals & commissions", group: "Experiences" },
   { id: "reminders", key: "reminders_enabled", label: "Prayer & study reminders", group: "Experiences" },
   { id: "games", key: "games_enabled", label: "Games & challenges", group: "Explore" },
   { id: "articles", key: "articles_enabled", label: "Articles", group: "Explore" },
@@ -36,7 +37,7 @@ export function featureForPath(path: string): FeatureId | undefined {
   return ({ community: "community", stage: "stage", videos: "video", moments: "moments",
     studio: "studio", reminders: "reminders", games: "games", smchallenge: "games",
     articles: "articles", playlists: "playlists", collection: "playlists", albums: "albums",
-    discover: "discover" } as Record<string, FeatureId>)[prefix];
+    discover: "discover", referrals: "referrals" } as Record<string, FeatureId>)[prefix];
 }
 
 export const HOME_FEATURES: Record<string, FeatureId> = {
