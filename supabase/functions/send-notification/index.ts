@@ -77,22 +77,29 @@ Deno.serve(async (req) => {
     if (segment === "direct" && target_user_ids && target_user_ids.length > 0) {
       targetIds = target_user_ids;
     } else {
-      let userQuery = supabaseAdmin.from("user_subscriptions").select("user_id");
-      if (segment === "free") {
-        userQuery = userQuery.eq("subscription", "free");
-      } else if (segment === "premium") {
-        userQuery = userQuery.eq("subscription", "premium");
+      // Page through every account (default API limit is 1000 rows).
+      const PAGE = 1000;
+      for (let from = 0; ; from += PAGE) {
+        let q: any = segment === "all"
+          ? supabaseAdmin.from("profiles").select("user_id")
+          : supabaseAdmin.from("user_subscriptions").select("user_id")
+              .eq("subscription", segment === "premium" ? "premium" : "free");
+        const { data: users, error } = await q.order("user_id").range(from, from + PAGE - 1);
+        if (error) { console.error("Target lookup error:", error); break; }
+        targetIds.push(...(users || []).map((u: any) => u.user_id));
+        if (!users || users.length < PAGE) break;
       }
-      const { data: users } = await userQuery;
-      targetIds = (users || []).map((u: any) => u.user_id);
     }
 
-    if (targetIds.length > 0) {
-      const records = targetIds.map((uid: string) => ({
+    targetIds = Array.from(new Set(targetIds.filter(Boolean)));
+    for (let i = 0; i < targetIds.length; i += 500) {
+      const records = targetIds.slice(i, i + 500).map((uid: string) => ({
         user_id: uid,
         notification_id: notification.id,
       }));
-      await supabaseAdmin.from("user_notifications").insert(records);
+      const { error: unErr } = await supabaseAdmin.from("user_notifications")
+        .upsert(records, { onConflict: "user_id,notification_id", ignoreDuplicates: true });
+      if (unErr) console.error("user_notifications insert error:", unErr);
     }
 
     // 3. Send via OneSignal
