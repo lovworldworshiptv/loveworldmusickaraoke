@@ -41,3 +41,5 @@
 - [x] Onboarding analytics (screen views, completion, skip/leave points) in admin
 - [x] Verify referral invite link + its share link
 - [x] (prompt + app link done; icon clicks not browser-verified) Check all share icons; prompt web visitors to download the app (LW App Store link)
+- [x] Full player top icons (share, like, minimize, 3 dots) white
+- [x] Sharing analytics: share taps per channel, visits from shared links, referral sign-ups by channel, app download taps — Admin → Analytics → Sharing
