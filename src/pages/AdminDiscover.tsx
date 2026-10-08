@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { ArrowDown, ArrowUp, Eye, EyeOff, Plus, Save, Trash2, AlertTriangle } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, EyeOff, Plus, Save, Trash2, AlertTriangle, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,6 +76,11 @@ const AdminDiscover = () => {
   const [editCat, setEditCat] = useState<DiscoverCategory | null>(null);
   const [editFeat, setEditFeat] = useState<DiscoverFeatured | null>(null);
 
+  const openEditor = (fn: () => void) => {
+    fn();
+    setTimeout(() => document.getElementById("discover-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
+
   const load = async () => {
     const [c, f] = await Promise.all([
       db.from("discover_categories").select("*").order("sort_order"),
@@ -144,16 +149,17 @@ const AdminDiscover = () => {
         {tab === "categories" && (
           <div className="grid lg:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <button onClick={() => setEditCat({ id: "", title: "", subtitle: "", route: "/", gradient_from: "#1d4ed8", gradient_via: null, gradient_to: "#0b1437", text_color: "#FFFFFF", image_url: null, image_alt: "", is_hero: false, is_visible: true, sort_order: 0 })}
+              <button onClick={() => openEditor(() => setEditCat({ id: "", title: "", subtitle: "", route: "/", gradient_from: "#1d4ed8", gradient_via: null, gradient_to: "#0b1437", text_color: "#FFFFFF", image_url: null, image_alt: "", is_hero: false, is_visible: true, sort_order: 0 }))}
                 className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-dashed border-gold/50 text-sm"><Plus className="w-4 h-4" /> Add category</button>
               {cats.map((c, i) => (
                 <div key={c.id} className={`glass-card p-3 flex items-center gap-3 ${editCat?.id === c.id ? "ring-2 ring-gold" : ""}`}>
                   <div className="w-8 h-8 rounded-lg flex-shrink-0" style={{ background: c.gradient_from }} />
-                  <button onClick={() => setEditCat(c)} className="flex-1 text-left min-w-0">
+                  <button onClick={() => openEditor(() => setEditCat({ ...c }))} className="flex-1 text-left min-w-0">
                     <p className="text-sm font-semibold truncate">{c.title} {c.is_hero && <span className="text-[10px] text-gold">HERO</span>}</p>
                     <p className="text-xs truncate opacity-80">{c.route}</p>
                   </button>
                   {c.is_visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4 opacity-50" />}
+                  <button aria-label="Edit category" title="Edit" onClick={() => openEditor(() => setEditCat({ ...c }))} className="p-1 rounded-md hover:bg-muted"><Pencil className="w-4 h-4 text-gold" /></button>
                   <button aria-label="Move up" onClick={() => move("discover_categories", cats, i, -1)}><ArrowUp className="w-4 h-4" /></button>
                   <button aria-label="Move down" onClick={() => move("discover_categories", cats, i, 1)}><ArrowDown className="w-4 h-4" /></button>
                   <button aria-label="Delete" onClick={() => remove("discover_categories", c.id)}><Trash2 className="w-4 h-4 text-destructive" /></button>
@@ -162,7 +168,8 @@ const AdminDiscover = () => {
             </div>
 
             {editCat && (
-              <div className="glass-card p-4 space-y-3">
+              <div id="discover-editor" className="glass-card p-4 space-y-3 scroll-mt-20">
+                <h2 className="text-lg font-semibold">{editCat.id ? `Editing: ${editCat.title || "category"}` : "New category"}</h2>
                 <p className="text-xs uppercase tracking-wider text-gold">Live preview</p>
                 <div className="max-w-xs"><CategoryTile c={editCat} preview /></div>
                 <Field label="Title"><input className={input} maxLength={40} value={editCat.title} onChange={(e) => setEditCat({ ...editCat, title: e.target.value })} /></Field>
@@ -186,7 +193,7 @@ const AdminDiscover = () => {
                   <label className="flex items-center gap-2"><input type="checkbox" checked={editCat.is_visible} onChange={(e) => setEditCat({ ...editCat, is_visible: e.target.checked })} /> Visible</label>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={saveCat} className="flex items-center gap-1 px-4 py-2 rounded-lg gradient-gold text-sm"><Save className="w-4 h-4" /> Save</button>
+                  <button onClick={saveCat} className="flex items-center gap-1 px-4 py-2 rounded-lg gradient-gold text-sm"><Save className="w-4 h-4" /> {"Save changes"}</button>
                   <button onClick={() => setEditCat(null)} className="px-4 py-2 rounded-lg bg-muted text-sm">Cancel</button>
                 </div>
               </div>
@@ -197,15 +204,16 @@ const AdminDiscover = () => {
         {tab === "featured" && (
           <div className="grid lg:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <button onClick={() => setEditFeat({ id: "", label: "#", media_type: "image", image_url: null, video_url: null, poster_url: null, href: null, is_active: true, starts_at: null, ends_at: null, sort_order: 0, song_ids: [], description: "" })}
+              <button onClick={() => openEditor(() => setEditFeat({ id: "", label: "#", media_type: "image", image_url: null, video_url: null, poster_url: null, href: null, is_active: true, starts_at: null, ends_at: null, sort_order: 0, song_ids: [], description: "" }))}
                 className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-dashed border-gold/50 text-sm"><Plus className="w-4 h-4" /> Add featured item</button>
               {feat.map((f, i) => (
                 <div key={f.id} className={`glass-card p-3 flex items-center gap-3 ${editFeat?.id === f.id ? "ring-2 ring-gold" : ""}`}>
-                  <button onClick={() => setEditFeat(f)} className="flex-1 text-left min-w-0">
+                  <button onClick={() => openEditor(() => setEditFeat({ ...f, song_ids: f.song_ids || [] }))} className="flex-1 text-left min-w-0">
                     <p className="text-sm font-semibold truncate">{f.label}</p>
                     <p className="text-xs opacity-80">{f.media_type}{f.ends_at ? ` · ends ${new Date(f.ends_at).toLocaleDateString()}` : ""}</p>
                   </button>
                   {f.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4 opacity-50" />}
+                  <button aria-label="Edit featured item" title="Edit" onClick={() => openEditor(() => setEditFeat({ ...f, song_ids: f.song_ids || [] }))} className="p-1 rounded-md hover:bg-muted"><Pencil className="w-4 h-4 text-gold" /></button>
                   <button aria-label="Move up" onClick={() => move("discover_featured", feat, i, -1)}><ArrowUp className="w-4 h-4" /></button>
                   <button aria-label="Move down" onClick={() => move("discover_featured", feat, i, 1)}><ArrowDown className="w-4 h-4" /></button>
                   <button aria-label="Delete" onClick={() => remove("discover_featured", f.id)}><Trash2 className="w-4 h-4 text-destructive" /></button>
@@ -213,7 +221,8 @@ const AdminDiscover = () => {
               ))}
             </div>
             {editFeat && (
-              <div className="glass-card p-4 space-y-3">
+              <div id="discover-editor" className="glass-card p-4 space-y-3 scroll-mt-20">
+                <h2 className="text-lg font-semibold">{editFeat.id ? `Editing: ${editFeat.label || "featured item"}` : "New featured item"}</h2>
                 <Field label="Playlist title (e.g. #praise)"><input className={input} maxLength={30} value={editFeat.label} onChange={(e) => setEditFeat({ ...editFeat, label: e.target.value })} /></Field>
                 <Field label="Description"><input className={input} maxLength={160} value={editFeat.description || ""} onChange={(e) => setEditFeat({ ...editFeat, description: e.target.value })} /></Field>
                 <SongPicker ids={editFeat.song_ids || []} onChange={(song_ids) => setEditFeat({ ...editFeat, song_ids })} />
@@ -237,7 +246,7 @@ const AdminDiscover = () => {
                 </div>
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={editFeat.is_active} onChange={(e) => setEditFeat({ ...editFeat, is_active: e.target.checked })} /> Active</label>
                 <div className="flex gap-2">
-                  <button onClick={saveFeat} className="flex items-center gap-1 px-4 py-2 rounded-lg gradient-gold text-sm"><Save className="w-4 h-4" /> Save</button>
+                  <button onClick={saveFeat} className="flex items-center gap-1 px-4 py-2 rounded-lg gradient-gold text-sm"><Save className="w-4 h-4" /> {"Save changes"}</button>
                   <button onClick={() => setEditFeat(null)} className="px-4 py-2 rounded-lg bg-muted text-sm">Cancel</button>
                 </div>
               </div>
