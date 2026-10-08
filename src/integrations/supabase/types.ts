@@ -1564,6 +1564,24 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_referrals: {
+        Row: {
+          created_at: string
+          referred_user_id: string
+          referrer_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          referred_user_id: string
+          referrer_user_id: string
+        }
+        Update: {
+          created_at?: string
+          referred_user_id?: string
+          referrer_user_id?: string
+        }
+        Relationships: []
+      }
       play_events: {
         Row: {
           created_at: string
@@ -1830,6 +1848,101 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      referral_credit_uses: {
+        Row: {
+          amount: number
+          created_at: string
+          request_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          request_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          request_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_credit_uses_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: true
+            referencedRelation: "subscription_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_ledger: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          kind: string
+          note: string | null
+          ref_id: string | null
+          referred_user_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          kind: string
+          note?: string | null
+          ref_id?: string | null
+          referred_user_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          note?: string | null
+          ref_id?: string | null
+          referred_user_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      referral_payouts: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          id: string
+          kingschat_username: string | null
+          reviewed_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          kingschat_username?: string | null
+          reviewed_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          kingschat_username?: string | null
+          reviewed_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       reminders: {
         Row: {
@@ -2551,6 +2664,7 @@ export type Database = {
         Args: { _achievement_key: string }
         Returns: boolean
       }
+      claim_platform_referral: { Args: { p_code: string }; Returns: boolean }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -2594,6 +2708,14 @@ export type Database = {
         Returns: {
           reason: string
           song_id: string
+        }[]
+      }
+      get_my_referral_dashboard: {
+        Args: never
+        Returns: {
+          is_premium_payer: boolean
+          joined_at: string
+          username: string
         }[]
       }
       get_public_karaoke: {
@@ -2661,6 +2783,7 @@ export type Database = {
         }
         Returns: number
       }
+      plan_price: { Args: { p_plan: string }; Returns: number }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -2676,6 +2799,24 @@ export type Database = {
           p_seconds?: number
           p_song_id: string
         }
+        Returns: undefined
+      }
+      referral_balance: { Args: { _user_id: string }; Returns: number }
+      request_referral_payout: {
+        Args: { p_kingschat: string }
+        Returns: number
+      }
+      request_subscription_with_credit: {
+        Args: {
+          p_full_name: string
+          p_kingschat: string
+          p_plan: string
+          p_proof_url: string
+        }
+        Returns: Json
+      }
+      review_referral_payout: {
+        Args: { p_id: string; p_notes: string; p_status: string }
         Returns: undefined
       }
       search_community_moderators: {
