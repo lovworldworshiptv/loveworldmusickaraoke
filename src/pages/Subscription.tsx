@@ -305,8 +305,14 @@ const Subscription = () => {
                     disabled
                     className="bg-muted"
                   />
+                  {creditApplied > 0 && (
+                    <div className="rounded-lg border border-primary/40 bg-primary/10 p-3 text-sm text-foreground">
+                      Referral balance applied: <b>{creditApplied.toFixed(2)} ESP</b> · Amount to pay: <b>{amountDue.toFixed(2)} ESP</b>
+                      {amountDue === 0 && <p className="text-xs text-muted-foreground mt-1">Fully covered by your referral balance — no proof needed.</p>}
+                    </div>
+                  )}
 
-                  <div>
+                  <div className={amountDue === 0 ? "hidden" : ""}>
                     <label className="text-sm font-medium text-foreground mb-1 block">Proof of Transaction *</label>
                     {proofFile && (
                       <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg mb-2">
