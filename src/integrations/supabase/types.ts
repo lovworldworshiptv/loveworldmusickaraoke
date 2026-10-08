@@ -1533,6 +1533,7 @@ export type Database = {
       }
       onboarding_screens: {
         Row: {
+          badge: string | null
           created_at: string
           description: string | null
           id: string
@@ -1543,6 +1544,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          badge?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -1553,6 +1555,7 @@ export type Database = {
           title: string
         }
         Update: {
+          badge?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -2802,6 +2805,7 @@ export type Database = {
         Returns: undefined
       }
       referral_balance: { Args: { _user_id: string }; Returns: number }
+      referrals_enabled: { Args: never; Returns: boolean }
       request_referral_payout: {
         Args: { p_kingschat: string }
         Returns: number

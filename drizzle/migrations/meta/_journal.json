@@ -99,6 +99,13 @@
       "when": 1791476152913,
       "tag": "0013_notifications_read_and_referrals",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791478965092,
+      "tag": "0014_referrals_feature_switch_and_onboarding_badge",
+      "breakpoints": true
     }
   ]
 }
