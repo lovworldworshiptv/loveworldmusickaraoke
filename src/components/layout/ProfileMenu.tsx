@@ -4,7 +4,7 @@ import { useFeatures } from "@/contexts/FeatureContext";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { User, ChevronRight, LogOut, Crown, Shield, Palette, AtSign, Music2, Disc3, List, Newspaper, Grid3X3, Image, Gamepad2, MessageSquare, Sparkles, Users, BarChart3, Bell, Mic2, Clock, Trophy, Library, HardDrive } from "lucide-react";
+import { User, ChevronRight, LogOut, Crown, Shield, Palette, AtSign, Music2, Disc3, List, Newspaper, Grid3X3, Image, Gamepad2, MessageSquare, Sparkles, Users, BarChart3, Bell, Mic2, Clock, Trophy, Library, HardDrive , Gift } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +23,7 @@ const adminItems = [
   { icon: Sparkles, label: "Premium Ads", path: "/admin/premium-ads" },
   { icon: Users, label: "Manage Users", path: "/admin/users" },
   { icon: Crown, label: "Pending Subscriptions", path: "/admin/subscriptions" },
+  { icon: Gift, label: "Referral Payouts", path: "/admin/referral-payouts" },
   { icon: Trophy, label: "Challenges", path: "/admin/challenges" },
   { icon: Bell, label: "Homepage Popup", path: "/admin/popup" },
   { icon: Bell, label: "Notifications", path: "/admin/notifications" },
@@ -106,6 +107,7 @@ const ProfileMenu = () => {
                   { icon: Library, label: "My Library", path: "/library" },
                   { icon: HardDrive, label: "My Studio", path: "/studio" },
                   { icon: Clock, label: "History", path: "/history" },
+  { icon: Gift, label: "My Referrals", path: "/referrals" },
                   { icon: Users, label: "Community", path: "/community" },
                   { icon: MessageSquare, label: "Feedback", path: "/feedback" },
                 ].filter((item) => pathEnabled(item.path)).map((item) => (

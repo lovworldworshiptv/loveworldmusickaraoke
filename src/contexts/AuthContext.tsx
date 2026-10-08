@@ -1,5 +1,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { claimStoredInvite, captureInviteFromUrl } from "@/lib/platformReferral";
+
+captureInviteFromUrl();
 import type { User, Session } from "@supabase/supabase-js";
 
 interface ProfileData {
@@ -78,7 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        setTimeout(() => fetchProfile(session.user.id), 0);
+        setTimeout(() => { fetchProfile(session.user.id); claimStoredInvite(); }, 0);
       } else {
         setUsername("Guest");
         setAvatarUrl(null);

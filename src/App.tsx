@@ -36,6 +36,8 @@ import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminPopup from "./pages/AdminPopup";
 import AdminNotifications from "./pages/AdminNotifications";
 import AdminSubscriptions from "./pages/AdminSubscriptions";
+import Referrals from "./pages/Referrals";
+import AdminReferralPayouts from "./pages/AdminReferralPayouts";
 import AdminKaraokeStories from "./pages/AdminKaraokeStories";
 import Profile from "./pages/Profile";
 import PublicProfile from "./pages/PublicProfile";
@@ -139,6 +141,8 @@ const App = () => (
                 <Route path="/admin/popup" element={<AuthGate><AdminPopup /></AuthGate>} />
                 <Route path="/admin/notifications" element={<AuthGate><AdminNotifications /></AuthGate>} />
                 <Route path="/admin/subscriptions" element={<AuthGate><AdminSubscriptions /></AuthGate>} />
+                <Route path="/admin/referral-payouts" element={<AuthGate><AdminReferralPayouts /></AuthGate>} />
+                <Route path="/referrals" element={<AuthGate><Referrals /></AuthGate>} />
                 <Route path="/admin/karaoke-stories" element={<AuthGate><AdminKaraokeStories /></AuthGate>} />
                 <Route path="/admin/appearance" element={<AuthGate><AdminAppearance /></AuthGate>} />
                 <Route path="/admin/discover" element={<AuthGate><AdminDiscover /></AuthGate>} />
