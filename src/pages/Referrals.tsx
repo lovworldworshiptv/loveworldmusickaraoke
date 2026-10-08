@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Copy, Users, Wallet, Crown, Send, Share2 } from "lucide-react";
+import { Copy, Users, Wallet, Crown, Send, Share2, ChevronRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ const Referrals = () => {
   const qc = useQueryClient();
   const [kc, setKc] = useState(kingschatHandle || "");
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState<null | "people" | "payers" | "earned" | "balance">(null);
   const link = username && username !== "Guest" ? buildInviteUrl(username) : "";
 
   const { data: people = [] } = useQuery({
@@ -93,19 +95,69 @@ const Referrals = () => {
         </section>
 
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { icon: Users, label: "Referrals", value: String(people.length) },
-            { icon: Crown, label: "Premium payers", value: String(payers) },
-            { icon: Wallet, label: "Total earned", value: fmt(earned) },
-            { icon: Wallet, label: "Balance", value: fmt(balance) },
-          ].map((s) => (
-            <div key={s.label} className="glass-card rounded-2xl p-4">
+          {([
+            { id: "people", icon: Users, label: "Referrals", value: String(people.length) },
+            { id: "payers", icon: Crown, label: "Premium payers", value: String(payers) },
+            { id: "earned", icon: Wallet, label: "Total earned", value: fmt(earned) },
+            { id: "balance", icon: Wallet, label: "Balance", value: fmt(balance) },
+          ] as const).map((s) => (
+            <button key={s.id} type="button" onClick={() => setOpen(s.id)}
+              className="glass-card rounded-2xl p-4 text-left transition-transform duration-200 hover:-translate-y-0.5 active:scale-[.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
               <s.icon className="w-5 h-5 text-primary mb-2" />
               <p className="text-lg font-bold text-foreground">{s.value}</p>
               <p className="text-xs text-muted-foreground">{s.label}</p>
-            </div>
+              <p className="mt-1 flex items-center text-[11px] text-primary">Tap for breakdown <ChevronRight className="w-3 h-3" /></p>
+            </button>
           ))}
         </section>
+
+        <Dialog open={open !== null} onOpenChange={(o) => !o && setOpen(null)}>
+          <DialogContent className="max-h-[80dvh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{{ people: "Your referrals", payers: "Premium payers", earned: "Commission history", balance: "Balance breakdown" }[open ?? "people"]}</DialogTitle>
+              <DialogDescription>
+                {open === "balance" ? `Current balance: ${fmt(balance)}` : open === "earned" ? `Total earned: ${fmt(earned)}` : "Usernames only, for privacy."}
+              </DialogDescription>
+            </DialogHeader>
+            {(open === "people" || open === "payers") && (() => {
+              const list = open === "payers" ? people.filter((p) => p.is_premium_payer) : people;
+              return list.length === 0 ? <p className="text-sm text-muted-foreground">Nobody here yet.</p> : (
+                <ul className="divide-y divide-border">
+                  {list.map((p, i) => (
+                    <li key={i} className="py-2 flex items-center justify-between text-sm">
+                      <span className="text-foreground flex items-center gap-1.5">{p.username}{p.is_premium_payer && <Crown className="w-3.5 h-3.5 text-primary" aria-label="Premium" />}</span>
+                      <span className="text-xs text-muted-foreground">Joined {new Date(p.joined_at).toLocaleDateString()}</span>
+                    </li>
+                  ))}
+                </ul>
+              );
+            })()}
+            {(open === "earned" || open === "balance") && (() => {
+              const rows = open === "earned" ? ledger.filter((l) => l.kind === "commission") : ledger;
+              const label: Record<string, string> = { commission: "Commission", payout: "Payout", subscription: "Applied to subscription", refund: "Refund" };
+              let running = balance;
+              return rows.length === 0 ? <p className="text-sm text-muted-foreground">No entries yet.</p> : (
+                <ul className="divide-y divide-border">
+                  {rows.map((l, i) => {
+                    const after = running; running -= Number(l.amount);
+                    return (
+                      <li key={i} className="py-2 flex items-center justify-between gap-3 text-sm">
+                        <div>
+                          <p className="text-foreground">{label[l.kind] ?? l.kind}</p>
+                          <p className="text-xs text-muted-foreground">{l.note ? `${l.note} · ` : ""}{new Date(l.created_at).toLocaleString()}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className={Number(l.amount) >= 0 ? "text-primary font-semibold" : "text-destructive font-semibold"}>{Number(l.amount) >= 0 ? "+" : ""}{fmt(Number(l.amount))}</p>
+                          {open === "balance" && <p className="text-[11px] text-muted-foreground">Balance {fmt(after)}</p>}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              );
+            })()}
+          </DialogContent>
+        </Dialog>
 
         <section className="glass-card rounded-2xl p-5 space-y-3">
           <p className="text-sm font-semibold text-foreground">Use your balance</p>
