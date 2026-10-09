@@ -201,6 +201,18 @@ export default function StemStudio({ onStatusChange, refreshKey = 0 }: { onStatu
       <div className="flex items-center gap-2 shrink-0">
         <span className="text-[10px] text-muted-foreground">{timeAgo(r.status === "processing" ? r.started_at : r.updated_at)}</span>
         <span className={`text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5 ${statusChip(r.status)}`}>{r.status}</span>
+        {r.status === "ready" && r.songs?.instrumental_url && (
+          <Button
+            size="sm"
+            variant="outline"
+            className={`h-7 px-2 text-[11px] ${previewId === r.song_id ? "border-gold text-gold" : ""}`}
+            onClick={() => togglePreview(r)}
+            aria-label={previewId === r.song_id ? `Stop preview of ${r.songs?.title ?? "song"}` : `Preview karaoke track of ${r.songs?.title ?? "song"}`}
+          >
+            {previewId === r.song_id ? <Pause className="w-3 h-3 mr-1" /> : <Headphones className="w-3 h-3 mr-1" />}
+            {previewId === r.song_id ? "Stop" : "Listen"}
+          </Button>
+        )}
         {r.status === "failed" && (
           <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" disabled={busy} onClick={() => retry(r.song_id)}>
             <RefreshCw className="w-3 h-3 mr-1" /> Retry
