@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
-import { Bell, CheckCheck, Layers, Loader2, Play, RefreshCw } from "lucide-react";
+import { Bell, CheckCheck, Headphones, Layers, Loader2, Pause, Play, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 export type StemStatus = { status: "pending" | "processing" | "ready" | "failed"; error: string | null };
