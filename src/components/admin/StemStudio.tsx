@@ -69,6 +69,16 @@ export default function StemStudio({ onStatusChange, refreshKey = 0 }: { onStatu
   const [notes, setNotes] = useState<AdminNotification[]>([]);
   const [showNotes, setShowNotes] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [missing, setMissing] = useState<{ id: string; title: string; artist: string; audio_url: string | null }[]>([]);
+  const [showMissing, setShowMissing] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [q, setQ] = useState("");
+
+  const loadMissing = useCallback(async () => {
+    const { data } = await supabase.from("songs").select("id, title, artist, audio_url").is("instrumental_url", null).order("title");
+    setMissing(data ?? []);
+  }, []);
+  useEffect(() => { loadMissing(); }, [loadMissing, refreshKey, summary]);
 
   const loadNotes = useCallback(async () => {
     const { data } = await supabase
@@ -137,6 +147,23 @@ export default function StemStudio({ onStatusChange, refreshKey = 0 }: { onStatu
   const unreadCount = notes.filter((n) => !n.is_read).length;
   const activeJobs = (summary?.rows ?? []).filter((r) => r.status === "pending" || r.status === "processing");
   const recentJobs = (summary?.rows ?? []).filter((r) => r.status === "ready" || r.status === "failed").slice(0, 8);
+  const jobStatus: Record<string, StemStatus["status"]> = {};
+  for (const r of summary?.rows ?? []) if (!jobStatus[r.song_id]) jobStatus[r.song_id] = r.status;
+  const filteredMissing = missing.filter((s) => !q || `${s.title} ${s.artist}`.toLowerCase().includes(q.toLowerCase()));
+  const toggle = (id: string) => setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const processSelected = async () => {
+    const ids = [...selected];
+    if (!ids.length || !confirm(`Separate ${ids.length} song(s)? Each uses a small amount of Replicate credit.`)) return;
+    setBusy(true);
+    let ok = 0;
+    for (const songId of ids) {
+      try { await callStemAdmin({ action: "retry", songId }); ok++; } catch (e) { console.error(e); }
+    }
+    toast.success(`${ok} of ${ids.length} song(s) queued`);
+    setSelected(new Set());
+    await load();
+    setBusy(false);
+  };
 
   const c = summary?.counts ?? {};
   const stat = (label: string, value: number, cls: string) => (
@@ -237,6 +264,44 @@ export default function StemStudio({ onStatusChange, refreshKey = 0 }: { onStatu
           {recentJobs.map(jobRow)}
         </div>
       )}
+
+      <div className="space-y-2">
+        <button onClick={() => setShowMissing((v) => !v)} className="w-full flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground">
+          <span>Songs without karaoke ({missing.length})</span>
+          <span>{showMissing ? "Hide" : "Show"}</span>
+        </button>
+        {showMissing && (
+          <div className="space-y-2">
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search songs…" className="w-full rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm text-foreground" />
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <button className="hover:text-foreground" onClick={() => setSelected(selected.size === filteredMissing.length ? new Set() : new Set(filteredMissing.map((s) => s.id)))}>
+                {selected.size === filteredMissing.length && filteredMissing.length > 0 ? "Clear selection" : "Select all shown"}
+              </button>
+              <span>{selected.size} selected</span>
+            </div>
+            <div className="max-h-72 overflow-y-auto space-y-1 rounded-xl border border-border p-1">
+              {filteredMissing.length === 0 && <p className="text-xs text-muted-foreground p-3">Every song has a karaoke track.</p>}
+              {filteredMissing.map((s) => {
+                const st = jobStatus[s.id];
+                return (
+                  <label key={s.id} className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-muted/40 cursor-pointer">
+                    <input type="checkbox" checked={selected.has(s.id)} disabled={!s.audio_url} onChange={() => toggle(s.id)} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-foreground truncate">{s.title}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{s.artist}{!s.audio_url && " · no audio"}</p>
+                    </div>
+                    {st && <span className={`text-[10px] font-semibold uppercase rounded-full px-2 py-0.5 ${statusChip(st)}`}>{st}</span>}
+                  </label>
+                );
+              })}
+            </div>
+            <Button onClick={processSelected} disabled={busy || selected.size === 0} variant="outline" className="w-full gap-2">
+              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />}
+              Separate selected ({selected.size})
+            </Button>
+          </div>
+        )}
+      </div>
 
       <Button onClick={processAll} disabled={busy || !summary?.notQueued} className="gradient-gold text-primary-foreground gap-2 w-full">
         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
