@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
 
     // summary
     const [{ data: rows }, { count: missingCount }, { data: state }] = await Promise.all([
-      admin.from("song_audio_versions").select("song_id, status, error, attempts, started_at, updated_at, songs(title)").eq("kind", "instrumental").order("updated_at", { ascending: false }),
+      admin.from("song_audio_versions").select("song_id, status, error, attempts, started_at, updated_at, songs(title, instrumental_url)").eq("kind", "instrumental").order("updated_at", { ascending: false }),
       admin.from("songs").select("id", { count: "exact", head: true }).not("audio_url", "is", null).is("instrumental_url", null),
       admin.from("stem_worker_state").select("paused_reason").eq("id", 1).maybeSingle(),
     ]);

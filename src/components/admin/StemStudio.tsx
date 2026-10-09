@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
-import { Bell, CheckCheck, Layers, Loader2, Play, RefreshCw } from "lucide-react";
+import { Bell, CheckCheck, Headphones, Layers, Loader2, Pause, Play, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 export type StemStatus = { status: "pending" | "processing" | "ready" | "failed"; error: string | null };
@@ -14,7 +14,7 @@ interface JobRow {
   attempts: number;
   started_at: string | null;
   updated_at: string | null;
-  songs: { title: string } | null;
+  songs: { title: string; instrumental_url: string | null } | null;
 }
 
 interface Summary {
@@ -73,6 +73,25 @@ export default function StemStudio({ onStatusChange, refreshKey = 0 }: { onStatu
   const [showMissing, setShowMissing] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [q, setQ] = useState("");
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+
+  useEffect(() => () => { audioRef.current?.pause(); }, []);
+
+  const togglePreview = (r: JobRow) => {
+    const url = r.songs?.instrumental_url;
+    if (!url) return;
+    if (previewId === r.song_id) {
+      audioRef.current?.pause();
+      setPreviewId(null);
+      return;
+    }
+    if (!audioRef.current) audioRef.current = new Audio();
+    audioRef.current.pause();
+    audioRef.current.src = url;
+    audioRef.current.play().catch(() => toast.error("Preview not available"));
+    setPreviewId(r.song_id);
+  };
 
   const loadMissing = useCallback(async () => {
     const { data } = await supabase.from("songs").select("id, title, artist, audio_url").is("instrumental_url", null).order("title");
@@ -182,6 +201,18 @@ export default function StemStudio({ onStatusChange, refreshKey = 0 }: { onStatu
       <div className="flex items-center gap-2 shrink-0">
         <span className="text-[10px] text-muted-foreground">{timeAgo(r.status === "processing" ? r.started_at : r.updated_at)}</span>
         <span className={`text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5 ${statusChip(r.status)}`}>{r.status}</span>
+        {r.status === "ready" && r.songs?.instrumental_url && (
+          <Button
+            size="sm"
+            variant="outline"
+            className={`h-7 px-2 text-[11px] ${previewId === r.song_id ? "border-gold text-gold" : ""}`}
+            onClick={() => togglePreview(r)}
+            aria-label={previewId === r.song_id ? `Stop preview of ${r.songs?.title ?? "song"}` : `Preview karaoke track of ${r.songs?.title ?? "song"}`}
+          >
+            {previewId === r.song_id ? <Pause className="w-3 h-3 mr-1" /> : <Headphones className="w-3 h-3 mr-1" />}
+            {previewId === r.song_id ? "Stop" : "Listen"}
+          </Button>
+        )}
         {r.status === "failed" && (
           <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" disabled={busy} onClick={() => retry(r.song_id)}>
             <RefreshCw className="w-3 h-3 mr-1" /> Retry
