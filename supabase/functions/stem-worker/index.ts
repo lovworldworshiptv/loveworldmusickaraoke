@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
         const res = await fetch(`${GATEWAY}/predictions`, {
           method: "POST",
           headers: { ...auth, "Content-Type": "application/json" },
-          body: JSON.stringify({ version: DEMUCS_VERSION, input: { audio: toDirectUrl(song.audio_url), model: "htdemucs", stem: "vocals", output_format: "mp3", mp3_bitrate: 320 } }),
+          body: JSON.stringify({ version: DEMUCS_VERSION, input: { audio: toDirectUrl(song.audio_url), model: "htdemucs", isolate_stem: "vocals", format: "mp3", mp3_bitrate: 320 } }),
         });
         if (res.status === 402) { await pause("Replicate account has no credit. Add billing at replicate.com/account/billing, then press Resume."); break; }
         if (res.status === 403) { await pause(`Replicate denied the request: ${(await res.text()).slice(0, 200)}`); break; }
