@@ -67,9 +67,22 @@ import AdminAppearance from "./pages/AdminAppearance";
 import AdminDiscover from "./pages/AdminDiscover";
 import DiscoverTag from "./pages/DiscoverTag";
 import DiscoverCollection from "./pages/DiscoverCollection";
+import OfflineRedirect from "@/components/offline/OfflineRedirect";
 import AppDownloadPrompt from "@/components/share/AppDownloadPrompt";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Offline-first: show what was already loaded instead of erroring
+      networkMode: "offlineFirst",
+      staleTime: 5 * 60 * 1000,
+      gcTime: 24 * 60 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      retry: (count) => navigator.onLine && count < 2,
+    },
+    mutations: { networkMode: "offlineFirst" },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -83,6 +96,7 @@ const App = () => (
           <AuthProvider>
             <FeatureProvider>
             <PlayerProvider>
+              <OfflineRedirect />
               <FeatureRouteGate>
               <Routes>
                 {/* Public routes */}
