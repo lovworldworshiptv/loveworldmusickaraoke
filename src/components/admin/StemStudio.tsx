@@ -73,6 +73,25 @@ export default function StemStudio({ onStatusChange, refreshKey = 0 }: { onStatu
   const [showMissing, setShowMissing] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [q, setQ] = useState("");
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+
+  useEffect(() => () => { audioRef.current?.pause(); }, []);
+
+  const togglePreview = (r: JobRow) => {
+    const url = r.songs?.instrumental_url;
+    if (!url) return;
+    if (previewId === r.song_id) {
+      audioRef.current?.pause();
+      setPreviewId(null);
+      return;
+    }
+    if (!audioRef.current) audioRef.current = new Audio();
+    audioRef.current.pause();
+    audioRef.current.src = url;
+    audioRef.current.play().catch(() => toast.error("Preview not available"));
+    setPreviewId(r.song_id);
+  };
 
   const loadMissing = useCallback(async () => {
     const { data } = await supabase.from("songs").select("id, title, artist, audio_url").is("instrumental_url", null).order("title");
