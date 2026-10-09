@@ -43,6 +43,6 @@
 - [x] (prompt + app link done; icon clicks not browser-verified) Check all share icons; prompt web visitors to download the app (LW App Store link)
 - [x] Full player top icons (share, like, minimize, 3 dots) white
 - [x] Sharing analytics: share taps per channel, visits from shared links, referral sign-ups by channel, app download taps — Admin → Analytics → Sharing
-- [ ] Stem worker: send correct vocal-isolation settings and retry "Resounding Praise"
-- [ ] YouTube-style offline fallback: no internet → open Downloads so saved songs play; offer return when back online
-- [ ] Native feel on mobile/tablet: no bounce, tap flashes, long-press callouts or text selection; offline-first caching
+- [x] Stem worker: correct vocal-isolation settings (retry "Resounding Praise" from Stem Studio)
+- [x] YouTube-style offline fallback: no internet → open Downloads so saved songs play; offer return when back online
+- [x] Native feel on mobile/tablet: no bounce, tap flashes, long-press callouts or text selection; offline-first caching

@@ -50,6 +50,7 @@ const Library = () => {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get("tab") || "all";
   const [tab, setTab] = useState(defaultTab);
+  useEffect(() => { setTab(defaultTab); }, [defaultTab]);
   const [search, setSearch] = useState("");
   const searchPlaceholder =
     tab === "albums" ? "Search album titles..."
