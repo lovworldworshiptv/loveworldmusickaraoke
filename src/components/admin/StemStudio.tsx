@@ -172,7 +172,7 @@ export default function StemStudio({ onStatusChange, refreshKey = 0 }: { onStatu
   const toggle = (id: string) => setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const processSelected = async () => {
     const ids = [...selected];
-    if (!ids.length || !confirm(`Separate ${ids.length} song(s)? Each uses a small amount of Replicate credit.`)) return;
+    if (!ids.length) return;
     setBusy(true);
     let ok = 0;
     for (const songId of ids) {
