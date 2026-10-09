@@ -14,7 +14,7 @@ interface JobRow {
   attempts: number;
   started_at: string | null;
   updated_at: string | null;
-  songs: { title: string } | null;
+  songs: { title: string; instrumental_url: string | null } | null;
 }
 
 interface Summary {
