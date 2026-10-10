@@ -16,11 +16,12 @@ const AuthGate = ({ children }: AuthGateProps) => {
   const location = useLocation();
   const isOnline = useOnlineStatus();
 
-  // Allow downloads page when offline
-  const isDownloadsPage = location.pathname === "/library" && location.search.includes("tab=downloads");
+  // Offline pages still work from saved data (Library, Studio, Stage); others
+  // are moved to Downloads by OfflineRedirect. Only show the offline screen
+  // when there is no signed-in session to fall back on.
   const signInPath = `/auth?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`;
 
-  if (!isOnline && !isDownloadsPage) {
+  if (!isOnline && !user && !loading) {
     return (
       <AppLayout>
         <OfflineScreen />
