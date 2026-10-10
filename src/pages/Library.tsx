@@ -16,7 +16,7 @@ import { SongRowSkeleton, EmptyState } from "@/components/ui/loading-skeleton";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsPremium } from "@/hooks/useIsPremium";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
-import { getDownloadedMeta, getDownloadedAudioUrl, getDownloadedInstrumentalUrl, saveDownload, removeDownload, type DownloadedTrack } from "@/lib/downloadManager";
+import { getDownloadedMeta, getDownloadedAudioUrl, getDownloadedInstrumentalUrl, saveDownload, removeDownload, getCloudOnlyDownloads, syncLocalDownloadsToCloud, type DownloadedTrack } from "@/lib/downloadManager";
 import { checkPlaybackAllowed, revalidateLicense, setTrackLicense } from "@/lib/offlineLicense";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
@@ -77,12 +77,17 @@ const Library = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [addToPlaylistSong, setAddToPlaylistSong] = useState<{ id: string; title: string } | null>(null);
 
+  const [cloudOnly, setCloudOnly] = useState<SongRow[]>([]);
   const loadDownloads = useCallback(async () => {
     const dl = await getDownloadedMeta();
     setDownloads(dl);
-  }, []);
+    if (user && navigator.onLine) {
+      await syncLocalDownloadsToCloud(user.id).catch(() => {});
+      setCloudOnly(await getCloudOnlyDownloads(user.id).catch(() => []));
+    }
+  }, [user]);
 
-  useEffect(() => { loadDownloads(); }, [loadDownloads]);
+  useEffect(() => { loadDownloads(); }, [loadDownloads, isOnline]);
 
   // Free download songs
   const { data: freeDownloadSongs = [] } = useQuery({
@@ -713,6 +718,44 @@ const Library = () => {
                         onClick={() => handleDownload(song)}
                         disabled={downloadingIds.has(song.id)}
                         className="p-2 text-green-600 hover:bg-green-500/10 rounded-lg"
+                      >
+                        <Download className={`w-4 h-4 ${downloadingIds.has(song.id) ? "animate-pulse" : ""}`} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Saved on the account from another device */}
+            {isOnline && cloudOnly.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Download className="w-4 h-4 text-primary" /> From your other devices
+                  </h3>
+                  <button
+                    onClick={async () => { for (const s of cloudOnly) await handleDownload(s); }}
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >Download all</button>
+                </div>
+                <div className="space-y-1">
+                  {cloudOnly.map((song) => (
+                    <div key={song.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/60">
+                      {song.cover_url ? (
+                        <img src={song.cover_url} alt={song.title} className="w-10 h-10 rounded-lg object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center"><Music className="w-4 h-4 text-primary" /></div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{song.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">Not on this device yet</p>
+                      </div>
+                      <button
+                        onClick={() => handleDownload(song)}
+                        disabled={downloadingIds.has(song.id)}
+                        aria-label={`Download ${song.title} to this device`}
+                        className="p-2 text-primary hover:bg-primary/10 rounded-lg"
                       >
                         <Download className={`w-4 h-4 ${downloadingIds.has(song.id) ? "animate-pulse" : ""}`} />
                       </button>

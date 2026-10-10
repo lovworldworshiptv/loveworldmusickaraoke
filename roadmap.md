@@ -46,3 +46,4 @@
 - [x] Stem worker: correct vocal-isolation settings (retry "Resounding Praise" from Stem Studio)
 - [x] YouTube-style offline fallback: no internet → open Downloads so saved songs play; offer return when back online
 - [x] Native feel on mobile/tablet: no bounce, tap flashes, long-press callouts or text selection; offline-first caching
+- [x] Offline downloads follow the account: song + karaoke track + video saved together, restored on any device, offline plays synced on reconnect, My Stats on Profile
