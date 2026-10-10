@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "@/components/ui/sonner";
 import ProfileUpdateModal from "@/components/profile/ProfileUpdateModal";
 import MyKaraoke from "@/components/profile/MyKaraoke";
+import MyStats from "@/components/profile/MyStats";
 import { useTheme, ThemeName } from "@/contexts/ThemeContext";
 
 const Profile = () => {
@@ -199,6 +200,7 @@ const Profile = () => {
         </div>
 
         {/* My Karaoke */}
+        <MyStats userId={user.id} />
         <MyKaraoke />
 
         {/* Menu */}
