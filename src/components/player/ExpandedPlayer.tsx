@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsPremium } from "@/hooks/useIsPremium";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { isDownloaded as checkDownloaded, saveDownload } from "@/lib/downloadManager";
+import { isDownloaded as checkDownloaded, saveDownload, getDownloadedTrack, getDownloadedVideoUrl } from "@/lib/downloadManager";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Crown } from "lucide-react";
@@ -101,15 +101,23 @@ const ExpandedPlayer = () => {
     setMotionArtworkFailed(false);
     if (!currentSong) return;
     const songId = currentSong.id;
-    supabase.from("song_videos").select("id, video_url, video_type, language_code, offset_ms, thumbnail_url")
+    // Downloaded video plays from the device when there is no connection.
+    const useOfflineVideo = async () => {
+      const [track, url] = await Promise.all([getDownloadedTrack(songId).catch(() => null), getDownloadedVideoUrl(songId).catch(() => null)]);
+      if (track?.video && url) setVideos([{ ...track.video, video_url: url }]);
+      setVideosLoadedFor(songId);
+    };
+    if (!navigator.onLine) { useOfflineVideo(); }
+    else supabase.from("song_videos").select("id, video_url, video_type, language_code, offset_ms, thumbnail_url")
       .eq("song_id", currentSong.id).eq("is_active", true)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) { useOfflineVideo(); return; }
         const list = (data as SongVideo[]) || [];
         const order = ["official", "lyric", "live", "karaoke"];
         list.sort((a, b) => order.indexOf(a.video_type) - order.indexOf(b.video_type));
         setVideos(list);
         setVideosLoadedFor(songId);
-      }, () => setVideosLoadedFor(songId));
+      }, () => useOfflineVideo());
     supabase.from("song_motion_artwork").select("video_url").eq("song_id", currentSong.id).eq("is_active", true).maybeSingle()
       .then(({ data }) => setMotionArtworkUrl(data?.video_url || null));
   }, [currentSong?.id]);
