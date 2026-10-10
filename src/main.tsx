@@ -14,7 +14,18 @@ const isMedian = typeof (window as any).median !== 'undefined'
   || ua.includes('median')
   || ua.includes('gonative');
 
-if ('serviceWorker' in navigator && !isMedian && import.meta.env.PROD) {
+const host = window.location.hostname;
+let inIframe = false;
+try { inIframe = window.self !== window.top; } catch { inIframe = true; }
+const isPreviewHost =
+  host.startsWith('id-preview--') || host.startsWith('preview--') ||
+  host === 'lovableproject.com' || host.endsWith('.lovableproject.com') ||
+  host === 'lovableproject-dev.com' || host.endsWith('.lovableproject-dev.com') ||
+  host === 'beta.lovable.dev' || host.endsWith('.beta.lovable.dev');
+const swOff = new URLSearchParams(window.location.search).get('sw') === 'off';
+const allowSW = import.meta.env.PROD && !isMedian && !inIframe && !isPreviewHost && !swOff;
+
+if ('serviceWorker' in navigator && allowSW) {
   navigator.serviceWorker.register('/serviceworker.js').then((registration) => {
     // Pull in a new worker version as soon as one is published.
     registration.update().catch(() => undefined);
@@ -29,19 +40,11 @@ if ('serviceWorker' in navigator && !isMedian && import.meta.env.PROD) {
       console.info('[SW] active cache version:', event.data.version);
     }
   });
-}
-
-
-if ('serviceWorker' in navigator && import.meta.env.DEV) {
+} else if ('serviceWorker' in navigator) {
+  // Preview/dev/opt-out: remove the app worker so stale files are never served.
   navigator.serviceWorker.getRegistrations().then((registrations) => {
-    registrations.forEach((registration) => registration.unregister());
+    registrations
+      .filter((r) => r.active?.scriptURL.endsWith('/serviceworker.js'))
+      .forEach((r) => r.unregister());
   });
-
-  if ('caches' in window) {
-    caches.keys().then((keys) => {
-      keys
-        .filter((key) => key.startsWith('lmk-cache-'))
-        .forEach((key) => caches.delete(key));
-    });
-  }
 }

@@ -4,11 +4,23 @@
 // metadata shape, or the lyrics format. Every cache name is derived from it,
 // so old caches are dropped automatically on activate.
 // ---------------------------------------------------------------------------
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const CACHE_PREFIX = 'lmk';
 const CACHE_NAME = `${CACHE_PREFIX}-shell-${CACHE_VERSION}`;
 const METADATA_CACHE = `${CACHE_PREFIX}-metadata-${CACHE_VERSION}`;
-const KNOWN_CACHES = [CACHE_NAME, METADATA_CACHE];
+// Hashed assets and images survive version bumps (their URLs change on update).
+const ASSET_CACHE = `${CACHE_PREFIX}-assets`;
+const IMAGE_CACHE = `${CACHE_PREFIX}-images`;
+const IMAGE_MAX_ENTRIES = 400;
+const KNOWN_CACHES = [CACHE_NAME, METADATA_CACHE, ASSET_CACHE, IMAGE_CACHE];
+
+const trimCache = async (name, max) => {
+  const cache = await caches.open(name);
+  const keys = await cache.keys();
+  if (keys.length > max) {
+    await Promise.all(keys.slice(0, keys.length - max).map((k) => cache.delete(k)));
+  }
+};
 
 // Cached metadata / lyrics older than this are considered stale and pruned.
 const METADATA_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -243,7 +255,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first for scripts so app updates cannot mix stale JS chunks.
+  // Hashed build assets (/assets/name-HASH.js|css) never change: cache-first
+  // so repeat visits load the app instantly, like a native app.
+  if (url.origin === self.location.origin && url.pathname.startsWith('/assets/')) {
+    event.respondWith(
+      caches.match(request, { cacheName: ASSET_CACHE }).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(ASSET_CACHE).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // Other scripts: network-first so updates cannot mix stale JS chunks.
   if (request.destination === 'script' || url.pathname.match(/\.(js|mjs)$/i)) {
     event.respondWith(
       fetch(request)
@@ -259,18 +289,40 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for static non-script assets
+  // Images (incl. cross-origin artwork/covers): stale-while-revalidate,
+  // capped in size so the cache never grows unbounded.
+  if (
+    request.destination === 'image' ||
+    url.pathname.match(/\.(svg|png|jpg|jpeg|webp|avif|ico|gif)$/i)
+  ) {
+    event.respondWith(
+      caches.open(IMAGE_CACHE).then(async (cache) => {
+        const cached = await cache.match(request);
+        const network = fetch(request)
+          .then((response) => {
+            if (response && (response.status === 200 || response.type === 'opaque')) {
+              cache.put(request, response.clone()).then(() => trimCache(IMAGE_CACHE, IMAGE_MAX_ENTRIES));
+            }
+            return response;
+          })
+          .catch(() => cached);
+        return cached || network;
+      })
+    );
+    return;
+  }
+
+  // Cache-first for styles and fonts
   if (
     request.destination === 'style' ||
     request.destination === 'font' ||
-    request.destination === 'image' ||
-    url.pathname.match(/\.(css|woff2?|ttf|eot|svg|png|jpg|jpeg|webp|ico|gif)$/i)
+    url.pathname.match(/\.(css|woff2?|ttf|eot)$/i)
   ) {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;
         return fetch(request).then((response) => {
-          if (response && response.status === 200 && response.type === 'basic') {
+          if (response && (response.status === 200 || response.type === 'opaque')) {
             const clone = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           }

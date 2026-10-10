@@ -41,11 +41,8 @@ const Index = () => {
     if (!seen) setShowOnboarding(true);
   }, []);
 
-  useEffect(() => {
-    if (!isOnline) {
-      navigate("/library?tab=downloads", { replace: true });
-    }
-  }, [isOnline, navigate]);
+  // Offline fallback to Downloads is handled globally by OfflineRedirect.
+  void isOnline;
 
   const handleOnboardingComplete = () => {
     localStorage.setItem("onboarding_completed", "true");
