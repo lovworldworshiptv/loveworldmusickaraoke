@@ -102,22 +102,22 @@ const ExpandedPlayer = () => {
     if (!currentSong) return;
     const songId = currentSong.id;
     // Downloaded video plays from the device when there is no connection.
-    const useOfflineVideo = async () => {
+    const loadOfflineVideo = async () => {
       const [track, url] = await Promise.all([getDownloadedTrack(songId).catch(() => null), getDownloadedVideoUrl(songId).catch(() => null)]);
       if (track?.video && url) setVideos([{ ...track.video, video_url: url }]);
       setVideosLoadedFor(songId);
     };
-    if (!navigator.onLine) { useOfflineVideo(); }
+    if (!navigator.onLine) { loadOfflineVideo(); }
     else supabase.from("song_videos").select("id, video_url, video_type, language_code, offset_ms, thumbnail_url")
       .eq("song_id", currentSong.id).eq("is_active", true)
       .then(({ data, error }) => {
-        if (error) { useOfflineVideo(); return; }
+        if (error) { loadOfflineVideo(); return; }
         const list = (data as SongVideo[]) || [];
         const order = ["official", "lyric", "live", "karaoke"];
         list.sort((a, b) => order.indexOf(a.video_type) - order.indexOf(b.video_type));
         setVideos(list);
         setVideosLoadedFor(songId);
-      }, () => useOfflineVideo());
+      }, () => loadOfflineVideo());
     supabase.from("song_motion_artwork").select("video_url").eq("song_id", currentSong.id).eq("is_active", true).maybeSingle()
       .then(({ data }) => setMotionArtworkUrl(data?.video_url || null));
   }, [currentSong?.id]);
