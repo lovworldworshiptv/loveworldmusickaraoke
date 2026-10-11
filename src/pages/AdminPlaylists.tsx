@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useIsEditor } from "@/hooks/useIsEditor";
 import { useAuth } from "@/contexts/AuthContext";
 import { ListMusic, Plus, Trash2, Edit3, X, Save, Music, Search, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,10 @@ interface Song {
 }
 
 const AdminPlaylists = () => {
-  const { isAdmin, loading: adminLoading } = useIsAdmin();
+  const { isAdmin: isRealAdmin, loading: realAdminLoading } = useIsAdmin();
+  const { isEditor, loading: editorLoading } = useIsEditor();
+  const isAdmin = isRealAdmin || isEditor;
+  const adminLoading = realAdminLoading || editorLoading;
   const { user } = useAuth();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,7 +112,7 @@ const AdminPlaylists = () => {
     setPlaylists(
       allPlaylists.map((p) => ({
         ...p,
-        is_admin_owned: adminUserIds.has(p.user_id),
+        is_admin_owned: adminUserIds.has(p.user_id) || (isEditor && !isRealAdmin),
         profile_username: profileMap[p.user_id] || "Unknown",
         song_count: countMap[p.id] || 0,
       })),

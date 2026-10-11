@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useIsEditor } from "@/hooks/useIsEditor";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MessageSquare, Send, Reply, User } from "lucide-react";
@@ -10,7 +11,10 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
 const AdminFeedback = () => {
-  const { isAdmin, loading: adminLoading } = useIsAdmin();
+  const { isAdmin: isRealAdmin, loading: realAdminLoading } = useIsAdmin();
+  const { isEditor, loading: editorLoading } = useIsEditor();
+  const isAdmin = isRealAdmin || isEditor;
+  const adminLoading = realAdminLoading || editorLoading;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
