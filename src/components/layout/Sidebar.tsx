@@ -50,6 +50,12 @@ const adminItems = [
   { icon: Sparkles, label: "Discover Page", path: "/admin/discover" },
 ];
 
+/** The only management pages an editor may see. */
+export const EDITOR_PATHS = [
+  "/admin/songs", "/admin/albums", "/admin/playlists", "/admin/articles",
+  "/admin/banners", "/admin/feedback", "/admin/games", "/admin/categories",
+];
+
 interface SidebarProps {
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
@@ -104,7 +110,7 @@ const Sidebar = ({ collapsed, onCollapsedChange }: SidebarProps) => {
                 {collapsed ? "" : isAdmin ? "Admin" : "Editor"}
               </p>
             </div>
-            {(isAdmin ? adminItems : [{ icon: Music2, label: "Manage Songs", path: "/admin/songs" }]).map((item) => (
+            {(isAdmin ? adminItems : adminItems.filter((i) => EDITOR_PATHS.includes(i.path))).map((item) => (
               <button
                 key={item.label}
                 onClick={() => navigate(item.path)}

@@ -144,13 +144,13 @@ const App = () => (
                 <Route path="/subscription" element={<AuthGate><Subscription /></AuthGate>} />
                 <Route path="/reminders" element={<AuthGate><Reminders /></AuthGate>} />
                 <Route path="/admin/songs" element={<AdminRouteGate allowEditor><AdminSongs /></AdminRouteGate>} />
-                <Route path="/admin/albums" element={<AdminRouteGate><AdminAlbums /></AdminRouteGate>} />
-                <Route path="/admin/articles" element={<AdminRouteGate><AdminArticles /></AdminRouteGate>} />
-                <Route path="/admin/categories" element={<AdminRouteGate><AdminCategories /></AdminRouteGate>} />
-                <Route path="/admin/playlists" element={<AdminRouteGate><AdminPlaylists /></AdminRouteGate>} />
-                <Route path="/admin/banners" element={<AdminRouteGate><AdminBanners /></AdminRouteGate>} />
-                <Route path="/admin/games" element={<AdminRouteGate><AdminGames /></AdminRouteGate>} />
-                <Route path="/admin/feedback" element={<AdminRouteGate><AdminFeedback /></AdminRouteGate>} />
+                <Route path="/admin/albums" element={<AdminRouteGate allowEditor><AdminAlbums /></AdminRouteGate>} />
+                <Route path="/admin/articles" element={<AdminRouteGate allowEditor><AdminArticles /></AdminRouteGate>} />
+                <Route path="/admin/categories" element={<AdminRouteGate allowEditor><AdminCategories /></AdminRouteGate>} />
+                <Route path="/admin/playlists" element={<AdminRouteGate allowEditor><AdminPlaylists /></AdminRouteGate>} />
+                <Route path="/admin/banners" element={<AdminRouteGate allowEditor><AdminBanners /></AdminRouteGate>} />
+                <Route path="/admin/games" element={<AdminRouteGate allowEditor><AdminGames /></AdminRouteGate>} />
+                <Route path="/admin/feedback" element={<AdminRouteGate allowEditor><AdminFeedback /></AdminRouteGate>} />
                 <Route path="/admin/onboarding" element={<AdminRouteGate><AdminOnboarding /></AdminRouteGate>} />
                 <Route path="/admin/premium-ads" element={<AdminRouteGate><AdminPremiumAds /></AdminRouteGate>} />
                 <Route path="/admin/users" element={<AdminRouteGate><AdminUsers /></AdminRouteGate>} />
@@ -162,7 +162,7 @@ const App = () => (
                 <Route path="/referrals" element={<AuthGate><Referrals /></AuthGate>} />
                 <Route path="/admin/karaoke-stories" element={<AdminRouteGate><AdminKaraokeStories /></AdminRouteGate>} />
                 <Route path="/admin/appearance" element={<AdminRouteGate><AdminAppearance /></AdminRouteGate>} />
-                <Route path="/admin/discover" element={<AdminRouteGate allowEditor><AdminDiscover /></AdminRouteGate>} />
+                <Route path="/admin/discover" element={<AdminRouteGate><AdminDiscover /></AdminRouteGate>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </FeatureRouteGate>

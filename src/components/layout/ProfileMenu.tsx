@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsPremium } from "@/hooks/useIsPremium";
+import { EDITOR_PATHS } from "@/components/layout/Sidebar";
 
 const adminItems = [
   { icon: Music2, label: "Manage Songs", path: "/admin/songs" },
@@ -124,12 +125,12 @@ const ProfileMenu = () => {
                   </button>
                 ))}
               </div>
-              {role === "admin" && (
+              {(role === "admin" || role === "editor") && (
                 <button
                   onClick={() => { setOpen(false); setAdminSheetOpen(true); }}
                   className="w-full flex items-center justify-between p-2.5 rounded-lg text-sm text-foreground hover:bg-muted transition-colors"
                 >
-                  <span className="flex items-center gap-2"><Shield className="w-4 h-4" /> Admin Panel</span>
+                  <span className="flex items-center gap-2"><Shield className="w-4 h-4" /> {role === "admin" ? "Admin Panel" : "Editor Panel"}</span>
                   <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </button>
               )}
@@ -176,11 +177,11 @@ const ProfileMenu = () => {
       <SheetContent side="left" className="w-[280px] p-0 overflow-y-auto">
         <SheetHeader className="p-4 border-b border-border">
           <SheetTitle className="flex items-center gap-2 text-foreground">
-            <Shield className="w-5 h-5 text-primary" /> Admin Panel
+            <Shield className="w-5 h-5 text-primary" /> {role === "admin" ? "Admin Panel" : "Editor Panel"}
           </SheetTitle>
         </SheetHeader>
         <nav className="p-2 space-y-1">
-          {adminItems.map((item) => (
+          {(role === "admin" ? adminItems : adminItems.filter((i) => EDITOR_PATHS.includes(i.path))).map((item) => (
             <button
               key={item.path}
               onClick={() => { setAdminSheetOpen(false); navigate(item.path); }}
