@@ -42,8 +42,11 @@ const ProfileMenu = () => {
 
   useEffect(() => {
     if (user) {
-      supabase.from("user_roles").select("role").eq("user_id", user.id).single()
-        .then(({ data }) => { if (data) setRole(data.role); });
+      supabase.from("user_roles").select("role").eq("user_id", user.id)
+        .then(({ data }) => {
+          const roles = (data || []).map((r) => r.role as string);
+          setRole(roles.includes("admin") ? "admin" : roles.includes("editor") ? "editor" : "user");
+        });
     }
   }, [user]);
 
