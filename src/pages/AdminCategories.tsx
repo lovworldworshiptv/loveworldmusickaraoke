@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useIsEditor } from "@/hooks/useIsEditor";
 import { Plus, Trash2, Edit3, Save, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -16,7 +17,10 @@ interface Category {
 }
 
 const AdminCategories = () => {
-  const { isAdmin, loading: adminLoading } = useIsAdmin();
+  const { isAdmin: isRealAdmin, loading: realAdminLoading } = useIsAdmin();
+  const { isEditor, loading: editorLoading } = useIsEditor();
+  const isAdmin = isRealAdmin || isEditor;
+  const adminLoading = realAdminLoading || editorLoading;
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
