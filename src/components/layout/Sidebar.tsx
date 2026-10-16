@@ -74,10 +74,10 @@ const Sidebar = ({ collapsed, onCollapsedChange }: SidebarProps) => {
       <div className={cn("h-[88px] flex items-center", collapsed ? "justify-center px-3" : "justify-between px-6")}>
         {!collapsed && (
           <div className="flex items-center gap-2.5 min-w-0">
-            <img src={logo} alt="" className="h-10 w-10 shrink-0 rounded-xl shadow-[0_0_16px_hsl(43_70%_53%/0.35)]" />
+            <img src={logo} alt="Loveworld Music Karaoke+" className="h-10 w-10 shrink-0 rounded-xl shadow-[0_0_16px_hsl(43_70%_53%/0.35)]" />
             <div className="min-w-0 leading-tight">
-              <p className="text-sm font-bold text-sidebar-foreground truncate">Loveworld Music</p>
-              <p className="text-[11px] font-semibold tracking-[0.12em] uppercase gradient-gold-text">Karaoke+</p>
+              <p className="text-[13px] font-bold text-sidebar-foreground whitespace-nowrap">Loveworld Music</p>
+              <p className="text-[10px] font-semibold tracking-[0.14em] uppercase gradient-gold-text">Karaoke+</p>
             </div>
           </div>
         )}
