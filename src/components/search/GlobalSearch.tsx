@@ -164,7 +164,8 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
   const show = (id: FilterId) => filter === "all" || filter === id;
 
   const vDiscover = show("discover") ? discover : [];
-  const vSongs = show("songs") ? songs : [];
+  const vSongs = show("songs") ? songs.filter(s => titleIds.has(s.id)) : [];
+  const vLyrics = show("lyrics") ? lyrics : [];
   const vAlbums = show("albums") ? albums : [];
   const vPlaylists = show("playlists") ? playlists : [];
   const vArticles = show("articles") ? articles : [];
@@ -172,8 +173,9 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
 
   const counts: Record<FilterId, number> = {
     discover: discover.length,
-    all: discover.length + songs.length + albums.length + playlists.length + articles.length + users.length,
-    songs: songs.length,
+    all: discover.length + vSongs.length + lyrics.length + albums.length + playlists.length + articles.length + users.length,
+    songs: vSongs.length,
+    lyrics: lyrics.length,
     albums: albums.length,
     playlists: playlists.length,
     articles: articles.length,
