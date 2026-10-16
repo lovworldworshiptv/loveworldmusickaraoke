@@ -50,3 +50,4 @@
 
 - [x] Offline fallback to Downloads with automatic return and refresh on reconnect
 - [x] Faster repeat loading through saved app files and artwork
+- [x] Mini player hide/reveal on phones: down-chevron or swipe down to tuck away, centered handle to bring back, choice remembered across pages and reloads
