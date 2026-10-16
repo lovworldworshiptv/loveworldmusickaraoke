@@ -93,7 +93,7 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
     if (q.length < 2) { reset(); setSongsMore(false); setLoading(false); return; }
     setLoading(true);
     const [contentRes, albumsRes, playlistsRes, usersRes, catsRes, featRes] = await Promise.all([
-      searchContent(q, "all", SEARCH_PAGE_SIZE, 0).catch(() => ({ songs: [], articles: [], hasMore: false })),
+      searchContent(q, "all", SEARCH_PAGE_SIZE, 0).catch(() => ({ songs: [], lyrics: [], titleIds: new Set<string>(), articles: [], hasMore: false })),
       supabase.from("albums").select("id, title, artist, cover_url").or(`title.ilike.%${q}%,artist.ilike.%${q}%`).limit(5),
       supabase
         .from("playlists")
@@ -116,6 +116,8 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
       })),
     ]);
     setSongs(contentRes.songs);
+    setLyrics(contentRes.lyrics);
+    setTitleIds(contentRes.titleIds);
     setSongsMore(contentRes.hasMore);
     setSongsOffset(SEARCH_PAGE_SIZE);
     setAlbums(albumsRes.data || []);
