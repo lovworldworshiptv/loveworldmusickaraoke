@@ -22,9 +22,12 @@ const DiscoverTag = () => {
   const { data: songs = [], isLoading } = useQuery({
     queryKey: ["discover-tag", tag],
     queryFn: async () => {
-      let q = (supabase.from("songs") as any).select("*").limit(50);
-      q = isKaraoke ? q.not("instrumental_url", "is", null) : q.or(`title.ilike.%${term}%,album.ilike.%${term}%,lyrics_text.ilike.%${term}%,lyrics_lrc.ilike.%${term}%`);
-      const { data } = await q.order("play_count", { ascending: false });
+      if (!isKaraoke && term.trim().length >= 2) {
+        const { songs } = await searchContent(term, "lyrics", 50, 0);
+        return songs;
+      }
+      const { data } = await (supabase.from("songs") as any).select("*").limit(50)
+        .not("instrumental_url", "is", null).order("play_count", { ascending: false });
       return data || [];
     },
   });

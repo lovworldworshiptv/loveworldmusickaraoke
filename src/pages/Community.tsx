@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, type CSSProperties } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { searchContent, SEARCH_DEBOUNCE_MS } from "@/lib/contentSearch";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
@@ -172,7 +173,8 @@ const Community = () => {
     playSong(ps);
   };
 
-  const searchSongs = async (q: string) => {
+  const songSearchTimer = useRef<ReturnType<typeof setTimeout>>();
+  const searchSongs = (q: string) => {
     setSongQuery(q);
     if (q.trim().length < 2) { setSongResults([]); return; }
     clearTimeout(songSearchTimer.current);
