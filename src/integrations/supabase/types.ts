@@ -126,6 +126,7 @@ export type Database = {
           is_featured: boolean
           is_published: boolean
           published_at: string | null
+          search_tsv: unknown
           title: string
           updated_at: string
           video_url: string | null
@@ -142,6 +143,7 @@ export type Database = {
           is_featured?: boolean
           is_published?: boolean
           published_at?: string | null
+          search_tsv?: unknown
           title: string
           updated_at?: string
           video_url?: string | null
@@ -158,6 +160,7 @@ export type Database = {
           is_featured?: boolean
           is_published?: boolean
           published_at?: string | null
+          search_tsv?: unknown
           title?: string
           updated_at?: string
           video_url?: string | null
@@ -2088,6 +2091,7 @@ export type Database = {
           language_code: string
           lyrics_lrc: string | null
           lyrics_text: string | null
+          search_tsv: unknown
           song_id: string
           updated_at: string
         }
@@ -2100,6 +2104,7 @@ export type Database = {
           language_code: string
           lyrics_lrc?: string | null
           lyrics_text?: string | null
+          search_tsv?: unknown
           song_id: string
           updated_at?: string
         }
@@ -2112,6 +2117,7 @@ export type Database = {
           language_code?: string
           lyrics_lrc?: string | null
           lyrics_text?: string | null
+          search_tsv?: unknown
           song_id?: string
           updated_at?: string
         }
@@ -2245,6 +2251,7 @@ export type Database = {
           lyrics_text: string | null
           original_language: string
           play_count: number
+          search_tsv: unknown
           title: string
           total_sung: number
         }
@@ -2268,6 +2275,7 @@ export type Database = {
           lyrics_text?: string | null
           original_language?: string
           play_count?: number
+          search_tsv?: unknown
           title: string
           total_sung?: number
         }
@@ -2291,6 +2299,7 @@ export type Database = {
           lyrics_text?: string | null
           original_language?: string
           play_count?: number
+          search_tsv?: unknown
           title?: string
           total_sung?: number
         }
@@ -2832,6 +2841,26 @@ export type Database = {
           username: string
         }[]
       }
+      search_content: {
+        Args: {
+          page_limit?: number
+          page_offset?: number
+          query: string
+          scope?: string
+        }
+        Returns: {
+          cover_url: string
+          id: string
+          kind: string
+          score: number
+          snippet: string
+          song_id: string
+          subtitle: string
+          tier: number
+          title: string
+        }[]
+      }
+      search_norm: { Args: { t: string }; Returns: string }
       set_community_moderator: {
         Args: { p_community_id: string; p_enabled: boolean; p_user_id: string }
         Returns: undefined

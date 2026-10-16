@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, type CSSProperties } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { searchContent, SEARCH_DEBOUNCE_MS } from "@/lib/contentSearch";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
@@ -172,12 +173,17 @@ const Community = () => {
     playSong(ps);
   };
 
-  const searchSongs = async (q: string) => {
+  const songSearchTimer = useRef<ReturnType<typeof setTimeout>>();
+  const searchSongs = (q: string) => {
     setSongQuery(q);
     if (q.trim().length < 2) { setSongResults([]); return; }
-    const { data } = await (supabase.from("songs") as any).select("id, title, artist, cover_url, audio_url, instrumental_url")
-      .ilike("title", `%${q}%`).not("audio_url", "is", null).limit(6);
-    setSongResults((data || []) as any);
+    clearTimeout(songSearchTimer.current);
+    songSearchTimer.current = setTimeout(async () => {
+      try {
+        const { songs } = await searchContent(q, "songs", 10, 0);
+        setSongResults(songs.filter((s: any) => s.audio_url).slice(0, 6) as any);
+      } catch { setSongResults([]); }
+    }, SEARCH_DEBOUNCE_MS);
   };
 
   const createPost = async () => {

@@ -6,6 +6,7 @@ import {
   X, Clock, Sparkles, ArrowUp, ArrowDown, Loader2, Compass,
 } from "lucide-react";
 import { normalize } from "@/lib/fuzzySearch";
+import { searchContent, SEARCH_DEBOUNCE_MS, SEARCH_PAGE_SIZE } from "@/lib/contentSearch";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { usePlayer } from "@/contexts/PlayerContext";
@@ -78,16 +79,18 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
     setRecents([]);
   };
 
+  const [songsMore, setSongsMore] = useState(false);
+  const [songsOffset, setSongsOffset] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const reqId = useRef(0);
+
   const search = useCallback(async (raw: string) => {
     const q = safe(raw);
-    if (q.length < 2) { reset(); setLoading(false); return; }
+    const id = ++reqId.current;
+    if (q.length < 2) { reset(); setSongsMore(false); setLoading(false); return; }
     setLoading(true);
-    const [songsRes, albumsRes, playlistsRes, articlesRes, usersRes, catsRes, featRes] = await Promise.all([
-      supabase
-        .from("songs")
-        .select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, duration_seconds, album")
-        .or(`title.ilike.%${q}%,artist.ilike.%${q}%,lyrics_text.ilike.%${q}%,lyrics_lrc.ilike.%${q}%`)
-        .limit(8),
+    const [contentRes, albumsRes, playlistsRes, usersRes, catsRes, featRes] = await Promise.all([
+      searchContent(q, "all", SEARCH_PAGE_SIZE, 0).catch(() => ({ songs: [], articles: [], hasMore: false })),
       supabase.from("albums").select("id, title, artist, cover_url").or(`title.ilike.%${q}%,artist.ilike.%${q}%`).limit(5),
       supabase
         .from("playlists")
@@ -95,18 +98,13 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
         .eq("is_visible_on_homepage", true)
         .ilike("name", `%${q}%`)
         .limit(5),
-      supabase
-        .from("articles")
-        .select("id, title, excerpt, author, category")
-        .eq("is_published", true)
-        .or(`title.ilike.%${q}%,excerpt.ilike.%${q}%,content.ilike.%${q}%,author.ilike.%${q}%`)
-        .limit(5),
       supabase.from("profiles").select("user_id, username, avatar_url, kingschat_handle").or(`username.ilike.%${q}%,kingschat_handle.ilike.%${q}%`).limit(5),
       (supabase as any).from("discover_categories").select("id, title, subtitle, route, image_url").eq("is_visible", true)
         .or(`title.ilike.%${q}%,subtitle.ilike.%${q}%`).order("sort_order").limit(6),
       (supabase as any).from("discover_featured").select("id, label, description, href, image_url, poster_url, song_ids").eq("is_active", true)
         .or(`label.ilike.%${q}%,description.ilike.%${q}%`).order("sort_order").limit(6),
     ]);
+    if (id !== reqId.current) return; // stale response
     setDiscover([
       ...((catsRes.data || []) as any[]).map((c) => ({ id: `c-${c.id}`, title: c.title, subtitle: c.subtitle, path: c.route, image: c.image_url, kind: "Category" })),
       ...((featRes.data || []) as any[]).map((f) => ({
@@ -114,13 +112,25 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
         path: f.song_ids?.length ? `/discover/featured/${f.id}` : f.href || `/discover/tag/${encodeURIComponent(f.label.replace(/^#/, ""))}`,
       })),
     ]);
-    setSongs(sortSongsByTitle(songsRes.data || []));
+    setSongs(contentRes.songs);
+    setSongsMore(contentRes.hasMore);
+    setSongsOffset(SEARCH_PAGE_SIZE);
     setAlbums(albumsRes.data || []);
     setPlaylists(playlistsRes.data || []);
-    setArticles(articlesRes.data || []);
+    setArticles(contentRes.articles);
     setUsers(usersRes.data || []);
     setLoading(false);
   }, []);
+
+  const loadMoreSongs = async () => {
+    setLoadingMore(true);
+    try {
+      const res = await searchContent(safe(query), "songs", SEARCH_PAGE_SIZE, songsOffset);
+      setSongs(prev => { const seen = new Set(prev.map(s => s.id)); return [...prev, ...res.songs.filter(s => !seen.has(s.id))]; });
+      setSongsMore(res.hasMore);
+      setSongsOffset(o => o + SEARCH_PAGE_SIZE);
+    } finally { setLoadingMore(false); }
+  };
 
   useEffect(() => {
     if (!open) { setQuery(""); setFilter("all"); reset(); }
@@ -129,7 +139,7 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
 
   useEffect(() => {
     if (query.trim().length >= 2) setLoading(true);
-    const t = setTimeout(() => search(query), 180);
+    const t = setTimeout(() => search(query), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [query, search]);
 
@@ -439,6 +449,12 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
                   </button>
                 );
               })}
+              {songsMore && (
+                <button type="button" onClick={loadMoreSongs} disabled={loadingMore}
+                  className="w-full mt-1 py-2 text-xs font-medium text-primary rounded-xl hover:bg-primary/10 flex items-center justify-center gap-2">
+                  {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Show more songs
+                </button>
+              )}
             </div>
           )}
 
