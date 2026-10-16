@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
-  Search, Music, Disc3, User, ListMusic, BookOpen, CornerDownLeft,
+  Search, Music, Disc3, User, ListMusic, BookOpen, CornerDownLeft, Mic2,
   X, Clock, Sparkles, ArrowUp, ArrowDown, Loader2, Compass,
 } from "lucide-react";
 import { normalize } from "@/lib/fuzzySearch";
@@ -29,6 +29,7 @@ const FILTERS = [
   { id: "all", label: "All", icon: Sparkles },
   { id: "discover", label: "Discover", icon: Compass },
   { id: "songs", label: "Songs", icon: Music },
+  { id: "lyrics", label: "Lyrics", icon: Mic2 },
   { id: "albums", label: "Albums", icon: Disc3 },
   { id: "playlists", label: "Playlists", icon: ListMusic },
   { id: "articles", label: "Articles", icon: BookOpen },
