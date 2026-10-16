@@ -141,7 +141,7 @@ const OnboardingSplash = ({ onComplete }: OnboardingSplashProps) => {
 
         {/* Logo */}
         <div className="absolute top-10 left-6 z-10">
-          <img src={logoFull} alt="Loveworld Music Karaoke+" className="h-16 w-auto" />
+          <img src={logoFull} alt="Loveworld Music Karaoke+" className="h-14 w-14 rounded-2xl shadow-[0_6px_24px_hsl(43_70%_53%/0.4)]" />
         </div>
 
         {/* Text content */}
