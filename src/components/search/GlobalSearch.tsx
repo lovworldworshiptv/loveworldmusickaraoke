@@ -51,6 +51,8 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterId>("all");
   const [songs, setSongs] = useState<any[]>([]);
+  const [lyrics, setLyrics] = useState<any[]>([]);
+  const [titleIds, setTitleIds] = useState<Set<string>>(new Set());
   const [albums, setAlbums] = useState<any[]>([]);
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [articles, setArticles] = useState<any[]>([]);
@@ -64,7 +66,7 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
   const { playSong } = usePlayer();
 
   const reset = () => {
-    setSongs([]); setAlbums([]); setPlaylists([]); setArticles([]); setUsers([]); setDiscover([]);
+    setSongs([]); setLyrics([]); setTitleIds(new Set()); setAlbums([]); setPlaylists([]); setArticles([]); setUsers([]); setDiscover([]);
   };
 
   const rememberQuery = (q: string) => {
