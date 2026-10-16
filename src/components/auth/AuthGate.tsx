@@ -1,6 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Lock, Music, Sparkles, LogIn, UserPlus } from "lucide-react";
+import { Lock, Music, Gamepad2, BookOpen, LogIn, UserPlus } from "lucide-react";
+import logo from "@/assets/logo.png";
 import AppLayout from "@/components/layout/AppLayout";
 import MusicBackground from "@/components/auth/MusicBackground";
 import OfflineScreen from "@/components/offline/OfflineScreen";
@@ -79,12 +80,12 @@ const AuthGate = ({ children }: AuthGateProps) => {
 
             <div className="mt-8 grid grid-cols-3 gap-2">
               {[
-                { icon: "🎵", label: "Full Library" },
-                { icon: "🎮", label: "Lyric Games" },
-                { icon: "📖", label: "Articles" },
+                { icon: Music, label: "Full Library" },
+                { icon: Gamepad2, label: "Lyric Games" },
+                { icon: BookOpen, label: "Articles" },
               ].map((feat) => (
                 <div key={feat.label} className="glass-card p-3 rounded-xl">
-                  <span className="text-lg mb-1 block">{feat.icon}</span>
+                  <feat.icon className="w-5 h-5 mx-auto mb-1.5 text-gold" />
                   <span className="text-[10px] text-muted-foreground font-medium">{feat.label}</span>
                 </div>
               ))}
