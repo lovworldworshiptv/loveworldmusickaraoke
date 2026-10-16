@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
-  Search, Music, Disc3, User, ListMusic, BookOpen, CornerDownLeft,
+  Search, Music, Disc3, User, ListMusic, BookOpen, CornerDownLeft, Mic2,
   X, Clock, Sparkles, ArrowUp, ArrowDown, Loader2, Compass,
 } from "lucide-react";
 import { normalize } from "@/lib/fuzzySearch";
@@ -29,6 +29,7 @@ const FILTERS = [
   { id: "all", label: "All", icon: Sparkles },
   { id: "discover", label: "Discover", icon: Compass },
   { id: "songs", label: "Songs", icon: Music },
+  { id: "lyrics", label: "Lyrics", icon: Mic2 },
   { id: "albums", label: "Albums", icon: Disc3 },
   { id: "playlists", label: "Playlists", icon: ListMusic },
   { id: "articles", label: "Articles", icon: BookOpen },
@@ -50,6 +51,8 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterId>("all");
   const [songs, setSongs] = useState<any[]>([]);
+  const [lyrics, setLyrics] = useState<any[]>([]);
+  const [titleIds, setTitleIds] = useState<Set<string>>(new Set());
   const [albums, setAlbums] = useState<any[]>([]);
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [articles, setArticles] = useState<any[]>([]);
@@ -63,7 +66,7 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
   const { playSong } = usePlayer();
 
   const reset = () => {
-    setSongs([]); setAlbums([]); setPlaylists([]); setArticles([]); setUsers([]); setDiscover([]);
+    setSongs([]); setLyrics([]); setTitleIds(new Set()); setAlbums([]); setPlaylists([]); setArticles([]); setUsers([]); setDiscover([]);
   };
 
   const rememberQuery = (q: string) => {
@@ -90,7 +93,7 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
     if (q.length < 2) { reset(); setSongsMore(false); setLoading(false); return; }
     setLoading(true);
     const [contentRes, albumsRes, playlistsRes, usersRes, catsRes, featRes] = await Promise.all([
-      searchContent(q, "all", SEARCH_PAGE_SIZE, 0).catch(() => ({ songs: [], articles: [], hasMore: false })),
+      searchContent(q, "all", SEARCH_PAGE_SIZE, 0).catch(() => ({ songs: [], lyrics: [], titleIds: new Set<string>(), articles: [], hasMore: false })),
       supabase.from("albums").select("id, title, artist, cover_url").or(`title.ilike.%${q}%,artist.ilike.%${q}%`).limit(5),
       supabase
         .from("playlists")
@@ -113,6 +116,8 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
       })),
     ]);
     setSongs(contentRes.songs);
+    setLyrics(contentRes.lyrics);
+    setTitleIds(contentRes.titleIds);
     setSongsMore(contentRes.hasMore);
     setSongsOffset(SEARCH_PAGE_SIZE);
     setAlbums(albumsRes.data || []);
@@ -159,7 +164,8 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
   const show = (id: FilterId) => filter === "all" || filter === id;
 
   const vDiscover = show("discover") ? discover : [];
-  const vSongs = show("songs") ? songs : [];
+  const vSongs = show("songs") ? songs.filter(s => titleIds.has(s.id)) : [];
+  const vLyrics = show("lyrics") ? lyrics : [];
   const vAlbums = show("albums") ? albums : [];
   const vPlaylists = show("playlists") ? playlists : [];
   const vArticles = show("articles") ? articles : [];
@@ -167,8 +173,9 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
 
   const counts: Record<FilterId, number> = {
     discover: discover.length,
-    all: discover.length + songs.length + albums.length + playlists.length + articles.length + users.length,
-    songs: songs.length,
+    all: discover.length + vSongs.length + lyrics.length + albums.length + playlists.length + articles.length + users.length,
+    songs: vSongs.length,
+    lyrics: lyrics.length,
     albums: albums.length,
     playlists: playlists.length,
     articles: articles.length,
@@ -180,13 +187,14 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
     () => [
       ...vDiscover.map(d => ({ key: `disc-${d.id}`, run: () => go(d.path) })),
       ...vSongs.map(s => ({ key: `song-${s.id}`, run: () => handleSongClick(s) })),
+      ...vLyrics.map(s => ({ key: `lyr-${s.id}`, run: () => handleSongClick(s) })),
       ...vAlbums.map(a => ({ key: `album-${a.id}`, run: () => go("/albums") })),
       ...vPlaylists.map(p => ({ key: `pl-${p.id}`, run: () => go("/playlists") })),
       ...vArticles.map(a => ({ key: `art-${a.id}`, run: () => go(`/articles?id=${a.id}`) })),
       ...vUsers.map(u => ({ key: `usr-${u.user_id}`, run: () => go(`/user/${u.user_id}`) })),
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [vDiscover, vSongs, vAlbums, vPlaylists, vArticles, vUsers, query],
+    [vDiscover, vSongs, vLyrics, vAlbums, vPlaylists, vArticles, vUsers, query],
   );
 
   useEffect(() => { setActiveIndex(0); }, [query, filter]);
@@ -433,28 +441,46 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
           {vSongs.length > 0 && (
             <div>
               <SectionLabel>Songs</SectionLabel>
-              {vSongs.map(s => {
-                const snippet = lyricsSnippet(s.lyrics_text || s.lyrics_lrc, query);
-                return (
-                  <button key={s.id} {...rowProps(() => handleSongClick(s))}>
-                    <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {s.cover_url ? <img src={s.cover_url} alt="" className="w-full h-full object-cover" /> : <Music className="w-4 h-4 text-muted-foreground" />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground truncate"><Highlight text={s.title} query={query} /></p>
-                      <p className="text-xs text-foreground truncate"><Highlight text={s.artist} query={query} /></p>
-                      {snippet && <p className="text-[11px] text-muted-foreground/80 line-clamp-1 italic"><Highlight text={snippet} query={query} /></p>}
-                    </div>
-                    <CornerDownLeft className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 flex-shrink-0" />
-                  </button>
-                );
-              })}
+              {vSongs.map(s => (
+                <button key={s.id} {...rowProps(() => handleSongClick(s))}>
+                  <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {s.cover_url ? <img src={s.cover_url} alt="" className="w-full h-full object-cover" /> : <Music className="w-4 h-4 text-muted-foreground" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground truncate"><Highlight text={s.title} query={query} /></p>
+                    <p className="text-xs text-foreground truncate"><Highlight text={s.artist} query={query} /></p>
+                  </div>
+                  <CornerDownLeft className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 flex-shrink-0" />
+                </button>
+              ))}
               {songsMore && (
                 <button type="button" onClick={loadMoreSongs} disabled={loadingMore}
                   className="w-full mt-1 py-2 text-xs font-medium text-primary rounded-xl hover:bg-primary/10 flex items-center justify-center gap-2">
                   {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Show more songs
                 </button>
               )}
+            </div>
+          )}
+
+          {vLyrics.length > 0 && (
+            <div>
+              <SectionLabel>Lyrics</SectionLabel>
+              {vLyrics.map(s => {
+                const snippet = lyricsSnippet(s.lyrics_text || s.lyrics_lrc, query);
+                return (
+                  <button key={`lyr-${s.id}`} {...rowProps(() => handleSongClick(s))}>
+                    <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {s.cover_url ? <img src={s.cover_url} alt="" className="w-full h-full object-cover" /> : <Mic2 className="w-4 h-4 text-gold" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground truncate">{s.title}</p>
+                      <p className="text-xs text-foreground truncate">{s.artist}</p>
+                      {snippet && <p className="text-[11px] text-muted-foreground/80 line-clamp-1 italic"><Highlight text={snippet} query={query} /></p>}
+                    </div>
+                    <CornerDownLeft className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 flex-shrink-0" />
+                  </button>
+                );
+              })}
             </div>
           )}
 
