@@ -1,6 +1,7 @@
 import { useDominantColor, playerTone } from "@/lib/dominantColor";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, VolumeX, Mic2, ListMusic, ChevronUp, X, Download, Check, Lock, Crown, Disc3, MoreVertical } from "lucide-react";
+import type { TouchEvent as ReactTouchEvent, MouseEvent as ReactMouseEvent } from "react";
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, VolumeX, Mic2, ListMusic, ChevronUp, ChevronDown, X, Download, Check, Lock, Crown, Disc3, MoreVertical, Music } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -14,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import ExpandedPlayer from "./ExpandedPlayer";
 import PlaybackProgress from "./PlaybackProgress";
 import { useFeatures } from "@/contexts/FeatureContext";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { usePlayerHidden } from "@/lib/playerVisibility";
 
 const formatTime = (s: number) => {
   const m = Math.floor(s / 60);
@@ -37,7 +40,64 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
   const { isAdmin } = useIsAdmin();
   const { isPremium } = useIsPremium();
   const navigate = useNavigate();
-  const [hidden, setHidden] = useState(false);
+  const [hidden, setHidden] = usePlayerHidden();
+  const isMobile = useIsMobile();
+  const [swipeY, setSwipeY] = useState(0);
+  const swipeRef = useRef<{ startY: number; dy: number; moved: boolean } | null>(null);
+  const swiping = swipeY > 0;
+  const sawSongRef = useRef(false);
+  const seenSongIdRef = useRef<string | undefined>(undefined);
+
+  // Phones: drag the mini player down to tuck it away, tap the handle to bring it back.
+  const handleTouchStart = (e: ReactTouchEvent<HTMLDivElement>) => {
+    if (!isMobile || e.touches.length !== 1) return;
+    if ((e.target as HTMLElement).closest("[data-swipe-ignore]")) {
+      swipeRef.current = null;
+      return;
+    }
+    swipeRef.current = { startY: e.touches[0].clientY, dy: 0, moved: false };
+  };
+
+  const handleTouchMove = (e: ReactTouchEvent<HTMLDivElement>) => {
+    const swipe = swipeRef.current;
+    if (!swipe) return;
+    swipe.dy = e.touches[0].clientY - swipe.startY;
+    if (swipe.dy > 8) {
+      swipe.moved = true;
+      setSwipeY(Math.min(Math.max(swipe.dy, 0), 96));
+    }
+  };
+
+  const handleTouchEnd = () => {
+    const swipe = swipeRef.current;
+    if (!swipe) return;
+    setSwipeY(0);
+    if (swipe.dy > 64) setHidden(true);
+  };
+
+  // A drag is not a tap: swallow the click that follows a swipe-down.
+  const handleBarClickCapture = (e: ReactMouseEvent<HTMLDivElement>) => {
+    const swipe = swipeRef.current;
+    if (swipe?.moved) {
+      e.preventDefault();
+      e.stopPropagation();
+      swipe.moved = false;
+    }
+  };
+
+  // Playing a different song always brings the mini player back; the track
+  // restored with the session keeps the player tucked away.
+  useEffect(() => {
+    const id = currentSong?.id;
+    if (!id) return;
+    if (!sawSongRef.current) {
+      sawSongRef.current = true;
+      seenSongIdRef.current = id;
+      return;
+    }
+    if (seenSongIdRef.current !== id) setHidden(false);
+    seenSongIdRef.current = id;
+  }, [currentSong?.id, setHidden]);
   const [showQueue, setShowQueue] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -89,11 +149,44 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
 
   const tone = playerTone(useDominantColor(currentSong?.coverUrl), 90);
   if (!currentSong) return null;
-  if (hidden) return (
-    <button onClick={() => setHidden(false)} className="fixed z-30 w-12 h-12 rounded-full gradient-gold flex items-center justify-center text-primary-foreground shadow-lg hover:opacity-90 transition-opacity touch-target active:scale-95 lg:bottom-2 right-3" style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
-      <ChevronUp className="w-5 h-5" />
-    </button>
-  );
+  if (hidden) {
+    if (isMobile) {
+      return (
+        <div
+          className="fixed inset-x-0 z-40 flex justify-center pointer-events-none"
+          style={{ bottom: "calc(5.25rem + env(safe-area-inset-bottom, 0px))" }}
+        >
+          <button
+            onClick={() => setHidden(false)}
+            aria-label={`Show player — ${currentSong.title}`}
+            className="pointer-events-auto flex items-center gap-2 rounded-full glass border border-gold/25 pl-1 pr-3 py-1 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.75)] active:scale-95 transition-transform duration-200 animate-fade-in-up"
+        >
+          <span className="w-7 h-7 rounded-full gradient-gold flex items-center justify-center overflow-hidden flex-shrink-0">
+            {currentSong.coverUrl ? (
+              <img src={currentSong.coverUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <Music className="w-3.5 h-3.5 text-primary-foreground" />
+            )}
+          </span>
+          {isPlaying && (
+            <span className="flex items-end gap-[2px] h-3" aria-hidden="true">
+              <span className="eq-bar" />
+              <span className="eq-bar" />
+              <span className="eq-bar" />
+            </span>
+          )}
+          <span className="text-xs font-semibold text-foreground max-w-[42vw] truncate">{currentSong.title}</span>
+          <ChevronUp className="w-4 h-4 text-gold flex-shrink-0" />
+          </button>
+        </div>
+      );
+    }
+    return (
+      <button onClick={() => setHidden(false)} className="fixed z-30 w-12 h-12 rounded-full gradient-gold flex items-center justify-center text-primary-foreground shadow-lg hover:opacity-90 transition-opacity touch-target active:scale-95 lg:bottom-2 right-3" style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
+        <ChevronUp className="w-5 h-5" />
+      </button>
+    );
+  }
   if (isExpanded) return <ExpandedPlayer />;
 
   const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
@@ -101,8 +194,23 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
 
   return (
     <>
-      <div style={tone ? { backgroundColor: `rgba(${tone}, 0.92)`, borderColor: `rgba(${tone}, 0.4)`, transition: "background-color 700ms ease, border-color 700ms ease" } : undefined} className={`fixed left-2 right-2 z-30 glass rounded-2xl border border-border gpu shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] lg:right-0 lg:bottom-0 lg:rounded-none lg:border-x-0 lg:border-b-0 lg:transition-[left] lg:duration-300 ${desktopSidebarCollapsed ? "lg:left-20" : "lg:left-64"}`}>
-        <div className="px-4 pt-2">
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+        onClickCapture={handleBarClickCapture}
+        style={{
+          ...(tone ? { backgroundColor: `rgba(${tone}, 0.92)`, borderColor: `rgba(${tone}, 0.4)` } : {}),
+          transform: swipeY ? `translateY(${swipeY}px) translateZ(0)` : "translateZ(0)",
+          opacity: swipeY ? Math.max(1 - swipeY / 220, 0.4) : 1,
+          transition: swiping
+            ? "none"
+            : "transform 220ms ease, opacity 220ms ease, background-color 700ms ease, border-color 700ms ease",
+        }}
+        className={`fixed left-2 right-2 z-30 glass rounded-2xl border border-border gpu shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] lg:right-0 lg:bottom-0 lg:rounded-none lg:border-x-0 lg:border-b-0 lg:transition-[left] lg:duration-300 ${desktopSidebarCollapsed ? "lg:left-20" : "lg:left-64"}`}
+      >
+        <div className="px-4 pt-2" data-swipe-ignore>
           <div className="relative w-[96%] mx-auto group/progress">
             <PlaybackProgress value={progress} onValueChange={seekTo} ariaLabel="Song position" />
           </div>
@@ -142,6 +250,13 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
             </button>
             <button onClick={skipNext} className="text-foreground hover:text-gold transition-colors">
               <SkipForward className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setHidden(true)}
+              aria-label="Hide player"
+              className="md:hidden w-9 h-9 -mr-2 flex items-center justify-center text-foreground/70 hover:text-gold active:scale-90 transition-all"
+            >
+              <ChevronDown className="w-5 h-5" />
             </button>
             <button onClick={cycleRepeat} className={`hidden md:block transition-colors ${repeatMode !== "off" ? "text-gold" : "text-foreground hover:text-gold"}`}>
               <RepeatIcon className="w-4 h-4" />

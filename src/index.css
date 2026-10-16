@@ -520,3 +520,22 @@
 @layer utilities {
   .overflow-x-auto { -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; touch-action: pan-x pan-y; }
 }
+
+/* "Now playing" bars on the tucked-away mini player handle */
+@keyframes lmk-eq {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
+.eq-bar {
+  width: 2px;
+  height: 12px;
+  border-radius: 2px;
+  background: hsl(var(--gold));
+  transform-origin: bottom;
+  animation: lmk-eq 0.9s ease-in-out infinite;
+}
+.eq-bar:nth-child(2) { animation-delay: 0.15s; }
+.eq-bar:nth-child(3) { animation-delay: 0.3s; }
+@media (prefers-reduced-motion: reduce) {
+  .eq-bar { animation: none; transform: scaleY(0.7); }
+}
