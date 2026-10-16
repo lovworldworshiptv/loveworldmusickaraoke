@@ -175,9 +175,13 @@ const Community = () => {
   const searchSongs = async (q: string) => {
     setSongQuery(q);
     if (q.trim().length < 2) { setSongResults([]); return; }
-    const { data } = await (supabase.from("songs") as any).select("id, title, artist, cover_url, audio_url, instrumental_url")
-      .ilike("title", `%${q}%`).not("audio_url", "is", null).limit(6);
-    setSongResults((data || []) as any);
+    clearTimeout(songSearchTimer.current);
+    songSearchTimer.current = setTimeout(async () => {
+      try {
+        const { songs } = await searchContent(q, "songs", 10, 0);
+        setSongResults(songs.filter((s: any) => s.audio_url).slice(0, 6) as any);
+      } catch { setSongResults([]); }
+    }, SEARCH_DEBOUNCE_MS);
   };
 
   const createPost = async () => {
