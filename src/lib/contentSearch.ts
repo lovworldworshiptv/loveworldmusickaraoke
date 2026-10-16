@@ -22,7 +22,11 @@ const SONG_COLS =
 
 /**
  * Ranked server-side search (exact title → title prefix → all words in title/artist → lyrics → fuzzy).
- * Returns full song rows in rank order plus article hits. `hasMore` signals another page exists.
+ * Returns full song rows in rank order plus article hits.
+ * - `songs`: every matched song (title/artist or lyrics), for playback queues.
+ * - `titleIds`: ids matched by title/artist only — the "Songs" category.
+ * - `lyrics`: songs matched via lyrics, each carrying its matching snippet — the "Lyrics" category.
+ * `hasMore` signals another page exists.
  */
 export async function searchContent(query: string, scope: SearchScope = "all", limit = SEARCH_PAGE_SIZE, offset = 0) {
   const { data, error } = await (supabase as any).rpc("search_content", {
@@ -32,18 +36,28 @@ export async function searchContent(query: string, scope: SearchScope = "all", l
   const hits = (data || []) as ContentHit[];
   const songIds = [...new Set(hits.filter(h => h.kind !== "article").map(h => h.song_id || h.id))];
   let songs: any[] = [];
+  let lyrics: any[] = [];
+  let titleIds = new Set<string>();
   if (songIds.length) {
     const { data: rows } = await supabase.from("songs").select(SONG_COLS).in("id", songIds);
     const byId = new Map((rows || []).map((r: any) => [r.id, r]));
+    titleIds = new Set(hits.filter(h => h.kind === "song").map(h => h.song_id || h.id) as string[]);
     songs = songIds.map(id => {
       const row: any = byId.get(id);
       if (!row) return null;
       const lyricHit = hits.find(h => h.kind === "lyrics" && h.song_id === id);
       return lyricHit?.snippet ? { ...row, lyrics_text: lyricHit.snippet } : row;
     }).filter(Boolean);
+    lyrics = hits
+      .filter(h => h.kind === "lyrics")
+      .map(h => {
+        const row: any = byId.get(h.song_id || h.id);
+        return row ? { ...row, lyrics_text: h.snippet } : null;
+      })
+      .filter(Boolean);
   }
   const articles = hits.filter(h => h.kind === "article").map(h => ({
     id: h.id, title: h.title, author: h.subtitle, excerpt: h.snippet, image_url: h.cover_url,
   }));
-  return { songs, articles, hasMore: hits.length === limit };
+  return { songs, lyrics, titleIds, articles, hasMore: hits.length === limit };
 }
