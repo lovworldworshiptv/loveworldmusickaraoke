@@ -41,18 +41,19 @@ export async function searchContent(query: string, scope: SearchScope = "all", l
   if (songIds.length) {
     const { data: rows } = await supabase.from("songs").select(SONG_COLS).in("id", songIds);
     const byId = new Map((rows || []).map((r: any) => [r.id, r]));
-    titleIds = new Set(hits.filter(h => h.kind === "song").map(h => h.song_id || h.id) as string[]);
-    songs = songIds.map(id => {
-      const row: any = byId.get(id);
-      if (!row) return null;
-      const lyricHit = hits.find(h => h.kind === "lyrics" && h.song_id === id);
-      return lyricHit?.snippet ? { ...row, lyrics_text: lyricHit.snippet } : row;
-    }).filter(Boolean);
+    // Tier 4 = matched inside lyrics; kind "lyrics" = matched a translated lyric row.
+    const isLyricHit = (h: ContentHit) => h.kind === "lyrics" || (h.kind === "song" && h.tier === 4);
+    titleIds = new Set(hits.filter(h => h.kind === "song" && h.tier !== 4).map(h => h.song_id || h.id) as string[]);
+    songs = songIds.map(id => byId.get(id)).filter(Boolean);
+    const seenLyric = new Set<string>();
     lyrics = hits
-      .filter(h => h.kind === "lyrics")
+      .filter(isLyricHit)
       .map(h => {
-        const row: any = byId.get(h.song_id || h.id);
-        return row ? { ...row, lyrics_text: h.snippet } : null;
+        const id = (h.song_id || h.id) as string;
+        if (titleIds.has(id) || seenLyric.has(id)) return null;
+        seenLyric.add(id);
+        const row: any = byId.get(id);
+        return row ? { ...row, lyrics_text: h.snippet || row.lyrics_text } : null;
       })
       .filter(Boolean);
   }
