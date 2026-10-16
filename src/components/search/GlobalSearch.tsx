@@ -187,13 +187,14 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
     () => [
       ...vDiscover.map(d => ({ key: `disc-${d.id}`, run: () => go(d.path) })),
       ...vSongs.map(s => ({ key: `song-${s.id}`, run: () => handleSongClick(s) })),
+      ...vLyrics.map(s => ({ key: `lyr-${s.id}`, run: () => handleSongClick(s) })),
       ...vAlbums.map(a => ({ key: `album-${a.id}`, run: () => go("/albums") })),
       ...vPlaylists.map(p => ({ key: `pl-${p.id}`, run: () => go("/playlists") })),
       ...vArticles.map(a => ({ key: `art-${a.id}`, run: () => go(`/articles?id=${a.id}`) })),
       ...vUsers.map(u => ({ key: `usr-${u.user_id}`, run: () => go(`/user/${u.user_id}`) })),
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [vDiscover, vSongs, vAlbums, vPlaylists, vArticles, vUsers, query],
+    [vDiscover, vSongs, vLyrics, vAlbums, vPlaylists, vArticles, vUsers, query],
   );
 
   useEffect(() => { setActiveIndex(0); }, [query, filter]);
