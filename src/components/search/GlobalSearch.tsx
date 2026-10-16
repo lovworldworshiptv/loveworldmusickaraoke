@@ -462,6 +462,28 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
             </div>
           )}
 
+          {vLyrics.length > 0 && (
+            <div>
+              <SectionLabel>Lyrics</SectionLabel>
+              {vLyrics.map(s => {
+                const snippet = lyricsSnippet(s.lyrics_text || s.lyrics_lrc, query);
+                return (
+                  <button key={`lyr-${s.id}`} {...rowProps(() => handleSongClick(s))}>
+                    <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {s.cover_url ? <img src={s.cover_url} alt="" className="w-full h-full object-cover" /> : <Mic2 className="w-4 h-4 text-gold" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground truncate">{s.title}</p>
+                      <p className="text-xs text-foreground truncate">{s.artist}</p>
+                      {snippet && <p className="text-[11px] text-muted-foreground/80 line-clamp-1 italic"><Highlight text={snippet} query={query} /></p>}
+                    </div>
+                    <CornerDownLeft className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 flex-shrink-0" />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {vAlbums.length > 0 && (
             <div>
               <SectionLabel>Albums</SectionLabel>
