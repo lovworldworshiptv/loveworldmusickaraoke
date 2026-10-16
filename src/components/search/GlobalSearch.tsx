@@ -449,6 +449,12 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
                   </button>
                 );
               })}
+              {songsMore && (
+                <button type="button" onClick={loadMoreSongs} disabled={loadingMore}
+                  className="w-full mt-1 py-2 text-xs font-medium text-primary rounded-xl hover:bg-primary/10 flex items-center justify-center gap-2">
+                  {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Show more songs
+                </button>
+              )}
             </div>
           )}
 
