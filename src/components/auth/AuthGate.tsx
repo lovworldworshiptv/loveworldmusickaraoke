@@ -1,6 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Lock, Music, Sparkles, LogIn, UserPlus } from "lucide-react";
+import { Lock, Music, Gamepad2, BookOpen, LogIn, UserPlus } from "lucide-react";
+import logo from "@/assets/logo.png";
 import AppLayout from "@/components/layout/AppLayout";
 import MusicBackground from "@/components/auth/MusicBackground";
 import OfflineScreen from "@/components/offline/OfflineScreen";
@@ -46,16 +47,10 @@ const AuthGate = ({ children }: AuthGateProps) => {
           <MusicBackground />
           <div className="relative z-10 w-full max-w-sm text-center">
             <div className="relative w-28 h-28 mx-auto mb-8">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-gold/20 via-gold-light/10 to-transparent animate-pulse" />
-              <div className="absolute inset-2 rounded-full bg-gradient-to-br from-gold/10 to-transparent backdrop-blur-sm" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Lock className="w-10 h-10 text-gold drop-shadow-lg" />
-              </div>
-              <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_4px_20px_hsl(43_70%_53%/0.4)] animate-bounce" style={{ animationDuration: "2s" }}>
-                <Music className="w-4 h-4 text-white" />
-              </div>
-              <div className="absolute -bottom-1 -left-1 w-7 h-7 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_4px_20px_hsl(43_70%_53%/0.4)] animate-bounce" style={{ animationDuration: "2.5s", animationDelay: "0.3s" }}>
-                <Sparkles className="w-3.5 h-3.5 text-white" />
+              <div className="absolute -inset-3 rounded-[32px] bg-gold/15 blur-xl animate-pulse motion-reduce:animate-none" />
+              <img src={logo} alt="Loveworld Music Karaoke+" className="relative w-28 h-28 rounded-[28px] shadow-[0_8px_32px_hsl(43_70%_53%/0.45)]" />
+              <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-background border border-gold/40 flex items-center justify-center shadow-lg">
+                <Lock className="w-4 h-4 text-gold" />
               </div>
             </div>
 
@@ -85,12 +80,12 @@ const AuthGate = ({ children }: AuthGateProps) => {
 
             <div className="mt-8 grid grid-cols-3 gap-2">
               {[
-                { icon: "🎵", label: "Full Library" },
-                { icon: "🎮", label: "Lyric Games" },
-                { icon: "📖", label: "Articles" },
+                { icon: Music, label: "Full Library" },
+                { icon: Gamepad2, label: "Lyric Games" },
+                { icon: BookOpen, label: "Articles" },
               ].map((feat) => (
                 <div key={feat.label} className="glass-card p-3 rounded-xl">
-                  <span className="text-lg mb-1 block">{feat.icon}</span>
+                  <feat.icon className="w-5 h-5 mx-auto mb-1.5 text-gold" />
                   <span className="text-[10px] text-muted-foreground font-medium">{feat.label}</span>
                 </div>
               ))}
