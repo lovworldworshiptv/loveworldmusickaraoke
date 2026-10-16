@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Music, Play } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { searchContent } from "@/lib/contentSearch";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { fallbackImage } from "@/lib/discover";
 
