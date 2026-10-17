@@ -51,3 +51,4 @@
 - [x] Offline fallback to Downloads with automatic return and refresh on reconnect
 - [x] Faster repeat loading through saved app files and artwork
 - [x] Mini player hide/reveal on phones: down-chevron or swipe down to tuck away, centered handle to bring back, choice remembered across pages and reloads
+- [x] Enable editors to edit song details in Manage Songs; existing editor update policy verified, three permission tests pass; live editor-session save awaits signed-in verification.
