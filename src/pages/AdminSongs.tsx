@@ -540,7 +540,7 @@ const AdminSongs = () => {
       <div className="px-4 lg:px-6 pt-4 lg:pt-6 max-w-6xl">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-serif font-bold text-foreground">Manage Songs</h2>
-          {!isEditorOnly && (
+          {(isAdmin || isEditor) && (
             <Button onClick={() => setShowForm(!showForm)} className="gradient-gold text-primary-foreground gap-2">
               <Plus className="w-4 h-4" /> Add Song
             </Button>
@@ -548,7 +548,7 @@ const AdminSongs = () => {
         </div>
 
         {/* Create Song Form */}
-        {showForm && !isEditorOnly && (
+        {showForm && (isAdmin || isEditor) && (
           <div className="glass-card p-5 mb-6 space-y-4">
             <h3 className="font-serif font-bold text-foreground">New Song</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

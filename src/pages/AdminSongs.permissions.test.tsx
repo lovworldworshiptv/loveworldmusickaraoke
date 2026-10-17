@@ -5,6 +5,7 @@ import AdminSongs from "./AdminSongs";
 const state = vi.hoisted(() => ({
   admin: false, editor: true,
   update: vi.fn(),
+  insert: vi.fn(),
   song: { id: "song-1", title: "Faithful And Just", artist: "Loveworld Singers", album: null, album_id: null, category_id: null, duration_seconds: 240, is_featured: false, is_top: false, is_free_download: false, audio_url: null, instrumental_url: null, cover_url: null, lyrics_lrc: null },
 }));
 vi.mock("@/hooks/useIsAdmin", () => ({ useIsAdmin: () => ({ isAdmin: state.admin, loading: false }) }));
@@ -19,13 +20,14 @@ vi.mock("@/integrations/supabase/client", () => ({
     from: (table: string) => ({
       select: () => ({ order: async () => ({ data: table === "songs" ? [state.song] : [] }) }),
       update: (values: unknown) => ({ eq: async (column: string, id: string) => { state.update(values, column, id); return { error: null }; } }),
+      insert: (values: unknown) => ({ select: () => ({ single: async () => { state.insert(values); return { data: { id: "new-song" }, error: null }; } }) }),
     }),
     storage: { from: () => ({ list: async () => ({ data: [] }) }) },
   },
 }));
 
 describe("Manage Songs editor permissions", () => {
-  beforeEach(() => { state.admin = false; state.editor = true; state.update.mockClear(); });
+  beforeEach(() => { state.admin = false; state.editor = true; state.update.mockClear(); state.insert.mockClear(); });
   afterEach(cleanup);
 
   it("allows an editor to save changed song details", async () => {
@@ -42,12 +44,21 @@ describe("Manage Songs editor permissions", () => {
     await act(async () => { render(<AdminSongs />); });
     expect(screen.queryByRole("button", { name: "Edit details for Faithful And Just" })).toBeNull();
     expect(state.update).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Add Song" })).toBeNull();
+    expect(state.insert).not.toHaveBeenCalled();
   });
 
-  it("keeps creation and deletion unavailable to editors", async () => {
+  it("allows an editor to add a new song", async () => {
+    render(<AdminSongs />);
+    fireEvent.click(await screen.findByRole("button", { name: "Add Song" }));
+    fireEvent.change(screen.getByPlaceholderText("Title"), { target: { value: "New Worship Song" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create Song" }));
+    await waitFor(() => expect(state.insert).toHaveBeenCalledWith(expect.objectContaining({ title: "New Worship Song", artist: "Loveworld Singers" })));
+  });
+
+  it("keeps deletion unavailable to editors", async () => {
     render(<AdminSongs />);
     await screen.findByRole("button", { name: "Edit details for Faithful And Just" });
-    expect(screen.queryByRole("button", { name: "Add Song" })).toBeNull();
     expect(screen.getByTitle("Delete")).toBeDisabled();
   });
 });

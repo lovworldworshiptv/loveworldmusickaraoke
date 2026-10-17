@@ -162,6 +162,13 @@
       "when": 1792155236176,
       "tag": "0022_search_content_index",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792250390978,
+      "tag": "0023_editor_add_songs",
+      "breakpoints": true
     }
   ]
 }
