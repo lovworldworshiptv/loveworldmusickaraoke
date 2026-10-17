@@ -1,0 +1,3 @@
+GRANT INSERT ON public.songs TO authenticated;
+CREATE POLICY "Editors can insert songs" ON public.songs FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(), 'editor'::public.app_role));
+CREATE POLICY "Editors upload song audio" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id IN ('song-audio', 'song-instrumentals') AND public.has_role(auth.uid(), 'editor'::public.app_role));
