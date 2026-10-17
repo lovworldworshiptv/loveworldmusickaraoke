@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, cleanup } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AdminSongs from "./AdminSongs";
 
@@ -37,9 +37,9 @@ describe("Manage Songs editor permissions", () => {
     await waitFor(() => expect(state.update).toHaveBeenCalledWith(expect.objectContaining({ title: "Faithful And Just Updated", artist: "Loveworld Singers Updated" }), "id", "song-1"));
   });
 
-  it("does not grant song-management access to regular users", () => {
+  it("does not grant song-management access to regular users", async () => {
     state.editor = false;
-    render(<AdminSongs />);
+    await act(async () => { render(<AdminSongs />); });
     expect(screen.queryByRole("button", { name: "Edit details for Faithful And Just" })).toBeNull();
     expect(state.update).not.toHaveBeenCalled();
   });
