@@ -970,11 +970,10 @@ const AdminSongs = () => {
                       {generating[song.id] ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                     </button>
                   )}
-                  <button onClick={() => openEdit(song, "details")}
-                    className={`p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors ${isEditorOnly ? "opacity-30 pointer-events-none" : ""}`} title="Edit Details"
-                    disabled={isEditorOnly}>
+                  <Button variant="ghost" size="icon" onClick={() => openEdit(song, "details")}
+                    className="text-muted-foreground hover:text-gold" title="Edit Details" aria-label={`Edit details for ${song.title}`}>
                     <Edit3 className="w-4 h-4" />
-                  </button>
+                  </Button>
                   <button onClick={() => openEdit(song, "lrc")}
                     className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors relative" title="Edit Lyrics">
                     <Music className="w-4 h-4" />
