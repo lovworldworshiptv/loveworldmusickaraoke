@@ -52,3 +52,4 @@
 - [x] Faster repeat loading through saved app files and artwork
 - [x] Mini player hide/reveal on phones: down-chevron or swipe down to tuck away, centered handle to bring back, choice remembered across pages and reloads
 - [x] Enable editors to edit song details in Manage Songs; existing editor update policy verified, three permission tests pass; live editor-session save awaits signed-in verification.
+- [x] Enable editors to add songs and upload song/instrumental audio; server-side editor policies verified and four permission tests pass; live editor-account creation awaits signed-in verification.
