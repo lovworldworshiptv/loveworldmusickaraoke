@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Download, Pause, Check, Lock } from "lucide-react";
-import { useSecureDownloads } from "@/hooks/useSecureDownloads";
+import { useSongDownload } from "@/hooks/useSecureDownloads";
 import { pauseItem, retry } from "@/lib/secureDownloads/engine";
 import { downloadUiState } from "@/lib/secureDownloads/policy";
 import { cn } from "@/lib/utils";
@@ -25,11 +25,8 @@ const RING = 2 * Math.PI * 9;
  * percentage on hover/long-press) → paused → saved (check with a short spring) or error (amber dot, tap to retry).
  */
 const DownloadButton = ({ songId, title, onDownload, saved, needsPremium, size = "sm", className }: Props) => {
-  const s = useSecureDownloads();
-  const item = s.items.find((i) => i.songId === songId);
-  const state = saved && !item ? "done" : downloadUiState(item?.status, s.activeSongId === songId);
-  const p = s.progress[songId];
-  const pct = p && p.total ? Math.round((p.done / p.total) * 100) : 0;
+  const { status, active, pct, waitingWifi } = useSongDownload(songId);
+  const state = saved && !status ? "done" : downloadUiState(status, active);
   const [showPct, setShowPct] = useState(false);
   const hold = useRef<number | null>(null);
   const longPressed = useRef(false);
@@ -46,7 +43,6 @@ const DownloadButton = ({ songId, title, onDownload, saved, needsPremium, size =
     );
   }
 
-  const waitingWifi = s.waitingFor === "wifi" && !s.allowCellular;
   const label =
     state === "downloading" ? `Saving ${title} for offline, ${pct}%. Tap to pause`
     : state === "queued" ? (waitingWifi ? `${title} is waiting for Wi-Fi. Tap to pause` : `${title} is waiting to save. Tap to pause`)
