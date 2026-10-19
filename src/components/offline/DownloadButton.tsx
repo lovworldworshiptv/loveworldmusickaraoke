@@ -35,7 +35,7 @@ const DownloadButton = ({ songId, title, onDownload, saved, needsPremium, size =
 
   if (state === "done") {
     return (
-      <span role="img" aria-label={`${title} is saved for offline listening`} className={cn("inline-flex items-center justify-center shrink-0", box, className)}>
+      <span data-offline-ui role="img" aria-label={`${title} is saved for offline listening`} className={cn("inline-flex items-center justify-center shrink-0", box, className)}>
         <span className="w-6 h-6 rounded-full bg-offline-accent text-background flex items-center justify-center motion-safe:animate-download-done">
           <Check className="w-3.5 h-3.5" strokeWidth={3} aria-hidden="true" />
         </span>
@@ -69,7 +69,7 @@ const DownloadButton = ({ songId, title, onDownload, saved, needsPremium, size =
   const endHold = () => { if (hold.current) { clearTimeout(hold.current); hold.current = null; } };
 
   return (
-    <span className={cn("relative inline-flex shrink-0 group", className)}>
+    <span data-offline-ui className={cn("relative inline-flex shrink-0 group", className)}>
       <button
         type="button"
         onClick={onClick}

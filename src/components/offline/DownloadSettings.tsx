@@ -33,7 +33,7 @@ const DownloadSettings = () => {
   };
 
   return (
-    <section aria-labelledby="dl-settings-title" className="space-y-4">
+    <section data-offline-ui aria-labelledby="dl-settings-title" className="space-y-4">
       <h3 id="dl-settings-title" className="text-sm font-semibold text-foreground">Downloads</h3>
 
       <fieldset className="space-y-2">

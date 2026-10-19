@@ -49,7 +49,7 @@ const DownloadQueuePanel = () => {
   const showRestore = !!s.restore && s.restore.songs.length > 0;
 
   return (
-    <section className="mb-6 space-y-3" aria-label="Offline downloads on this device">
+    <section data-offline-ui className="mb-6 space-y-3" aria-label="Offline downloads on this device">
       <div className="rounded-2xl border border-border bg-card/60 backdrop-blur p-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center"><HardDrive className="w-5 h-5 text-primary" /></div>

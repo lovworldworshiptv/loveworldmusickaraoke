@@ -66,7 +66,7 @@ const DownloadAllButton = ({ songs, what = "list", className }: Props) => {
 
   if (prog.complete) {
     return (
-      <span className={cn("inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground", className)} role="status">
+      <span data-offline-ui className={cn("inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground", className)} role="status">
         <span className="w-4 h-4 rounded-full bg-offline-accent text-background flex items-center justify-center motion-safe:animate-download-done"><Check className="w-3 h-3" strokeWidth={3} aria-hidden="true" /></span>
         All {prog.total} saved
       </span>
@@ -75,7 +75,7 @@ const DownloadAllButton = ({ songs, what = "list", className }: Props) => {
 
   if (active) {
     return (
-      <div className={cn("flex items-center gap-2 min-w-[11rem] rounded-full border border-border bg-card/60 pl-3 pr-1 py-1", className)}>
+      <div data-offline-ui className={cn("flex items-center gap-2 min-w-[11rem] rounded-full border border-border bg-card/60 pl-3 pr-1 py-1", className)}>
         <div className="flex-1 min-w-0">
           <p className="text-[11px] font-semibold text-foreground tabular-nums" aria-live="polite">
             {allPaused ? "Paused · " : "Saving "}{prog.ready} of {prog.total}
