@@ -1534,6 +1534,172 @@ export type Database = {
         }
         Relationships: []
       }
+      offline_devices: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          last_active_at: string
+          public_key_jwk: Json
+          revoked_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string
+          last_active_at?: string
+          public_key_jwk: Json
+          revoked_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          last_active_at?: string
+          public_key_jwk?: Json
+          revoked_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      offline_licences: {
+        Row: {
+          device_id: string
+          expires_at: string
+          id: string
+          issued_at: string
+          package_id: string
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          device_id: string
+          expires_at: string
+          id?: string
+          issued_at?: string
+          package_id: string
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          device_id?: string
+          expires_at?: string
+          id?: string
+          issued_at?: string
+          package_id?: string
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offline_licences_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "offline_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offline_licences_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "offline_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offline_package_keys: {
+        Row: {
+          created_at: string
+          iv: string
+          package_id: string
+          wrapped_key: string
+        }
+        Insert: {
+          created_at?: string
+          iv: string
+          package_id: string
+          wrapped_key: string
+        }
+        Update: {
+          created_at?: string
+          iv?: string
+          package_id?: string
+          wrapped_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offline_package_keys_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: true
+            referencedRelation: "offline_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offline_packages: {
+        Row: {
+          attempts: number
+          byte_length: number | null
+          chunk_count: number | null
+          chunk_size: number
+          created_at: string
+          error: string | null
+          id: string
+          kind: string
+          language_code: string
+          mime_type: string | null
+          song_id: string
+          source_hash: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          byte_length?: number | null
+          chunk_count?: number | null
+          chunk_size?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind: string
+          language_code?: string
+          mime_type?: string | null
+          song_id: string
+          source_hash: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          byte_length?: number | null
+          chunk_count?: number | null
+          chunk_size?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind?: string
+          language_code?: string
+          mime_type?: string | null
+          song_id?: string
+          source_hash?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offline_packages_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       onboarding_screens: {
         Row: {
           badge: string | null
