@@ -548,8 +548,13 @@ async function migrateLegacy() {
   }
 }
 
+let lastBoot = 0;
 export async function initEngine(uid: string) {
-  if (userId === uid) { kick(); return; }
+  if (userId === uid) {
+    // Periodic refresh: account sync, licence renewal and remote-removal checks.
+    if (Date.now() - lastBoot > 60000) bootOnline(); else kick();
+    return;
+  }
   userId = uid;
   await refreshItems();
   if (!onlineBound) {
@@ -562,6 +567,7 @@ export async function initEngine(uid: string) {
 
 async function bootOnline() {
   if (!userId || !navigator.onLine) { kick(); return; }
+  lastBoot = Date.now();
   const device = await store.getDevice().catch(() => null);
   if (device && device.userId === userId) {
     const res = await offlineApi<{ active: boolean }>("touch_device", { deviceId: device.deviceId }).catch(() => null);

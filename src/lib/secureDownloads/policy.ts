@@ -43,6 +43,7 @@ export const estimateSongBytes = (durationSeconds: number, withInstrumental: boo
   Math.max(1, durationSeconds || 240) * ESTIMATED_BYTES_PER_SECOND * (withInstrumental ? 2 : 1);
 
 export const formatBytes = (n: number) => {
+  if (!n) return "0 MB";
   if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(1)} GB`;
   if (n >= 1024 ** 2) return `${Math.round(n / 1024 ** 2)} MB`;
   return `${Math.max(1, Math.round(n / 1024))} KB`;
