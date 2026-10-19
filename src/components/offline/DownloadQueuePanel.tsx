@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { useSecureDownloads } from "@/hooks/useSecureDownloads";
-import { restoreAll, restoreLater, setPaused, setAllowCellular, retry, removeSecure } from "@/lib/secureDownloads/engine";
+import { restoreAll, restoreLater, setPaused, setAllowCellular, retry, removeSecure, pauseItem } from "@/lib/secureDownloads/engine";
 import { formatBytes, isMeteredConnection } from "@/lib/secureDownloads/policy";
 import type { SecureItem } from "@/lib/secureDownloads/types";
 import DevicesDialog from "./DevicesDialog";
@@ -151,9 +151,17 @@ const DownloadQueuePanel = () => {
                     <button onClick={() => navigate("/subscription")} className="p-2 rounded-lg text-primary hover:bg-primary/10" aria-label="Renew Premium">
                       <Lock className="w-4 h-4" />
                     </button>
-                  ) : (i.status === "failed" || i.status === "paused") && (
+                  ) : i.status === "paused" ? (
+                    <button onClick={() => retry(i.songId)} className="p-2 rounded-lg text-primary hover:bg-primary/10" aria-label={`Continue saving ${i.meta.title}`}>
+                      <Play className="w-4 h-4" />
+                    </button>
+                  ) : i.status === "failed" ? (
                     <button onClick={() => retry(i.songId)} className="p-2 rounded-lg text-primary hover:bg-primary/10" aria-label={`Retry ${i.meta.title}`}>
                       <RotateCw className="w-4 h-4" />
+                    </button>
+                  ) : (i.status === "queued" || i.status === "downloading" || i.status === "preparing") && (
+                    <button onClick={() => pauseItem(i.songId)} className="p-2 rounded-lg text-muted-foreground hover:bg-muted" aria-label={`Pause saving ${i.meta.title}`}>
+                      <Pause className="w-4 h-4" />
                     </button>
                   )}
                   <button onClick={() => removeSecure(i.songId)} className="p-2 rounded-lg text-muted-foreground hover:bg-muted" aria-label={`Stop saving ${i.meta.title}`}>
