@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { confirmSignOut } from "@/lib/secureDownloads/signOutPrompt";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -223,7 +224,7 @@ const Profile = () => {
 
         {/* Sign Out */}
         <button
-          onClick={async () => { await signOut(); navigate("/"); }}
+          onClick={async () => { if (!(await confirmSignOut())) return; await signOut(); navigate("/"); }}
           className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors text-sm font-medium"
         >
           <LogOut className="w-4 h-4" /> Sign Out
