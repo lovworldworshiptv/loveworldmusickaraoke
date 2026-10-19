@@ -1,5 +1,5 @@
-// @vitest-environment node
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
+import { webcrypto } from "node:crypto";
 import { generateDeviceKeys, unwrapContentKey, decryptChunk, chunkIv, chunkAad, toB64 } from "./crypto";
 import {
   needsRenewal, isLicenceValid, sortQueue, isMeteredConnection, isKnownUnmetered, hasRoomFor,
@@ -9,8 +9,13 @@ import {
 const enc = new TextEncoder();
 const NOW = Date.UTC(2026, 9, 19, 12);
 
+beforeAll(() => {
+  // jsdom lacks SubtleCrypto; use the same Web Crypto implementation browsers expose.
+  if (!globalThis.crypto?.subtle) Object.defineProperty(globalThis, "crypto", { value: webcrypto, configurable: true });
+});
+
 /** Mirror of the backend's licence wrapping, to prove device-side unwrapping matches it. */
-async function serverWrap(devicePub: JsonWebKey, raw: Uint8Array, packageId: string, licenceId: string) {
+async function serverWrap(devicePub: JsonWebKey, raw: Uint8Array<ArrayBuffer>, packageId: string, licenceId: string) {
   const pub = await crypto.subtle.importKey("jwk", devicePub, { name: "ECDH", namedCurve: "P-256" }, false, []);
   const eph = (await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"])) as CryptoKeyPair;
   const bits = await crypto.subtle.deriveBits({ name: "ECDH", public: pub }, eph.privateKey, 256);
