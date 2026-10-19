@@ -36,7 +36,7 @@ const SecondaryBanner = () => {
   // Hide only for full premium users (show for free and trial)
   if (isPremium && !isTrial) return null;
 
-  const title = ad?.title || "Upgrade to Karaoke+";
+  const title = ad?.title || "Upgrade to Music+";
   const subtitle = ad?.subtitle || "Unlimited songs, karaoke mode, games & offline downloads.";
   const ctaText = ad?.cta_text || "Get Premium";
   const linkUrl = ad?.link_url;
