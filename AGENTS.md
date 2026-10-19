@@ -21,3 +21,4 @@
 <!-- LOVABLE:BEGIN -->
 - Derived album collections share useAlbums and selectors with Albums; preserve collection query parameters — why: keep artwork and membership synchronized without duplicate content.
 <!-- LOVABLE:END -->
+- Offline downloads use src/lib/secureDownloads: the offline-media function packages media into AES-GCM 1 MB chunks (private offline-packages bucket, content keys wrapped with OFFLINE_MASTER_KEY in backend-only offline_package_keys) and issues ECDH P-256 device-bound licences; the client stores only ciphertext in IndexedDB lmk_secure_downloads, plays via the service worker /offline-stream range route or an in-memory fallback, and src/lib/downloadManager.ts stays the public API — why: copied storage is unplayable, packages are reused per exact media version, and existing callers keep working.
