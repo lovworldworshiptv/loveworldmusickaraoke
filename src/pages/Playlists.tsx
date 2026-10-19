@@ -44,7 +44,7 @@ const Playlists = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("playlists")
-        .select("id, name, cover_url, created_at, user_id, playlist_songs(id, song_id, sort_order, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album))")
+        .select("id, name, cover_url, created_at, user_id, playlist_songs(id, song_id, sort_order, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album, is_free_download))")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -56,7 +56,7 @@ const Playlists = () => {
     queryKey: ["admin-playlists", user?.id],
     queryFn: async () => {
       const selectFields = user
-        ? "id, name, cover_url, created_at, user_id, playlist_songs(id, song_id, sort_order, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album))"
+        ? "id, name, cover_url, created_at, user_id, playlist_songs(id, song_id, sort_order, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album, is_free_download))"
         : "id, name, cover_url, created_at, user_id";
       const { data, error } = await supabase
         .from("playlists")
