@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -36,7 +37,20 @@ interface Song {
 interface AlbumOption {
   id: string;
   title: string;
+  cover_url?: string | null;
 }
+
+const emptyForm = () => ({
+  title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", playlist_id: "", duration_seconds: 240,
+  is_featured: false, is_top: false, is_free_download: false, audio_url: "", instrumental_url: "", lyrics_raw: "", cover_url: "",
+  video_url: "",
+});
+
+const normalizeTitle = (t: string) =>
+  (t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
+
+const youTubeId = (url: string) =>
+  url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{11})/)?.[1] || null;
 
 interface PlaylistOption {
   id: string;
@@ -181,10 +195,11 @@ const AdminSongs = () => {
   const [editMode, setEditMode] = useState<"lrc" | "sync" | "details">("lrc");
   const [lrcText, setLrcText] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", playlist_id: "", duration_seconds: 240,
-    is_featured: false, is_top: false, is_free_download: false, audio_url: "", instrumental_url: "", lyrics_raw: "", cover_url: "",
-  });
+  const [form, setForm] = useState(emptyForm);
+  const [matchesHidden, setMatchesHidden] = useState(false);
+  const [copyPrompt, setCopyPrompt] = useState<Song | null>(null);
+  const [copiedFrom, setCopiedFrom] = useState<Song | null>(null);
+  const [videoImport, setVideoImport] = useState<{ video_url: string; video_type: string; language_code: string; offset_ms: number; fromAlbum: string | null } | null>(null);
   const [editForm, setEditForm] = useState({
     title: "", artist: "", album: "", album_id: "", category_id: "", duration_seconds: 240,
     is_featured: false, is_top: false, is_free_download: false, audio_url: "", instrumental_url: "", cover_url: "",
@@ -227,7 +242,7 @@ const AdminSongs = () => {
   useEffect(() => { fetchSongs(); fetchAlbumOptions(); fetchCategoryOptions(); fetchPlaylistOptions(); }, []);
 
   const fetchAlbumOptions = async () => {
-    const { data } = await supabase.from("albums").select("id, title");
+    const { data } = await supabase.from("albums").select("id, title, cover_url");
     if (data) setAlbumOptions(sortSongsByTitle(data));
   };
 
@@ -268,19 +283,114 @@ const AdminSongs = () => {
     fetchSongs();
   };
 
+  const albumCover = (albumId: string) => (albumId && albumOptions.find(a => a.id === albumId)?.cover_url) || "";
+
+  /** Album change: import the album's artwork; drop it again when leaving that album. */
+  const withAlbum = <T extends { album_id: string; album: string; cover_url: string }>(f: T, nextId: string) => {
+    const sel = albumOptions.find(a => a.id === nextId);
+    const prevCover = albumCover(f.album_id);
+    const nextCover = sel?.cover_url || "";
+    const cover_url = nextCover || (prevCover && f.cover_url === prevCover ? "" : f.cover_url);
+    return { album_id: nextId, album: sel?.title || "", cover_url };
+  };
+
+  const addCoverLocked = !!albumCover(form.album_id);
+  const editCoverLocked = !!albumCover(editForm.album_id) && editForm.cover_url === albumCover(editForm.album_id);
+
+  const titleMatches = useMemo(() => {
+    const q = normalizeTitle(form.title);
+    if (q.length < 2) return [] as Song[];
+    return songs
+      .filter(s => normalizeTitle(s.title).includes(q))
+      .sort((a, b) => Number(normalizeTitle(b.title) === q) - Number(normalizeTitle(a.title) === q) || compareTitles(a.title, b.title))
+      .slice(0, 8);
+  }, [form.title, songs]);
+  const showTitleMatches = !matchesHidden && !copiedFrom && titleMatches.length > 0;
+
+  const importVideoFrom = async (source: Song) => {
+    const { data } = await supabase.from("song_videos")
+      .select("video_url, video_type, language_code, offset_ms")
+      .eq("song_id", source.id).order("is_active", { ascending: false }).order("created_at").limit(1).maybeSingle();
+    if (!data?.video_url) return false;
+    setVideoImport({ ...data, fromAlbum: source.album });
+    setForm(f => (f.video_url ? f : { ...f, video_url: data.video_url }));
+    return true;
+  };
+
+  // Auto-import a video when the typed title exactly matches an existing copy that has one.
+  useEffect(() => {
+    if (!showForm || form.video_url || videoImport) return;
+    const q = normalizeTitle(form.title);
+    if (q.length < 2) return;
+    const source = songs.find(s => s.has_video && normalizeTitle(s.title) === q);
+    if (!source) return;
+    const t = setTimeout(() => { importVideoFrom(source); }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.title, showForm, songs]);
+
+  const resetForm = () => {
+    setForm(emptyForm());
+    setCopiedFrom(null);
+    setVideoImport(null);
+    setMatchesHidden(false);
+  };
+
+  const handleEditExisting = (song: Song) => {
+    setCopyPrompt(null);
+    setShowForm(false);
+    resetForm();
+    openEdit(song, "details");
+  };
+
+  const handleCreateCopy = async (song: Song) => {
+    setCopyPrompt(null);
+    setCopiedFrom(song);
+    setVideoImport(null);
+    setForm(f => ({
+      ...emptyForm(), playlist_id: f.playlist_id,
+      title: song.title, artist: song.artist, category_id: song.category_id || "",
+      duration_seconds: song.duration_seconds, is_free_download: song.is_free_download,
+      audio_url: song.audio_url || "", instrumental_url: song.instrumental_url || "",
+      lyrics_raw: song.lyrics_lrc || "", cover_url: song.cover_url || "",
+    }));
+    await importVideoFrom(song);
+    toast.success("Copy ready — pick the album for this version, then create it.");
+  };
+
   const handleCreateSong = async () => {
+    if (!form.title.trim()) { toast.error("Title required"); return; }
+    const videoUrl = form.video_url.trim();
+    if (videoUrl && !/^https:\/\//i.test(videoUrl)) { toast.error("Enter a full https:// video link"); return; }
+    const coverUrl = albumCover(form.album_id) || form.cover_url;
     const { data: newSong, error } = await supabase.from("songs").insert({
-      title: form.title, artist: form.artist, album: form.album || null,
+      title: form.title.trim(), artist: form.artist, album: form.album || null,
       album_id: form.album_id || null, category_id: form.category_id || null,
       duration_seconds: form.duration_seconds, is_featured: form.is_featured,
       is_top: form.is_top, is_free_download: form.is_free_download, audio_url: form.audio_url || null,
       instrumental_url: form.instrumental_url || null,
-      lyrics_lrc: form.lyrics_raw || null, cover_url: form.cover_url || null,
+      lyrics_lrc: form.lyrics_raw || null, cover_url: coverUrl || null,
+      has_video: !!videoUrl,
     }).select("id").single();
 
     if (error || !newSong) {
       toast.error("Failed: " + (error?.message || "Could not create song"));
       return;
+    }
+
+    if (videoUrl) {
+      const meta = videoImport && videoImport.video_url === videoUrl ? videoImport : null;
+      const yt = youTubeId(videoUrl);
+      const { error: videoError } = await supabase.from("song_videos").insert({
+        song_id: newSong.id, video_url: videoUrl,
+        video_type: meta?.video_type || "official", language_code: meta?.language_code || "en",
+        offset_ms: meta?.offset_ms || 0, is_active: true,
+        thumbnail_url: yt ? `https://img.youtube.com/vi/${yt}/hqdefault.jpg` : null,
+      });
+      if (videoError) {
+        await supabase.from("songs").update({ has_video: false }).eq("id", newSong.id);
+        toast.error("Song created, but saving the video failed: " + videoError.message);
+      }
     }
 
     if (form.playlist_id) {
@@ -313,9 +423,9 @@ const AdminSongs = () => {
       }
     }
 
-    toast.success("Song created!");
+    toast.success(copiedFrom ? "Copy created — the original is unchanged." : "Song created!");
     setShowForm(false);
-    setForm({ title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", playlist_id: "", duration_seconds: 240, is_featured: false, is_top: false, is_free_download: false, audio_url: "", instrumental_url: "", lyrics_raw: "", cover_url: "" });
+    resetForm();
     fetchSongs();
   };
 
