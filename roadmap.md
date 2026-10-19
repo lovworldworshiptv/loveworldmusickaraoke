@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Praise Night Discover card, numbered artwork and album navigation verification.
 - [x] My Referrals: every stat box opens its breakdown
 - [x] Admin on/off switch for the whole referral feature
 - [x] Onboarding refresh reflecting new features, fully CMS-managed (badge, order, preview)

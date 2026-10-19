@@ -17,3 +17,7 @@
 - The referral switch is enforced server-side by referrals_enabled() in referral RPCs/trigger — why: not client-bypassable.
 - Online content search goes through the search_content RPC (weighted simple+unaccent tsvector, trigram titles) via src/lib/contentSearch.ts with a shared 250 ms debounce; client-side fuzzy filtering is only for the offline downloads library — why: one consistent multi-language ranking everywhere.
 - The mini player's tucked-away state lives in the localStorage-backed store src/lib/playerVisibility.ts (usePlayerHidden), read by both PlayerBar and AppLayout — why: the screen's bottom spacing must shrink with the player and the choice must survive navigation and reloads without a new context.
+
+<!-- LOVABLE:BEGIN -->
+- Derived album collections share useAlbums and selectors with Albums; preserve collection query parameters — why: keep artwork and membership synchronized without duplicate content.
+<!-- LOVABLE:END -->

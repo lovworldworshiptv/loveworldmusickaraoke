@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import FeaturedCarousel from "@/components/discover/FeaturedCarousel";
 import CategoryTile from "@/components/discover/CategoryTile";
+import PraiseNightCard from "@/components/discover/PraiseNightCard";
 import GlobalSearch from "@/components/search/GlobalSearch";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsEditor } from "@/hooks/useIsEditor";
@@ -69,6 +70,7 @@ const Discover = () => {
           <h2 className="text-xl font-serif font-bold text-foreground mb-3">Browse all</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
             {categories.map((c) => <CategoryTile key={c.id} c={c} />)}
+            <PraiseNightCard />
           </div>
         </section>
       </div>
