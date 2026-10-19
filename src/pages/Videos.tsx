@@ -1,4 +1,6 @@
 import { useState } from "react";
+import DownloadButton from "@/components/offline/DownloadButton";
+import { useSaveSong } from "@/hooks/useSaveSong";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer } from "@/contexts/PlayerContext";
@@ -21,6 +23,7 @@ const TYPE_LABEL: Record<string, string> = {
 
 const Videos = () => {
   const { playVideo, currentSong } = usePlayer();
+  const { save, canSave } = useSaveSong();
   const [search, setSearch] = useState("");
 
   const { data: songs = [], isLoading } = useQuery({
@@ -90,10 +93,10 @@ const Videos = () => {
               const typeLabel = TYPE_LABEL[song.song_videos[0]?.video_type] || "Video";
               const isCurrent = currentSong?.id === song.id;
               return (
+                <div key={song.id} className="relative">
                 <button
-                  key={song.id}
                   onClick={() => playVideo(toPlayerSong(song))}
-                  className="group text-left rounded-2xl overflow-hidden bg-card/60 backdrop-blur-xl border border-border/50 hover:border-amber-400/40 transition-all hover:shadow-[0_0_24px_rgba(251,191,36,0.15)]"
+                  className="w-full group text-left rounded-2xl overflow-hidden bg-card/60 backdrop-blur-xl border border-border/50 hover:border-amber-400/40 transition-all hover:shadow-[0_0_24px_rgba(251,191,36,0.15)]"
                 >
                   <div className="relative aspect-video bg-muted">
                     {thumb ? (
@@ -120,11 +123,21 @@ const Videos = () => {
                       </span>
                     )}
                   </div>
-                  <div className="p-3">
+                  <div className="p-3 pr-12">
                     <p className="text-sm font-semibold text-foreground truncate">{song.title}</p>
                     <p className="text-xs text-foreground truncate">{song.artist}</p>
                   </div>
                 </button>
+                {song.audio_url && (
+                  <DownloadButton
+                    songId={song.id}
+                    title={song.title}
+                    onDownload={() => save(toPlayerSong(song))}
+                    needsPremium={!canSave(toPlayerSong(song))}
+                    className="absolute bottom-2 right-1"
+                  />
+                )}
+                </div>
               );
             })}
           </div>
