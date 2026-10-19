@@ -122,3 +122,64 @@ export function reconcile(
   const onDevice = new Set([...keep, ...alsoOnDevice]);
   return { remove, keep, queue: cloudIds.filter((id) => !onDevice.has(id)) };
 }
+
+// ---------------- streaming without the offline helper ----------------
+/** Chunk holding playback time `t` (constant-bitrate estimate; clamped to the package). */
+export function chunkForTime(t: number, durationSeconds: number, byteLength: number, chunkSize: number, chunkCount: number) {
+  if (!durationSeconds || t <= 0) return 0;
+  const byte = Math.floor((Math.min(t, durationSeconds) / durationSeconds) * byteLength);
+  return Math.min(chunkCount - 1, Math.max(0, Math.floor(byte / chunkSize)));
+}
+/** Playback time at which chunk `index` starts (inverse of chunkForTime). */
+export const chunkStartTime = (index: number, durationSeconds: number, byteLength: number, chunkSize: number) =>
+  byteLength ? (index * chunkSize / byteLength) * durationSeconds : 0;
+
+export type PlaybackRoute = "stream" | "mse" | "memory";
+/**
+ * How a saved package is played back on this device, in order of preference:
+ * the offline helper's ranged stream, then chunk-by-chunk media streaming
+ * (audio only), and only where neither exists, the current track in memory.
+ */
+export function choosePlaybackRoute(o: { helper: boolean; apple: boolean; mse: boolean; kind: "audio" | "instrumental" | "video" }): PlaybackRoute {
+  const mse = o.mse && o.kind !== "video";
+  if (o.helper && !o.apple) return "stream";
+  if (mse) return "mse";
+  if (o.helper) return "stream";
+  return "memory";
+}
+
+// ---------------- download button + bulk progress ----------------
+export type DownloadUiState = "idle" | "queued" | "downloading" | "paused" | "done" | "error" | "locked";
+export function downloadUiState(status: string | undefined, active: boolean): DownloadUiState {
+  switch (status) {
+    case "ready": return "done";
+    case "failed": return "error";
+    case "locked": return "locked";
+    case "paused": return "paused";
+    case "preparing": case "downloading": return active ? "downloading" : "queued";
+    case "queued": return "queued";
+    default: return "idle";
+  }
+}
+
+/** Overall progress for "Download all": finished songs count fully, the active one by bytes. */
+export function bulkProgress(
+  songIds: string[],
+  statusOf: (id: string) => string | undefined,
+  progressOf: (id: string) => { done: number; total: number } | undefined,
+) {
+  const total = songIds.length;
+  let ready = 0, pending = 0, failed = 0, partial = 0;
+  for (const id of songIds) {
+    const s = statusOf(id);
+    if (s === "ready") ready++;
+    else if (s === "failed" || s === "locked") failed++;
+    else if (s) {
+      pending++;
+      const p = progressOf(id);
+      if (p && p.total) partial += Math.min(1, p.done / p.total);
+    }
+  }
+  const percent = total ? Math.round(((ready + partial) / total) * 100) : 0;
+  return { total, ready, pending, failed, percent, complete: total > 0 && ready === total };
+}

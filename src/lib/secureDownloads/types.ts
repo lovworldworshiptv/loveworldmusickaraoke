@@ -24,6 +24,9 @@ export interface WrappedLicence {
   expiresAt: string;
 }
 
+/** Where a package's encrypted chunks live. Absent on packages saved before OPFS support = "idb". */
+export type ChunkBackend = "opfs" | "idb";
+
 export interface SecurePackage {
   packageId: string;
   kind: SecureKind;
@@ -31,8 +34,11 @@ export interface SecurePackage {
   chunkSize: number;
   chunkCount: number;
   byteLength: number;
+  storage?: ChunkBackend;
   licence?: WrappedLicence;
 }
+
+export type ChunkRef = Pick<SecurePackage, "packageId" | "storage">;
 
 export type SecureStatus = "queued" | "preparing" | "downloading" | "ready" | "paused" | "failed" | "locked";
 export type SecureSource = "user" | "restore" | "legacy";

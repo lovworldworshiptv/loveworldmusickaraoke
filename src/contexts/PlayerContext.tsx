@@ -146,8 +146,20 @@ type PersistedPlayerState = {
 
 // Only one player audio may ever sound at once: any audio starting playback pauses all others.
 const playerAudios: Set<HTMLAudioElement> = ((globalThis as any).__lwPlayerAudios ??= new Set<HTMLAudioElement>());
+/** Saved songs streamed chunk by chunk use blob: media sources; iPhone's managed streaming needs remote playback off. */
+const prepareLocalSource = (audio: HTMLAudioElement, url: string) => {
+  if (url.startsWith("blob:")) (audio as any).disableRemotePlayback = true;
+};
+/** Let go of a saved-song media source so the same song can be attached again later. */
+const releaseLocalSource = (audio: HTMLAudioElement) => {
+  if (!audio.src.startsWith("blob:")) return;
+  audio.removeAttribute("src");
+  try { audio.load(); } catch { /* detached */ }
+};
 function createExclusiveAudio(url: string): HTMLAudioElement {
-  const audio = new Audio(url);
+  const audio = new Audio();
+  prepareLocalSource(audio, url);
+  audio.src = url;
   playerAudios.add(audio);
   audio.addEventListener("play", () => {
     playerAudios.forEach((other) => { if (other !== audio && !other.paused) other.pause(); });
@@ -284,6 +296,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       discardPreload();
       const audio = new Audio();
       audio.preload = "auto";
+      prepareLocalSource(audio, url);
       audio.src = url;
       try { audio.load(); } catch {}
       preloadRef.current = { url, audio };
@@ -301,6 +314,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       old.pause();
       old.onended = null;
       old.onerror = null;
+      releaseLocalSource(old);
       audioRef.current = null;
     }
     wantPlayingRef.current = autoplay;

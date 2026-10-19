@@ -8,6 +8,7 @@ import { generateDeviceKeys, unwrapContentKey, decryptChunk, chunkIv, chunkAad, 
 import { isLicenceValid, plainChunkLength } from "@/lib/secureDownloads/policy";
 import { offlineApi } from "@/lib/secureDownloads/api";
 import { liveSyncStatus, renewSongLicence, devExpireLicences, renewAllNow } from "@/lib/secureDownloads/engine";
+import { plannedRoute, getSecurePlayableUrl } from "@/lib/secureDownloads/playback";
 
 /** Known media file signatures; stored chunks must never start with one. */
 function mediaSignature(b: Uint8Array): string | null {
@@ -90,8 +91,12 @@ async function runAll(): Promise<Result[]> {
   }));
 
   out.push(await check("Private file storage (OPFS)", async () => {
-    const has = typeof (navigator.storage as any)?.getDirectory === "function";
-    return { status: "skip", detail: has ? "Supported by this browser — downloads currently use encrypted IndexedDB" : "Not supported — encrypted IndexedDB is used" };
+    store.resetOpfsProbe();
+    const writable = await store.opfsWritable();
+    const counts = await store.backendCounts().catch(() => ({ opfs: 0, idb: 0 }));
+    const saved = `${counts.opfs} saved in private files, ${counts.idb} in the browser database`;
+    if (!writable) return { status: "skip", detail: `Not available here — the browser database is used instead · ${saved}` };
+    return { detail: `In use for new downloads · ${saved}` };
   }));
 
   out.push(await check("Storage space", async () => {
@@ -105,7 +110,12 @@ async function runAll(): Promise<Result[]> {
   let streaming = false;
   out.push(await check("Streaming helper (service worker)", async () => {
     const sw = navigator.serviceWorker?.controller;
-    if (!sw) return { status: "skip", detail: "Not active here (preview, iOS or app wrapper) — in-memory playback is used" };
+    if (!sw) {
+      const route = await plannedRoute("audio");
+      return { status: "skip", detail: route === "mse"
+        ? "Not active here (preview or app wrapper) — songs stream chunk by chunk instead"
+        : "Not active here and chunk streaming is unavailable — the current song is opened in memory" };
+    }
     streaming = await new Promise<boolean>((resolve) => {
       const ch = new MessageChannel();
       const t = setTimeout(() => resolve(false), 800);
@@ -141,14 +151,14 @@ async function runAll(): Promise<Result[]> {
   const pkg = sample?.packages.find((p) => p.kind === "audio");
   out.push(await check("Stored chunk is encrypted and intact", async () => {
     if (!sample || !pkg || !device) return { status: "skip", detail: "No saved download to check" };
-    const data = await store.getChunk(pkg.packageId, 0);
+    const data = await store.getChunk(pkg, 0);
     if (!data) throw new Error("First chunk missing");
     const expected = plainChunkLength(0, pkg.chunkSize, pkg.chunkCount, pkg.byteLength) + GCM_TAG_BYTES;
     if (data.byteLength !== expected) throw new Error(`Unexpected size ${data.byteLength}`);
-    const have = await store.storedChunkIndices(pkg.packageId);
+    const have = await store.storedChunkIndices(pkg);
     if (have.size !== pkg.chunkCount) throw new Error(`${have.size}/${pkg.chunkCount} chunks stored`);
     for (const p of sample.packages) {
-      const first = await store.getChunk(p.packageId, 0);
+      const first = await store.getChunk(p, 0);
       const sig = first && mediaSignature(new Uint8Array(first.slice(0, 16)));
       if (sig) throw new Error(`Stored ${p.kind} starts with a ${sig} signature — plain media on disk`);
     }
@@ -156,12 +166,36 @@ async function runAll(): Promise<Result[]> {
     const plain = new Uint8Array(await decryptChunk(key, pkg.packageId, 0, data));
     const sig = mediaSignature(plain.subarray(0, 16));
     if (!sig) throw new Error("Decrypted bytes are not a recognised media file");
-    return { detail: `“${sample.meta.title}”: all ${pkg.chunkCount} chunks stored as ciphertext; decrypts to ${sig}` };
+    return { detail: `“${sample.meta.title}”: all ${pkg.chunkCount} chunks stored as ciphertext in ${pkg.storage === "opfs" ? "private files" : "the browser database"}; decrypts to ${sig}` };
   }));
 
   out.push(await check("Seeking (byte-range playback)", async () => {
     if (!sample || !pkg) return { status: "skip", detail: "No saved download to check" };
-    if (!streaming) return { status: "skip", detail: "Streaming helper not active — in-memory playback is used" };
+    if (!streaming) {
+      const route = await plannedRoute("audio", pkg.mimeType);
+      if (route !== "mse") return { status: "skip", detail: "No streaming route on this device — the current song is opened in memory" };
+      const url = await getSecurePlayableUrl(sample.songId, "audio");
+      if (!url) throw new Error("No playable source");
+      const el = new Audio();
+      (el as any).disableRemotePlayback = true;
+      el.muted = true;
+      el.src = url;
+      await new Promise<void>((resolve, reject) => {
+        const t = setTimeout(() => reject(new Error("Did not start")), 8000);
+        el.addEventListener("loadedmetadata", () => { clearTimeout(t); resolve(); }, { once: true });
+        el.addEventListener("error", () => { clearTimeout(t); reject(new Error("Media error")); }, { once: true });
+      });
+      const target = Math.min((sample.meta.durationSeconds || 60) * 0.6, (sample.meta.durationSeconds || 60) - 5);
+      el.currentTime = target;
+      await new Promise<void>((resolve, reject) => {
+        const t = setTimeout(() => reject(new Error("Seek did not complete")), 8000);
+        el.addEventListener("seeked", () => { clearTimeout(t); resolve(); }, { once: true });
+      });
+      const at = el.currentTime;
+      el.removeAttribute("src"); el.load();
+      if (Math.abs(at - target) > 2) throw new Error(`Landed at ${at.toFixed(1)}s instead of ${target.toFixed(1)}s`);
+      return { detail: `Chunk streaming: jumped to ${at.toFixed(0)}s without opening the whole song` };
+    }
     const start = Math.min(pkg.byteLength - 1024, pkg.chunkSize - 100);
     const res = await fetch(`/__offline/${sample.songId}`, { headers: { Range: `bytes=${start}-${start + 1023}` } });
     const body = await res.arrayBuffer();
