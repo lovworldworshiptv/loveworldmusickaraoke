@@ -10,6 +10,7 @@ import { toast } from "@/components/ui/sonner";
 import ProfileUpdateModal from "@/components/profile/ProfileUpdateModal";
 import MyKaraoke from "@/components/profile/MyKaraoke";
 import MyStats from "@/components/profile/MyStats";
+import DownloadSettings from "@/components/offline/DownloadSettings";
 import { useTheme, ThemeName } from "@/contexts/ThemeContext";
 
 const Profile = () => {
@@ -272,7 +273,7 @@ const Profile = () => {
 
       {/* Settings Modal */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="glass-card border-border max-w-sm">
+        <DialogContent className="glass-card border-border max-w-sm max-h-[85dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-foreground text-base">
               <Settings className="w-4 h-4 text-primary" /> Settings
@@ -298,6 +299,9 @@ const Profile = () => {
                 </button>
               ))}
             </div>
+          </div>
+          <div className="border-t border-border pt-4">
+            <DownloadSettings />
           </div>
         </DialogContent>
       </Dialog>

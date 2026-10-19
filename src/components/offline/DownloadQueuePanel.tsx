@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CloudDownload, HardDrive, MonitorSmartphone, Pause, Play, RotateCw, X, WifiOff, Music, Lock } from "lucide-react";
+import { CloudDownload, HardDrive, MonitorSmartphone, Pause, Play, RotateCw, X, WifiOff, Music, Lock, Settings2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
@@ -9,6 +10,7 @@ import { restoreAll, restoreLater, setPaused, setAllowCellular, retry, removeSec
 import { formatBytes, isMeteredConnection } from "@/lib/secureDownloads/policy";
 import type { SecureItem } from "@/lib/secureDownloads/types";
 import DevicesDialog from "./DevicesDialog";
+import DownloadSettings from "./DownloadSettings";
 
 const VISIBLE = 30;
 
@@ -19,7 +21,7 @@ const statusLabel = (i: SecureItem, pct: number | null, waiting: string | null) 
   if (i.status === "preparing") return "Preparing download…";
   if (i.status === "downloading" && pct !== null) return `Saving… ${pct}%`;
   if (waiting === "connection") return "Waiting for connection";
-  if (waiting === "wifi" && i.source !== "user") return "Waiting for Wi-Fi";
+  if (waiting === "wifi") return "Waiting for Wi-Fi";
   return "Waiting to save";
 };
 
@@ -28,6 +30,7 @@ const DownloadQueuePanel = () => {
   const s = useSecureDownloads();
   const navigate = useNavigate();
   const [devicesOpen, setDevicesOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [storage, setStorage] = useState<{ usage: number; quota: number } | null>(null);
 
   const readyCount = s.items.filter((i) => i.status === "ready").length;
@@ -57,8 +60,11 @@ const DownloadQueuePanel = () => {
               {storage?.quota ? ` · ${formatBytes(Math.max(0, storage.quota - storage.usage))} free` : ""}
             </p>
           </div>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setDevicesOpen(true)}>
-            <MonitorSmartphone className="w-4 h-4" /> Devices
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setDevicesOpen(true)} aria-label="Your offline devices">
+            <MonitorSmartphone className="w-4 h-4" aria-hidden="true" /> Devices
+          </Button>
+          <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => setSettingsOpen(true)} aria-label="Download settings">
+            <Settings2 className="w-4 h-4" aria-hidden="true" />
           </Button>
         </div>
         {storage?.quota ? (
@@ -76,7 +82,7 @@ const DownloadQueuePanel = () => {
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 About {formatBytes(s.restore!.bytes)}. Newest saves come first, and songs you play jump to the front.
-                {metered ? " You're on mobile data — restoring waits for Wi-Fi unless you allow mobile data below." : ""}
+                {metered && !s.allowCellular ? " You're on mobile data — saving waits for Wi-Fi unless you allow mobile data in download settings." : ""}
               </p>
               <div className="flex gap-2 mt-3">
                 <Button size="sm" className="gradient-gold text-primary-foreground" onClick={() => restoreAll()}>Restore all</Button>
@@ -97,6 +103,11 @@ const DownloadQueuePanel = () => {
           Lots of songs saved this hour — the rest will continue automatically in a few minutes.
         </p>
       )}
+      {s.waitingFor === "wifi" && pending.length > 0 && (
+        <p role="status" className="rounded-xl bg-muted text-muted-foreground text-xs px-3 py-2 flex items-center gap-2">
+          <WifiOff className="w-3.5 h-3.5" aria-hidden="true" /> On mobile data — saving continues on Wi-Fi, or allow mobile data below.
+        </p>
+      )}
       {s.waitingFor === "connection" && pending.length > 0 && (
         <p className="rounded-xl bg-muted text-muted-foreground text-xs px-3 py-2 flex items-center gap-2">
           <WifiOff className="w-3.5 h-3.5" /> Waiting for connection — saving continues automatically.
@@ -115,8 +126,8 @@ const DownloadQueuePanel = () => {
           </div>
           {pending.length > 0 && (
             <label className="flex items-center justify-between gap-3 px-1 pb-2 text-xs text-muted-foreground">
-              Use mobile data for restoring
-              <Switch checked={s.allowCellular} onCheckedChange={setAllowCellular} aria-label="Use mobile data for restoring" />
+              Download over mobile data
+              <Switch checked={s.allowCellular} onCheckedChange={setAllowCellular} aria-label="Download over mobile data" />
             </label>
           )}
           <ul className="space-y-1" aria-live="polite">
@@ -157,6 +168,15 @@ const DownloadQueuePanel = () => {
       )}
 
       <DevicesDialog open={devicesOpen} onOpenChange={setDevicesOpen} />
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="max-w-md max-h-[85dvh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Download settings</DialogTitle>
+            <DialogDescription>Choose how songs are saved for offline listening on this device.</DialogDescription>
+          </DialogHeader>
+          {settingsOpen && <DownloadSettings />}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };
