@@ -90,7 +90,7 @@ function mseUrlFor(item: SecureItem, pkg: SecurePackage): string {
   const url = URL.createObjectURL(ms);
   // A MediaSource can be re-attached after the player lets go of it (reload, karaoke switch),
   // so every attachment starts a fresh session from the current position.
-  ms.addEventListener("sourceopen", () => { runSession(ms, url, item, pkg).catch(() => undefined); });
+  ms.addEventListener("sourceopen", () => { runSession(ms, url, item, pkg).catch((e) => console.warn("Offline stream stopped:", e?.name || e)); });
   mseUrls.set(pkg.packageId, url);
   while (mseUrls.size > MSE_URL_LIMIT) {
     const [oldest, oldUrl] = mseUrls.entries().next().value as [string, string];
