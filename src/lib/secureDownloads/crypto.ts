@@ -38,6 +38,14 @@ export async function unwrapContentKey(privateKey: CryptoKey, packageId: string,
   const eph = await crypto.subtle.importKey("jwk", publicJwk(lic.ephemeralPublicKey), { name: "ECDH", namedCurve: "P-256" }, false, []);
   const bits = await crypto.subtle.deriveBits({ name: "ECDH", public: eph }, privateKey, 256);
   const base = await crypto.subtle.importKey("raw", bits, "HKDF", false, ["deriveKey"]);
+  if (lic.alg === "A256KW") {
+    const kek = await crypto.subtle.deriveKey(
+      { name: "HKDF", hash: "SHA-256", salt: bytes("lmk-offline-licence-v2"), info: bytes(lic.licenceId) },
+      base, { name: "AES-KW", length: 256 }, false, ["unwrapKey"],
+    );
+    return crypto.subtle.unwrapKey("raw", fromB64(lic.wrappedKey), kek, "AES-KW", { name: "AES-GCM" }, false, ["decrypt"]);
+  }
+  // Licences issued before the AES-KW switch (still valid until they expire).
   const wrapKey = await crypto.subtle.deriveKey(
     { name: "HKDF", hash: "SHA-256", salt: bytes("lmk-offline-licence-v1"), info: bytes(lic.licenceId) },
     base, { name: "AES-GCM", length: 256 }, false, ["unwrapKey"],

@@ -67,6 +67,7 @@ import AdminAppearance from "./pages/AdminAppearance";
 import AdminDiscover from "./pages/AdminDiscover";
 import DiscoverTag from "./pages/DiscoverTag";
 import DiscoverCollection from "./pages/DiscoverCollection";
+import OfflineSelfTest from "./pages/OfflineSelfTest";
 import OfflineRedirect from "@/components/offline/OfflineRedirect";
 import SecureDownloadsBoot from "@/components/offline/SecureDownloadsBoot";
 import AppDownloadPrompt from "@/components/share/AppDownloadPrompt";
@@ -165,6 +166,7 @@ const App = () => (
                 <Route path="/admin/karaoke-stories" element={<AdminRouteGate><AdminKaraokeStories /></AdminRouteGate>} />
                 <Route path="/admin/appearance" element={<AdminRouteGate><AdminAppearance /></AdminRouteGate>} />
                 <Route path="/admin/discover" element={<AdminRouteGate><AdminDiscover /></AdminRouteGate>} />
+                <Route path="/dev/offline-selftest" element={<AdminRouteGate><OfflineSelfTest /></AdminRouteGate>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </FeatureRouteGate>

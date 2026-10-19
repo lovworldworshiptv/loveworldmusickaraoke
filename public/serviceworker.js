@@ -4,7 +4,7 @@
 // metadata shape, or the lyrics format. Every cache name is derived from it,
 // so old caches are dropped automatically on activate.
 // ---------------------------------------------------------------------------
-const CACHE_VERSION = 'v6';
+const CACHE_VERSION = 'v7';
 const CACHE_PREFIX = 'lmk';
 const CACHE_NAME = `${CACHE_PREFIX}-shell-${CACHE_VERSION}`;
 const METADATA_CACHE = `${CACHE_PREFIX}-metadata-${CACHE_VERSION}`;
@@ -156,6 +156,8 @@ const maybePrune = (event) => {
 // ---------------------------------------------------------------------------
 const SECURE_DB = 'lmk_secure_downloads';
 const STREAM_PREFIX = '/offline-stream/';
+// Friendly alias: /__offline/<songId>?kind=audio|instrumental|video (defaults to audio).
+const MEDIA_PREFIX = '/__offline/';
 const STREAM_MAX_SPAN = 2 * 1024 * 1024;
 const streamKeys = new Map(); // packageId -> { licenceId, key }
 const te = new TextEncoder();
@@ -184,12 +186,21 @@ async function streamKeyFor(db, pkg) {
   const eph = await crypto.subtle.importKey('jwk', { kty: e.kty, crv: e.crv, x: e.x, y: e.y }, { name: 'ECDH', namedCurve: 'P-256' }, false, []);
   const bits = await crypto.subtle.deriveBits({ name: 'ECDH', public: eph }, device.privateKey, 256);
   const base = await crypto.subtle.importKey('raw', bits, 'HKDF', false, ['deriveKey']);
-  const wrapKey = await crypto.subtle.deriveKey(
-    { name: 'HKDF', hash: 'SHA-256', salt: te.encode('lmk-offline-licence-v1'), info: te.encode(l.licenceId) },
-    base, { name: 'AES-GCM', length: 256 }, false, ['unwrapKey']
-  );
-  const key = await crypto.subtle.unwrapKey('raw', fromB64(l.wrappedKey), wrapKey,
-    { name: 'AES-GCM', iv: fromB64(l.iv), additionalData: te.encode(pkg.packageId) }, { name: 'AES-GCM' }, false, ['decrypt']);
+  let key;
+  if (l.alg === 'A256KW') {
+    const kek = await crypto.subtle.deriveKey(
+      { name: 'HKDF', hash: 'SHA-256', salt: te.encode('lmk-offline-licence-v2'), info: te.encode(l.licenceId) },
+      base, { name: 'AES-KW', length: 256 }, false, ['unwrapKey']
+    );
+    key = await crypto.subtle.unwrapKey('raw', fromB64(l.wrappedKey), kek, 'AES-KW', { name: 'AES-GCM' }, false, ['decrypt']);
+  } else {
+    const wrapKey = await crypto.subtle.deriveKey(
+      { name: 'HKDF', hash: 'SHA-256', salt: te.encode('lmk-offline-licence-v1'), info: te.encode(l.licenceId) },
+      base, { name: 'AES-GCM', length: 256 }, false, ['unwrapKey']
+    );
+    key = await crypto.subtle.unwrapKey('raw', fromB64(l.wrappedKey), wrapKey,
+      { name: 'AES-GCM', iv: fromB64(l.iv), additionalData: te.encode(pkg.packageId) }, { name: 'AES-GCM' }, false, ['decrypt']);
+  }
   streamKeys.set(pkg.packageId, { licenceId: l.licenceId, key });
   return key;
 }
@@ -201,14 +212,16 @@ async function decryptStreamChunk(db, key, pkg, i) {
     { name: 'AES-GCM', iv: ivFor(i), additionalData: te.encode(`${pkg.packageId}:${i}`) }, key, data));
 }
 
-async function handleOfflineStream(request, packageId) {
+async function handleOfflineStream(request, packageId, bySong) {
   try {
     const db = await secureDb();
     const items = await idbAll(db, 'items');
     let pkg = null;
     for (const item of items) {
       if (item.status !== 'ready') continue;
-      const p = (item.packages || []).find((x) => x.packageId === packageId);
+      const p = bySong
+        ? (item.songId === bySong.songId ? (item.packages || []).find((x) => x.kind === bySong.kind) : null)
+        : (item.packages || []).find((x) => x.packageId === packageId);
       if (p) { pkg = p; break; }
     }
     if (!pkg) return new Response('Not found', { status: 404 });
@@ -293,6 +306,11 @@ self.addEventListener('fetch', (event) => {
 
   if (url.origin === self.location.origin && url.pathname.startsWith(STREAM_PREFIX)) {
     event.respondWith(handleOfflineStream(request, url.pathname.slice(STREAM_PREFIX.length)));
+    return;
+  }
+  if (url.origin === self.location.origin && url.pathname.startsWith(MEDIA_PREFIX)) {
+    const kind = url.searchParams.get('kind') || 'audio';
+    event.respondWith(handleOfflineStream(request, null, { songId: url.pathname.slice(MEDIA_PREFIX.length), kind }));
     return;
   }
 

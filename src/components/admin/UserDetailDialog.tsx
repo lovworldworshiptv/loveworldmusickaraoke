@@ -48,7 +48,7 @@ const UserDetailDialog = ({ userId, open, onOpenChange }: UserDetailDialogProps)
         supabase.from("recently_played").select("id", { count: "exact", head: true }).eq("user_id", userId),
         supabase.from("playlists").select("id", { count: "exact", head: true }).eq("user_id", userId),
         supabase.from("feedback").select("id", { count: "exact", head: true }).eq("user_id", userId),
-        supabase.from("downloads").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("downloads").select("id", { count: "exact", head: true }).eq("user_id", userId).is("deleted_at", null),
       ]);
 
       const p = profileRes.data;
