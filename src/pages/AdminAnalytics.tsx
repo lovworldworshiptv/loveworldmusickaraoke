@@ -48,7 +48,7 @@ const AdminAnalytics = () => {
         supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, category_id, has_video, is_featured").order("title"),
         supabase.from("play_events").select("user_id, song_id, mode, created_at").order("created_at", { ascending: false }).limit(5000),
         supabase.from("favorites").select("user_id, song_id").limit(5000),
-        supabase.from("downloads").select("user_id, song_id").limit(5000),
+        supabase.from("downloads").select("user_id, song_id").is("deleted_at", null).limit(5000),
         supabase.from("karaoke_recordings").select("user_id, song_id, created_at").limit(5000),
         supabase.from("user_subscriptions").select("user_id, subscription, subscription_expiry_date"),
         supabase.from("admin_notifications").select("id, type, title, message, is_read, created_at").order("created_at", { ascending: false }).limit(30),

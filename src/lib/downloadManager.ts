@@ -82,7 +82,8 @@ export async function removeDownload(songId: string): Promise<void> {
   await removeLegacy(songId).catch(() => undefined);
   const uid = await currentUserId();
   if (uid && navigator.onLine) {
-    await supabase.from("downloads").delete().eq("user_id", uid).eq("song_id", songId);
+    // Soft delete, so the removal reaches every device (they listen for changes).
+    await supabase.from("downloads").update({ deleted_at: new Date().toISOString() }).eq("user_id", uid).eq("song_id", songId);
   }
 }
 
@@ -94,7 +95,7 @@ export async function getCloudOnlyDownloads(userId: string) {
   ]);
   const { data } = await supabase.from("downloads")
     .select("song_id, downloaded_at, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, duration_seconds, album, is_free_download)")
-    .eq("user_id", userId).order("downloaded_at", { ascending: false });
+    .eq("user_id", userId).is("deleted_at", null).order("downloaded_at", { ascending: false });
   return ((data || []) as any[]).filter((r) => r.songs && !local.has(r.song_id)).map((r) => r.songs);
 }
 

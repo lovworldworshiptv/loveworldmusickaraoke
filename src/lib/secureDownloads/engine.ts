@@ -11,7 +11,7 @@ import { legacyMeta, removeLegacy, wipeLegacy } from "./legacy";
 import { clearPlaybackMemory } from "./playback";
 import {
   sortQueue, isMeteredConnection, isKnownUnmetered, hasRoomFor, needsRenewal, isLicenceValid,
-  plainChunkLength, estimateSongBytes,
+  plainChunkLength, estimateSongBytes, licenceBatches, missingChunks, fetchVerified, reconcile,
 } from "./policy";
 import type { DeviceInfo, DeviceRecord, DownloadedTrack, SecureItem, SecurePackage, SecureKind, WrappedLicence } from "./types";
 
@@ -25,7 +25,7 @@ const PAUSED_KEY = "lmk_dl_paused";
 const CELLULAR_KEY = "lmk_dl_allow_cellular";
 const restoreChoiceKey = (uid: string) => `lmk_restore_choice:${uid}`;
 
-export type WaitingFor = null | "connection" | "wifi" | "space" | "device_limit";
+export type WaitingFor = null | "connection" | "wifi" | "space" | "device_limit" | "licence_limit";
 export interface RestorePlan { songs: CloudSong[]; bytes: number }
 export interface EngineState {
   items: SecureItem[];
@@ -178,8 +178,12 @@ export function enqueue(meta: DownloadedTrack, opts: { priority?: number; source
       };
     cancelled.delete(meta.id);
     await save(item);
-    if (item.source !== "legacy") {
-      await supabase.from("downloads").upsert({ user_id: userId, song_id: meta.id }, { onConflict: "user_id,song_id", ignoreDuplicates: true });
+    if (item.source === "user") {
+      // Add (or bring back a previously removed save) on the account so every device sees it.
+      await supabase.from("downloads").upsert(
+        { user_id: userId, song_id: meta.id, deleted_at: null, downloaded_at: new Date().toISOString() },
+        { onConflict: "user_id,song_id" },
+      );
     }
     if (priority === 0 && state.activeSongId && state.activeSongId !== meta.id) preempt = true;
     kick();
@@ -260,7 +264,8 @@ async function handleFailure(item: SecureItem, e: unknown): Promise<boolean> {
   }
   if (e instanceof DeviceLimitError) { settle(item.songId, new Error("Too many devices — remove one to continue")); return true; }
   if (!navigator.onLine || e instanceof TypeError) { emit({ waitingFor: "connection" }); return true; }
-  if (e instanceof ApiError && e.body?.error === "device_revoked") {
+  if (isRateLimited(e)) { waitForLicenceLimit(e as ApiError); return true; }
+  if (isDeviceGone(e)) {
     await wipeLocal(false);
     settle(item.songId, new Error("This device was removed from your account"));
     return true;
@@ -295,9 +300,24 @@ async function licence(item: SecureItem, device: DeviceRecord, pkgs: SecurePacka
   });
   for (const l of res.licences) {
     const p = item.packages.find((x) => x.packageId === l.packageId);
-    if (p) p.licence = { licenceId: l.licenceId, ephemeralPublicKey: l.ephemeralPublicKey, iv: l.iv, wrappedKey: l.wrappedKey, expiresAt: l.expiresAt };
+    if (p) p.licence = toStoredLicence(l);
   }
   return res;
+}
+
+const toStoredLicence = (l: WrappedLicence): WrappedLicence => ({
+  licenceId: l.licenceId, ephemeralPublicKey: l.ephemeralPublicKey, iv: l.iv, wrappedKey: l.wrappedKey, expiresAt: l.expiresAt,
+  ...(l.alg ? { alg: l.alg } : {}),
+});
+const isDeviceGone = (e: unknown) => e instanceof ApiError && (e.body?.error === "device_revoked" || e.body?.error === "device_not_owned");
+const isRateLimited = (e: unknown) => e instanceof ApiError && (e.status === 429 || e.body?.error === "rate_limited");
+let rateLimitTimer: ReturnType<typeof setTimeout> | null = null;
+/** The backend allows 60 licence requests per hour; wait quietly, then carry on. */
+function waitForLicenceLimit(e: ApiError) {
+  emit({ waitingFor: "licence_limit" });
+  if (rateLimitTimer) return;
+  const secs = Math.max(60, Number(e.body?.retryAfterSeconds) || 600);
+  rateLimitTimer = setTimeout(() => { rateLimitTimer = null; if (state.waitingFor === "licence_limit") emit({ waitingFor: null }); kick(); }, secs * 1000);
 }
 
 async function processItem(item: SecureItem) {
@@ -346,7 +366,7 @@ async function processItem(item: SecureItem) {
 
   for (let pi = 0; pi < item.packages.length; pi++) {
     const pkg = item.packages[pi];
-    const missing = Array.from({ length: pkg.chunkCount }, (_, i) => i).filter((i) => !haveSets[pi].has(i));
+    const missing = missingChunks(haveSets[pi], pkg.chunkCount);
     if (!missing.length) continue;
     const key = await unwrapContentKey(device.privateKey, pkg.packageId, pkg.licence!);
     let cursor = 0;
@@ -384,32 +404,28 @@ async function processItem(item: SecureItem) {
 async function fetchChunk(songId: string, device: DeviceRecord, pkg: SecurePackage, key: CryptoKey, idx: number, url?: string) {
   const expected = plainChunkLength(idx, pkg.chunkSize, pkg.chunkCount, pkg.byteLength) + GCM_TAG_BYTES;
   let signed = url;
-  for (let attempt = 0; attempt <= MAX_CHUNK_RETRIES; attempt++) {
+  const data = await fetchVerified(async () => {
     checkpoint(songId);
-    try {
-      if (!signed) {
+    if (!signed) {
         const { urls } = await offlineApi<{ urls: { index: number; url: string }[] }>("chunk_urls", {
           deviceId: device.deviceId, packageId: pkg.packageId, from: idx, count: 1,
         });
         signed = urls[0]?.url;
         if (!signed) throw new Error("Missing chunk");
       }
-      const res = await fetch(signed, { cache: "no-store" });
-      if (res.status === 400 || res.status === 403) { signed = undefined; throw new Error("Link expired"); }
-      if (!res.ok) throw new Error(`Chunk ${idx} failed (${res.status})`);
-      const data = await res.arrayBuffer();
-      if (data.byteLength !== expected) throw new Error("Incomplete chunk");
-      await decryptChunk(key, pkg.packageId, idx, data); // integrity check before saving
-      if (cancelled.has(songId)) throw new Signal("cancelled");
-      await store.putChunk(pkg.packageId, idx, data);
-      return;
-    } catch (e) {
-      if (e instanceof Signal || e instanceof ApiError) throw e;
-      if (!navigator.onLine) throw new Signal("offline");
-      if (attempt === MAX_CHUNK_RETRIES) throw e;
-      await sleep(Math.min(16000, 1000 * 2 ** attempt));
-    }
-  }
+    const res = await fetch(signed, { cache: "no-store" });
+    if (res.status === 400 || res.status === 403) { signed = undefined; throw new Error("Link expired"); }
+    if (!res.ok) throw new Error(`Chunk ${idx} failed (${res.status})`);
+    const buf = await res.arrayBuffer();
+    if (buf.byteLength !== expected) throw new Error("Incomplete chunk");
+    return buf;
+  }, (buf) => decryptChunk(key, pkg.packageId, idx, buf), { // integrity check before saving; damaged → fetched again
+    retries: MAX_CHUNK_RETRIES,
+    wait: (attempt) => sleep(Math.min(16000, 1000 * 2 ** attempt)),
+    onError: (e) => (e instanceof Signal || e instanceof ApiError ? e : !navigator.onLine ? new Signal("offline") : null),
+  });
+  if (cancelled.has(songId)) throw new Signal("cancelled");
+  await store.putChunk(pkg.packageId, idx, data);
 }
 
 // ---------------- removal / wipe ----------------
@@ -441,6 +457,7 @@ export async function signOutCleanup() {
     await Promise.race([offlineApi("revoke_device", { deviceId: device.deviceId }).catch(() => undefined), sleep(2500)]);
   }
   await wipeLocal(false);
+  unsubscribeLive();
   userId = null;
 }
 
@@ -460,16 +477,64 @@ export async function renewSongLicence(songId: string): Promise<RenewResult> {
     if (ok) mirrorLicence(updated);
     return ok ? "renewed" : "denied";
   } catch (e) {
-    if (e instanceof ApiError && e.body?.error === "device_revoked") { await wipeLocal(true); return "denied"; }
+    if (isDeviceGone(e)) { await wipeLocal(true); return "denied"; }
+    if (e instanceof ApiError && e.body?.error === "not_entitled") {
+      await save({ ...item, status: "locked", error: "Premium is needed to keep this offline" });
+      return "denied";
+    }
     return "offline";
   }
 }
 
+/** Diagnostics only: make this device's saved copies look expired, to test the offline message and renewal. */
+export async function devExpireLicences() {
+  const past = new Date(Date.now() - 60000).toISOString();
+  for (const item of (await store.getItems()).filter((i) => i.userId === userId && i.status === "ready")) {
+    for (const p of item.packages) if (p.licence) p.licence = { ...p.licence, expiresAt: past };
+    await save(item);
+  }
+  clearPlaybackMemory();
+  navigator.serviceWorker?.controller?.postMessage({ type: "LMK_OFFLINE_KEYS_CLEAR" });
+}
+
+/** Renew all saved copies now (used by diagnostics and after coming back online). */
+export async function renewAllNow() {
+  const items = (await store.getItems()).filter((i) => i.userId === userId && (i.status === "ready" || i.status === "locked"));
+  const results: RenewResult[] = [];
+  for (const i of items) results.push(await renewSongLicence(i.songId));
+  return results;
+}
+
+/** Renew every due licence on this device in as few requests as possible (60 packages per request). */
 async function renewDueLicences() {
-  const items = (await store.getItems()).filter((i) => i.userId === userId && i.status === "ready");
-  for (const i of items) {
-    const audio = i.packages.find((p) => p.kind === "audio");
-    if (needsRenewal(audio?.licence?.expiresAt)) await renewSongLicence(i.songId);
+  if (!navigator.onLine) return;
+  const due = (await store.getItems()).filter((i) => i.userId === userId && i.status === "ready"
+    && needsRenewal(i.packages.find((p) => p.kind === "audio")?.licence?.expiresAt));
+  if (!due.length) return;
+  let device: DeviceRecord;
+  try { device = await ensureDevice(); } catch { return; }
+  for (const batch of licenceBatches(due, 60)) {
+    try {
+      const res = await offlineApi<{ licences: (WrappedLicence & { packageId: string })[]; denied: string[] }>("licence", {
+        deviceId: device.deviceId, packageIds: batch.flatMap((i) => i.packages.map((p) => p.packageId)),
+      });
+      const byId = new Map(res.licences.map((l) => [l.packageId, l]));
+      for (const item of batch) {
+        for (const p of item.packages) { const l = byId.get(p.packageId); if (l) p.licence = toStoredLicence(l); }
+        const audio = item.packages.find((p) => p.kind === "audio");
+        const ok = !!audio && !res.denied.includes(audio.packageId) && isLicenceValid(audio.licence?.expiresAt);
+        const updated = { ...item, status: ok ? "ready" as const : "locked" as const, error: ok ? undefined : "Premium is needed to keep this offline" };
+        await save(updated);
+        if (ok) mirrorLicence(updated);
+      }
+    } catch (e) {
+      if (isDeviceGone(e)) { await wipeLocal(true); return; }
+      if (e instanceof ApiError && e.body?.error === "not_entitled") {
+        for (const item of batch) await save({ ...item, status: "locked", error: "Premium is needed to keep this offline" });
+        continue;
+      }
+      return; // offline or rate limited — try again on the next periodic sync
+    }
   }
 }
 
@@ -478,7 +543,7 @@ async function cloudLibrary(): Promise<CloudSong[] | null> {
   if (!userId) return null;
   const { data, error } = await supabase.from("downloads")
     .select("song_id, downloaded_at, songs(id, title, artist, cover_url, lyrics_lrc, duration_seconds, album, is_free_download, instrumental_url)")
-    .eq("user_id", userId).order("downloaded_at", { ascending: false });
+    .eq("user_id", userId).is("deleted_at", null).order("downloaded_at", { ascending: false });
   if (error) return null;
   return ((data || []) as any[]).filter((r) => r.songs).map((r) => ({ ...r.songs, downloaded_at: r.downloaded_at }));
 }
@@ -494,16 +559,19 @@ export async function syncAccount() {
   const cloud = await cloudLibrary();
   if (!cloud) return;
   const cloudIds = new Set(cloud.map((s) => s.id));
-  const local = await store.getItems();
-  // Removed on another device → remove here too.
-  for (const i of local) {
-    if (i.userId === userId && i.source !== "legacy" && !cloudIds.has(i.songId) && Date.now() - i.addedAt > 120000) {
-      await store.deleteItem(i);
-    }
-  }
+  const { data: removedRows } = await supabase.from("downloads").select("song_id, deleted_at")
+    .eq("user_id", userId).not("deleted_at", "is", null);
+  const removedAt = new Map(((removedRows || []) as { song_id: string; deleted_at: string }[]).map((r) => [r.song_id, Date.parse(r.deleted_at)]));
+  const mine = (await store.getItems()).filter((i) => i.userId === userId);
   const legacy = await legacyMeta().catch(() => [] as DownloadedTrack[]);
-  const onDevice = new Set([...local.map((i) => i.songId), ...legacy.map((l) => l.id)]);
-  const missing = cloud.filter((s) => !onDevice.has(s.id));
+  const plan = reconcile([...cloudIds], mine, removedAt, Date.now(), legacy.map((l) => l.id));
+  // Removed on another device → remove here too (unless it was saved again here afterwards).
+  for (const i of mine.filter((m) => plan.remove.includes(m.songId))) {
+    cancelled.add(i.songId);
+    await store.deleteItem(i);
+  }
+  const queued = new Set(plan.queue);
+  const missing = cloud.filter((s) => queued.has(s.id));
   const { data: sized } = missing.length
     ? await supabase.from("offline_packages").select("song_id, byte_length").in("song_id", missing.map((s) => s.id).slice(0, 500)).eq("status", "ready")
     : { data: [] as any[] };
@@ -548,6 +616,28 @@ async function migrateLegacy() {
   }
 }
 
+// ---------------- live account sync ----------------
+let liveChannel: ReturnType<typeof supabase.channel> | null = null;
+let liveStatus = "CLOSED";
+/** For diagnostics: "SUBSCRIBED" when other devices' changes arrive live. */
+export const liveSyncStatus = () => liveStatus;
+let liveTimer: ReturnType<typeof setTimeout> | null = null;
+/** Saves and removals on other devices arrive within seconds instead of waiting for the periodic check. */
+function subscribeLive(uid: string) {
+  unsubscribeLive();
+  liveChannel = supabase.channel(`downloads:${uid}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "downloads", filter: `user_id=eq.${uid}` }, () => {
+      if (liveTimer) clearTimeout(liveTimer);
+      liveTimer = setTimeout(() => { liveTimer = null; syncAccount().catch(() => undefined); }, 800);
+    })
+    .subscribe((status) => { liveStatus = status; });
+}
+function unsubscribeLive() {
+  liveStatus = "CLOSED";
+  if (liveTimer) { clearTimeout(liveTimer); liveTimer = null; }
+  if (liveChannel) { supabase.removeChannel(liveChannel).catch(() => undefined); liveChannel = null; }
+}
+
 let lastBoot = 0;
 export async function initEngine(uid: string) {
   if (userId === uid) {
@@ -556,6 +646,7 @@ export async function initEngine(uid: string) {
     return;
   }
   userId = uid;
+  subscribeLive(uid);
   await refreshItems();
   if (!onlineBound) {
     onlineBound = true;
@@ -581,6 +672,7 @@ async function bootOnline() {
 }
 
 export function stopEngine() {
+  unsubscribeLive();
   userId = null;
   emit({ items: [], progress: {}, restore: null, activeSongId: null });
 }

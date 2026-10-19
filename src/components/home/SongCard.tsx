@@ -94,7 +94,7 @@ const SongCard = memo(({ song, index, allSongs }: SongCardProps) => {
             dlState === "done" ? (
               <Download className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
             ) : (
-              <button onClick={handleDownload} className="flex-shrink-0 p-0.5">
+              <button onClick={handleDownload} className="flex-shrink-0 p-0.5" aria-label={dlState === "downloading" ? `Saving ${song.title} for offline` : `Save ${song.title} for offline`}>
                 <Download className={`w-3.5 h-3.5 ${dlState === "downloading" ? "animate-pulse text-gold" : "text-muted-foreground"}`} />
               </button>
             )

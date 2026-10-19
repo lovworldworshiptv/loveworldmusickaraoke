@@ -92,6 +92,11 @@ const DownloadQueuePanel = () => {
           This device is low on space. Remove some downloads, then tap retry.
         </p>
       )}
+      {s.waitingFor === "licence_limit" && pending.length > 0 && (
+        <p role="status" className="rounded-xl bg-muted text-muted-foreground text-xs px-3 py-2">
+          Lots of songs saved this hour — the rest will continue automatically in a few minutes.
+        </p>
+      )}
       {s.waitingFor === "connection" && pending.length > 0 && (
         <p className="rounded-xl bg-muted text-muted-foreground text-xs px-3 py-2 flex items-center gap-2">
           <WifiOff className="w-3.5 h-3.5" /> Waiting for connection — saving continues automatically.

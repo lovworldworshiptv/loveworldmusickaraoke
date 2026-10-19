@@ -48,3 +48,77 @@ export const formatBytes = (n: number) => {
   if (n >= 1024 ** 2) return `${Math.round(n / 1024 ** 2)} MB`;
   return `${Math.max(1, Math.round(n / 1024))} KB`;
 };
+
+/** Group songs so each licence request carries at most `max` packages (a song is never split). */
+export function licenceBatches<T extends { packages: unknown[] }>(items: T[], max = 60): T[][] {
+  const out: T[][] = [];
+  let cur: T[] = [];
+  let n = 0;
+  for (const it of items) {
+    const k = Math.max(1, it.packages.length);
+    if (cur.length && n + k > max) { out.push(cur); cur = []; n = 0; }
+    cur.push(it); n += k;
+  }
+  if (cur.length) out.push(cur);
+  return out;
+}
+
+/** Chunks still to fetch — a resumed download continues from the first missing chunk. */
+export const missingChunks = (have: Set<number>, count: number) =>
+  Array.from({ length: count }, (_, i) => i).filter((i) => !have.has(i));
+
+/**
+ * Parse an HTTP Range header the same way the service worker does (public/serviceworker.js).
+ * Returns null for an unsatisfiable range. `maxSpan` caps how much one response serves.
+ */
+export function parseRange(header: string, total: number, maxSpan = 2 * 1024 * 1024) {
+  const m = /bytes=(\d*)-(\d*)/.exec(header) || [];
+  let start: number; let end: number;
+  if (m[1] === "" || m[1] === undefined) { start = Math.max(0, total - Number(m[2] || 0)); end = total - 1; }
+  else { start = Number(m[1]); end = m[2] ? Math.min(Number(m[2]), total - 1) : total - 1; }
+  if (start >= total || start > end) return null;
+  end = Math.min(end, start + maxSpan - 1);
+  return { start, end };
+}
+
+/** Fetch a chunk, check it, and fetch it again when it is damaged or incomplete. */
+export async function fetchVerified(
+  get: () => Promise<ArrayBuffer>,
+  verify: (data: ArrayBuffer) => Promise<unknown>,
+  opts: { retries: number; wait: (attempt: number) => Promise<void>; onError?: (e: unknown) => unknown },
+): Promise<ArrayBuffer> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const data = await get();
+      await verify(data);
+      return data;
+    } catch (e) {
+      const stop = opts.onError?.(e);
+      if (stop) throw stop;
+      if (attempt >= opts.retries) throw e;
+      await opts.wait(attempt);
+    }
+  }
+}
+
+export interface LocalEntry { songId: string; addedAt: number; source: string }
+/**
+ * Compare the account library with this device.
+ * - remove: removed on another device after it was saved here (or gone for over 2 minutes)
+ * - queue: on the account but not on this device (offered for restore)
+ */
+export function reconcile(
+  cloudIds: string[], local: LocalEntry[], removedAt: Map<string, number>, now: number, alsoOnDevice: string[] = [],
+) {
+  const inCloud = new Set(cloudIds);
+  const remove: string[] = [];
+  const keep: string[] = [];
+  for (const i of local) {
+    if (i.source === "legacy" || inCloud.has(i.songId)) { keep.push(i.songId); continue; }
+    const at = removedAt.get(i.songId);
+    if ((at !== undefined && at > i.addedAt) || (at === undefined && now - i.addedAt > 120000)) remove.push(i.songId);
+    else keep.push(i.songId);
+  }
+  const onDevice = new Set([...keep, ...alsoOnDevice]);
+  return { remove, keep, queue: cloudIds.filter((id) => !onDevice.has(id)) };
+}

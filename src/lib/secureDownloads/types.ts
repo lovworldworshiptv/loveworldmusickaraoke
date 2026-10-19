@@ -16,6 +16,8 @@ export type SecureKind = "audio" | "instrumental" | "video";
 
 export interface WrappedLicence {
   licenceId: string;
+  /** "A256KW" for AES key wrap; absent on licences issued before the switch (AES-GCM wrap). */
+  alg?: string;
   ephemeralPublicKey: JsonWebKey;
   iv: string;
   wrappedKey: string;

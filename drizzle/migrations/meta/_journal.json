@@ -183,6 +183,13 @@
       "when": 1792409610201,
       "tag": "0025_lock_offline_package_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1792411008879,
+      "tag": "0026_offline_library_sync_hardening",
+      "breakpoints": true
     }
   ]
 }

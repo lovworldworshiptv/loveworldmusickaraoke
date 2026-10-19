@@ -840,20 +840,32 @@ export type Database = {
       }
       downloads: {
         Row: {
+          deleted_at: string | null
           downloaded_at: string
           id: string
+          media_type: string
+          quality: string
+          size_bytes: number | null
           song_id: string
           user_id: string
         }
         Insert: {
+          deleted_at?: string | null
           downloaded_at?: string
           id?: string
+          media_type?: string
+          quality?: string
+          size_bytes?: number | null
           song_id: string
           user_id: string
         }
         Update: {
+          deleted_at?: string | null
           downloaded_at?: string
           id?: string
+          media_type?: string
+          quality?: string
+          size_bytes?: number | null
           song_id?: string
           user_id?: string
         }
@@ -1567,6 +1579,24 @@ export type Database = {
         }
         Relationships: []
       }
+      offline_licence_requests: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       offline_licences: {
         Row: {
           device_id: string
@@ -1616,18 +1646,21 @@ export type Database = {
         Row: {
           created_at: string
           iv: string
+          key_version: number
           package_id: string
           wrapped_key: string
         }
         Insert: {
           created_at?: string
           iv: string
+          key_version?: number
           package_id: string
           wrapped_key: string
         }
         Update: {
           created_at?: string
           iv?: string
+          key_version?: number
           package_id?: string
           wrapped_key?: string
         }

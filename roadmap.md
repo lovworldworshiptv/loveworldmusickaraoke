@@ -55,3 +55,14 @@
 - [x] Enable editors to edit song details in Manage Songs; existing editor update policy verified, three permission tests pass; live editor-session save awaits signed-in verification.
 - [x] Enable editors to add songs and upload song/instrumental audio; server-side editor policies verified and four permission tests pass; live editor-account creation awaits signed-in verification.
 - [x] Encrypted offline downloads v3: device-bound licences (5 devices, 30 days capped by subscription), resumable 1 MB chunk queue, safe full-history restore (newest first, Wi-Fi/space checks), streaming playback with seeking, device manager, sign-out cleanup, legacy migration; byte-identical decryption and offline play verified, 8 rule tests pass.
+
+## Secure Offline Downloads — QA & hardening (Oct 19)
+- [ ] Account library: soft delete, quality column, unique (user, song, quality), owner update policy, live updates
+- [ ] Backend: 60 requests/hour limit, 403 when not entitled, AES-KW device wrapping, key version; testable handler + backend tests (401/403/409/429/200)
+- [ ] Device: OPFS chunk storage with IndexedDB fallback; 4 chunks at a time; corrupt-chunk repair
+- [ ] Playback route /__offline/ (keep /offline-stream alias); stream-only helper in preview
+- [ ] Sync: live updates, reconcile, deleted-elsewhere undo toast, auto-restore setting (Wi-Fi only, default on), entitlement end removal
+- [ ] UI: shared download button states, Download all (albums/playlists/collections), Downloads filters/sort/swipe, restore sheet, Settings → Downloads, offline banner copy, sign-out confirmation
+- [ ] Unit tests 1–8, backend tests 9–11, Playwright e2e 12–14 files
+- [ ] Admin self-test page /dev/offline-selftest with copy report + expire buttons
+- [ ] QA report + manual device checklist
