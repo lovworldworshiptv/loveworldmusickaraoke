@@ -2,7 +2,7 @@ import { useState, useEffect, memo, useCallback, useRef } from "react";
 import ShareTrackButton from "@/components/share/ShareTrackButton";
 import AppLayout from "@/components/layout/AppLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Play, Heart, Plus, Music, ListMusic, Trash2, Shuffle, Download, Lock, Crown, WifiOff, ListPlus, Disc3, MoreVertical, Share2 } from "lucide-react";
+import { Search, Play, Heart, Plus, Music, ListMusic, Trash2, Shuffle, Download, Lock, Crown, WifiOff, ListPlus, Disc3, MoreVertical, Share2, CloudDownload } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,6 +16,7 @@ import { SongRowSkeleton, EmptyState } from "@/components/ui/loading-skeleton";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsPremium } from "@/hooks/useIsPremium";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import DownloadButton from "@/components/offline/DownloadButton";
 import { getDownloadedMeta, getDownloadedAudioUrl, getDownloadedInstrumentalUrl, saveDownload, removeDownload, getCloudOnlyDownloads, syncLocalDownloadsToCloud, type DownloadedTrack } from "@/lib/downloadManager";
 import { checkPlaybackAllowed, revalidateLicense } from "@/lib/offlineLicense";
 import DownloadQueuePanel from "@/components/offline/DownloadQueuePanel";
@@ -54,6 +55,8 @@ const Library = () => {
   const [tab, setTab] = useState(defaultTab);
   useEffect(() => { setTab(defaultTab); }, [defaultTab]);
   const [search, setSearch] = useState("");
+  const [dlKind, setDlKind] = useState<"songs" | "videos" | "lyrics">("songs");
+  const [dlSort, setDlSort] = useState<"recent" | "title" | "size">("recent");
   const searchPlaceholder =
     tab === "albums" ? "Search album titles..."
     : tab === "playlists" ? "Search playlists, songs, lyrics, artists..."
@@ -273,7 +276,7 @@ const Library = () => {
       await loadDownloads();
       toast.success(`"${song.title}" saved for offline listening`);
     } catch (err: any) {
-      toast.error("Download failed: " + (err.message || "Unknown error"));
+      if (err?.message !== "Download cancelled") toast.error(err?.message?.startsWith("Sign in") ? err.message : `Couldn't save “${song.title}” — tap to try again`);
     } finally {
       setDownloadingIds(prev => { const n = new Set(prev); n.delete(song.id); return n; });
     }
@@ -346,9 +349,16 @@ const Library = () => {
     (pl.playlist_songs || []).some((ps: any) => ps.songs && matchesSong(ps.songs))
   );
 
-  const filteredDownloads = downloads.filter((t) => !hiddenIds.has(t.id)).filter((t) =>
-    !q || fuzzyMatch(q, [t.title, t.artist, t.album, t.lyricsLrc])
-  );
+  const sizeOf = (id: string) => {
+    const it = secure.items.find((i) => i.songId === id);
+    return it ? it.packages.reduce((n, p) => n + p.byteLength, 0) : 0;
+  };
+  const filteredDownloads = downloads.filter((t) => !hiddenIds.has(t.id))
+    .filter((t) => dlKind === "songs" || (dlKind === "videos" ? !!t.video : !!t.lyricsLrc))
+    .filter((t) => !q || fuzzyMatch(q, [t.title, t.artist, t.album, t.lyricsLrc]))
+    .sort((a, b) => dlSort === "title" ? a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: "base" })
+      : dlSort === "size" ? sizeOf(b.id) - sizeOf(a.id)
+      : (b.downloadedAt || 0) - (a.downloadedAt || 0));
 
 
 
@@ -360,24 +370,13 @@ const Library = () => {
     const actionButtons = (
       <>
         {showDownload && song.audio_url && (
-          downloaded ? (
-            <span className="text-[10px] bg-green-500/20 text-green-600 px-1.5 py-0.5 rounded-full font-medium">Saved</span>
-          ) : canDownload || song.is_free_download ? (
-            <button
-              onClick={(e) => { e.stopPropagation(); handleDownload(song); }}
-              disabled={downloadingIds.has(song.id)}
-              className="p-2 touch-target"
-            >
-              <Download className={`w-4 h-4 ${downloadingIds.has(song.id) ? "animate-pulse text-gold" : "text-muted-foreground"}`} />
-            </button>
-          ) : (
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowUpgradeModal(true); }}
-              className="flex items-center gap-1 px-2 py-1 rounded-full bg-gold/10 text-gold text-[10px] font-semibold opacity-70"
-            >
-              <Download className="w-3 h-3" /> Premium
-            </button>
-          )
+          <DownloadButton
+            songId={song.id}
+            title={song.title}
+            onDownload={() => handleDownload(song)}
+            saved={downloaded}
+            needsPremium={!(canDownload || song.is_free_download)}
+          />
         )}
         {user && (
           <button
@@ -718,13 +717,7 @@ const Library = () => {
 
                       </div>
                       <span className="text-[10px] bg-green-500/20 text-green-600 px-1.5 py-0.5 rounded-full font-semibold">FREE</span>
-                      <button
-                        onClick={() => handleDownload(song)}
-                        disabled={downloadingIds.has(song.id)}
-                        className="p-2 text-green-600 hover:bg-green-500/10 rounded-lg"
-                      >
-                        <Download className={`w-4 h-4 ${downloadingIds.has(song.id) ? "animate-pulse" : ""}`} />
-                      </button>
+                      <DownloadButton songId={song.id} title={song.title} onDownload={() => handleDownload(song)} />
                     </div>
                   ))}
                 </div>
@@ -750,25 +743,48 @@ const Library = () => {
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{song.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">Not on this device yet</p>
+                        <p className="text-xs text-muted-foreground truncate flex items-center gap-1"><CloudDownload className="w-3 h-3 text-offline-accent" aria-hidden="true" /> Ready to download on this device</p>
                       </div>
-                      <button
-                        onClick={() => handleDownload(song)}
-                        disabled={downloadingIds.has(song.id)}
-                        aria-label={`Download ${song.title} to this device`}
-                        className="p-2 text-primary hover:bg-primary/10 rounded-lg"
-                      >
-                        <Download className={`w-4 h-4 ${downloadingIds.has(song.id) ? "animate-pulse" : ""}`} />
-                      </button>
+                      <DownloadButton songId={song.id} title={song.title} onDownload={() => handleDownload(song)} />
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Downloaded tracks */}
+            {/* Downloaded tracks: type tabs + sort */}
+            {downloads.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div role="tablist" aria-label="Show downloads" className="inline-flex rounded-full border border-border p-0.5">
+                  {(["songs", "videos", "lyrics"] as const).map((k) => (
+                    <button
+                      key={k}
+                      role="tab"
+                      aria-selected={dlKind === k}
+                      onClick={() => setDlKind(k)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${dlKind === k ? "bg-offline-accent text-background" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {k}
+                    </button>
+                  ))}
+                </div>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  Sort by
+                  <select
+                    value={dlSort}
+                    onChange={(e) => setDlSort(e.target.value as typeof dlSort)}
+                    className="rounded-full border border-border bg-card text-foreground text-xs px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label="Sort downloads"
+                  >
+                    <option value="recent">Recent</option>
+                    <option value="title">Title</option>
+                    <option value="size">Size</option>
+                  </select>
+                </label>
+              </div>
+            )}
             {filteredDownloads.length === 0 ? (
-              <EmptyState icon={Download} title={downloads.length === 0 ? "No downloads yet" : "No downloads found"} description={downloads.length === 0 ? (canDownload ? "Download songs to play them offline" : "Upgrade to Premium to download songs for offline playback") : "Try a different search term"} />
+              <EmptyState icon={Download} title={downloads.length === 0 ? "No downloads yet" : "No downloads found"} description={downloads.length === 0 ? (canDownload ? "Download songs to play them offline" : "Upgrade to Premium to download songs for offline playback") : dlKind !== "songs" && !q ? `No saved songs with ${dlKind} yet` : "Try a different search term"} />
             ) : (
               <div className="space-y-1">
                 {filteredDownloads.map((track) => (
@@ -796,11 +812,12 @@ const Library = () => {
                     </button>
                     <button
                       onClick={() => setConfirmDeleteId(track.id)}
+                      aria-label={`Remove ${track.title} from downloads`}
                       className="p-2 text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => playOfflineTrack(track)} className="w-8 h-8 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_2px_12px_hsl(43_70%_53%/0.4)]">
+                    <button onClick={() => playOfflineTrack(track)} aria-label={`Play ${track.title}`} className="w-8 h-8 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_2px_12px_hsl(43_70%_53%/0.4)]">
                       <Play className="w-3.5 h-3.5 text-white ml-0.5" fill="currentColor" />
                     </button>
                   </div>

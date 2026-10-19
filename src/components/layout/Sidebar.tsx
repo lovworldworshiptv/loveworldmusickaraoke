@@ -1,4 +1,5 @@
 import { useFeatures } from "@/contexts/FeatureContext";
+import { confirmSignOut } from "@/lib/secureDownloads/signOutPrompt";
 import { Home, Library, Clock, ListMusic, MessageSquare, LogOut, Shield, FileText, BookOpen, Music2, Newspaper, Grid3X3, Disc3, List, Image, Gamepad2, Sparkles, Users, BarChart3, Bell, Crown, Compass, Mic2, AlarmClock, Trophy, Clapperboard, HardDrive, Film, Presentation, Palette, PanelLeftClose, PanelLeftOpen , Gift } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
@@ -140,7 +141,7 @@ const Sidebar = ({ collapsed, onCollapsedChange }: SidebarProps) => {
 
       <div className="px-3 pb-6 space-y-1">
         {user ? (
-          <button onClick={() => signOut()}
+          <button onClick={async () => { if (await confirmSignOut()) signOut(); }}
             className={cn("flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-all duration-200", collapsed && "justify-center")}>
             <LogOut className="w-5 h-5" /> {!collapsed && "Sign Out"}
           </button>

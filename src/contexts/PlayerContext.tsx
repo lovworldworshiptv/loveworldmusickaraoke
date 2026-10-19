@@ -15,6 +15,8 @@ export interface PlayerSong {
   lyricsLrc?: string;
   lyricsText?: string;
   durationSeconds?: number;
+  /** Anyone may save this song for offline listening (not only Premium). */
+  isFreeDownload?: boolean;
 }
 
 interface LrcLine {
@@ -146,8 +148,20 @@ type PersistedPlayerState = {
 
 // Only one player audio may ever sound at once: any audio starting playback pauses all others.
 const playerAudios: Set<HTMLAudioElement> = ((globalThis as any).__lwPlayerAudios ??= new Set<HTMLAudioElement>());
+/** Saved songs streamed chunk by chunk use blob: media sources; iPhone's managed streaming needs remote playback off. */
+const prepareLocalSource = (audio: HTMLAudioElement, url: string) => {
+  if (url.startsWith("blob:")) (audio as any).disableRemotePlayback = true;
+};
+/** Let go of a saved-song media source so the same song can be attached again later. */
+const releaseLocalSource = (audio: HTMLAudioElement) => {
+  if (!audio.src.startsWith("blob:")) return;
+  audio.removeAttribute("src");
+  try { audio.load(); } catch { /* detached */ }
+};
 function createExclusiveAudio(url: string): HTMLAudioElement {
-  const audio = new Audio(url);
+  const audio = new Audio();
+  prepareLocalSource(audio, url);
+  audio.src = url;
   playerAudios.add(audio);
   audio.addEventListener("play", () => {
     playerAudios.forEach((other) => { if (other !== audio && !other.paused) other.pause(); });
@@ -284,6 +298,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       discardPreload();
       const audio = new Audio();
       audio.preload = "auto";
+      prepareLocalSource(audio, url);
       audio.src = url;
       try { audio.load(); } catch {}
       preloadRef.current = { url, audio };
@@ -301,6 +316,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       old.pause();
       old.onended = null;
       old.onerror = null;
+      releaseLocalSource(old);
       audioRef.current = null;
     }
     wantPlayingRef.current = autoplay;
@@ -534,7 +550,21 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       setShuffleOn(!!saved.shuffleOn);
       setVolumeState(Math.max(0, Math.min(saved.volume ?? 0.7, 1)));
       volumeRef.current = Math.max(0, Math.min(saved.volume ?? 0.7, 1));
-      internalPlay(restoredQueue[restoredIndex] || saved.song, !!saved.isKaraoke, Math.max(0, saved.currentTime || 0), false);
+      const resume = restoredQueue[restoredIndex] || saved.song;
+      const at = Math.max(0, saved.currentTime || 0);
+      // Saved songs play from per-session local sources; open fresh ones after a reload.
+      if (resume.audioUrl?.startsWith("blob:") || resume.instrumentalUrl?.startsWith("blob:")) {
+        import("@/lib/downloadManager").then(async (dm) => {
+          const [audioUrl, instrumentalUrl] = await Promise.all([
+            dm.getDownloadedAudioUrl(resume.id).catch(() => null),
+            dm.getDownloadedInstrumentalUrl(resume.id).catch(() => null),
+          ]);
+          if (!audioUrl) return;
+          internalPlay({ ...resume, audioUrl, instrumentalUrl: instrumentalUrl || undefined }, !!saved.isKaraoke, at, false);
+        }).catch(() => undefined);
+      } else {
+        internalPlay(resume, !!saved.isKaraoke, at, false);
+      }
     } catch {
       localStorage.removeItem(PLAYER_STATE_KEY);
     }

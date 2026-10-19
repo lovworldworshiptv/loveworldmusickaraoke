@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import DownloadButton from "@/components/offline/DownloadButton";
+import { useSaveSong } from "@/hooks/useSaveSong";
+import DownloadAllButton from "@/components/offline/DownloadAllButton";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
@@ -12,6 +15,7 @@ import { PRAISE_NIGHT_TITLE, praiseNightAlbums } from "@/lib/praiseNight";
 
 const Albums = () => {
   const { playSong, playQueue, currentSong, isPlaying, toggleShuffle, shuffleOn } = usePlayer();
+  const { save, canSave } = useSaveSong();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(searchParams.get("id"));
   const [search, setSearch] = useState("");
@@ -27,7 +31,7 @@ const Albums = () => {
       if (!selectedAlbumId) return [];
       const { data, error } = await supabase
         .from("songs")
-        .select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album")
+        .select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album, is_free_download")
         .eq("album_id", selectedAlbumId);
       if (error) throw error;
       const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
@@ -39,7 +43,7 @@ const Albums = () => {
     id: s.id, title: s.title, artist: s.artist, album: s.album || undefined,
     coverUrl: s.cover_url || undefined, audioUrl: s.audio_url || undefined,
     instrumentalUrl: s.instrumental_url || undefined, lyricsLrc: s.lyrics_lrc || undefined,
-    durationSeconds: s.duration_seconds,
+    durationSeconds: s.duration_seconds, isFreeDownload: !!s.is_free_download,
   });
 
   const formatDuration = (sec: number) => `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, "0")}`;
@@ -103,7 +107,7 @@ const Albums = () => {
             <div>
               <h2 className="text-xl font-serif font-bold text-foreground">{selectedAlbum.title}</h2>
               <p className="text-sm text-foreground">{selectedAlbum.artist} • {albumSongs.length} songs</p>
-              <div className="flex gap-2 mt-3">
+              <div className="flex flex-wrap items-center gap-2 mt-3">
                 <button onClick={() => playQueue(playerSongs)} className="px-4 py-2 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold text-white text-xs font-semibold flex items-center gap-1.5 shadow-[0_2px_12px_hsl(43_70%_53%/0.4)] hover:shadow-[0_4px_20px_hsl(43_70%_53%/0.5)] transition-shadow">
                   <Play className="w-3.5 h-3.5 drop-shadow-sm" fill="currentColor" /> Play All
                 </button>
@@ -111,6 +115,7 @@ const Albums = () => {
                   className="px-4 py-2 rounded-full border border-border text-foreground text-xs font-semibold flex items-center gap-1.5 hover:bg-muted transition-colors">
                   <Shuffle className="w-3.5 h-3.5" /> Shuffle
                 </button>
+                <DownloadAllButton songs={playerSongs} what="album" />
                 <ShareMenu
                   url={buildShareUrl(`/albums?id=${selectedAlbum.id}`)}
                   title={selectedAlbum.title}
@@ -129,9 +134,11 @@ const Albums = () => {
             <div className="space-y-1">
               {albumSongs.map((song, i) => {
                 const isActive = currentSong?.id === song.id;
+                const ps = playerSongs[i];
                 return (
-                  <button key={song.id} onClick={() => playQueue(playerSongs, i)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors active:scale-[0.98] ${isActive ? "bg-gold/10" : "hover:bg-muted/40"}`}>
+                  <div key={song.id} className={`flex items-center gap-1 pr-1 rounded-lg transition-colors ${isActive ? "bg-gold/10" : "hover:bg-muted/40"}`}>
+                  <button onClick={() => playQueue(playerSongs, i)}
+                    className="flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5 rounded-lg active:scale-[0.98]">
                     <span className="w-6 text-xs text-muted-foreground text-right">
                       {isActive && isPlaying ? (
                         <span className="flex gap-0.5 justify-end">
@@ -152,6 +159,8 @@ const Albums = () => {
                     </div>
                     <span className="text-xs text-muted-foreground">{formatDuration(song.duration_seconds)}</span>
                   </button>
+                  {ps.audioUrl && <DownloadButton songId={ps.id} title={ps.title} onDownload={() => save(ps)} needsPremium={!canSave(ps)} />}
+                  </div>
                 );
               })}
             </div>

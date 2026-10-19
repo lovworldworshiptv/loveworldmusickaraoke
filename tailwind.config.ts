@@ -55,6 +55,10 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        offline: {
+          accent: "hsl(var(--offline-accent))",
+          warning: "hsl(var(--offline-warning))",
+        },
         gold: {
           DEFAULT: "hsl(var(--gold))",
           light: "hsl(var(--gold-light))",
@@ -110,6 +114,11 @@ export default {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
+        "download-done": {
+          "0%": { transform: "scale(0.6)", opacity: "0.4" },
+          "60%": { transform: "scale(1.12)", opacity: "1" },
+          "100%": { transform: "scale(1)", opacity: "1" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -119,6 +128,7 @@ export default {
         "fade-in-up": "fade-in-up 0.6s ease-out both",
         "scale-fade": "scale-fade 0.5s ease-out both",
         shimmer: "shimmer 2s linear infinite",
+        "download-done": "download-done 200ms cubic-bezier(0.34, 1.56, 0.64, 1) both",
       },
     },
   },

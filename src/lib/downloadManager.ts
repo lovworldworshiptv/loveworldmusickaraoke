@@ -39,6 +39,20 @@ export async function saveDownload(
   await enqueue({ ...meta, id: songId, downloadedAt: meta.downloadedAt || Date.now() }, { priority: 0, source: "user", language });
 }
 
+/**
+ * "Download all" for an album, playlist or collection: queues every song in list order
+ * without interrupting the one already saving. Resolves when each song settles.
+ */
+export async function saveMany(tracks: DownloadedTrack[]): Promise<{ saved: number; failed: number }> {
+  const uid = await currentUserId();
+  if (!uid) throw new Error("Sign in to save songs for offline listening");
+  const language = await preferredLanguage(uid).catch(() => undefined);
+  const base = Date.now();
+  const results = await Promise.allSettled(tracks.map((t, i) =>
+    enqueue({ ...t, downloadedAt: t.downloadedAt || base }, { priority: 0, source: "user", language, addedAt: base - i, preempt: false })));
+  return { saved: results.filter((r) => r.status === "fulfilled").length, failed: results.filter((r) => r.status === "rejected").length };
+}
+
 const readySecure = async (songId: string) => {
   const item = await secureStore.getItem(songId).catch(() => null);
   return item && item.status === "ready" ? item : null;

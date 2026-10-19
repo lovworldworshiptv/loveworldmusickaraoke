@@ -1,4 +1,5 @@
 // ============= Full file contents =============
+import { confirmSignOut } from "@/lib/secureDownloads/signOutPrompt";
 
 import { useFeatures } from "@/contexts/FeatureContext";
 import { useState, useEffect } from "react";
@@ -139,7 +140,7 @@ const ProfileMenu = () => {
             {/* Sign Out */}
             <div className="p-2 border-t border-border">
               <button
-                onClick={async () => { setOpen(false); await signOut(); navigate("/"); }}
+                onClick={async () => { setOpen(false); if (!(await confirmSignOut())) return; await signOut(); navigate("/"); }}
                 className="w-full flex items-center gap-2 p-2.5 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors"
               >
                 <LogOut className="w-4 h-4" /> Sign Out

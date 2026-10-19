@@ -4,7 +4,7 @@
 // metadata shape, or the lyrics format. Every cache name is derived from it,
 // so old caches are dropped automatically on activate.
 // ---------------------------------------------------------------------------
-const CACHE_VERSION = 'v7';
+const CACHE_VERSION = 'v8';
 const CACHE_PREFIX = 'lmk';
 const CACHE_NAME = `${CACHE_PREFIX}-shell-${CACHE_VERSION}`;
 const METADATA_CACHE = `${CACHE_PREFIX}-metadata-${CACHE_VERSION}`;
@@ -205,8 +205,19 @@ async function streamKeyFor(db, pkg) {
   return key;
 }
 
+// Chunks live in OPFS (lmk-secure/<packageId>/<000000>) when pkg.storage === 'opfs', else in IndexedDB.
+const OPFS_DIR = 'lmk-secure';
+async function opfsChunk(pkg, i) {
+  try {
+    const root = await self.navigator.storage.getDirectory();
+    const dir = await (await root.getDirectoryHandle(OPFS_DIR)).getDirectoryHandle(pkg.packageId);
+    const file = await (await dir.getFileHandle(String(i).padStart(6, '0'))).getFile();
+    return file.size ? await file.arrayBuffer() : null;
+  } catch (_) { return null; }
+}
+
 async function decryptStreamChunk(db, key, pkg, i) {
-  const data = await idbGet(db, 'chunks', chunkStoreKey(pkg.packageId, i));
+  const data = pkg.storage === 'opfs' ? await opfsChunk(pkg, i) : await idbGet(db, 'chunks', chunkStoreKey(pkg.packageId, i));
   if (!data) throw new Error('missing chunk');
   return new Uint8Array(await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv: ivFor(i), additionalData: te.encode(`${pkg.packageId}:${i}`) }, key, data));

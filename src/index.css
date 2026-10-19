@@ -37,6 +37,8 @@
     --radius: 1rem;
 
     --gold: 43 70% 53%;
+    --offline-accent: 43 70% 53%;
+    --offline-warning: 38 92% 55%;
     --gold-light: 43 80% 65%;
     --gold-dark: 43 60% 40%;
     --scrollbar-track: var(--background);
@@ -586,4 +588,13 @@
 .eq-bar:nth-child(3) { animation-delay: 0.3s; }
 @media (prefers-reduced-motion: reduce) {
   .eq-bar { animation: none; transform: scaleY(0.7); }
+}
+
+/* Offline downloads UI: 150–250 ms ease-out motion, none at all when reduced motion is requested. */
+@media (prefers-reduced-motion: reduce) {
+  [data-offline-ui], [data-offline-ui] * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

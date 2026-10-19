@@ -1,7 +1,7 @@
 import { useDominantColor, playerTone } from "@/lib/dominantColor";
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { TouchEvent as ReactTouchEvent, MouseEvent as ReactMouseEvent } from "react";
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, VolumeX, Mic2, ListMusic, ChevronUp, ChevronDown, X, Download, Check, Lock, Crown, Disc3, MoreVertical, Music } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, VolumeX, Mic2, ListMusic, ChevronUp, ChevronDown, X, Crown, Disc3, MoreVertical, Music } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -17,6 +17,8 @@ import PlaybackProgress from "./PlaybackProgress";
 import { useFeatures } from "@/contexts/FeatureContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePlayerHidden } from "@/lib/playerVisibility";
+import DownloadButton from "@/components/offline/DownloadButton";
+import { useSongDownload } from "@/hooks/useSecureDownloads";
 
 const formatTime = (s: number) => {
   const m = Math.floor(s / 60);
@@ -100,7 +102,7 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
   }, [currentSong?.id, setHidden]);
   const [showQueue, setShowQueue] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  const { status: dlStatus } = useSongDownload(currentSong?.id ?? "");
   const [showUpgrade, setShowUpgrade] = useState(false);
   const prevTrackEndRef = useRef(trackEndCount);
   const recordFeatureEnabled = enabled("recording");
@@ -113,20 +115,19 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
     prevTrackEndRef.current = trackEndCount;
   }, [trackEndCount, isPremium, user]);
 
-  const canDownload = isPremium;
+  const canDownload = isPremium || !!currentSong?.isFreeDownload;
 
   useEffect(() => {
-    if (!currentSong) { setDownloaded(false); return; }
-    isDownloaded(currentSong.id).then(setDownloaded);
-  }, [currentSong?.id]);
+    if (!currentSong || dlStatus) { setDownloaded(false); return; }
+    isDownloaded(currentSong.id).then(setDownloaded).catch(() => setDownloaded(false));
+  }, [currentSong?.id, dlStatus]);
 
   const handleDownload = useCallback(async () => {
     if (!currentSong?.audioUrl) { toast.error("No audio available"); return; }
-    if (!canDownload && !(currentSong as any).isFreeDownload) {
+    if (!canDownload) {
       setShowUpgrade(true);
       return;
     }
-    setDownloading(true);
     try {
       await saveDownload(currentSong.id, currentSong.audioUrl, {
         id: currentSong.id,
@@ -136,14 +137,11 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
         lyricsLrc: currentSong.lyricsLrc,
         durationSeconds: currentSong.durationSeconds || 0,
         album: currentSong.album,
-        downloadedAt: Date.now(),
+        isFreeDownload: !!currentSong.isFreeDownload, downloadedAt: Date.now(),
       }, currentSong.instrumentalUrl);
-      setDownloaded(true);
-      toast.success(`"${currentSong.title}" saved for offline`);
+      toast.success(`Saved “${currentSong.title}” for offline listening`);
     } catch (err: any) {
-      toast.error("Download failed: " + (err.message || "Unknown error"));
-    } finally {
-      setDownloading(false);
+      if (err?.message !== "Download cancelled") toast.error(err?.message?.startsWith("Sign in") ? err.message : "Couldn't save this song — tap to try again");
     }
   }, [currentSong, canDownload]);
 
@@ -267,17 +265,14 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
           <div className="hidden md:flex items-center gap-3 flex-1 justify-end">
             {/* Download button */}
             {currentSong?.audioUrl && (
-              downloaded ? (
-                <span className="text-green-500"><Check className="w-4 h-4" /></span>
-              ) : canDownload ? (
-                <button onClick={handleDownload} disabled={downloading} className="text-foreground hover:text-gold transition-colors">
-                  <Download className={`w-4 h-4 ${downloading ? "animate-pulse text-gold" : ""}`} />
-                </button>
-              ) : (
-                <button onClick={() => setShowUpgrade(true)} className="text-gold/50">
-                  <Lock className="w-4 h-4" />
-                </button>
-              )
+              <DownloadButton
+                songId={currentSong.id}
+                title={currentSong.title}
+                onDownload={handleDownload}
+                saved={downloaded}
+                needsPremium={!canDownload}
+                className="-my-2"
+              />
             )}
             {enabled("karaoke") && <button onClick={toggleKaraoke} className={`transition-opacity ${isKaraoke ? "text-gold" : "text-foreground hover:text-gold"}`}>
               <Mic2 className="w-4 h-4" />

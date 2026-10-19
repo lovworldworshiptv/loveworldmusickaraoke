@@ -23,6 +23,7 @@ const PREPARE_MAX_POLLS = 200;
 const LICENCE_KEY = "lmk_offline_licenses";
 const PAUSED_KEY = "lmk_dl_paused";
 const CELLULAR_KEY = "lmk_dl_allow_cellular";
+const AUTO_RESTORE_KEY = "lmk_dl_auto_restore";
 const restoreChoiceKey = (uid: string) => `lmk_restore_choice:${uid}`;
 
 export type WaitingFor = null | "connection" | "wifi" | "space" | "device_limit" | "licence_limit";
@@ -33,6 +34,8 @@ export interface EngineState {
   activeSongId: string | null;
   paused: boolean;
   allowCellular: boolean;
+  /** "Restore my downloads automatically" (default on; still Wi-Fi only unless mobile data is allowed). */
+  autoRestore: boolean;
   waitingFor: WaitingFor;
   deviceLimit: DeviceInfo[] | null;
   restore: RestorePlan | null;
@@ -57,6 +60,7 @@ const ls = {
 let state: EngineState = {
   items: [], progress: {}, activeSongId: null,
   paused: ls.get(PAUSED_KEY) === "1", allowCellular: ls.get(CELLULAR_KEY) === "1",
+  autoRestore: ls.get(AUTO_RESTORE_KEY) !== "0",
   waitingFor: null, deviceLimit: null, restore: null, restoreChoice: null,
 };
 const listeners = new Set<() => void>();
@@ -159,7 +163,7 @@ export async function revokeDevice(deviceId: string) {
 }
 
 // ---------------- queue ----------------
-export function enqueue(meta: DownloadedTrack, opts: { priority?: number; source?: SecureItem["source"]; addedAt?: number; language?: string } = {}) {
+export function enqueue(meta: DownloadedTrack, opts: { priority?: number; source?: SecureItem["source"]; addedAt?: number; language?: string; preempt?: boolean } = {}) {
   const promise = new Promise<void>((resolve, reject) => {
     const list = waiters.get(meta.id) || [];
     list.push({ resolve, reject });
@@ -185,7 +189,7 @@ export function enqueue(meta: DownloadedTrack, opts: { priority?: number; source
         { onConflict: "user_id,song_id" },
       );
     }
-    if (priority === 0 && state.activeSongId && state.activeSongId !== meta.id) preempt = true;
+    if (priority === 0 && opts.preempt !== false && state.activeSongId && state.activeSongId !== meta.id) preempt = true;
     kick();
   })().catch((e) => settle(meta.id, e instanceof Error ? e : new Error(String(e))));
   return promise;
@@ -201,9 +205,22 @@ export function setAllowCellular(allow: boolean) {
   emit({ allowCellular: allow });
   if (allow) kick();
 }
+export function setAutoRestore(on: boolean) {
+  ls.set(AUTO_RESTORE_KEY, on ? "1" : "0");
+  emit({ autoRestore: on });
+  if (on) syncAccount().catch(() => undefined);
+}
+/** Pause one song's download (the rest of the queue carries on). */
+export async function pauseItem(songId: string) {
+  const item = await store.getItem(songId);
+  if (!item || item.status === "ready") return;
+  if (state.activeSongId === songId) cancelled.add(songId);
+  await save({ ...item, status: "paused", error: undefined });
+}
 export async function retry(songId: string) {
   const item = await store.getItem(songId);
   if (!item) return;
+  cancelled.delete(songId);
   await save({ ...item, status: "queued", error: undefined });
   if (state.waitingFor === "space") emit({ waitingFor: null });
   kick();
@@ -230,7 +247,7 @@ async function kick() {
         i.userId === userId && (i.status === "queued" || i.status === "preparing" || i.status === "downloading")));
       if (!pending.length) { if (state.waitingFor !== "device_limit") emit({ waitingFor: null }); break; }
       const metered = isMeteredConnection(conn());
-      const next = pending.find((i) => i.source === "user" || !metered || state.allowCellular);
+      const next = !metered || state.allowCellular ? pending[0] : undefined; // "Download over mobile data" is off by default
       if (!next) { emit({ waitingFor: "wifi" }); break; }
       emit({ activeSongId: next.songId, waitingFor: state.waitingFor === "device_limit" ? "device_limit" : null });
       try {
@@ -251,7 +268,16 @@ async function kick() {
 async function handleFailure(item: SecureItem, e: unknown): Promise<boolean> {
   const fresh = (await store.getItem(item.songId)) || item;
   if (e instanceof Signal) {
-    if (e.reason === "cancelled") return false;
+    if (e.reason === "cancelled") {
+      // Still on the device → it was paused from its button: keep its saved chunks so it
+      // resumes where it stopped. Removed items stay cancelled so late chunk writes are dropped.
+      const still = await store.getItem(item.songId);
+      if (still) {
+        cancelled.delete(item.songId);
+        if (still.status !== "paused") await save({ ...still, status: "paused", error: undefined });
+      }
+      return false;
+    }
     if (e.reason === "yield") return false;
     if (e.reason === "offline") { emit({ waitingFor: "connection" }); return true; }
     if (e.reason === "space") {
@@ -330,9 +356,10 @@ async function processItem(item: SecureItem) {
     const audio = res.packages.find((p) => p.kind === "audio");
     if (!audio || audio.status !== "ready") throw new Error(audio?.error ? "This song could not be prepared right now" : "No audio available");
     const ready = res.packages.filter((p) => p.status === "ready");
+    const backend = await store.preferredBackend();
     item.packages = ready.map((p) => ({
       packageId: p.id, kind: p.kind as SecureKind, mimeType: p.mimeType || (p.kind === "video" ? "video/mp4" : "audio/mpeg"),
-      chunkSize: p.chunkSize, chunkCount: p.chunkCount, byteLength: p.byteLength,
+      chunkSize: p.chunkSize, chunkCount: p.chunkCount, byteLength: p.byteLength, storage: backend,
     }));
     const video = ready.find((p) => p.kind === "video");
     item.meta = {
@@ -353,7 +380,7 @@ async function processItem(item: SecureItem) {
   }
 
   const total = item.packages.reduce((s, p) => s + p.byteLength, 0);
-  const haveSets = await Promise.all(item.packages.map((p) => store.storedChunkIndices(p.packageId)));
+  const haveSets = await Promise.all(item.packages.map((p) => store.storedChunkIndices(p)));
   let doneBytes = item.packages.reduce((s, p, i) =>
     s + [...haveSets[i]].reduce((t, idx) => t + plainChunkLength(idx, p.chunkSize, p.chunkCount, p.byteLength), 0), 0);
   const est = await navigator.storage?.estimate?.().catch(() => null);
@@ -425,7 +452,7 @@ async function fetchChunk(songId: string, device: DeviceRecord, pkg: SecurePacka
     onError: (e) => (e instanceof Signal || e instanceof ApiError ? e : !navigator.onLine ? new Signal("offline") : null),
   });
   if (cancelled.has(songId)) throw new Signal("cancelled");
-  await store.putChunk(pkg.packageId, idx, data);
+  await store.putChunk(pkg, idx, data);
 }
 
 // ---------------- removal / wipe ----------------
@@ -437,6 +464,19 @@ export async function removeSecure(songId: string) {
   emit({ progress: rest });
   settle(songId, new Error("Download cancelled"));
   await refreshItems();
+}
+
+/** Settings → "Remove all downloads from this device": frees space, keeps the account list and this device's slot. */
+export async function removeAllFromDevice() {
+  for (const i of state.items) cancelled.add(i.songId);
+  await store.wipeItems();
+  clearPlaybackMemory();
+  await wipeLegacy();
+  ls.del(LICENCE_KEY);
+  navigator.serviceWorker?.controller?.postMessage({ type: "LMK_OFFLINE_KEYS_CLEAR" });
+  if (userId) ls.set(restoreChoiceKey(userId), "later"); // don't immediately restore what was just removed
+  emit({ items: [], progress: {}, waitingFor: null, restoreChoice: "later" });
+  syncAccount().catch(() => undefined);
 }
 
 async function wipeLocal(revoked: boolean) {
@@ -584,7 +624,7 @@ export async function syncAccount() {
   // Safe full-history restore: automatic once chosen, or on a known Wi-Fi/wired
   // connection with enough space; otherwise the listener is asked first.
   const est = await navigator.storage?.estimate?.().catch(() => null);
-  const autoSafe = choice === null && isKnownUnmetered(conn()) && hasRoomFor(est ?? null, bytes);
+  const autoSafe = choice === null && state.autoRestore && isKnownUnmetered(conn()) && hasRoomFor(est ?? null, bytes);
   if (missing.length && (choice === "all" || autoSafe)) await restoreAll();
 }
 

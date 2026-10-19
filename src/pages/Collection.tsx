@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import DownloadButton from "@/components/offline/DownloadButton";
+import { useSaveSong } from "@/hooks/useSaveSong";
+import DownloadAllButton from "@/components/offline/DownloadAllButton";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useDominantColor, playerTone } from "@/lib/dominantColor";
 import AppLayout from "@/components/layout/AppLayout";
@@ -15,6 +18,7 @@ const Collection = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { playQueue, currentSong } = usePlayer();
+  const { save, canSave } = useSaveSong();
   const [name, setName] = useState("");
   const [description, setDescription] = useState<string | null>(null);
   const [cover, setCover] = useState<string | null>(null);
@@ -71,15 +75,17 @@ const Collection = () => {
           </div>
         </div>
         {songs.length > 0 && (
-          <div className="flex gap-2 mb-4">
+          <div className="flex flex-wrap items-center gap-2 mb-4">
             <Button onClick={() => playQueue(queue)} className="gradient-gold text-primary-foreground gap-1"><Play className="w-4 h-4" fill="currentColor" /> Play</Button>
             <Button variant="outline" onClick={() => playQueue([...queue].sort(() => Math.random() - 0.5))} className="gap-1"><Shuffle className="w-4 h-4" /> Shuffle</Button>
+            <DownloadAllButton songs={queue} what="playlist" />
           </div>
         )}
         {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : (
           <div className="space-y-1">
             {songs.map((s, i) => (
-              <button key={s.id} onClick={() => playQueue(queue, i)} className={`flex items-center gap-3 w-full p-2 rounded-xl text-left transition-colors ${currentSong?.id === s.id ? "bg-muted/80" : "hover:bg-muted/40"}`}>
+              <div key={s.id} className={`flex items-center gap-1 pr-1 rounded-xl transition-colors ${currentSong?.id === s.id ? "bg-muted/80" : "hover:bg-muted/40"}`}>
+              <button onClick={() => playQueue(queue, i)} className="flex items-center gap-3 flex-1 min-w-0 p-2 rounded-xl text-left">
                 <div className="w-11 h-11 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                   {s.cover_url ? <img src={s.cover_url} alt="" loading="lazy" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Music2 className="w-4 h-4 text-gold/50" /></div>}
                 </div>
@@ -88,6 +94,8 @@ const Collection = () => {
                   <p className="text-xs text-white truncate">{s.artist}</p>
                 </div>
               </button>
+              {queue[i].audioUrl && <DownloadButton songId={s.id} title={s.title} onDownload={() => save(queue[i])} needsPremium={!canSave(queue[i])} />}
+              </div>
             ))}
           </div>
         )}

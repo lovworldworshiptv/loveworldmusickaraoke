@@ -1,4 +1,7 @@
 import { useState } from "react";
+import DownloadButton from "@/components/offline/DownloadButton";
+import { useSaveSong } from "@/hooks/useSaveSong";
+import DownloadAllButton from "@/components/offline/DownloadAllButton";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
@@ -16,6 +19,7 @@ import { sortSongsByTitle, compareTitles } from "@/lib/utils";
 const Playlists = () => {
   const { user } = useAuth();
   const { playSong, playQueue, currentSong, isPlaying } = usePlayer();
+  const { save, canSave } = useSaveSong();
   const queryClient = useQueryClient();
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -43,7 +47,7 @@ const Playlists = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("playlists")
-        .select("id, name, cover_url, created_at, user_id, playlist_songs(id, song_id, sort_order, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album))")
+        .select("id, name, cover_url, created_at, user_id, playlist_songs(id, song_id, sort_order, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album, is_free_download))")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -55,7 +59,7 @@ const Playlists = () => {
     queryKey: ["admin-playlists", user?.id],
     queryFn: async () => {
       const selectFields = user
-        ? "id, name, cover_url, created_at, user_id, playlist_songs(id, song_id, sort_order, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album))"
+        ? "id, name, cover_url, created_at, user_id, playlist_songs(id, song_id, sort_order, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album, is_free_download))"
         : "id, name, cover_url, created_at, user_id";
       const { data, error } = await supabase
         .from("playlists")
@@ -141,7 +145,7 @@ const Playlists = () => {
     id: s.id, title: s.title, artist: s.artist, album: s.album || undefined,
     coverUrl: s.cover_url || undefined, audioUrl: s.audio_url || undefined,
     instrumentalUrl: s.instrumental_url || undefined, lyricsLrc: s.lyrics_lrc || undefined,
-    durationSeconds: s.duration_seconds,
+    durationSeconds: s.duration_seconds, isFreeDownload: !!s.is_free_download,
   });
 
   const formatDuration = (sec: number) => `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, "0")}`;
@@ -185,7 +189,7 @@ const Playlists = () => {
                 <button onClick={() => playQueue(songs)} className="w-8 h-8 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_2px_12px_hsl(43_70%_53%/0.4)] ring-1 ring-white/20 hover:scale-110 transition-transform">
                   <Play className="w-3.5 h-3.5 text-white ml-0.5 drop-shadow-sm" fill="currentColor" />
                 </button>
-                <button onClick={() => { const shuffled = [...songs].sort(() => Math.random() - 0.5); playQueue(shuffled); }} className="p-2 text-gold hover:bg-gold/10 rounded-lg transition-colors">
+                <button onClick={() => { const shuffled = [...songs].sort(() => Math.random() - 0.5); playQueue(shuffled); }} aria-label={`Shuffle ${pl.name}`} className="p-2 text-gold hover:bg-gold/10 rounded-lg transition-colors">
                   <Shuffle className="w-4 h-4" />
                 </button>
               </>
@@ -216,6 +220,7 @@ const Playlists = () => {
               </div>
             ) : songs.length > 0 ? (
               <div className="space-y-1">
+                <div className="flex justify-end pb-1"><DownloadAllButton songs={songs} what="playlist" /></div>
                 {playlistSongs.map((ps: any, i: number) => {
                   const song = toPlayerSong(ps.songs);
                   const isActive = currentSong?.id === song.id;
@@ -233,6 +238,7 @@ const Playlists = () => {
                         </div>
                         <span className="text-xs text-muted-foreground">{formatDuration(song.durationSeconds || 0)}</span>
                       </button>
+                      {song.audioUrl && <DownloadButton songId={song.id} title={song.title} onDownload={() => save(song)} needsPremium={!canSave(song)} />}
                       {isOwn && (
                         <button onClick={() => removeSongFromPlaylist(ps.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors shrink-0">
                           <Minus className="w-4 h-4" />

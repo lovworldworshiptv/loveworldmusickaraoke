@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { confirmSignOut } from "@/lib/secureDownloads/signOutPrompt";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -10,6 +11,7 @@ import { toast } from "@/components/ui/sonner";
 import ProfileUpdateModal from "@/components/profile/ProfileUpdateModal";
 import MyKaraoke from "@/components/profile/MyKaraoke";
 import MyStats from "@/components/profile/MyStats";
+import DownloadSettings from "@/components/offline/DownloadSettings";
 import { useTheme, ThemeName } from "@/contexts/ThemeContext";
 
 const Profile = () => {
@@ -222,7 +224,7 @@ const Profile = () => {
 
         {/* Sign Out */}
         <button
-          onClick={async () => { await signOut(); navigate("/"); }}
+          onClick={async () => { if (!(await confirmSignOut())) return; await signOut(); navigate("/"); }}
           className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors text-sm font-medium"
         >
           <LogOut className="w-4 h-4" /> Sign Out
@@ -272,7 +274,7 @@ const Profile = () => {
 
       {/* Settings Modal */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="glass-card border-border max-w-sm">
+        <DialogContent className="glass-card border-border max-w-sm max-h-[85dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-foreground text-base">
               <Settings className="w-4 h-4 text-primary" /> Settings
@@ -298,6 +300,9 @@ const Profile = () => {
                 </button>
               ))}
             </div>
+          </div>
+          <div className="border-t border-border pt-4">
+            <DownloadSettings />
           </div>
         </DialogContent>
       </Dialog>

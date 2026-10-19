@@ -1,4 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
+import DownloadButton from "@/components/offline/DownloadButton";
+import { useSaveSong } from "@/hooks/useSaveSong";
+import DownloadAllButton from "@/components/offline/DownloadAllButton";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -11,6 +14,7 @@ const CategorySongs = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { playSong, playQueue, currentSong, isPlaying } = usePlayer();
+  const { save, canSave } = useSaveSong();
 
   const { data: category } = useQuery({
     queryKey: ["category", id],
@@ -38,7 +42,7 @@ const CategorySongs = () => {
     id: s.id, title: s.title, artist: s.artist, album: s.album || undefined,
     coverUrl: s.cover_url || undefined, audioUrl: s.audio_url || undefined,
     instrumentalUrl: s.instrumental_url || undefined, lyricsLrc: s.lyrics_lrc || undefined,
-    durationSeconds: s.duration_seconds,
+    durationSeconds: s.duration_seconds, isFreeDownload: !!s.is_free_download,
   })), [songs]);
 
   const handlePlayAll = () => {
@@ -123,6 +127,9 @@ const CategorySongs = () => {
             </button>
           </div>
         )}
+        {songs.length > 0 && (
+          <div className="flex justify-end -mt-2 mb-4"><DownloadAllButton songs={playerSongs} what="category" /></div>
+        )}
 
         {/* Song list */}
         {isLoading ? (
@@ -205,6 +212,9 @@ const CategorySongs = () => {
                     track={{ id: song.id, title: song.title, artist: song.artist, coverUrl: song.cover_url }}
                     className="p-1 text-muted-foreground hover:text-gold transition-colors opacity-70 group-hover:opacity-100"
                   />
+                  {playerSongs[index]?.audioUrl && (
+                    <DownloadButton songId={song.id} title={song.title} onDownload={() => save(playerSongs[index])} needsPremium={!canSave(playerSongs[index])} />
+                  )}
                 </div>
               );
             })}
