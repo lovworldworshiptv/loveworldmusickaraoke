@@ -68,7 +68,7 @@ export function checkPlaybackAllowed(trackId: string): PlaybackCheckResult {
     return {
       allowed: false,
       reason: "needs_validation",
-      message: "Connect to the internet to verify your subscription.",
+      message: "Connect once to keep this available offline.",
     };
   }
 
@@ -76,6 +76,16 @@ export function checkPlaybackAllowed(trackId: string): PlaybackCheckResult {
 }
 
 export async function revalidateLicense(trackId: string, userId: string): Promise<PlaybackCheckResult> {
+  // Encrypted downloads renew their device licence with the backend.
+  const { renewSongLicence } = await import("./secureDownloads/engine");
+  const renewed = await renewSongLicence(trackId).catch(() => "offline" as const);
+  if (renewed === "renewed") return { allowed: true };
+  if (renewed === "denied") {
+    return { allowed: false, reason: "expired", message: "Premium is needed to keep this song available offline." };
+  }
+  if (renewed === "offline") {
+    return { allowed: false, reason: "needs_validation", message: "Connect once to keep this available offline." };
+  }
   try {
     const { data } = await supabase
       .from("user_subscriptions")
