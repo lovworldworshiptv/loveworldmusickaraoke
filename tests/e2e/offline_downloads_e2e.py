@@ -3,10 +3,11 @@ End-to-end checks for secure offline downloads (QA cases 12-14).
 
 Run (needs a signed-in session; see "Session" below):
   BASE_URL=http://localhost:8080 python3 tests/e2e/offline_downloads_e2e.py 13 14
-  BASE_URL=http://localhost:4173 python3 tests/e2e/offline_downloads_e2e.py 12   # production build: `vite build && vite preview --port 4173`
+  BASE_URL=http://127.0.0.1:4173 python3 tests/e2e/offline_downloads_e2e.py 12   # production build: `vite build && vite preview --host 127.0.0.1 --port 4173`
 
 Case 12 needs the offline service worker, which only runs in production builds
-(it is switched off in development and in the Lovable preview).
+(it is switched off in development and in the Lovable preview). Use 127.0.0.1, not
+"localhost": the offline helper deliberately leaves localhost traffic uncached.
 
 Session: set LMK_STORAGE_KEY and LMK_SESSION_JSON (the Supabase auth storage key and
 session JSON of a test account), or LOVABLE_BROWSER_SUPABASE_STORAGE_KEY /
@@ -63,7 +64,7 @@ async def case_12(browser):
     check(await page.evaluate("() => !!navigator.serviceWorker?.controller"), "offline helper controls the page")
     # Divinity is on the account but not on this fresh device: save it from Library → Downloads.
     await page.get_by_role("tab", name="Downloads").click()
-    await page.get_by_role("button", name="Download Divinity to this device").click()
+    await page.get_by_role("button", name="Download Divinity for offline", exact=True).first.click()
     for _ in range(90):
         ok = await page.evaluate("""async (song) => {
           const r = await fetch(`/__offline/${song}`, { headers: { Range: 'bytes=0-15' } }).catch(() => null);

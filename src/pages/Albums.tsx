@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import DownloadButton from "@/components/offline/DownloadButton";
 import { useSaveSong } from "@/hooks/useSaveSong";
 import DownloadAllButton from "@/components/offline/DownloadAllButton";
+import AlbumSaveButton from "@/components/offline/AlbumSaveButton";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
@@ -198,8 +199,9 @@ const Albums = () => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {filteredAlbums.map((album) => (
-              <button key={album.id} onClick={() => { setSelectedAlbumId(album.id); setSearchParams(isPraiseNight ? { collection: "praise-night", id: album.id } : { id: album.id }); }}
-                className="group text-left animate-fade-in-up">
+              <div key={album.id} className="relative">
+              <button onClick={() => { setSelectedAlbumId(album.id); setSearchParams(isPraiseNight ? { collection: "praise-night", id: album.id } : { id: album.id }); }}
+                className="group w-full text-left animate-fade-in-up">
                 <div className="relative aspect-square rounded-xl overflow-hidden mb-2 glass-card transition-all duration-300 group-hover:shadow-[0_8px_32px_hsl(43_70%_53%/0.12)]">
                   {album.cover_url ? (
                     <img src={album.cover_url} alt={album.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
@@ -215,6 +217,8 @@ const Albums = () => {
                 <p className="text-sm font-medium text-foreground truncate group-hover:text-gold transition-colors">{album.title}</p>
                 <p className="text-xs text-foreground truncate">{album.artist}</p>
               </button>
+              <AlbumSaveButton albumId={album.id} title={album.title} className="absolute top-2 right-2" />
+              </div>
             ))}
           </div>
         )}
