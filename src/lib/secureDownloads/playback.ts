@@ -142,6 +142,7 @@ async function runSession(ms: MediaSource, url: string, item: SecureItem, pkg: S
         const target = jumpTo; jumpTo = null;
         await waitUpdate(sb);
         if (!open) break;
+        sb.abort(); // reset the parser so the new start time can be set mid-stream
         if (sb.buffered.length) { sb.remove(0, Infinity); await waitUpdate(sb); }
         next = chunkForTime(target, duration, pkg.byteLength, pkg.chunkSize, pkg.chunkCount);
         sb.timestampOffset = chunkStartTime(next, duration, pkg.byteLength, pkg.chunkSize);
