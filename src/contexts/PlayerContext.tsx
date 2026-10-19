@@ -15,6 +15,8 @@ export interface PlayerSong {
   lyricsLrc?: string;
   lyricsText?: string;
   durationSeconds?: number;
+  /** Anyone may save this song for offline listening (not only Premium). */
+  isFreeDownload?: boolean;
 }
 
 interface LrcLine {

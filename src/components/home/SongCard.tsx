@@ -1,4 +1,4 @@
-import { Play, Pause, Music, Download } from "lucide-react";
+import { Play, Pause, Music } from "lucide-react";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { memo, useState, useEffect, useCallback } from "react";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Crown } from "lucide-react";
 import ShareTrackButton from "@/components/share/ShareTrackButton";
+import DownloadButton from "@/components/offline/DownloadButton";
+import { useSongDownload } from "@/hooks/useSecureDownloads";
 
 interface SongCardProps {
   song: PlayerSong;
@@ -21,14 +23,17 @@ const SongCard = memo(({ song, index, allSongs }: SongCardProps) => {
   const { isAdmin } = useIsAdmin();
   const { isPremium } = useIsPremium();
   const isActive = currentSong?.id === song.id;
-  const canDl = isPremium;
+  const canDl = isPremium || !!song.isFreeDownload;
 
-  const [dlState, setDlState] = useState<"none" | "downloading" | "done">("none");
+  const { status } = useSongDownload(song.id);
+  const [legacySaved, setLegacySaved] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
+  // Older plain copies aren't in the new queue yet; re-check when this song's state changes.
   useEffect(() => {
-    checkDownloaded(song.id).then(d => setDlState(d ? "done" : "none"));
-  }, [song.id]);
+    if (status) { setLegacySaved(false); return; }
+    checkDownloaded(song.id).then(setLegacySaved).catch(() => setLegacySaved(false));
+  }, [song.id, status]);
 
   const handlePlay = () => {
     if (allSongs && allSongs.length > 1) {
@@ -38,29 +43,25 @@ const SongCard = memo(({ song, index, allSongs }: SongCardProps) => {
     }
   };
 
-  const handleDownload = useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDownload = useCallback(async () => {
     if (!song.audioUrl) return;
     if (!canDl) {
       setShowUpgrade(true);
       return;
     }
-    if (dlState === "done" || dlState === "downloading") return;
-    setDlState("downloading");
     try {
       await saveDownload(song.id, song.audioUrl, {
         id: song.id, title: song.title, artist: song.artist,
         coverUrl: song.coverUrl, lyricsLrc: song.lyricsLrc,
         durationSeconds: song.durationSeconds || 0, album: song.album,
-        downloadedAt: Date.now(),
+        isFreeDownload: !!song.isFreeDownload, downloadedAt: Date.now(),
       }, song.instrumentalUrl);
-      setDlState("done");
-      toast.success(`"${song.title}" saved for offline`);
-    } catch {
-      setDlState("none");
-      toast.error("Download failed");
+      toast.success(`Saved “${song.title}” for offline listening`);
+    } catch (e) {
+      const msg = (e as Error)?.message || "";
+      if (msg !== "Download cancelled") toast.error(msg.startsWith("Sign in") ? msg : `Couldn't save “${song.title}” — tap to try again`);
     }
-  }, [song, canDl, dlState]);
+  }, [song, canDl]);
 
   return (
     <>
@@ -91,13 +92,14 @@ const SongCard = memo(({ song, index, allSongs }: SongCardProps) => {
             iconClassName="w-3.5 h-3.5"
           />
           {song.audioUrl && (
-            dlState === "done" ? (
-              <Download className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-            ) : (
-              <button onClick={handleDownload} className="flex-shrink-0 p-0.5" aria-label={dlState === "downloading" ? `Saving ${song.title} for offline` : `Save ${song.title} for offline`}>
-                <Download className={`w-3.5 h-3.5 ${dlState === "downloading" ? "animate-pulse text-gold" : "text-muted-foreground"}`} />
-              </button>
-            )
+            <DownloadButton
+              songId={song.id}
+              title={song.title}
+              onDownload={handleDownload}
+              saved={legacySaved}
+              needsPremium={!canDl}
+              className="-my-2 -mr-2"
+            />
           )}
         </div>
         <p className="text-xs text-foreground truncate">{song.artist}</p>
