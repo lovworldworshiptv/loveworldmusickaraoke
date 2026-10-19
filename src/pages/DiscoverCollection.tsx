@@ -1,4 +1,6 @@
 import { useParams, Link } from "react-router-dom";
+import DownloadButton from "@/components/offline/DownloadButton";
+import { useSaveSong } from "@/hooks/useSaveSong";
 import DownloadAllButton from "@/components/offline/DownloadAllButton";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Music, Play, Mic2, Clapperboard } from "lucide-react";
@@ -17,6 +19,7 @@ const db = supabase as any;
 const DiscoverCollection = ({ kind }: { kind: Kind }) => {
   const { id } = useParams();
   const { playQueue, playVideoQueue, currentSong } = usePlayer();
+  const { save, canSave } = useSaveSong();
 
   const { data, isLoading } = useQuery({
     queryKey: ["discover-collection", kind, id],
@@ -87,7 +90,8 @@ const DiscoverCollection = ({ kind }: { kind: Kind }) => {
         {!isLoading && songs.length === 0 && <p className="text-sm text-center py-8">No songs here yet.</p>}
         <div className="space-y-1">
           {queue.map((s, i) => (
-            <button key={s.id} onClick={() => play(i)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/40 transition-colors text-left ${currentSong?.id === s.id ? "bg-gold/10" : ""}`}>
+            <div key={s.id} className={`flex items-center gap-1 pr-1 rounded-lg hover:bg-muted/40 transition-colors ${currentSong?.id === s.id ? "bg-gold/10" : ""}`}>
+            <button onClick={() => play(i)} className="flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5 rounded-lg text-left">
               <span className="w-5 text-xs text-center">{i + 1}</span>
               <div className="w-11 h-11 rounded-lg bg-primary/20 flex items-center justify-center overflow-hidden flex-shrink-0">
                 {s.coverUrl ? <img src={s.coverUrl} alt="" loading="lazy" className="w-full h-full object-cover" /> : <Music className="w-4 h-4 text-gold" />}
@@ -98,6 +102,8 @@ const DiscoverCollection = ({ kind }: { kind: Kind }) => {
               </div>
               {kind !== "featured" && <Icon className="w-4 h-4 text-gold flex-shrink-0" />}
             </button>
+            {s.audioUrl && <DownloadButton songId={s.id} title={s.title} onDownload={() => save(s)} needsPremium={!canSave(s)} />}
+            </div>
           ))}
         </div>
       </div>

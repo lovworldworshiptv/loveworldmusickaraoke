@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import DownloadButton from "@/components/offline/DownloadButton";
+import { useSaveSong } from "@/hooks/useSaveSong";
 import DownloadAllButton from "@/components/offline/DownloadAllButton";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +15,7 @@ import { PRAISE_NIGHT_TITLE, praiseNightAlbums } from "@/lib/praiseNight";
 
 const Albums = () => {
   const { playSong, playQueue, currentSong, isPlaying, toggleShuffle, shuffleOn } = usePlayer();
+  const { save, canSave } = useSaveSong();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(searchParams.get("id"));
   const [search, setSearch] = useState("");
@@ -131,9 +134,11 @@ const Albums = () => {
             <div className="space-y-1">
               {albumSongs.map((song, i) => {
                 const isActive = currentSong?.id === song.id;
+                const ps = playerSongs[i];
                 return (
-                  <button key={song.id} onClick={() => playQueue(playerSongs, i)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors active:scale-[0.98] ${isActive ? "bg-gold/10" : "hover:bg-muted/40"}`}>
+                  <div key={song.id} className={`flex items-center gap-1 pr-1 rounded-lg transition-colors ${isActive ? "bg-gold/10" : "hover:bg-muted/40"}`}>
+                  <button onClick={() => playQueue(playerSongs, i)}
+                    className="flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5 rounded-lg active:scale-[0.98]">
                     <span className="w-6 text-xs text-muted-foreground text-right">
                       {isActive && isPlaying ? (
                         <span className="flex gap-0.5 justify-end">
@@ -154,6 +159,8 @@ const Albums = () => {
                     </div>
                     <span className="text-xs text-muted-foreground">{formatDuration(song.duration_seconds)}</span>
                   </button>
+                  {ps.audioUrl && <DownloadButton songId={ps.id} title={ps.title} onDownload={() => save(ps)} needsPremium={!canSave(ps)} />}
+                  </div>
                 );
               })}
             </div>

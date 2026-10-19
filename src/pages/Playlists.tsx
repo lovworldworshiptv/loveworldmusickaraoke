@@ -1,4 +1,6 @@
 import { useState } from "react";
+import DownloadButton from "@/components/offline/DownloadButton";
+import { useSaveSong } from "@/hooks/useSaveSong";
 import DownloadAllButton from "@/components/offline/DownloadAllButton";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +19,7 @@ import { sortSongsByTitle, compareTitles } from "@/lib/utils";
 const Playlists = () => {
   const { user } = useAuth();
   const { playSong, playQueue, currentSong, isPlaying } = usePlayer();
+  const { save, canSave } = useSaveSong();
   const queryClient = useQueryClient();
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -235,6 +238,7 @@ const Playlists = () => {
                         </div>
                         <span className="text-xs text-muted-foreground">{formatDuration(song.durationSeconds || 0)}</span>
                       </button>
+                      {song.audioUrl && <DownloadButton songId={song.id} title={song.title} onDownload={() => save(song)} needsPremium={!canSave(song)} />}
                       {isOwn && (
                         <button onClick={() => removeSongFromPlaylist(ps.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors shrink-0">
                           <Minus className="w-4 h-4" />

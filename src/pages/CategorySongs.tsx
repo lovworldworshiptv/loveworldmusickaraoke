@@ -1,4 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
+import DownloadButton from "@/components/offline/DownloadButton";
+import { useSaveSong } from "@/hooks/useSaveSong";
 import DownloadAllButton from "@/components/offline/DownloadAllButton";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +14,7 @@ const CategorySongs = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { playSong, playQueue, currentSong, isPlaying } = usePlayer();
+  const { save, canSave } = useSaveSong();
 
   const { data: category } = useQuery({
     queryKey: ["category", id],
@@ -209,6 +212,9 @@ const CategorySongs = () => {
                     track={{ id: song.id, title: song.title, artist: song.artist, coverUrl: song.cover_url }}
                     className="p-1 text-muted-foreground hover:text-gold transition-colors opacity-70 group-hover:opacity-100"
                   />
+                  {playerSongs[index]?.audioUrl && (
+                    <DownloadButton songId={song.id} title={song.title} onDownload={() => save(playerSongs[index])} needsPremium={!canSave(playerSongs[index])} />
+                  )}
                 </div>
               );
             })}
