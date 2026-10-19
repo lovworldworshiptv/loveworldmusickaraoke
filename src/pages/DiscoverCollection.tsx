@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { fallbackImage } from "@/lib/discover";
 import { SONG_COLUMNS, toPlayerSong, type SongRow } from "@/lib/homeSongs";
+import { sortSongsByTitle } from "@/lib/utils";
 
 type Kind = "music" | "karaoke" | "videos" | "featured";
 
@@ -20,19 +21,19 @@ const DiscoverCollection = ({ kind }: { kind: Kind }) => {
     queryKey: ["discover-collection", kind, id],
     queryFn: async () => {
       if (kind === "music") {
-        const { data } = await db.from("songs").select(SONG_COLUMNS).order("title");
-        return { title: "Music", subtitle: "Every song on the platform", cover: null, songs: (data || []) as SongRow[] };
+        const { data } = await db.from("songs").select(SONG_COLUMNS);
+        return { title: "Music", subtitle: "Every song on the platform", cover: null, songs: sortSongsByTitle((data || []) as SongRow[]) };
       }
       if (kind === "karaoke") {
-        const { data } = await db.from("songs").select(SONG_COLUMNS).not("instrumental_url", "is", null).order("title");
-        return { title: "Karaoke", subtitle: "Every song you can sing along to", cover: null, songs: (data || []) as SongRow[] };
+        const { data } = await db.from("songs").select(SONG_COLUMNS).not("instrumental_url", "is", null);
+        return { title: "Karaoke", subtitle: "Every song you can sing along to", cover: null, songs: sortSongsByTitle((data || []) as SongRow[]) };
       }
       if (kind === "videos") {
         const { data } = await db.from("songs").select(`${SONG_COLUMNS}, song_videos!inner(id)`)
-          .eq("has_video", true).eq("song_videos.is_active", true).order("title");
+          .eq("has_video", true).eq("song_videos.is_active", true);
         const seen = new Set<string>();
         const songs = ((data || []) as SongRow[]).filter((s) => !seen.has(s.id) && seen.add(s.id));
-        return { title: "Videos", subtitle: "Every song with a video", cover: null, songs };
+        return { title: "Videos", subtitle: "Every song with a video", cover: null, songs: sortSongsByTitle(songs) };
       }
       const { data: f } = await db.from("discover_featured").select("*").eq("id", id).maybeSingle();
       const ids: string[] = f?.song_ids || [];
