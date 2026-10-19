@@ -421,7 +421,7 @@ async function fetchChunk(songId: string, device: DeviceRecord, pkg: SecurePacka
     return buf;
   }, (buf) => decryptChunk(key, pkg.packageId, idx, buf), { // integrity check before saving; damaged → fetched again
     retries: MAX_CHUNK_RETRIES,
-    wait: (attempt) => sleep(Math.min(16000, 1000 * 2 ** attempt)),
+    wait: async (attempt) => { await sleep(Math.min(16000, 1000 * 2 ** attempt)); },
     onError: (e) => (e instanceof Signal || e instanceof ApiError ? e : !navigator.onLine ? new Signal("offline") : null),
   });
   if (cancelled.has(songId)) throw new Signal("cancelled");

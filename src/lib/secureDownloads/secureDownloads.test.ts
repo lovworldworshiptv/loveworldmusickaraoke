@@ -177,7 +177,7 @@ describe("chunk layout", () => {
 });
 
 describe("QA cases from the hardening brief", () => {
-  async function encryptFile(file: Uint8Array, pkg: string) {
+  async function encryptFile(file: Uint8Array<ArrayBuffer>, pkg: string) {
     const content = await crypto.subtle.importKey("raw", crypto.getRandomValues(new Uint8Array(32)), "AES-GCM", false, ["encrypt", "decrypt"]);
     const chunks: ArrayBuffer[] = [];
     for (let i = 0, off = 0; off < file.length; i++, off += MB) {
