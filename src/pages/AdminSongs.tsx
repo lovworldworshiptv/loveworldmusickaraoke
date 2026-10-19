@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-// Video import on "Create copy": the chosen song's video first, else any other copy with the same title.
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -355,7 +354,12 @@ const AdminSongs = () => {
       audio_url: song.audio_url || "", instrumental_url: song.instrumental_url || "",
       lyrics_raw: song.lyrics_lrc || "", cover_url: song.cover_url || "",
     }));
-    await importVideoFrom(song);
+    // Use the chosen song's video, else any other copy with the same title that has one.
+    const q = normalizeTitle(song.title);
+    const fallbacks = songs.filter(s => s.id !== song.id && s.has_video && normalizeTitle(s.title) === q);
+    for (const source of [song, ...fallbacks]) {
+      if (await importVideoFrom(source)) break;
+    }
     toast.success("Copy ready — pick the album for this version, then create it.");
   };
 
