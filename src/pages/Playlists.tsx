@@ -189,7 +189,6 @@ const Playlists = () => {
                 <button onClick={() => { const shuffled = [...songs].sort(() => Math.random() - 0.5); playQueue(shuffled); }} aria-label={`Shuffle ${pl.name}`} className="p-2 text-gold hover:bg-gold/10 rounded-lg transition-colors">
                   <Shuffle className="w-4 h-4" />
                 </button>
-                {isExpanded && <DownloadAllButton songs={songs} what="playlist" className="hidden sm:inline-flex" />}
               </>
             )}
             {isOwn && !isEditing && (
@@ -218,6 +217,7 @@ const Playlists = () => {
               </div>
             ) : songs.length > 0 ? (
               <div className="space-y-1">
+                <div className="flex justify-end pb-1"><DownloadAllButton songs={songs} what="playlist" /></div>
                 {playlistSongs.map((ps: any, i: number) => {
                   const song = toPlayerSong(ps.songs);
                   const isActive = currentSong?.id === song.id;
