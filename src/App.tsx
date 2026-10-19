@@ -68,6 +68,7 @@ import AdminDiscover from "./pages/AdminDiscover";
 import DiscoverTag from "./pages/DiscoverTag";
 import DiscoverCollection from "./pages/DiscoverCollection";
 import OfflineRedirect from "@/components/offline/OfflineRedirect";
+import SecureDownloadsBoot from "@/components/offline/SecureDownloadsBoot";
 import AppDownloadPrompt from "@/components/share/AppDownloadPrompt";
 
 const queryClient = new QueryClient({
@@ -97,6 +98,7 @@ const App = () => (
             <FeatureProvider>
             <PlayerProvider>
               <OfflineRedirect />
+              <SecureDownloadsBoot />
               <FeatureRouteGate>
               <Routes>
                 {/* Public routes */}

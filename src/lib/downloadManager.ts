@@ -66,7 +66,7 @@ export async function getDownloadedTrack(songId: string): Promise<DownloadedTrac
 /** Everything playable on this device (secure first, then not-yet-migrated older copies). */
 export async function getDownloadedMeta(): Promise<DownloadedTrack[]> {
   const items = await secureStore.getItems().catch(() => []);
-  const ready = items.filter((i) => i.status === "ready" || i.status === "locked").map((i) => i.meta);
+  const ready = items.filter((i) => i.status === "ready").map((i) => i.meta);
   const ids = new Set(ready.map((t) => t.id));
   const legacy = (await legacyMeta().catch(() => [])).filter((t) => !ids.has(t.id));
   return [...ready, ...legacy].sort((a, b) => (b.downloadedAt || 0) - (a.downloadedAt || 0));
