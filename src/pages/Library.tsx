@@ -55,6 +55,8 @@ const Library = () => {
   const [tab, setTab] = useState(defaultTab);
   useEffect(() => { setTab(defaultTab); }, [defaultTab]);
   const [search, setSearch] = useState("");
+  const [dlKind, setDlKind] = useState<"songs" | "videos" | "lyrics">("songs");
+  const [dlSort, setDlSort] = useState<"recent" | "title" | "size">("recent");
   const searchPlaceholder =
     tab === "albums" ? "Search album titles..."
     : tab === "playlists" ? "Search playlists, songs, lyrics, artists..."
@@ -347,9 +349,16 @@ const Library = () => {
     (pl.playlist_songs || []).some((ps: any) => ps.songs && matchesSong(ps.songs))
   );
 
-  const filteredDownloads = downloads.filter((t) => !hiddenIds.has(t.id)).filter((t) =>
-    !q || fuzzyMatch(q, [t.title, t.artist, t.album, t.lyricsLrc])
-  );
+  const sizeOf = (id: string) => {
+    const it = secure.items.find((i) => i.songId === id);
+    return it ? it.packages.reduce((n, p) => n + p.byteLength, 0) : 0;
+  };
+  const filteredDownloads = downloads.filter((t) => !hiddenIds.has(t.id))
+    .filter((t) => dlKind === "songs" || (dlKind === "videos" ? !!t.video : !!t.lyricsLrc))
+    .filter((t) => !q || fuzzyMatch(q, [t.title, t.artist, t.album, t.lyricsLrc]))
+    .sort((a, b) => dlSort === "title" ? a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: "base" })
+      : dlSort === "size" ? sizeOf(b.id) - sizeOf(a.id)
+      : (b.downloadedAt || 0) - (a.downloadedAt || 0));
 
 
 
@@ -743,9 +752,39 @@ const Library = () => {
               </div>
             )}
 
-            {/* Downloaded tracks */}
+            {/* Downloaded tracks: type tabs + sort */}
+            {downloads.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div role="tablist" aria-label="Show downloads" className="inline-flex rounded-full border border-border p-0.5">
+                  {(["songs", "videos", "lyrics"] as const).map((k) => (
+                    <button
+                      key={k}
+                      role="tab"
+                      aria-selected={dlKind === k}
+                      onClick={() => setDlKind(k)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${dlKind === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {k}
+                    </button>
+                  ))}
+                </div>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  Sort by
+                  <select
+                    value={dlSort}
+                    onChange={(e) => setDlSort(e.target.value as typeof dlSort)}
+                    className="rounded-full border border-border bg-card text-foreground text-xs px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label="Sort downloads"
+                  >
+                    <option value="recent">Recent</option>
+                    <option value="title">Title</option>
+                    <option value="size">Size</option>
+                  </select>
+                </label>
+              </div>
+            )}
             {filteredDownloads.length === 0 ? (
-              <EmptyState icon={Download} title={downloads.length === 0 ? "No downloads yet" : "No downloads found"} description={downloads.length === 0 ? (canDownload ? "Download songs to play them offline" : "Upgrade to Premium to download songs for offline playback") : "Try a different search term"} />
+              <EmptyState icon={Download} title={downloads.length === 0 ? "No downloads yet" : "No downloads found"} description={downloads.length === 0 ? (canDownload ? "Download songs to play them offline" : "Upgrade to Premium to download songs for offline playback") : dlKind !== "songs" && !q ? `No saved songs with ${dlKind} yet` : "Try a different search term"} />
             ) : (
               <div className="space-y-1">
                 {filteredDownloads.map((track) => (
@@ -773,11 +812,12 @@ const Library = () => {
                     </button>
                     <button
                       onClick={() => setConfirmDeleteId(track.id)}
+                      aria-label={`Remove ${track.title} from downloads`}
                       className="p-2 text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => playOfflineTrack(track)} className="w-8 h-8 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_2px_12px_hsl(43_70%_53%/0.4)]">
+                    <button onClick={() => playOfflineTrack(track)} aria-label={`Play ${track.title}`} className="w-8 h-8 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_2px_12px_hsl(43_70%_53%/0.4)]">
                       <Play className="w-3.5 h-3.5 text-white ml-0.5" fill="currentColor" />
                     </button>
                   </div>
