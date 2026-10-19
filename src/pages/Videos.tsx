@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Play, Search, Video as VideoIcon, Clapperboard } from "lucide-react";
 import { SongRowSkeleton, EmptyState } from "@/components/ui/loading-skeleton";
 import { SONG_COLUMNS, toPlayerSong, type SongRow } from "@/lib/homeSongs";
+import { sortSongsByTitle } from "@/lib/utils";
 
 type VideoSongRow = SongRow & {
   song_videos: { video_type: string; thumbnail_url: string | null }[];
@@ -29,16 +30,16 @@ const Videos = () => {
         .from("songs")
         .select(`${SONG_COLUMNS}, song_videos!inner(video_type, thumbnail_url)`)
         .eq("has_video", true)
-        .eq("song_videos.is_active", true)
-        .order("title");
+        .eq("song_videos.is_active", true);
       if (error) throw error;
       // Dedupe: a song with several videos appears once per video row.
       const seen = new Set<string>();
-      return ((data as VideoSongRow[] | null) || []).filter((s) => {
+      const deduped = ((data as VideoSongRow[] | null) || []).filter((s) => {
         if (seen.has(s.id)) return false;
         seen.add(s.id);
         return true;
       });
+      return sortSongsByTitle(deduped);
     },
   });
 
