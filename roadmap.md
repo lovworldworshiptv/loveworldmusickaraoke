@@ -59,11 +59,12 @@
 ## Secure Offline Downloads — QA & hardening (Oct 19)
 - [x] Account library: soft delete, quality/media type/size columns, unique (user, song, quality), owner update policy, live updates
 - [x] Backend: 60 requests/hour limit, 403 when not entitled / not owned / revoked, AES-KW device wrapping, master-key version; testable handler + 12 backend tests
-- [ ] Device: OPFS chunk storage with IndexedDB fallback (still IndexedDB only)
+- [x] Device: OPFS chunk storage with IndexedDB fallback (verified in a production build)
 - [x] Playback route /__offline/<song> (keeps /offline-stream alias)
-- [ ] Stream-only playback where the offline helper can't run (iOS / app wrapper / preview still decrypt the current song into memory)
+- [x] Streaming playback without the offline helper (MediaSource, with seeking); in-memory copy only where neither exists
 - [x] Sync: live updates, reconcile (re-save wins over older removal), batched renewals, wait-and-continue at the hourly limit
-- [ ] UI: shared download button states, Download all (albums/playlists/collections), Downloads filters/sort, Settings → Downloads, sign-out confirmation
+- [x] UI: shared download button states, album-card saves, Download all (albums/playlists/collections), Downloads tabs/sort, Settings → Downloads, sign-out confirmation, contrast + reduced motion
 - [x] Unit tests 1–8, backend tests 9–11, browser tests 12–14 (tests/e2e/offline_downloads_e2e.py)
 - [x] Admin self-test page /dev/offline-selftest with copy report + expire/renew tools
 - [x] QA report + manual device checklist
+- [ ] Real-device checks (Android, iPhone, desktop) from the QA report checklist — needs physical phones
