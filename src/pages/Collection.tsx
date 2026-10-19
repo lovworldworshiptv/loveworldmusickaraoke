@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import DownloadAllButton from "@/components/offline/DownloadAllButton";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useDominantColor, playerTone } from "@/lib/dominantColor";
 import AppLayout from "@/components/layout/AppLayout";
@@ -71,9 +72,10 @@ const Collection = () => {
           </div>
         </div>
         {songs.length > 0 && (
-          <div className="flex gap-2 mb-4">
+          <div className="flex flex-wrap items-center gap-2 mb-4">
             <Button onClick={() => playQueue(queue)} className="gradient-gold text-primary-foreground gap-1"><Play className="w-4 h-4" fill="currentColor" /> Play</Button>
             <Button variant="outline" onClick={() => playQueue([...queue].sort(() => Math.random() - 0.5))} className="gap-1"><Shuffle className="w-4 h-4" /> Shuffle</Button>
+            <DownloadAllButton songs={queue} what="playlist" />
           </div>
         )}
         {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : (

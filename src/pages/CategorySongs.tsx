@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
+import DownloadAllButton from "@/components/offline/DownloadAllButton";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -38,7 +39,7 @@ const CategorySongs = () => {
     id: s.id, title: s.title, artist: s.artist, album: s.album || undefined,
     coverUrl: s.cover_url || undefined, audioUrl: s.audio_url || undefined,
     instrumentalUrl: s.instrumental_url || undefined, lyricsLrc: s.lyrics_lrc || undefined,
-    durationSeconds: s.duration_seconds,
+    durationSeconds: s.duration_seconds, isFreeDownload: !!s.is_free_download,
   })), [songs]);
 
   const handlePlayAll = () => {
@@ -122,6 +123,9 @@ const CategorySongs = () => {
               Shuffle
             </button>
           </div>
+        )}
+        {songs.length > 0 && (
+          <div className="flex justify-end -mt-2 mb-4"><DownloadAllButton songs={playerSongs} what="category" /></div>
         )}
 
         {/* Song list */}

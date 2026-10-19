@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DownloadAllButton from "@/components/offline/DownloadAllButton";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
@@ -141,7 +142,7 @@ const Playlists = () => {
     id: s.id, title: s.title, artist: s.artist, album: s.album || undefined,
     coverUrl: s.cover_url || undefined, audioUrl: s.audio_url || undefined,
     instrumentalUrl: s.instrumental_url || undefined, lyricsLrc: s.lyrics_lrc || undefined,
-    durationSeconds: s.duration_seconds,
+    durationSeconds: s.duration_seconds, isFreeDownload: !!s.is_free_download,
   });
 
   const formatDuration = (sec: number) => `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, "0")}`;
@@ -185,9 +186,10 @@ const Playlists = () => {
                 <button onClick={() => playQueue(songs)} className="w-8 h-8 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_2px_12px_hsl(43_70%_53%/0.4)] ring-1 ring-white/20 hover:scale-110 transition-transform">
                   <Play className="w-3.5 h-3.5 text-white ml-0.5 drop-shadow-sm" fill="currentColor" />
                 </button>
-                <button onClick={() => { const shuffled = [...songs].sort(() => Math.random() - 0.5); playQueue(shuffled); }} className="p-2 text-gold hover:bg-gold/10 rounded-lg transition-colors">
+                <button onClick={() => { const shuffled = [...songs].sort(() => Math.random() - 0.5); playQueue(shuffled); }} aria-label={`Shuffle ${pl.name}`} className="p-2 text-gold hover:bg-gold/10 rounded-lg transition-colors">
                   <Shuffle className="w-4 h-4" />
                 </button>
+                {isExpanded && <DownloadAllButton songs={songs} what="playlist" className="hidden sm:inline-flex" />}
               </>
             )}
             {isOwn && !isEditing && (

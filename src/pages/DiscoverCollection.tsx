@@ -1,4 +1,5 @@
 import { useParams, Link } from "react-router-dom";
+import DownloadAllButton from "@/components/offline/DownloadAllButton";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Music, Play, Mic2, Clapperboard } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
@@ -79,6 +80,9 @@ const DiscoverCollection = ({ kind }: { kind: Kind }) => {
             )}
           </div>
         </div>
+        {queue.length > 0 && queue.length <= 100 && (
+          <div className="flex justify-end mb-3"><DownloadAllButton songs={queue} what="collection" /></div>
+        )}
         {isLoading && <p className="text-sm">Loading…</p>}
         {!isLoading && songs.length === 0 && <p className="text-sm text-center py-8">No songs here yet.</p>}
         <div className="space-y-1">
