@@ -58,6 +58,7 @@
     --player-background: 220 40% 8%;
     --daily-discover: 110 100% 54%;
     --daily-discover-background: linear-gradient(120deg, hsl(var(--daily-discover) / 0.8), hsl(var(--daily-discover)));
+    --praise-night-background: linear-gradient(135deg, hsl(var(--purple-deep)) 0%, hsl(var(--purple)) 45%, hsl(var(--gold-dark)) 75%, hsl(var(--gold-light)) 100%);
     --glass-bg: 220 35% 12%;
     --glass-border: 220 25% 22%;
     --community-foreground: 0 0% 100%;
