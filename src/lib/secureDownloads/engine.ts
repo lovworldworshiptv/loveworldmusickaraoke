@@ -163,7 +163,7 @@ export async function revokeDevice(deviceId: string) {
 }
 
 // ---------------- queue ----------------
-export function enqueue(meta: DownloadedTrack, opts: { priority?: number; source?: SecureItem["source"]; addedAt?: number; language?: string } = {}) {
+export function enqueue(meta: DownloadedTrack, opts: { priority?: number; source?: SecureItem["source"]; addedAt?: number; language?: string; preempt?: boolean } = {}) {
   const promise = new Promise<void>((resolve, reject) => {
     const list = waiters.get(meta.id) || [];
     list.push({ resolve, reject });
@@ -189,7 +189,7 @@ export function enqueue(meta: DownloadedTrack, opts: { priority?: number; source
         { onConflict: "user_id,song_id" },
       );
     }
-    if (priority === 0 && state.activeSongId && state.activeSongId !== meta.id) preempt = true;
+    if (priority === 0 && opts.preempt !== false && state.activeSongId && state.activeSongId !== meta.id) preempt = true;
     kick();
   })().catch((e) => settle(meta.id, e instanceof Error ? e : new Error(String(e))));
   return promise;
