@@ -7,7 +7,8 @@ import { Disc3, Play, Shuffle, ChevronLeft, Music, Search } from "lucide-react";
 import { SongRowSkeleton, EmptyState } from "@/components/ui/loading-skeleton";
 import { useSearchParams } from "react-router-dom";
 import ShareMenu, { buildShareUrl } from "@/components/share/ShareMenu";
-import { sortSongsByTitle } from "@/lib/utils";
+import { useAlbums } from "@/hooks/useAlbums";
+import { PRAISE_NIGHT_TITLE, praiseNightAlbums } from "@/lib/praiseNight";
 
 const Albums = () => {
   const { playSong, playQueue, currentSong, isPlaying, toggleShuffle, shuffleOn } = usePlayer();
@@ -15,23 +16,19 @@ const Albums = () => {
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(searchParams.get("id"));
   const [search, setSearch] = useState("");
 
-  const { data: albums = [], isLoading } = useQuery({
-    queryKey: ["all-albums"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("albums").select("*").order("title");
-      if (error) throw error;
-      return sortSongsByTitle(data || []);
-    },
-  });
+  const { data: albums = [], isLoading } = useAlbums();
+  const isPraiseNight = searchParams.get("collection") === "praise-night";
+  const collectionAlbums = isPraiseNight ? praiseNightAlbums(albums) : albums;
 
   const { data: albumSongs = [], isLoading: loadingSongs } = useQuery({
     queryKey: ["album-songs", selectedAlbumId],
     enabled: !!selectedAlbumId,
     queryFn: async () => {
+      if (!selectedAlbumId) return [];
       const { data, error } = await supabase
         .from("songs")
         .select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album")
-        .eq("album_id", selectedAlbumId!);
+        .eq("album_id", selectedAlbumId);
       if (error) throw error;
       const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
       return [...(data || [])].sort((a, b) => collator.compare(a.title, b.title));
@@ -82,7 +79,7 @@ const Albums = () => {
 
   const playerSongs = albumSongs.map(toPlayerSong);
 
-  const filteredAlbums = albums.filter(a =>
+  const filteredAlbums = collectionAlbums.filter(a =>
     a.title.toLowerCase().includes(search.toLowerCase()) ||
     a.artist.toLowerCase().includes(search.toLowerCase())
   );
@@ -92,8 +89,8 @@ const Albums = () => {
     return (
       <AppLayout>
         <div className="px-4 lg:px-6 pt-4 lg:pt-6">
-          <button onClick={() => { setSelectedAlbumId(null); setSearchParams({}); }} className="flex items-center gap-1 text-sm text-gold mb-4 hover:underline">
-            <ChevronLeft className="w-4 h-4" /> All Albums
+          <button onClick={() => { setSelectedAlbumId(null); setSearchParams(isPraiseNight ? { collection: "praise-night" } : {}); }} className="flex items-center gap-1 text-sm text-gold mb-4 hover:underline">
+            <ChevronLeft className="w-4 h-4" /> {isPraiseNight ? PRAISE_NIGHT_TITLE : "All Albums"}
           </button>
           <div className="flex items-end gap-4 mb-6">
             <div className="w-32 h-32 rounded-xl overflow-hidden flex-shrink-0 glow-gold">
@@ -169,7 +166,7 @@ const Albums = () => {
   return (
     <AppLayout>
       <div className="px-4 lg:px-6 pt-4 lg:pt-6">
-        <h2 className="text-2xl font-serif font-bold text-foreground mb-4">Albums</h2>
+        <h2 className="text-2xl font-serif font-bold text-foreground mb-4">{isPraiseNight ? PRAISE_NIGHT_TITLE : "Albums"}</h2>
 
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -192,7 +189,7 @@ const Albums = () => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {filteredAlbums.map((album) => (
-              <button key={album.id} onClick={() => { setSelectedAlbumId(album.id); setSearchParams({ id: album.id }); }}
+              <button key={album.id} onClick={() => { setSelectedAlbumId(album.id); setSearchParams(isPraiseNight ? { collection: "praise-night", id: album.id } : { id: album.id }); }}
                 className="group text-left animate-fade-in-up">
                 <div className="relative aspect-square rounded-xl overflow-hidden mb-2 glass-card transition-all duration-300 group-hover:shadow-[0_8px_32px_hsl(43_70%_53%/0.12)]">
                   {album.cover_url ? (
