@@ -651,7 +651,7 @@ const AdminSongs = () => {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-serif font-bold text-foreground">Manage Songs</h2>
           {(isAdmin || isEditor) && (
-            <Button onClick={() => setShowForm(!showForm)} className="gradient-gold text-primary-foreground gap-2">
+            <Button onClick={() => { if (showForm) resetForm(); setShowForm(!showForm); }} className="gradient-gold text-primary-foreground gap-2">
               <Plus className="w-4 h-4" /> Add Song
             </Button>
           )}
