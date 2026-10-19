@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -36,7 +37,20 @@ interface Song {
 interface AlbumOption {
   id: string;
   title: string;
+  cover_url?: string | null;
 }
+
+const emptyForm = () => ({
+  title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", playlist_id: "", duration_seconds: 240,
+  is_featured: false, is_top: false, is_free_download: false, audio_url: "", instrumental_url: "", lyrics_raw: "", cover_url: "",
+  video_url: "",
+});
+
+const normalizeTitle = (t: string) =>
+  (t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
+
+const youTubeId = (url: string) =>
+  url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{11})/)?.[1] || null;
 
 interface PlaylistOption {
   id: string;
@@ -181,10 +195,11 @@ const AdminSongs = () => {
   const [editMode, setEditMode] = useState<"lrc" | "sync" | "details">("lrc");
   const [lrcText, setLrcText] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", playlist_id: "", duration_seconds: 240,
-    is_featured: false, is_top: false, is_free_download: false, audio_url: "", instrumental_url: "", lyrics_raw: "", cover_url: "",
-  });
+  const [form, setForm] = useState(emptyForm);
+  const [matchesHidden, setMatchesHidden] = useState(false);
+  const [copyPrompt, setCopyPrompt] = useState<Song | null>(null);
+  const [copiedFrom, setCopiedFrom] = useState<Song | null>(null);
+  const [videoImport, setVideoImport] = useState<{ video_url: string; video_type: string; language_code: string; offset_ms: number; fromAlbum: string | null } | null>(null);
   const [editForm, setEditForm] = useState({
     title: "", artist: "", album: "", album_id: "", category_id: "", duration_seconds: 240,
     is_featured: false, is_top: false, is_free_download: false, audio_url: "", instrumental_url: "", cover_url: "",
@@ -227,7 +242,7 @@ const AdminSongs = () => {
   useEffect(() => { fetchSongs(); fetchAlbumOptions(); fetchCategoryOptions(); fetchPlaylistOptions(); }, []);
 
   const fetchAlbumOptions = async () => {
-    const { data } = await supabase.from("albums").select("id, title");
+    const { data } = await supabase.from("albums").select("id, title, cover_url");
     if (data) setAlbumOptions(sortSongsByTitle(data));
   };
 
@@ -268,19 +283,119 @@ const AdminSongs = () => {
     fetchSongs();
   };
 
+  const albumCover = (albumId: string) => (albumId && albumOptions.find(a => a.id === albumId)?.cover_url) || "";
+
+  /** Album change: import the album's artwork; drop it again when leaving that album. */
+  const withAlbum = <T extends { album_id: string; album: string; cover_url: string }>(f: T, nextId: string) => {
+    const sel = albumOptions.find(a => a.id === nextId);
+    const prevCover = albumCover(f.album_id);
+    const nextCover = sel?.cover_url || "";
+    const cover_url = nextCover || (prevCover && f.cover_url === prevCover ? "" : f.cover_url);
+    return { album_id: nextId, album: sel?.title || "", cover_url };
+  };
+
+  const addCoverLocked = !!albumCover(form.album_id);
+  const editCoverLocked = !!albumCover(editForm.album_id) && editForm.cover_url === albumCover(editForm.album_id);
+
+  const titleMatches = useMemo(() => {
+    const q = normalizeTitle(form.title);
+    if (q.length < 2) return [] as Song[];
+    return songs
+      .filter(s => normalizeTitle(s.title).includes(q))
+      .sort((a, b) => Number(normalizeTitle(b.title) === q) - Number(normalizeTitle(a.title) === q) || compareTitles(a.title, b.title))
+      .slice(0, 8);
+  }, [form.title, songs]);
+  const showTitleMatches = !matchesHidden && !copiedFrom && titleMatches.length > 0;
+
+  const importVideoFrom = async (source: Song) => {
+    const { data } = await supabase.from("song_videos")
+      .select("video_url, video_type, language_code, offset_ms")
+      .eq("song_id", source.id).order("is_active", { ascending: false }).order("created_at").limit(1).maybeSingle();
+    if (!data?.video_url) return false;
+    setVideoImport({ ...data, fromAlbum: source.album });
+    setForm(f => (f.video_url ? f : { ...f, video_url: data.video_url }));
+    return true;
+  };
+
+  // Auto-import a video when the typed title exactly matches an existing copy that has one.
+  useEffect(() => {
+    if (!showForm || form.video_url || videoImport) return;
+    const q = normalizeTitle(form.title);
+    if (q.length < 2) return;
+    const source = songs.find(s => s.has_video && normalizeTitle(s.title) === q);
+    if (!source) return;
+    const t = setTimeout(() => { importVideoFrom(source); }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.title, showForm, songs]);
+
+  const resetForm = () => {
+    setForm(emptyForm());
+    setCopiedFrom(null);
+    setVideoImport(null);
+    setMatchesHidden(false);
+  };
+
+  const handleEditExisting = (song: Song) => {
+    setCopyPrompt(null);
+    setShowForm(false);
+    resetForm();
+    openEdit(song, "details");
+  };
+
+  const handleCreateCopy = async (song: Song) => {
+    setCopyPrompt(null);
+    setCopiedFrom(song);
+    setVideoImport(null);
+    setForm(f => ({
+      ...emptyForm(), playlist_id: f.playlist_id,
+      title: song.title, artist: song.artist, category_id: song.category_id || "",
+      duration_seconds: song.duration_seconds, is_free_download: song.is_free_download,
+      audio_url: song.audio_url || "", instrumental_url: song.instrumental_url || "",
+      lyrics_raw: song.lyrics_lrc || "", cover_url: song.cover_url || "",
+    }));
+    // Use the chosen song's video, else any other copy with the same title that has one.
+    const q = normalizeTitle(song.title);
+    const fallbacks = songs.filter(s => s.id !== song.id && s.has_video && normalizeTitle(s.title) === q);
+    for (const source of [song, ...fallbacks]) {
+      if (await importVideoFrom(source)) break;
+    }
+    toast.success("Copy ready — pick the album for this version, then create it.");
+  };
+
   const handleCreateSong = async () => {
+    if (!form.title.trim()) { toast.error("Title required"); return; }
+    const videoUrl = form.video_url.trim();
+    if (videoUrl && !/^https:\/\//i.test(videoUrl)) { toast.error("Enter a full https:// video link"); return; }
+    const coverUrl = albumCover(form.album_id) || form.cover_url;
     const { data: newSong, error } = await supabase.from("songs").insert({
-      title: form.title, artist: form.artist, album: form.album || null,
+      title: form.title.trim(), artist: form.artist, album: form.album || null,
       album_id: form.album_id || null, category_id: form.category_id || null,
       duration_seconds: form.duration_seconds, is_featured: form.is_featured,
       is_top: form.is_top, is_free_download: form.is_free_download, audio_url: form.audio_url || null,
       instrumental_url: form.instrumental_url || null,
-      lyrics_lrc: form.lyrics_raw || null, cover_url: form.cover_url || null,
+      lyrics_lrc: form.lyrics_raw || null, cover_url: coverUrl || null,
+      has_video: !!videoUrl,
     }).select("id").single();
 
     if (error || !newSong) {
       toast.error("Failed: " + (error?.message || "Could not create song"));
       return;
+    }
+
+    if (videoUrl) {
+      const meta = videoImport && videoImport.video_url === videoUrl ? videoImport : null;
+      const yt = youTubeId(videoUrl);
+      const { error: videoError } = await supabase.from("song_videos").insert({
+        song_id: newSong.id, video_url: videoUrl,
+        video_type: meta?.video_type || "official", language_code: meta?.language_code || "en",
+        offset_ms: meta?.offset_ms || 0, is_active: true,
+        thumbnail_url: yt ? `https://img.youtube.com/vi/${yt}/hqdefault.jpg` : null,
+      });
+      if (videoError) {
+        await supabase.from("songs").update({ has_video: false }).eq("id", newSong.id);
+        toast.error("Song created, but saving the video failed: " + videoError.message);
+      }
     }
 
     if (form.playlist_id) {
@@ -313,9 +428,9 @@ const AdminSongs = () => {
       }
     }
 
-    toast.success("Song created!");
+    toast.success(copiedFrom ? "Copy created — the original is unchanged." : "Song created!");
     setShowForm(false);
-    setForm({ title: "", artist: "Loveworld Singers", album: "", album_id: "", category_id: "", playlist_id: "", duration_seconds: 240, is_featured: false, is_top: false, is_free_download: false, audio_url: "", instrumental_url: "", lyrics_raw: "", cover_url: "" });
+    resetForm();
     fetchSongs();
   };
 
@@ -541,7 +656,7 @@ const AdminSongs = () => {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-serif font-bold text-foreground">Manage Songs</h2>
           {(isAdmin || isEditor) && (
-            <Button onClick={() => setShowForm(!showForm)} className="gradient-gold text-primary-foreground gap-2">
+            <Button onClick={() => { if (showForm) resetForm(); setShowForm(!showForm); }} className="gradient-gold text-primary-foreground gap-2">
               <Plus className="w-4 h-4" /> Add Song
             </Button>
           )}
@@ -551,14 +666,53 @@ const AdminSongs = () => {
         {showForm && (isAdmin || isEditor) && (
           <div className="glass-card p-5 mb-6 space-y-4">
             <h3 className="font-serif font-bold text-foreground">New Song</h3>
+            {copiedFrom && (
+              <div className="flex items-start justify-between gap-3 rounded-lg border border-gold/30 bg-gold/10 px-3 py-2 text-xs text-foreground">
+                <p>
+                  Copy of <span className="font-semibold">{copiedFrom.title}</span>
+                  {copiedFrom.album ? <> from <span className="font-semibold">{copiedFrom.album}</span></> : null}. The original song stays unchanged — choose the album for this version.
+                </p>
+                <button type="button" onClick={resetForm} className="text-muted-foreground hover:text-foreground flex-shrink-0" aria-label="Discard copy">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <input placeholder="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
-                className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
+              <div className="relative">
+                <input placeholder="Title" value={form.title}
+                  onChange={e => { setForm({ ...form, title: e.target.value }); setMatchesHidden(false); }}
+                  aria-autocomplete="list" aria-expanded={showTitleMatches}
+                  className="w-full px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
+                {showTitleMatches && (
+                  <div role="listbox" aria-label="Existing songs with this title"
+                    className="absolute left-0 right-0 top-full mt-1 z-30 rounded-lg border border-border bg-card shadow-lg max-h-72 overflow-y-auto">
+                    <div className="flex items-center justify-between px-3 pt-2 pb-1">
+                      <p className="text-[11px] font-medium text-muted-foreground">Existing songs with this title</p>
+                      <button type="button" onClick={() => setMatchesHidden(true)} className="text-muted-foreground hover:text-foreground" aria-label="Hide existing songs">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    {titleMatches.map(s => (
+                      <button key={s.id} type="button" role="option" aria-selected={false} onClick={() => setCopyPrompt(s)}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-muted transition-colors">
+                        <div className="w-9 h-9 rounded-md gradient-purple overflow-hidden flex-shrink-0 flex items-center justify-center">
+                          {s.cover_url ? <img src={s.cover_url} alt="" className="w-full h-full object-cover" /> : <Music className="w-4 h-4 text-gold/50" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-foreground truncate">{s.title}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{s.album || "No album"} · {s.artist}</p>
+                        </div>
+                        {s.has_video && <span className="text-[10px] bg-gold/20 text-gold px-1.5 py-0.5 rounded flex-shrink-0">Video</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <input placeholder="Artist" value={form.artist} onChange={e => setForm({ ...form, artist: e.target.value })}
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
-              <select value={form.album_id} onChange={e => {
-                const sel = albumOptions.find(a => a.id === e.target.value);
-                setForm({ ...form, album_id: e.target.value, album: sel?.title || form.album });
+              <select value={form.album_id} aria-label="Album" onChange={e => {
+                const nextId = e.target.value;
+                setForm(f => ({ ...f, ...withAlbum(f, nextId) }));
               }} className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm">
                 <option value="">No Album</option>
                 {albumOptions.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
@@ -578,9 +732,21 @@ const AdminSongs = () => {
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
             </div>
 
-            <ImageUploadPicker bucket="song-covers" label="Cover Image" value={form.cover_url} onChange={url => setForm({ ...form, cover_url: url })} />
+            <ImageUploadPicker bucket="song-covers" label="Cover Image" value={form.cover_url} onChange={url => setForm({ ...form, cover_url: url })}
+              disabled={addCoverLocked} lockedHint="Using the selected album's artwork. Choose “No Album” to set your own." />
             <AudioPicker bucket="song-audio" label="Audio File" value={form.audio_url} onChange={url => { setForm(f => ({ ...f, audio_url: url })); detectAudioDuration(url, sec => setForm(f => ({ ...f, duration_seconds: sec }))); }} />
             <AudioPicker bucket="song-instrumentals" label="Instrumental File" value={form.instrumental_url} onChange={url => setForm({ ...form, instrumental_url: url })} />
+            <div className="space-y-1.5">
+              <label htmlFor="new-song-video" className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                <Video className="w-3.5 h-3.5" /> Song Video (optional)
+              </label>
+              <input id="new-song-video" placeholder="https:// video link (YouTube or file)" value={form.video_url}
+                onChange={e => { setForm({ ...form, video_url: e.target.value }); if (!e.target.value) setVideoImport(null); }}
+                className="w-full px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
+              {videoImport && form.video_url === videoImport.video_url && (
+                <p className="text-[11px] text-muted-foreground">Imported from the existing copy{videoImport.fromAlbum ? ` in ${videoImport.fromAlbum}` : ""}.</p>
+              )}
+            </div>
 
             <textarea placeholder="Lyrics (plain text, one line per verse line)" value={form.lyrics_raw}
               onChange={e => setForm({ ...form, lyrics_raw: e.target.value })}
@@ -635,8 +801,8 @@ const AdminSongs = () => {
                     <input placeholder="Artist" value={editForm.artist} onChange={e => setEditForm({ ...editForm, artist: e.target.value })}
                       className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
                     <select value={editForm.album_id} onChange={e => {
-                      const sel = albumOptions.find(a => a.id === e.target.value);
-                      setEditForm({ ...editForm, album_id: e.target.value, album: sel?.title || editForm.album });
+                      const nextId = e.target.value;
+                      setEditForm(f => ({ ...f, ...withAlbum(f, nextId) }));
                     }} className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm">
                       <option value="">No Album</option>
                       {albumOptions.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
@@ -651,7 +817,8 @@ const AdminSongs = () => {
                       className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
                   </div>
 
-                  <ImageUploadPicker bucket="song-covers" label="Cover Image" value={editForm.cover_url} onChange={url => setEditForm({ ...editForm, cover_url: url })} />
+                  <ImageUploadPicker bucket="song-covers" label="Cover Image" value={editForm.cover_url} onChange={url => setEditForm({ ...editForm, cover_url: url })}
+                    disabled={editCoverLocked} lockedHint="Using the selected album's artwork. Choose “No Album” to set your own." />
                   <AudioPicker bucket="song-audio" label="Audio File" value={editForm.audio_url} onChange={url => { setEditForm(f => ({ ...f, audio_url: url })); detectAudioDuration(url, sec => setEditForm(f => ({ ...f, duration_seconds: sec }))); }} />
                   <AudioPicker bucket="song-instrumentals" label="Instrumental File" value={editForm.instrumental_url} onChange={url => setEditForm({ ...editForm, instrumental_url: url })} />
 
@@ -1005,6 +1172,32 @@ const AdminSongs = () => {
         )}
       </div>
       <div className="h-8" />
+      <Dialog open={!!copyPrompt} onOpenChange={open => { if (!open) setCopyPrompt(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>“{copyPrompt?.title}” already exists</DialogTitle>
+            <DialogDescription>
+              Edit the existing song, or create a copy so you can adjust the details for a different album without changing the original.
+            </DialogDescription>
+          </DialogHeader>
+          {copyPrompt && (
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-3">
+              <div className="w-12 h-12 rounded-md gradient-purple overflow-hidden flex-shrink-0 flex items-center justify-center">
+                {copyPrompt.cover_url ? <img src={copyPrompt.cover_url} alt="" className="w-full h-full object-cover" /> : <Music className="w-5 h-5 text-gold/50" />}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">{copyPrompt.title}</p>
+                <p className="text-xs text-muted-foreground truncate">{copyPrompt.album || "No album"} · {copyPrompt.artist}</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="ghost" onClick={() => setCopyPrompt(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => copyPrompt && handleCreateCopy(copyPrompt)}>Create copy</Button>
+            <Button className="gradient-gold text-primary-foreground" onClick={() => copyPrompt && handleEditExisting(copyPrompt)}>Edit existing</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <SongVideosManager
         songId={videoSong?.id ?? null}
         songTitle={videoSong?.title}

@@ -8,6 +8,9 @@ interface ImageUploadPickerProps {
   label: string;
   value: string;
   onChange: (url: string) => void;
+  /** Greys out the picker and shows `lockedHint` (e.g. artwork imported from an album). */
+  disabled?: boolean;
+  lockedHint?: string;
 }
 
 interface StorageFile {
@@ -15,7 +18,26 @@ interface StorageFile {
   url: string;
 }
 
-const ImageUploadPicker = ({ bucket, label, value, onChange }: ImageUploadPickerProps) => {
+const ImageUploadPicker = ({ bucket, label, value, onChange, disabled, lockedHint }: ImageUploadPickerProps) => {
+  if (disabled) {
+    return (
+      <div className="space-y-1.5 opacity-60" aria-disabled="true" data-testid={`${label}-locked`}>
+        <label className="text-xs text-muted-foreground font-medium">{label}</label>
+        {value && (
+          <div className="relative w-full h-32 rounded-lg overflow-hidden border border-border bg-muted grayscale-[35%]">
+            <img src={value} alt="" className="w-full h-full object-cover" />
+          </div>
+        )}
+        <input value={value} disabled readOnly aria-label={`${label} (locked)`}
+          className="w-full px-3 py-1.5 rounded-lg bg-muted border border-border text-muted-foreground text-xs cursor-not-allowed" />
+        {lockedHint && <p className="text-[11px] text-muted-foreground">{lockedHint}</p>}
+      </div>
+    );
+  }
+  return <ImageUploadPickerInner bucket={bucket} label={label} value={value} onChange={onChange} />;
+};
+
+const ImageUploadPickerInner = ({ bucket, label, value, onChange }: ImageUploadPickerProps) => {
   const [existing, setExisting] = useState<StorageFile[]>([]);
   const [showPicker, setShowPicker] = useState(false);
   const [uploading, setUploading] = useState(false);

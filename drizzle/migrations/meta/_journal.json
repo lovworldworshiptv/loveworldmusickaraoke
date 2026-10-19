@@ -190,6 +190,13 @@
       "when": 1792411008879,
       "tag": "0026_offline_library_sync_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1792425906957,
+      "tag": "0027_editors_add_song_videos",
+      "breakpoints": true
     }
   ]
 }
