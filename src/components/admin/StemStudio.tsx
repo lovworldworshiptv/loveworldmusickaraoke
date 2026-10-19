@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Bell, CheckCheck, Headphones, Layers, Loader2, Pause, Play, RefreshCw } from "lucide-react";
+import { sortSongsByTitle } from "@/lib/utils";
 import { toast } from "sonner";
 
 export type StemStatus = { status: "pending" | "processing" | "ready" | "failed"; error: string | null };
@@ -94,8 +95,8 @@ export default function StemStudio({ onStatusChange, refreshKey = 0 }: { onStatu
   };
 
   const loadMissing = useCallback(async () => {
-    const { data } = await supabase.from("songs").select("id, title, artist, audio_url").is("instrumental_url", null).order("title");
-    setMissing(data ?? []);
+    const { data } = await supabase.from("songs").select("id, title, artist, audio_url").is("instrumental_url", null);
+    setMissing(sortSongsByTitle((data ?? []) as any));
   }, []);
   useEffect(() => { loadMissing(); }, [loadMissing, refreshKey, summary]);
 

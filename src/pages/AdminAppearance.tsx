@@ -13,6 +13,7 @@ import {
   applyTheme, cardGradient, DEFAULT_GLOBAL_CARD, DEFAULT_STAGE_MODE, getSetting, HOME_SECTIONS, resolveHomeLayout, resolveStageMediaUrl, saveSetting, SETTING_KEYS,
   DEFAULT_DAILY_DISCOVER_COLOR, type DailyDiscoverConfig, type HomeSectionSetting, type StageModeSetting, type ThemeColors,
 } from "@/lib/siteSettings";
+import { sortSongsByTitle } from "@/lib/utils";
 
 const THEME_FIELDS: { key: keyof ThemeColors; label: string; def: string }[] = [
   { key: "gold", label: "Main accent (gold)", def: "#d4a72c" },
@@ -141,8 +142,8 @@ const AdminAppearance = () => {
     });
     supabase.from("playlists").select("id,name,card_color").eq("is_visible_on_homepage", true).order("created_at", { ascending: false })
       .then(({ data }) => setPlaylists((data as Pl[]) || []));
-    supabase.from("songs").select("id,title,artist").order("title").limit(500)
-      .then(({ data }) => setStageSongs((data as SongLite[]) || []));
+    supabase.from("songs").select("id,title,artist").limit(500)
+      .then(({ data }) => setStageSongs(sortSongsByTitle((data as SongLite[]) || [])));
   }, []);
 
   const saveTheme = async (t: ThemeColors) => {
