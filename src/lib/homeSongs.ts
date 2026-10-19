@@ -2,19 +2,20 @@ import { supabase } from "@/integrations/supabase/client";
 import type { PlayerSong } from "@/contexts/PlayerContext";
 
 export const SONG_COLUMNS =
-  "id,title,artist,album,cover_url,audio_url,instrumental_url,lyrics_lrc,duration_seconds,category_id,original_language";
+  "id,title,artist,album,cover_url,audio_url,instrumental_url,lyrics_lrc,duration_seconds,category_id,original_language,is_free_download";
 
 export type SongRow = {
   id: string; title: string; artist: string; album: string | null; cover_url: string | null;
   audio_url: string | null; instrumental_url: string | null; lyrics_lrc: string | null;
   duration_seconds: number; category_id: string | null; original_language?: string | null;
+  is_free_download?: boolean | null;
 };
 
 export const toPlayerSong = (s: SongRow): PlayerSong => ({
   id: s.id, title: s.title, artist: s.artist, album: s.album || undefined,
   coverUrl: s.cover_url || undefined, audioUrl: s.audio_url || undefined,
   instrumentalUrl: s.instrumental_url || undefined, lyricsLrc: s.lyrics_lrc || undefined,
-  durationSeconds: s.duration_seconds,
+  durationSeconds: s.duration_seconds, isFreeDownload: !!s.is_free_download,
 });
 
 /** Loads songs by id preserving the given order. */
