@@ -1167,6 +1167,32 @@ const AdminSongs = () => {
         )}
       </div>
       <div className="h-8" />
+      <Dialog open={!!copyPrompt} onOpenChange={open => { if (!open) setCopyPrompt(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>“{copyPrompt?.title}” already exists</DialogTitle>
+            <DialogDescription>
+              Edit the existing song, or create a copy so you can adjust the details for a different album without changing the original.
+            </DialogDescription>
+          </DialogHeader>
+          {copyPrompt && (
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-3">
+              <div className="w-12 h-12 rounded-md gradient-purple overflow-hidden flex-shrink-0 flex items-center justify-center">
+                {copyPrompt.cover_url ? <img src={copyPrompt.cover_url} alt="" className="w-full h-full object-cover" /> : <Music className="w-5 h-5 text-gold/50" />}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">{copyPrompt.title}</p>
+                <p className="text-xs text-muted-foreground truncate">{copyPrompt.album || "No album"} · {copyPrompt.artist}</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="ghost" onClick={() => setCopyPrompt(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => copyPrompt && handleCreateCopy(copyPrompt)}>Create copy</Button>
+            <Button className="gradient-gold text-primary-foreground" onClick={() => copyPrompt && handleEditExisting(copyPrompt)}>Edit existing</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <SongVideosManager
         songId={videoSong?.id ?? null}
         songTitle={videoSong?.title}
