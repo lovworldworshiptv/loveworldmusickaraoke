@@ -12,6 +12,10 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsPremium } from "@/hooks/useIsPremium";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { isDownloaded as checkDownloaded, saveDownload, getDownloadedTrack, getDownloadedVideoUrl } from "@/lib/downloadManager";
+import DownloadButton from "@/components/offline/DownloadButton";
+import { useSongDownload } from "@/hooks/useSecureDownloads";
+import { pauseItem, retry as retryDownload } from "@/lib/secureDownloads/engine";
+import { downloadUiState } from "@/lib/secureDownloads/policy";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Crown } from "lucide-react";
@@ -191,32 +195,44 @@ const ExpandedPlayer = () => {
   const { isPremium } = useIsPremium();
   const navigate = useNavigate();
   const [isFav, setIsFav] = useState(false);
-  const [dlState, setDlState] = useState<"none" | "downloading" | "done">("none");
+  const [legacySaved, setLegacySaved] = useState(false);
+  const dl = useSongDownload(currentSong?.id ?? "");
+  const dlUi = legacySaved && !dl.status ? "done" : downloadUiState(dl.status, dl.active);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
-  const canDl = isPremium;
+  const canDl = isPremium || !!currentSong?.isFreeDownload;
   const VolumeIcon = volume === 0 ? VolumeX : Volume2;
 
   useEffect(() => {
-    if (!currentSong) { setDlState("none"); return; }
-    checkDownloaded(currentSong.id).then(d => setDlState(d ? "done" : "none"));
-  }, [currentSong?.id]);
+    if (!currentSong || dl.status) { setLegacySaved(false); return; }
+    checkDownloaded(currentSong.id).then(setLegacySaved).catch(() => setLegacySaved(false));
+  }, [currentSong?.id, dl.status]);
 
   const handleDl = useCallback(async () => {
     if (!currentSong?.audioUrl) return;
     if (!canDl) { setShowUpgrade(true); return; }
-    setDlState("downloading");
     try {
       await saveDownload(currentSong.id, currentSong.audioUrl, {
         id: currentSong.id, title: currentSong.title, artist: currentSong.artist,
         coverUrl: currentSong.coverUrl, lyricsLrc: currentSong.lyricsLrc,
         durationSeconds: currentSong.durationSeconds || 0, album: currentSong.album,
-        downloadedAt: Date.now(),
+        isFreeDownload: !!currentSong.isFreeDownload, downloadedAt: Date.now(),
       }, currentSong.instrumentalUrl);
-      setDlState("done");
-      toast.success(`"${currentSong.title}" saved for offline`);
-    } catch { setDlState("none"); toast.error("Download failed"); }
+      toast.success(`Saved “${currentSong.title}” for offline listening`);
+    } catch (e) {
+      const msg = (e as Error)?.message || "";
+      if (msg !== "Download cancelled") toast.error(msg.startsWith("Sign in") ? msg : "Couldn't save this song — tap to try again");
+    }
   }, [currentSong, canDl]);
+  const dlMenuAction = () => {
+    if (!currentSong?.audioUrl) return;
+    if (dlUi === "downloading" || dlUi === "queued") pauseItem(currentSong.id);
+    else if (dlUi === "paused" || dlUi === "error") retryDownload(currentSong.id);
+    else if (dlUi !== "done") handleDl();
+  };
+  const dlMenuLabel = dlUi === "done" ? "Saved for offline" : dlUi === "downloading" ? `Saving… ${dl.pct}% · tap to pause`
+    : dlUi === "queued" ? (dl.waitingWifi ? "Waiting for Wi-Fi · tap to pause" : "Waiting to save · tap to pause")
+    : dlUi === "paused" ? "Paused · tap to continue" : dlUi === "error" ? "Couldn't save · try again" : "Download";
 
   useEffect(() => {
     if (!user || !currentSong) { setIsFav(false); return; }
@@ -296,17 +312,15 @@ const ExpandedPlayer = () => {
                   </button>
                 )}
                 {currentSong?.audioUrl && (
-                  dlState === "done" ? (
-                    <span className="text-green-500 p-1"><Check className="w-5 h-5" /></span>
-                  ) : canDl ? (
-                    <button onClick={handleDl} disabled={dlState === "downloading"} className="text-muted-foreground hover:text-foreground p-1" title="Download">
-                      <Download className={`w-5 h-5 ${dlState === "downloading" ? "animate-pulse text-gold" : ""}`} />
-                    </button>
-                  ) : (
-                    <button onClick={() => setShowUpgrade(true)} className="text-gold/50 p-1" title="Download (Premium)">
-                      <Lock className="w-5 h-5" />
-                    </button>
-                  )
+                  <DownloadButton
+                    songId={currentSong.id}
+                    title={currentSong.title}
+                    onDownload={handleDl}
+                    saved={legacySaved}
+                    needsPremium={!canDl}
+                    size="md"
+                    className="-my-2"
+                  />
                 )}
                 {recordFeatureEnabled && (isPremium ? (
                   <button onClick={() => { if (!isKaraoke) toggleKaraoke(); setShowRecorder(true); }} className="text-destructive/70 hover:text-destructive p-1" title="Record Karaoke">
@@ -609,11 +623,15 @@ const ExpandedPlayer = () => {
         <nav className="py-2 space-y-1">
           {/* Download */}
           <button
-            onClick={() => { setShowMobileMenu(false); currentSong?.audioUrl && (canDl ? handleDl() : setShowUpgrade(true)); }}
+            onClick={() => { setShowMobileMenu(false); dlMenuAction(); }}
+            aria-label={currentSong ? `${dlMenuLabel} — ${currentSong.title}` : dlMenuLabel}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors text-foreground"
           >
-            {dlState === "done" ? <Check className="w-5 h-5 text-green-500" /> : canDl ? <Download className={`w-5 h-5 ${dlState === "downloading" ? "animate-pulse text-gold" : ""}`} /> : <Lock className="w-5 h-5 text-gold/50" />}
-            {dlState === "done" ? "Downloaded" : dlState === "downloading" ? "Downloading..." : "Download"}
+            {dlUi === "done" ? <Check className="w-5 h-5 text-offline-accent" aria-hidden="true" />
+              : !canDl && dlUi === "idle" ? <Lock className="w-5 h-5 text-offline-accent" aria-hidden="true" />
+              : <Download className={`w-5 h-5 ${dlUi === "queued" || dlUi === "downloading" ? "motion-safe:animate-pulse text-offline-accent" : ""}`} aria-hidden="true" />}
+            <span className="flex-1 text-left">{dlMenuLabel}</span>
+            {!canDl && dlUi === "idle" && <span className="text-[10px] font-semibold text-offline-accent">Premium</span>}
           </button>
           {/* Record */}
           {recordFeatureEnabled && (
