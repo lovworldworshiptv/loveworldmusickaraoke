@@ -16,6 +16,7 @@ import { SongRowSkeleton, EmptyState } from "@/components/ui/loading-skeleton";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsPremium } from "@/hooks/useIsPremium";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import DownloadButton from "@/components/offline/DownloadButton";
 import { getDownloadedMeta, getDownloadedAudioUrl, getDownloadedInstrumentalUrl, saveDownload, removeDownload, getCloudOnlyDownloads, syncLocalDownloadsToCloud, type DownloadedTrack } from "@/lib/downloadManager";
 import { checkPlaybackAllowed, revalidateLicense } from "@/lib/offlineLicense";
 import DownloadQueuePanel from "@/components/offline/DownloadQueuePanel";
@@ -273,7 +274,7 @@ const Library = () => {
       await loadDownloads();
       toast.success(`"${song.title}" saved for offline listening`);
     } catch (err: any) {
-      toast.error("Download failed: " + (err.message || "Unknown error"));
+      if (err?.message !== "Download cancelled") toast.error(err?.message?.startsWith("Sign in") ? err.message : `Couldn't save “${song.title}” — tap to try again`);
     } finally {
       setDownloadingIds(prev => { const n = new Set(prev); n.delete(song.id); return n; });
     }
@@ -360,24 +361,13 @@ const Library = () => {
     const actionButtons = (
       <>
         {showDownload && song.audio_url && (
-          downloaded ? (
-            <span className="text-[10px] bg-green-500/20 text-green-600 px-1.5 py-0.5 rounded-full font-medium">Saved</span>
-          ) : canDownload || song.is_free_download ? (
-            <button
-              onClick={(e) => { e.stopPropagation(); handleDownload(song); }}
-              disabled={downloadingIds.has(song.id)}
-              className="p-2 touch-target"
-            >
-              <Download className={`w-4 h-4 ${downloadingIds.has(song.id) ? "animate-pulse text-gold" : "text-muted-foreground"}`} />
-            </button>
-          ) : (
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowUpgradeModal(true); }}
-              className="flex items-center gap-1 px-2 py-1 rounded-full bg-gold/10 text-gold text-[10px] font-semibold opacity-70"
-            >
-              <Download className="w-3 h-3" /> Premium
-            </button>
-          )
+          <DownloadButton
+            songId={song.id}
+            title={song.title}
+            onDownload={() => handleDownload(song)}
+            saved={downloaded}
+            needsPremium={!(canDownload || song.is_free_download)}
+          />
         )}
         {user && (
           <button
@@ -718,13 +708,7 @@ const Library = () => {
 
                       </div>
                       <span className="text-[10px] bg-green-500/20 text-green-600 px-1.5 py-0.5 rounded-full font-semibold">FREE</span>
-                      <button
-                        onClick={() => handleDownload(song)}
-                        disabled={downloadingIds.has(song.id)}
-                        className="p-2 text-green-600 hover:bg-green-500/10 rounded-lg"
-                      >
-                        <Download className={`w-4 h-4 ${downloadingIds.has(song.id) ? "animate-pulse" : ""}`} />
-                      </button>
+                      <DownloadButton songId={song.id} title={song.title} onDownload={() => handleDownload(song)} />
                     </div>
                   ))}
                 </div>
@@ -750,16 +734,9 @@ const Library = () => {
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{song.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">Not on this device yet</p>
+                        <p className="text-xs text-muted-foreground truncate flex items-center gap-1"><CloudDownload className="w-3 h-3 text-offline-accent" aria-hidden="true" /> Ready to download on this device</p>
                       </div>
-                      <button
-                        onClick={() => handleDownload(song)}
-                        disabled={downloadingIds.has(song.id)}
-                        aria-label={`Download ${song.title} to this device`}
-                        className="p-2 text-primary hover:bg-primary/10 rounded-lg"
-                      >
-                        <Download className={`w-4 h-4 ${downloadingIds.has(song.id) ? "animate-pulse" : ""}`} />
-                      </button>
+                      <DownloadButton songId={song.id} title={song.title} onDownload={() => handleDownload(song)} />
                     </div>
                   ))}
                 </div>
