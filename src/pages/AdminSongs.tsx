@@ -551,14 +551,53 @@ const AdminSongs = () => {
         {showForm && (isAdmin || isEditor) && (
           <div className="glass-card p-5 mb-6 space-y-4">
             <h3 className="font-serif font-bold text-foreground">New Song</h3>
+            {copiedFrom && (
+              <div className="flex items-start justify-between gap-3 rounded-lg border border-gold/30 bg-gold/10 px-3 py-2 text-xs text-foreground">
+                <p>
+                  Copy of <span className="font-semibold">{copiedFrom.title}</span>
+                  {copiedFrom.album ? <> from <span className="font-semibold">{copiedFrom.album}</span></> : null}. The original song stays unchanged — choose the album for this version.
+                </p>
+                <button type="button" onClick={resetForm} className="text-muted-foreground hover:text-foreground flex-shrink-0" aria-label="Discard copy">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <input placeholder="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
-                className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
+              <div className="relative">
+                <input placeholder="Title" value={form.title}
+                  onChange={e => { setForm({ ...form, title: e.target.value }); setMatchesHidden(false); }}
+                  aria-autocomplete="list" aria-expanded={showTitleMatches}
+                  className="w-full px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
+                {showTitleMatches && (
+                  <div role="listbox" aria-label="Existing songs with this title"
+                    className="absolute left-0 right-0 top-full mt-1 z-30 rounded-lg border border-border bg-card shadow-lg max-h-72 overflow-y-auto">
+                    <div className="flex items-center justify-between px-3 pt-2 pb-1">
+                      <p className="text-[11px] font-medium text-muted-foreground">Existing songs with this title</p>
+                      <button type="button" onClick={() => setMatchesHidden(true)} className="text-muted-foreground hover:text-foreground" aria-label="Hide existing songs">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    {titleMatches.map(s => (
+                      <button key={s.id} type="button" role="option" aria-selected={false} onClick={() => setCopyPrompt(s)}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-muted transition-colors">
+                        <div className="w-9 h-9 rounded-md gradient-purple overflow-hidden flex-shrink-0 flex items-center justify-center">
+                          {s.cover_url ? <img src={s.cover_url} alt="" className="w-full h-full object-cover" /> : <Music className="w-4 h-4 text-gold/50" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-foreground truncate">{s.title}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{s.album || "No album"} · {s.artist}</p>
+                        </div>
+                        {s.has_video && <span className="text-[10px] bg-gold/20 text-gold px-1.5 py-0.5 rounded flex-shrink-0">Video</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <input placeholder="Artist" value={form.artist} onChange={e => setForm({ ...form, artist: e.target.value })}
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
-              <select value={form.album_id} onChange={e => {
-                const sel = albumOptions.find(a => a.id === e.target.value);
-                setForm({ ...form, album_id: e.target.value, album: sel?.title || form.album });
+              <select value={form.album_id} aria-label="Album" onChange={e => {
+                const nextId = e.target.value;
+                setForm(f => ({ ...f, ...withAlbum(f, nextId) }));
               }} className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm">
                 <option value="">No Album</option>
                 {albumOptions.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
@@ -578,9 +617,21 @@ const AdminSongs = () => {
                 className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
             </div>
 
-            <ImageUploadPicker bucket="song-covers" label="Cover Image" value={form.cover_url} onChange={url => setForm({ ...form, cover_url: url })} />
+            <ImageUploadPicker bucket="song-covers" label="Cover Image" value={form.cover_url} onChange={url => setForm({ ...form, cover_url: url })}
+              disabled={addCoverLocked} lockedHint="Using the selected album's artwork. Choose “No Album” to set your own." />
             <AudioPicker bucket="song-audio" label="Audio File" value={form.audio_url} onChange={url => { setForm(f => ({ ...f, audio_url: url })); detectAudioDuration(url, sec => setForm(f => ({ ...f, duration_seconds: sec }))); }} />
             <AudioPicker bucket="song-instrumentals" label="Instrumental File" value={form.instrumental_url} onChange={url => setForm({ ...form, instrumental_url: url })} />
+            <div className="space-y-1.5">
+              <label htmlFor="new-song-video" className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                <Video className="w-3.5 h-3.5" /> Song Video (optional)
+              </label>
+              <input id="new-song-video" placeholder="https:// video link (YouTube or file)" value={form.video_url}
+                onChange={e => { setForm({ ...form, video_url: e.target.value }); if (!e.target.value) setVideoImport(null); }}
+                className="w-full px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
+              {videoImport && form.video_url === videoImport.video_url && (
+                <p className="text-[11px] text-muted-foreground">Imported from the existing copy{videoImport.fromAlbum ? ` in ${videoImport.fromAlbum}` : ""}.</p>
+              )}
+            </div>
 
             <textarea placeholder="Lyrics (plain text, one line per verse line)" value={form.lyrics_raw}
               onChange={e => setForm({ ...form, lyrics_raw: e.target.value })}
@@ -635,8 +686,8 @@ const AdminSongs = () => {
                     <input placeholder="Artist" value={editForm.artist} onChange={e => setEditForm({ ...editForm, artist: e.target.value })}
                       className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
                     <select value={editForm.album_id} onChange={e => {
-                      const sel = albumOptions.find(a => a.id === e.target.value);
-                      setEditForm({ ...editForm, album_id: e.target.value, album: sel?.title || editForm.album });
+                      const nextId = e.target.value;
+                      setEditForm(f => ({ ...f, ...withAlbum(f, nextId) }));
                     }} className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm">
                       <option value="">No Album</option>
                       {albumOptions.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
@@ -651,7 +702,8 @@ const AdminSongs = () => {
                       className="px-3 py-2 rounded-lg bg-muted border border-border text-foreground text-sm" />
                   </div>
 
-                  <ImageUploadPicker bucket="song-covers" label="Cover Image" value={editForm.cover_url} onChange={url => setEditForm({ ...editForm, cover_url: url })} />
+                  <ImageUploadPicker bucket="song-covers" label="Cover Image" value={editForm.cover_url} onChange={url => setEditForm({ ...editForm, cover_url: url })}
+                    disabled={editCoverLocked} lockedHint="Using the selected album's artwork. Choose “No Album” to set your own." />
                   <AudioPicker bucket="song-audio" label="Audio File" value={editForm.audio_url} onChange={url => { setEditForm(f => ({ ...f, audio_url: url })); detectAudioDuration(url, sec => setEditForm(f => ({ ...f, duration_seconds: sec }))); }} />
                   <AudioPicker bucket="song-instrumentals" label="Instrumental File" value={editForm.instrumental_url} onChange={url => setEditForm({ ...editForm, instrumental_url: url })} />
 
