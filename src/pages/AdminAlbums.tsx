@@ -130,7 +130,18 @@ const AdminAlbums = () => {
           <p className="text-muted-foreground text-center py-12">No albums yet.</p>
         ) : (
           <div className="space-y-2">
-            {albums.map(album => (
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-muted-foreground">{albums.length} album{albums.length === 1 ? "" : "s"}</p>
+              <button
+                onClick={() => setSortAsc(s => !s)}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border text-foreground hover:bg-muted transition-colors"
+                title={sortAsc ? "Sorted A–Z — tap for Z–A" : "Sorted Z–A — tap for A–Z"}
+              >
+                {sortAsc ? <ArrowDownAZ className="w-4 h-4 text-gold" /> : <ArrowUpAZ className="w-4 h-4 text-gold" />}
+                {sortAsc ? "A–Z" : "Z–A"}
+              </button>
+            </div>
+            {sortedAlbums.map(album => (
               <div key={album.id} className="glass-card p-4 flex items-center gap-4">
                 <div className="w-14 h-14 rounded-lg gradient-purple flex-shrink-0 overflow-hidden flex items-center justify-center relative group">
                   {album.cover_url ? (
