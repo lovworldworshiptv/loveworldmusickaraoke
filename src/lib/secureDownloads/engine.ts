@@ -8,6 +8,7 @@ import * as store from "./store";
 import { offlineApi, ApiError } from "./api";
 import { generateDeviceKeys, unwrapContentKey, decryptChunk, GCM_TAG_BYTES } from "./crypto";
 import { legacyMeta, removeLegacy, wipeLegacy } from "./legacy";
+import { clearPlaybackMemory } from "./playback";
 import {
   sortQueue, isMeteredConnection, isKnownUnmetered, hasRoomFor, needsRenewal, isLicenceValid,
   plainChunkLength, estimateSongBytes,
@@ -425,6 +426,7 @@ export async function removeSecure(songId: string) {
 async function wipeLocal(revoked: boolean) {
   cancelled.clear();
   await store.wipeAll().catch(() => undefined);
+  clearPlaybackMemory();
   await wipeLegacy();
   ls.del(LICENCE_KEY);
   navigator.serviceWorker?.controller?.postMessage({ type: "LMK_OFFLINE_KEYS_CLEAR" });
@@ -511,9 +513,11 @@ export async function syncAccount() {
   const choice = (ls.get(restoreChoiceKey(userId)) as "all" | "later" | null) || null;
   emit({ restore: missing.length ? { songs: missing, bytes } : null, restoreChoice: choice });
   await refreshItems();
-  if (missing.length && (choice === "all" || (choice === null && isKnownUnmetered(conn()) && hasRoomFor(await navigator.storage?.estimate?.().catch(() => null) ?? null, bytes) && false))) {
-    await restoreAll();
-  }
+  // Safe full-history restore: automatic once chosen, or on a known Wi-Fi/wired
+  // connection with enough space; otherwise the listener is asked first.
+  const est = await navigator.storage?.estimate?.().catch(() => null);
+  const autoSafe = choice === null && isKnownUnmetered(conn()) && hasRoomFor(est ?? null, bytes);
+  if (missing.length && (choice === "all" || autoSafe)) await restoreAll();
 }
 
 /** Queue every account download not yet on this device — newest first. */
