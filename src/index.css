@@ -37,6 +37,8 @@
     --radius: 1rem;
 
     --gold: 43 70% 53%;
+    --offline-accent: 43 70% 53%;
+    --offline-warning: 38 92% 55%;
     --gold-light: 43 80% 65%;
     --gold-dark: 43 60% 40%;
     --scrollbar-track: var(--background);

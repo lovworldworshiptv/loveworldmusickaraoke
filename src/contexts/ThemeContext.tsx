@@ -184,6 +184,9 @@ const themeVars: Record<ThemeName, Record<string, string>> = {
     "--sidebar-border": "220 15% 90%",
     "--glass-bg": "0 0% 100%",
     "--glass-border": "220 15% 85%",
+    // Darker accents keep offline-download icons and labels at WCAG AA on white.
+    "--offline-accent": "38 85% 30%",
+    "--offline-warning": "28 95% 36%",
   },
 };
 
@@ -207,7 +210,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    const vars = themeVars[theme];
+    // Every theme sets the offline accents (defaults: its brand colour and amber) so switching never leaves stale values.
+    const vars = { "--offline-accent": themeVars[theme]["--primary"], "--offline-warning": "38 92% 55%", ...themeVars[theme] };
     const root = document.documentElement;
     Object.entries(vars).forEach(([key, value]) => {
       root.style.setProperty(key, value);
