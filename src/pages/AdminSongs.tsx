@@ -227,8 +227,8 @@ const AdminSongs = () => {
   useEffect(() => { fetchSongs(); fetchAlbumOptions(); fetchCategoryOptions(); fetchPlaylistOptions(); }, []);
 
   const fetchAlbumOptions = async () => {
-    const { data } = await supabase.from("albums").select("id, title").order("title");
-    if (data) setAlbumOptions(data);
+    const { data } = await supabase.from("albums").select("id, title");
+    if (data) setAlbumOptions(sortSongsByTitle(data));
   };
 
   const fetchCategoryOptions = async () => {
