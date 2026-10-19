@@ -169,6 +169,20 @@
       "when": 1792250390978,
       "tag": "0023_editor_add_songs",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792408997799,
+      "tag": "0024_secure_offline_downloads",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792409610201,
+      "tag": "0025_lock_offline_package_keys",
+      "breakpoints": true
     }
   ]
 }

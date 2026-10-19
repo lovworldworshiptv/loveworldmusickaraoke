@@ -115,6 +115,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
+    // Offline songs are tied to this account and device: free the device slot and clear them.
+    await import("@/lib/secureDownloads/engine").then((m) => m.signOutCleanup()).catch(() => undefined);
     await supabase.auth.signOut();
   };
 

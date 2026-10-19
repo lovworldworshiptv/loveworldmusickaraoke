@@ -17,7 +17,9 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsPremium } from "@/hooks/useIsPremium";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { getDownloadedMeta, getDownloadedAudioUrl, getDownloadedInstrumentalUrl, saveDownload, removeDownload, getCloudOnlyDownloads, syncLocalDownloadsToCloud, type DownloadedTrack } from "@/lib/downloadManager";
-import { checkPlaybackAllowed, revalidateLicense, setTrackLicense } from "@/lib/offlineLicense";
+import { checkPlaybackAllowed, revalidateLicense } from "@/lib/offlineLicense";
+import DownloadQueuePanel from "@/components/offline/DownloadQueuePanel";
+import { useSecureDownloads } from "@/hooks/useSecureDownloads";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import { sortSongsByTitle, compareTitles } from "@/lib/utils";
@@ -87,7 +89,9 @@ const Library = () => {
     }
   }, [user]);
 
-  useEffect(() => { loadDownloads(); }, [loadDownloads, isOnline]);
+  const secure = useSecureDownloads();
+  const secureReady = secure.items.filter((i) => i.status === "ready").length;
+  useEffect(() => { loadDownloads(); }, [loadDownloads, isOnline, secureReady]);
 
   // Free download songs
   const { data: freeDownloadSongs = [] } = useQuery({
@@ -266,20 +270,8 @@ const Library = () => {
         downloadedAt: Date.now(),
       }, song.instrumental_url ?? undefined);
 
-      // Set offline license if premium (not free download)
-      if (!song.is_free_download && user) {
-        const { data: subData } = await supabase.from("user_subscriptions")
-          .select("subscription_expiry_date")
-          .eq("user_id", user.id)
-          .single();
-        const expiry = (subData as any)?.subscription_expiry_date;
-        if (expiry) {
-          setTrackLicense(song.id, expiry);
-        }
-      }
-
       await loadDownloads();
-      toast.success(`"${song.title}" downloaded for offline play`);
+      toast.success(`"${song.title}" saved for offline listening`);
     } catch (err: any) {
       toast.error("Download failed: " + (err.message || "Unknown error"));
     } finally {
@@ -289,11 +281,22 @@ const Library = () => {
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const handleRemoveDownload = async (songId: string) => {
-    await removeDownload(songId);
-    await loadDownloads();
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  const handleRemoveDownload = (songId: string) => {
     setConfirmDeleteId(null);
-    toast.success("Download removed");
+    setHiddenIds((prev) => new Set(prev).add(songId));
+    let undone = false;
+    const unhide = () => setHiddenIds((prev) => { const n = new Set(prev); n.delete(songId); return n; });
+    toast("Removed from your downloads", {
+      duration: 5000,
+      action: { label: "Undo", onClick: () => { undone = true; unhide(); } },
+    });
+    setTimeout(async () => {
+      if (undone) return;
+      await removeDownload(songId).catch(() => undefined);
+      await loadDownloads();
+      unhide();
+    }, 5000);
   };
 
   const playOfflineTrack = async (track: DownloadedTrack) => {
@@ -343,7 +346,7 @@ const Library = () => {
     (pl.playlist_songs || []).some((ps: any) => ps.songs && matchesSong(ps.songs))
   );
 
-  const filteredDownloads = downloads.filter((t) =>
+  const filteredDownloads = downloads.filter((t) => !hiddenIds.has(t.id)).filter((t) =>
     !q || fuzzyMatch(q, [t.title, t.artist, t.album, t.lyricsLrc])
   );
 
@@ -692,6 +695,7 @@ const Library = () => {
 
           {/* Downloads */}
           <TabsContent value="downloads">
+            {user && <DownloadQueuePanel />}
             {/* Free download songs section (when online) */}
             {isOnline && freeDownloadSongs.length > 0 && (
               <div className="mb-6">
@@ -734,10 +738,7 @@ const Library = () => {
                   <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                     <Download className="w-4 h-4 text-primary" /> From your other devices
                   </h3>
-                  <button
-                    onClick={async () => { for (const s of cloudOnly) await handleDownload(s); }}
-                    className="text-xs font-semibold text-primary hover:underline"
-                  >Download all</button>
+                  <span className="text-xs text-muted-foreground">Choose songs to save here</span>
                 </div>
                 <div className="space-y-1">
                   {cloudOnly.map((song) => (
