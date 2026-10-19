@@ -252,9 +252,9 @@ const Community = () => {
 
   const sharePost = async (post: PostRow) => {
     const url = `${SHARE_BASE}/community/${post.community_id}`;
-    const text = `${post.author_name} on Loveworld Music Karaoke+ Community: "${post.content.slice(0, 80)}"`;
+    const text = `${post.author_name} on Loveworld Music+ Community: "${post.content.slice(0, 80)}"`;
     try {
-      if (navigator.share) { await navigator.share({ title: "Loveworld Music Karaoke+", text, url }); return; }
+      if (navigator.share) { await navigator.share({ title: "Loveworld Music+", text, url }); return; }
       await navigator.clipboard.writeText(`${text} ${url}`);
       toast.success("Link copied");
     } catch { /* dismissed */ }

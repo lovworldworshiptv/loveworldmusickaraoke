@@ -68,10 +68,10 @@ const Auth = () => {
       <div className="w-full max-w-md glass-card p-8">
         <img
           src={logoFull}
-          alt="Loveworld Music Karaoke+ logo"
+          alt="Loveworld Music+ logo"
           className="mx-auto mb-4 h-20 w-20 rounded-[22px] object-contain shadow-[0_6px_28px_hsl(43_70%_53%/0.4)]"
         />
-        <h1 className="text-2xl font-serif gradient-gold-text font-bold text-center mb-6">Loveworld Music Karaoke+</h1>
+        <h1 className="text-2xl font-serif gradient-gold-text font-bold text-center mb-6">Loveworld Music+</h1>
 
         <button
           onClick={handleKingsChatLogin}

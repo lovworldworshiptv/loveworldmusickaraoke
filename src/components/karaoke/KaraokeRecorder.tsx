@@ -445,7 +445,7 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
 
   const copyLink = () => {
     const link = `${SHARE_DOMAIN}/user/${user?.id}`;
-    navigator.clipboard.writeText(`Listen to my karaoke version of ${songTitle} on Loveworld Music Karaoke. ${link}`);
+    navigator.clipboard.writeText(`Listen to my karaoke version of ${songTitle} on Loveworld Music+. ${link}`);
     toast.success("Link copied!");
   };
 
@@ -660,7 +660,7 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
       <Dialog open={showShare} onOpenChange={setShowShare}>
         <DialogContent className="max-w-sm">
           <h3 className="text-lg font-bold text-foreground mb-1">Share Recording</h3>
-          <p className="text-xs text-muted-foreground mb-4">Listen to my karaoke version of {songTitle} on Loveworld Music Karaoke.</p>
+          <p className="text-xs text-muted-foreground mb-4">Listen to my karaoke version of {songTitle} on Loveworld Music+.</p>
           <div className="space-y-2">
             <Button onClick={saveToStudio} disabled={savedToStudio} variant="outline" className="w-full justify-start rounded-xl">
               <HardDrive className="w-4 h-4 mr-2" /> {savedToStudio ? "Saved to My Studio" : "Save to my Studio (this device)"}

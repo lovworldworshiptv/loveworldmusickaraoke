@@ -4,10 +4,10 @@
   "description": "Sing along and discover Loveworld Music — hymns, worship, and praise songs.",
   "dir": "ltr",
   "display": "standalone",
-  "name": "Loveworld Music Karaoke+",
+  "name": "Loveworld Music+",
   "orientation": "any",
   "scope": "/",
-  "short_name": "Loveworld Music Karaoke+",
+  "short_name": "Loveworld Music+",
   "start_url": "/",
   "theme_color": "#e7b002",
   "icons": [

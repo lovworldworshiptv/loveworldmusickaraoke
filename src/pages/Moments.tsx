@@ -153,7 +153,7 @@ const MomentCard = ({
         <ShareMenu
           url={buildShareUrl("/videos")}
           title={`${song.title} — ${song.artist}`}
-          text={`Watch "${song.title}" on Loveworld Music Karaoke+`}
+          text={`Watch "${song.title}" on Loveworld Music+`}
           kingschatFirst
           trigger={
             <div className="flex flex-col items-center gap-1">

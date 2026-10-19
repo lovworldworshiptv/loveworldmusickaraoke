@@ -39,7 +39,7 @@ const TopNavbar = ({ desktopSidebarCollapsed = false }: TopNavbarProps) => {
             <h1 className="text-lg font-serif font-bold gradient-gold-text leading-tight">{username}</h1>
           </div>
         ) : (
-          <img src={logo} alt="Loveworld Music Karaoke+" className="h-9 w-9 rounded-[10px] shadow-[0_0_14px_hsl(43_70%_53%/0.35)] lg:hidden" />
+          <img src={logo} alt="Loveworld Music+" className="h-9 w-9 rounded-[10px] shadow-[0_0_14px_hsl(43_70%_53%/0.35)] lg:hidden" />
         )}
       </div>
       <div className="flex items-center gap-1">

@@ -30,12 +30,12 @@ const Games = () => {
     {
       key: "songmatch", path: "/games/songmatch", tag: "Music quiz",
       played: stats?.totalGamesPlayed ?? 0, points: stats?.totalPoints ?? 0,
-      shareTitle: "Song Master Challenge", shareText: "I challenge you to play SongMatch! Test your music knowledge on Loveworld Music Karaoke+",
+      shareTitle: "Song Master Challenge", shareText: "I challenge you to play SongMatch! Test your music knowledge on Loveworld Music+",
     },
     {
       key: "articles", path: "/games/songmatch/articles", tag: "Knowledge quiz",
       played: (stats as any)?.articlesGames ?? 0, points: (stats as any)?.articlesPoints ?? 0,
-      shareTitle: "Articles Game", shareText: "I challenge you to the Articles Game on Loveworld Music Karaoke+",
+      shareTitle: "Articles Game", shareText: "I challenge you to the Articles Game on Loveworld Music+",
     },
   ];
 
