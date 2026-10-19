@@ -762,7 +762,7 @@ const Library = () => {
                       role="tab"
                       aria-selected={dlKind === k}
                       onClick={() => setDlKind(k)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${dlKind === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${dlKind === k ? "bg-offline-accent text-background" : "text-muted-foreground hover:text-foreground"}`}
                     >
                       {k}
                     </button>
