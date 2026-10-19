@@ -28,7 +28,7 @@ const ShareTrackButton = ({ track, className, iconClassName, trigger, ariaLabel 
   <ShareMenu
     url={buildTrackShareUrl(track)}
     title={track.title}
-    text={`Listen to "${track.title}"${track.artist ? ` by ${track.artist}` : ""} on Loveworld Music Karaoke+`}
+    text={`Listen to "${track.title}"${track.artist ? ` by ${track.artist}` : ""} on Loveworld Music+`}
     imageUrl={track.coverUrl || undefined}
     kingschatFirst
     trigger={

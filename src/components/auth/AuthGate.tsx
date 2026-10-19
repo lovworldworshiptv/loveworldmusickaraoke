@@ -48,7 +48,7 @@ const AuthGate = ({ children }: AuthGateProps) => {
           <div className="relative z-10 w-full max-w-sm text-center">
             <div className="relative w-28 h-28 mx-auto mb-8">
               <div className="absolute -inset-3 rounded-[32px] bg-gold/15 blur-xl animate-pulse motion-reduce:animate-none" />
-              <img src={logo} alt="Loveworld Music Karaoke+" className="relative w-28 h-28 rounded-[28px] shadow-[0_8px_32px_hsl(43_70%_53%/0.45)]" />
+              <img src={logo} alt="Loveworld Music+" className="relative w-28 h-28 rounded-[28px] shadow-[0_8px_32px_hsl(43_70%_53%/0.45)]" />
               <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-background border border-gold/40 flex items-center justify-center shadow-lg">
                 <Lock className="w-4 h-4 text-gold" />
               </div>

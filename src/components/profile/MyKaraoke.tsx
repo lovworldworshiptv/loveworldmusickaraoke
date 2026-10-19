@@ -190,7 +190,7 @@ const MyKaraoke = () => {
     return d.toLocaleDateString();
   };
 
-  const shareText = shareRec ? `Listen to my karaoke version of ${shareRec.song_title} on Loveworld Music Karaoke.` : "";
+  const shareText = shareRec ? `Listen to my karaoke version of ${shareRec.song_title} on Loveworld Music+.` : "";
   const shareUrl = user ? `${window.location.origin}/user/${user.id}` : "";
 
   if (!featureEnabled) return null;

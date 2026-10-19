@@ -36,7 +36,7 @@ const AppDownloadPrompt = () => {
         <Download className="w-5 h-5 text-primary-foreground" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-foreground">Get the Loveworld Music Karaoke+ app</p>
+        <p className="text-sm font-semibold text-foreground">Get the Loveworld Music+ app</p>
         <p className="text-xs text-muted-foreground">Smoother playback, offline songs and alerts.</p>
       </div>
       <a href={APP_DOWNLOAD_URL} target="_blank" rel="noopener noreferrer" onClick={() => { logAppDownloadClick("download_banner"); dismiss(); }}

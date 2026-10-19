@@ -554,7 +554,7 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
         <div className="hidden sm:flex items-center gap-4 px-4 py-2.5 border-t border-border/50 text-[10px] text-muted-foreground">
           <span className="flex items-center gap-1"><ArrowUp className="w-3 h-3" /><ArrowDown className="w-3 h-3" /> navigate</span>
           <span className="flex items-center gap-1"><CornerDownLeft className="w-3 h-3" /> open</span>
-          <span className="ml-auto">Loveworld Music Karaoke+</span>
+          <span className="ml-auto">Loveworld Music+</span>
         </div>
       </DialogContent>
     </Dialog>

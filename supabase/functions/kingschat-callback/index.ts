@@ -602,7 +602,7 @@ Deno.serve(async (req) => {
 
       ? new Response(
           closeHtml(
-            "Signed in. Returning to Loveworld Music Karaoke+…"
+            "Signed in. Returning to Loveworld Music+…"
           ),
           {
             headers: {
