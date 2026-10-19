@@ -3,7 +3,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsEditor } from "@/hooks/useIsEditor";
-import { Disc3, Plus, Trash2, Edit3, X, Save, Upload } from "lucide-react";
+import { Disc3, Plus, Trash2, Edit3, X, Save, Upload, ArrowDownAZ, ArrowUpAZ } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
@@ -27,6 +27,7 @@ const AdminAlbums = () => {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Album | null>(null);
   const [form, setForm] = useState({ title: "", artist: "Loveworld Singers", is_top: false, cover_url: "" });
+  const [sortAsc, setSortAsc] = useState(true);
 
   useEffect(() => { fetchAlbums(); }, []);
 
@@ -35,6 +36,11 @@ const AdminAlbums = () => {
     if (data) setAlbums(data);
     setLoading(false);
   };
+
+  const sortedAlbums = [...albums].sort((a, b) => {
+    const cmp = a.title.localeCompare(b.title, undefined, { sensitivity: "base", numeric: true });
+    return sortAsc ? cmp : -cmp;
+  });
 
   const handleCreate = async () => {
     if (!form.title) { toast.error("Title required"); return; }
