@@ -550,7 +550,21 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       setShuffleOn(!!saved.shuffleOn);
       setVolumeState(Math.max(0, Math.min(saved.volume ?? 0.7, 1)));
       volumeRef.current = Math.max(0, Math.min(saved.volume ?? 0.7, 1));
-      internalPlay(restoredQueue[restoredIndex] || saved.song, !!saved.isKaraoke, Math.max(0, saved.currentTime || 0), false);
+      const resume = restoredQueue[restoredIndex] || saved.song;
+      const at = Math.max(0, saved.currentTime || 0);
+      // Saved songs play from per-session local sources; open fresh ones after a reload.
+      if (resume.audioUrl?.startsWith("blob:") || resume.instrumentalUrl?.startsWith("blob:")) {
+        import("@/lib/downloadManager").then(async (dm) => {
+          const [audioUrl, instrumentalUrl] = await Promise.all([
+            dm.getDownloadedAudioUrl(resume.id).catch(() => null),
+            dm.getDownloadedInstrumentalUrl(resume.id).catch(() => null),
+          ]);
+          if (!audioUrl) return;
+          internalPlay({ ...resume, audioUrl, instrumentalUrl: instrumentalUrl || undefined }, !!saved.isKaraoke, at, false);
+        }).catch(() => undefined);
+      } else {
+        internalPlay(resume, !!saved.isKaraoke, at, false);
+      }
     } catch {
       localStorage.removeItem(PLAYER_STATE_KEY);
     }
