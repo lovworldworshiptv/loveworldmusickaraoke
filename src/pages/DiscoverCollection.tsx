@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Music, Play, Mic2, Clapperboard } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAll";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { fallbackImage } from "@/lib/discover";
 import { SONG_COLUMNS, toPlayerSong, type SongRow } from "@/lib/homeSongs";
