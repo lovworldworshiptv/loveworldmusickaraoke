@@ -19,3 +19,4 @@
 - Derived album collections share useAlbums and selectors with Albums; preserve collection query parameters — why: keep artwork and membership synchronized without duplicate content.
 <!-- LOVABLE:END -->
 - Subdirectories may have their own AGENTS.md (e.g. src/lib/secureDownloads for encrypted offline downloads); read it before changing files there.
+- Pasted song-video links are checked by the resolve-video-url function (admins/editors) before saving: KingsSpace watch pages resolve to their direct video file and web pages are rejected — why: song_videos.video_url must always be a playable file or YouTube link.
