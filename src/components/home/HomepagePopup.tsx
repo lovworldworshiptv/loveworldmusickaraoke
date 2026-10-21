@@ -109,7 +109,7 @@ const HomepagePopup = () => {
       {/* Modal */}
       <div
         onClick={e => e.stopPropagation()}
-        className="relative w-full overflow-hidden shadow-2xl animate-fade-in-up"
+        className="relative w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overflow-x-hidden shadow-2xl animate-fade-in-up"
         style={{
           maxWidth: popup.max_width || "480px",
           borderRadius: popup.border_radius || "16px",
@@ -120,7 +120,7 @@ const HomepagePopup = () => {
         {/* Background image */}
         {isBackground && popup.image_url && (
           <div className="absolute inset-0">
-            <img src={popup.image_url} alt="" className="w-full h-full object-cover" />
+            <img src={popup.image_url} alt="" className="w-full h-full object-contain" />
             <div className="absolute inset-0" style={{ backgroundColor: `${popup.bg_color || "#1a1a2e"}cc` }} />
           </div>
         )}
@@ -135,7 +135,7 @@ const HomepagePopup = () => {
 
         {/* Top banner image */}
         {popup.image_position === "top" && popup.image_url && (
-          <img src={popup.image_url} alt="" className="w-full h-48 object-cover" />
+          <img src={popup.image_url} alt="" className="block w-full h-auto max-h-[60dvh] object-contain" />
         )}
 
         {/* Content */}
