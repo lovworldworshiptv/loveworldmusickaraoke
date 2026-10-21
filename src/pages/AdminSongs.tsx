@@ -11,6 +11,7 @@ import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
 import { sortSongsByTitle, compareTitles } from "@/lib/utils";
 import { Video } from "lucide-react";
 import SongVideosManager from "@/components/admin/SongVideosManager";
+import { resolveVideoLink } from "@/lib/videoLinks";
 import StemStudio, { callStemAdmin, type StemStatus } from "@/components/admin/StemStudio";
 import AdminLyricsManager from "@/components/admin/AdminLyricsManager";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -365,8 +366,18 @@ const AdminSongs = () => {
 
   const handleCreateSong = async () => {
     if (!form.title.trim()) { toast.error("Title required"); return; }
-    const videoUrl = form.video_url.trim();
+    let videoUrl = form.video_url.trim();
     if (videoUrl && !/^https:\/\//i.test(videoUrl)) { toast.error("Enter a full https:// video link"); return; }
+    if (videoUrl) {
+      try {
+        const resolved = await resolveVideoLink(videoUrl);
+        if (videoImport && videoImport.video_url === videoUrl) setVideoImport({ ...videoImport, video_url: resolved.url });
+        videoUrl = resolved.url;
+      } catch (e) {
+        toast.error("Video link: " + (e instanceof Error ? e.message : "couldn't be checked"));
+        return;
+      }
+    }
     const coverUrl = albumCover(form.album_id) || form.cover_url;
     const { data: newSong, error } = await supabase.from("songs").insert({
       title: form.title.trim(), artist: form.artist, album: form.album || null,
