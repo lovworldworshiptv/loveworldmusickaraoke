@@ -18,7 +18,7 @@ const isYouTube = (u: string) => /(?:youtu\.be\/|youtube\.com\/)/i.test(u);
 
 /** Range-probe a URL and report whether it serves video bytes. */
 async function probe(url: string) {
-  const res = await fetch(url, { headers: { "User-Agent": UA, Range: "bytes=0-1023" }, redirect: "follow" });
+  const res = await fetch(url, { headers: { "User-Agent": UA, Range: "bytes=0-1023" }, redirect: "follow", signal: AbortSignal.timeout(15000) });
   const type = (res.headers.get("content-type") || "").toLowerCase();
   await res.body?.cancel();
   const ok = (res.status === 200 || res.status === 206) && (type.startsWith("video/") || type.includes("mpegurl") || type === "application/octet-stream" || type === "binary/octet-stream");
@@ -26,7 +26,7 @@ async function probe(url: string) {
 }
 
 async function resolveKingsSpace(url: string) {
-  const res = await fetch(url, { headers: { "User-Agent": UA } });
+  const res = await fetch(url, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(15000) });
   if (!res.ok) throw new Error(`KingsSpace page answered ${res.status}`);
   const html = await res.text();
   const m = html.match(/ceflix\.org(?:%2F|\/)thumb(?:%2F|\/)([\w-]+)\.jpg/i);
@@ -74,6 +74,7 @@ Deno.serve(async (req) => {
     return json({ url: target, thumbnail, source });
   } catch (e) {
     console.error("resolve-video-url", e);
+    if (e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError")) return json({ error: "The video link took too long to answer. Check the link and try again." }, 504);
     return json({ error: e instanceof Error ? e.message : "Couldn't check this video link" }, 500);
   }
 });
