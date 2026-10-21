@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Trash2, Plus, Loader2, Upload, Film } from "lucide-react";
 import { ytId } from "@/components/player/VideoMode";
+import { resolveVideoLink } from "@/lib/videoLinks";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
 import { ImageIcon, RotateCcw } from "lucide-react";
 
@@ -63,9 +64,16 @@ const SongVideosManager = ({ songId, songTitle, onClose, canManage = true }: Pro
 
   const add = async () => {
     if (!songId) return;
-    const u = url.trim();
-    if (!/^https:\/\//.test(u)) { toast.error("Enter a full https:// video link"); return; }
+    if (!/^https:\/\//.test(url.trim())) { toast.error("Enter a full https:// video link"); return; }
     setSaving(true);
+    let u: string;
+    try {
+      u = (await resolveVideoLink(url)).url;
+    } catch (e) {
+      setSaving(false);
+      toast.error(e instanceof Error ? e.message : "Couldn't check this video link");
+      return;
+    }
     const thumb = ytId(u) ? `https://img.youtube.com/vi/${ytId(u)}/hqdefault.jpg` : songCover;
     const { data, error } = await supabase.from("song_videos").insert({
       song_id: songId, video_url: u, video_type: type, language_code: lang,
