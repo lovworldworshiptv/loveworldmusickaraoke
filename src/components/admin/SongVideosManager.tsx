@@ -7,16 +7,18 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Trash2, Plus, Loader2, Upload, Film } from "lucide-react";
 import { ytId } from "@/components/player/VideoMode";
+import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
+import { ImageIcon, RotateCcw } from "lucide-react";
 
-interface Row { id: string; video_url: string; video_type: string; language_code: string; offset_ms: number; is_active: boolean }
+interface Row { id: string; video_url: string; video_type: string; language_code: string; offset_ms: number; is_active: boolean; thumbnail_url: string | null }
 const TYPES = ["official", "lyric", "live", "karaoke"];
 
-interface Props { songId: string | null; songTitle?: string; onClose: () => void }
+interface Props { songId: string | null; songTitle?: string; onClose: () => void; /** Editors can only change thumbnails. */ canManage?: boolean }
 
 interface MotionArtwork { id: string; video_url: string; duration_seconds: number; is_active: boolean }
 
 /** Admin dialog to attach, toggle and remove videos for a song. */
-const SongVideosManager = ({ songId, songTitle, onClose }: Props) => {
+const SongVideosManager = ({ songId, songTitle, onClose, canManage = true }: Props) => {
   const [rows, setRows] = useState<Row[]>([]);
   const [langs, setLangs] = useState<{ code: string; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
@@ -29,14 +31,18 @@ const SongVideosManager = ({ songId, songTitle, onClose }: Props) => {
   const [motionUrl, setMotionUrl] = useState("");
   const [motionDuration, setMotionDuration] = useState<number | null>(null);
   const [motionSaving, setMotionSaving] = useState(false);
+  const [songCover, setSongCover] = useState<string | null>(null);
+  const [thumbRow, setThumbRow] = useState<string | null>(null);
 
   const load = async () => {
     if (!songId) return;
     setLoading(true);
-    const [{ data }, { data: motionData }] = await Promise.all([
-      supabase.from("song_videos").select("id, video_url, video_type, language_code, offset_ms, is_active").eq("song_id", songId).order("created_at"),
+    const [{ data }, { data: motionData }, { data: songData }] = await Promise.all([
+      supabase.from("song_videos").select("id, video_url, video_type, language_code, offset_ms, is_active, thumbnail_url").eq("song_id", songId).order("created_at"),
       supabase.from("song_motion_artwork").select("id, video_url, duration_seconds, is_active").eq("song_id", songId).maybeSingle(),
+      supabase.from("songs").select("cover_url").eq("id", songId).maybeSingle(),
     ]);
+    setSongCover((songData as { cover_url: string | null } | null)?.cover_url ?? null);
     setRows((data as Row[]) || []);
     const artwork = motionData as MotionArtwork | null;
     setMotion(artwork);
@@ -60,11 +66,11 @@ const SongVideosManager = ({ songId, songTitle, onClose }: Props) => {
     const u = url.trim();
     if (!/^https:\/\//.test(u)) { toast.error("Enter a full https:// video link"); return; }
     setSaving(true);
-    const thumb = ytId(u) ? `https://img.youtube.com/vi/${ytId(u)}/hqdefault.jpg` : null;
+    const thumb = ytId(u) ? `https://img.youtube.com/vi/${ytId(u)}/hqdefault.jpg` : songCover;
     const { data, error } = await supabase.from("song_videos").insert({
       song_id: songId, video_url: u, video_type: type, language_code: lang,
       offset_ms: Math.round((parseFloat(offset) || 0) * 1000), thumbnail_url: thumb, is_active: true,
-    }).select("id, video_url, video_type, language_code, offset_ms, is_active").single();
+    }).select("id, video_url, video_type, language_code, offset_ms, is_active, thumbnail_url").single();
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     const next = [...rows, data as Row];
@@ -77,6 +83,13 @@ const SongVideosManager = ({ songId, songTitle, onClose }: Props) => {
     if (error) { toast.error(error.message); return; }
     const next = rows.map((x) => (x.id === r.id ? { ...x, is_active: !x.is_active } : x));
     setRows(next); syncFlag(next);
+  };
+
+  const setThumb = async (r: Row, thumb: string | null) => {
+    const { error } = await supabase.from("song_videos").update({ thumbnail_url: thumb }).eq("id", r.id);
+    if (error) { toast.error(error.message); return; }
+    setRows((list) => list.map((x) => (x.id === r.id ? { ...x, thumbnail_url: thumb } : x)));
+    toast.success(thumb ? "Thumbnail updated" : "Using the song artwork");
   };
 
   const remove = async (r: Row) => {
@@ -163,18 +176,32 @@ const SongVideosManager = ({ songId, songTitle, onClose }: Props) => {
           {loading ? <Loader2 className="w-5 h-5 animate-spin text-gold mx-auto" /> : rows.length === 0 ? (
             <p className="text-sm text-muted-foreground">No videos yet. Add one below to enable Video mode for this song.</p>
           ) : rows.map((r) => (
-            <div key={r.id} className="flex items-center gap-2 p-2 rounded-xl bg-secondary/40">
+            <div key={r.id} className="p-2 rounded-xl bg-secondary/40 space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="w-20 aspect-video rounded-md overflow-hidden bg-muted shrink-0">
+                {(r.thumbnail_url || songCover) && <img src={r.thumbnail_url || songCover || ""} alt="" className="w-full h-full object-contain" />}
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm truncate">{r.video_url}</p>
                 <p className="text-[11px] text-muted-foreground capitalize">{r.video_type} · {r.language_code.toUpperCase()} · offset {r.offset_ms / 1000}s</p>
               </div>
-              <Switch checked={r.is_active} onCheckedChange={() => toggle(r)} aria-label="Active" />
-              <button onClick={() => remove(r)} className="p-2 text-muted-foreground hover:text-destructive" aria-label="Remove video"><Trash2 className="w-4 h-4" /></button>
+              <button onClick={() => setThumbRow(thumbRow === r.id ? null : r.id)} className="p-2 text-muted-foreground hover:text-gold" aria-label="Change thumbnail" title="Change thumbnail"><ImageIcon className="w-4 h-4" /></button>
+              {canManage && <Switch checked={r.is_active} onCheckedChange={() => toggle(r)} aria-label="Active" />}
+              {canManage && <button onClick={() => remove(r)} className="p-2 text-muted-foreground hover:text-destructive" aria-label="Remove video"><Trash2 className="w-4 h-4" /></button>}
+            </div>
+            {thumbRow === r.id && (
+              <div className="space-y-2">
+                <ImageUploadPicker bucket="song-covers" label="Video thumbnail" value={r.thumbnail_url || ""} onChange={(u) => setThumb(r, u || null)} />
+                {songCover && r.thumbnail_url !== songCover && (
+                  <Button type="button" variant="outline" size="sm" onClick={() => setThumb(r, songCover)}><RotateCcw className="w-3.5 h-3.5" /> Use song artwork</Button>
+                )}
+              </div>
+            )}
             </div>
           ))}
         </div>
 
-        <div className="space-y-2 pt-3 border-t border-border">
+        {canManage && <div className="space-y-2 pt-3 border-t border-border">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-medium flex items-center gap-2"><Film className="w-4 h-4 text-gold" /> Motion artwork</p>
@@ -193,9 +220,9 @@ const SongVideosManager = ({ songId, songTitle, onClose }: Props) => {
               {motionSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Film className="w-4 h-4" />} Save artwork
             </Button>
           </div>
-        </div>
+        </div>}
 
-        <div className="space-y-2 pt-3 border-t border-border">
+        {canManage && <div className="space-y-2 pt-3 border-t border-border">
           <Input placeholder="YouTube link or direct .mp4 URL" value={url} onChange={(e) => setUrl(e.target.value)} />
           <div className="grid grid-cols-3 gap-2">
             <select className={sel} value={type} onChange={(e) => setType(e.target.value)}>
@@ -210,7 +237,7 @@ const SongVideosManager = ({ songId, songTitle, onClose }: Props) => {
           <Button onClick={add} disabled={saving || !url} className="w-full gradient-gold text-primary-foreground">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Add video
           </Button>
-        </div>
+        </div>}
       </DialogContent>
     </Dialog>
   );

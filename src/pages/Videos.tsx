@@ -96,11 +96,14 @@ const Videos = () => {
                 <div key={song.id} className="relative">
                 <button
                   onClick={() => playVideo(toPlayerSong(song))}
-                  className="w-full group text-left rounded-2xl overflow-hidden bg-card/60 backdrop-blur-xl border border-border/50 hover:border-amber-400/40 transition-all hover:shadow-[0_0_24px_rgba(251,191,36,0.15)]"
+                  className="w-full group text-left rounded-2xl active:scale-[0.98] touch-manipulation overflow-hidden bg-card/60 backdrop-blur-xl border border-border/50 hover:border-amber-400/40 transition-all hover:shadow-[0_0_24px_rgba(251,191,36,0.15)]"
                 >
-                  <div className="relative aspect-video bg-muted">
+                  <div className="relative aspect-video bg-muted overflow-hidden">
                     {thumb ? (
-                      <img src={thumb} alt={song.title} className="w-full h-full object-cover" loading="lazy" />
+                      <>
+                        <img src={thumb} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-60" />
+                        <img src={thumb} alt={song.title} className="relative w-full h-full object-contain" loading="lazy" decoding="async" />
+                      </>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <VideoIcon className="w-8 h-8 text-muted-foreground" />

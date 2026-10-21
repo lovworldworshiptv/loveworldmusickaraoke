@@ -12,7 +12,19 @@ interface Props { mode: "video" | "karaoke"; eyebrow: string; title: string }
 /** Swipeable rail that opens each song straight into Video or Karaoke mode. */
 const ModeSongRail = ({ mode, eyebrow, title }: Props) => {
   const [songs, setSongs] = useState<SongRow[]>([]);
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const { playVideo, singThis } = usePlayer();
+
+  // Video cards prefer the video's own thumbnail; fall back to the song artwork.
+  useEffect(() => {
+    if (mode !== "video" || !songs.length) return;
+    supabase.from("song_videos").select("song_id, thumbnail_url").in("song_id", songs.map((s) => s.id)).eq("is_active", true)
+      .not("thumbnail_url", "is", null).then(({ data }) => {
+        const map: Record<string, string> = {};
+        (data || []).forEach((v) => { if (v.thumbnail_url && !map[v.song_id]) map[v.song_id] = v.thumbnail_url; });
+        setThumbs(map);
+      });
+  }, [mode, songs]);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,13 +53,16 @@ const ModeSongRail = ({ mode, eyebrow, title }: Props) => {
       <h3 className="text-xl font-serif font-bold text-foreground">{title}</h3>
       </div><SeeAll to={mode === "video" ? "/videos" : "/discover"} /></div>
       <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 touch-pan-x overscroll-x-contain">
-        {songs.map((s) => (
+        {songs.map((s, i) => (
           <button key={s.id}
             onClick={() => (mode === "video" ? playVideo(toPlayerSong(s)) : singThis(toPlayerSong(s)))}
             aria-label={`${mode === "video" ? "Watch" : "Sing"} ${s.title}`}
-            className={`snap-start flex-shrink-0 text-left group ${mode === "video" ? "w-[calc(80%-0.6rem)] md:w-[calc(44.4%_-_0.4rem)] lg:w-[29.6%]" : "w-36"}`}>
+            className={`snap-start flex-shrink-0 text-left group active:scale-[0.97] transition-transform touch-manipulation ${mode === "video" ? "w-[calc(80%-0.6rem)] md:w-[calc(44.4%_-_0.4rem)] lg:w-[29.6%]" : "w-36"}`}>
             <div className={`relative rounded-2xl overflow-hidden bg-muted ${mode === "video" ? "aspect-[16/10.8]" : "aspect-square"}`}>
-              {s.cover_url ? <img src={s.cover_url} alt="" loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> :
+              {(thumbs[s.id] || s.cover_url) ? <>
+                <img src={thumbs[s.id] || s.cover_url || ""} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-60" />
+                <img src={thumbs[s.id] || s.cover_url || ""} alt="" loading={i < 3 ? "eager" : "lazy"} decoding="async" className="relative w-full h-full object-contain" />
+              </> :
                 <div className="w-full h-full gradient-purple flex items-center justify-center"><Music2 className="w-6 h-6 text-gold/50" /></div>}
               <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
               <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-background/70 backdrop-blur px-2 py-0.5 text-[10px] font-semibold text-gold">
