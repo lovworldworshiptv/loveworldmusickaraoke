@@ -123,7 +123,18 @@ const VideoMode = ({ video, startAt, positionRef, onEnded }: Props) => {
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-4 min-h-0 gap-4">
       <div className="relative w-full max-w-3xl aspect-video rounded-2xl overflow-hidden glass-card glow-gold bg-background">
-        {!ready && <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70"><Loader2 className="w-7 h-7 animate-spin text-gold" /></div>}
+        {failed ? (
+          <div role="alert" className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-background/90 px-6 text-center">
+            <AlertTriangle className="w-7 h-7 text-gold" />
+            <p className="text-sm text-foreground font-medium">{failed}</p>
+            <button onClick={retry} className="px-4 py-2 rounded-full bg-gold text-primary-foreground text-sm font-semibold hover:opacity-90">Try again</button>
+          </div>
+        ) : !ready && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background/70">
+            <Loader2 className="w-7 h-7 animate-spin text-gold" />
+            {slow && <p className="text-xs text-muted-foreground">Slow connection — still loading…</p>}
+          </div>
+        )}
         {yt ? (
           <iframe
             ref={iframeRef}
@@ -135,7 +146,7 @@ const VideoMode = ({ video, startAt, positionRef, onEnded }: Props) => {
             allowFullScreen
             loading="eager"
           />
-        ) : (
+        ) : pageLink ? null : (
           <video
             ref={videoRef}
             src={video.video_url}
@@ -146,9 +157,10 @@ const VideoMode = ({ video, startAt, positionRef, onEnded }: Props) => {
             playsInline
             onClick={toggle}
             onLoadedMetadata={(e) => { if (e.currentTarget.currentTime < 0.5) e.currentTarget.currentTime = start; setDur(e.currentTarget.duration); }}
-            onPlaying={() => setReady(true)}
+            onPlaying={() => { setReady(true); setFailed(null); }}
             onCanPlay={(e) => { setReady(true); e.currentTarget.play().catch(() => setPlaying(false)); }}
             onWaiting={() => setReady(false)}
+            onError={() => { setReady(true); setFailed("This video couldn't be played. Check your connection and try again."); }}
             onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
             onPlay={() => setPlaying(true)}
             onPause={() => setPlaying(false)}
