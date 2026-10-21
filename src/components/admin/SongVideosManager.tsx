@@ -79,6 +79,13 @@ const SongVideosManager = ({ songId, songTitle, onClose }: Props) => {
     setRows(next); syncFlag(next);
   };
 
+  const setThumb = async (r: Row, thumb: string | null) => {
+    const { error } = await supabase.from("song_videos").update({ thumbnail_url: thumb }).eq("id", r.id);
+    if (error) { toast.error(error.message); return; }
+    setRows((list) => list.map((x) => (x.id === r.id ? { ...x, thumbnail_url: thumb } : x)));
+    toast.success(thumb ? "Thumbnail updated" : "Using the song artwork");
+  };
+
   const remove = async (r: Row) => {
     if (!confirm("Remove this video?")) return;
     const { error } = await supabase.from("song_videos").delete().eq("id", r.id);
@@ -163,18 +170,32 @@ const SongVideosManager = ({ songId, songTitle, onClose }: Props) => {
           {loading ? <Loader2 className="w-5 h-5 animate-spin text-gold mx-auto" /> : rows.length === 0 ? (
             <p className="text-sm text-muted-foreground">No videos yet. Add one below to enable Video mode for this song.</p>
           ) : rows.map((r) => (
-            <div key={r.id} className="flex items-center gap-2 p-2 rounded-xl bg-secondary/40">
+            <div key={r.id} className="p-2 rounded-xl bg-secondary/40 space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="w-20 aspect-video rounded-md overflow-hidden bg-muted shrink-0">
+                {(r.thumbnail_url || songCover) && <img src={r.thumbnail_url || songCover || ""} alt="" className="w-full h-full object-contain" />}
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm truncate">{r.video_url}</p>
                 <p className="text-[11px] text-muted-foreground capitalize">{r.video_type} · {r.language_code.toUpperCase()} · offset {r.offset_ms / 1000}s</p>
               </div>
-              <Switch checked={r.is_active} onCheckedChange={() => toggle(r)} aria-label="Active" />
-              <button onClick={() => remove(r)} className="p-2 text-muted-foreground hover:text-destructive" aria-label="Remove video"><Trash2 className="w-4 h-4" /></button>
+              <button onClick={() => setThumbRow(thumbRow === r.id ? null : r.id)} className="p-2 text-muted-foreground hover:text-gold" aria-label="Change thumbnail" title="Change thumbnail"><ImageIcon className="w-4 h-4" /></button>
+              {canManage && <Switch checked={r.is_active} onCheckedChange={() => toggle(r)} aria-label="Active" />}
+              {canManage && <button onClick={() => remove(r)} className="p-2 text-muted-foreground hover:text-destructive" aria-label="Remove video"><Trash2 className="w-4 h-4" /></button>}
+            </div>
+            {thumbRow === r.id && (
+              <div className="space-y-2">
+                <ImageUploadPicker bucket="song-covers" label="Video thumbnail" value={r.thumbnail_url || ""} onChange={(u) => setThumb(r, u || null)} />
+                {songCover && r.thumbnail_url !== songCover && (
+                  <Button type="button" variant="outline" size="sm" onClick={() => setThumb(r, songCover)}><RotateCcw className="w-3.5 h-3.5" /> Use song artwork</Button>
+                )}
+              </div>
+            )}
             </div>
           ))}
         </div>
 
-        <div className="space-y-2 pt-3 border-t border-border">
+        {canManage && <div className="space-y-2 pt-3 border-t border-border">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-medium flex items-center gap-2"><Film className="w-4 h-4 text-gold" /> Motion artwork</p>
@@ -193,9 +214,9 @@ const SongVideosManager = ({ songId, songTitle, onClose }: Props) => {
               {motionSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Film className="w-4 h-4" />} Save artwork
             </Button>
           </div>
-        </div>
+        </div>}
 
-        <div className="space-y-2 pt-3 border-t border-border">
+        {canManage && <div className="space-y-2 pt-3 border-t border-border">
           <Input placeholder="YouTube link or direct .mp4 URL" value={url} onChange={(e) => setUrl(e.target.value)} />
           <div className="grid grid-cols-3 gap-2">
             <select className={sel} value={type} onChange={(e) => setType(e.target.value)}>
@@ -210,7 +231,7 @@ const SongVideosManager = ({ songId, songTitle, onClose }: Props) => {
           <Button onClick={add} disabled={saving || !url} className="w-full gradient-gold text-primary-foreground">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Add video
           </Button>
-        </div>
+        </div>}
       </DialogContent>
     </Dialog>
   );

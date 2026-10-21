@@ -1153,7 +1153,7 @@ const AdminSongs = () => {
                     <Languages className="w-4 h-4" />
                     {(song as any).lyrics_language_count > 1 && <CheckCircle className="w-3 h-3 text-green-500 absolute -top-0.5 -right-0.5" />}
                   </button>
-                  {!isEditorOnly && (
+                  {(
                     <button onClick={() => setVideoSong({ id: song.id, title: song.title })}
                       className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-gold transition-colors relative" title="Manage Videos">
                       <Video className="w-4 h-4" />
@@ -1201,6 +1201,7 @@ const AdminSongs = () => {
       <SongVideosManager
         songId={videoSong?.id ?? null}
         songTitle={videoSong?.title}
+        canManage={!isEditorOnly}
         onClose={() => { setVideoSong(null); fetchSongsRef.current?.(); }}
       />
       <AdminLyricsManager
