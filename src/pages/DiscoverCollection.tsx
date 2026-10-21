@@ -10,6 +10,7 @@ import { usePlayer } from "@/contexts/PlayerContext";
 import { fallbackImage } from "@/lib/discover";
 import { SONG_COLUMNS, toPlayerSong, type SongRow } from "@/lib/homeSongs";
 import { sortSongsByTitle } from "@/lib/utils";
+import musicHero from "@/assets/discover/music-hero.jpg";
 
 type Kind = "music" | "karaoke" | "videos" | "featured";
 
@@ -25,8 +26,13 @@ const DiscoverCollection = ({ kind }: { kind: Kind }) => {
     queryKey: ["discover-collection", kind, id],
     queryFn: async () => {
       if (kind === "music") {
-        const { data } = await db.from("songs").select(SONG_COLUMNS);
-        return { title: "Music", subtitle: "Every song on the platform", cover: null, songs: sortSongsByTitle((data || []) as SongRow[]) };
+        const all: SongRow[] = [];
+        for (let from = 0; ; from += 1000) {
+          const { data } = await db.from("songs").select(SONG_COLUMNS).order("id").range(from, from + 999);
+          all.push(...((data || []) as SongRow[]));
+          if (!data || data.length < 1000) break;
+        }
+        return { title: "Loveworld Songs & Lyrics", subtitle: "Every song and its lyrics, all in one place", cover: musicHero, songs: sortSongsByTitle(all) };
       }
       if (kind === "karaoke") {
         const { data } = await db.from("songs").select(SONG_COLUMNS).not("instrumental_url", "is", null);
@@ -62,12 +68,13 @@ const DiscoverCollection = ({ kind }: { kind: Kind }) => {
     <AppLayout>
       <div className="px-4 lg:px-6 pt-4 lg:pt-6 max-w-3xl mx-auto text-foreground">
         <Link to="/discover" className="inline-flex items-center gap-1 text-sm mb-4"><ArrowLeft className="w-4 h-4" /> Discover</Link>
-        <div className="relative h-48 rounded-2xl overflow-hidden mb-5">
-          <img src={cover} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <div className={`relative rounded-2xl overflow-hidden mb-5 ${kind === "music" ? "h-56 md:h-72 border border-gold/30 shadow-[0_0_40px_hsl(43_70%_53%/0.25)]" : "h-48"}`}>
+          <img src={cover} alt="" width={1600} height={800} className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
           <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="text-3xl font-serif font-bold truncate">{data?.title || ""}</h1>
+              {kind === "music" && <span className="inline-block mb-2 px-2.5 py-0.5 rounded-full bg-gold/20 backdrop-blur text-gold text-[10px] font-bold tracking-widest uppercase">Music</span>}
+              <h1 className={`font-serif font-bold ${kind === "music" ? "text-3xl md:text-5xl leading-tight bg-gradient-to-r from-gold-light via-gold to-gold-light bg-clip-text text-transparent" : "text-3xl truncate"}`}>{data?.title || ""}</h1>
               {data?.subtitle && <p className="text-sm line-clamp-2">{data.subtitle}</p>}
               <p className="text-xs mt-1">
                 {songs.length} songs
