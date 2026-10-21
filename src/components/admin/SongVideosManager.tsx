@@ -7,16 +7,18 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Trash2, Plus, Loader2, Upload, Film } from "lucide-react";
 import { ytId } from "@/components/player/VideoMode";
+import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
+import { ImageIcon, RotateCcw } from "lucide-react";
 
-interface Row { id: string; video_url: string; video_type: string; language_code: string; offset_ms: number; is_active: boolean }
+interface Row { id: string; video_url: string; video_type: string; language_code: string; offset_ms: number; is_active: boolean; thumbnail_url: string | null }
 const TYPES = ["official", "lyric", "live", "karaoke"];
 
-interface Props { songId: string | null; songTitle?: string; onClose: () => void }
+interface Props { songId: string | null; songTitle?: string; onClose: () => void; /** Editors can only change thumbnails. */ canManage?: boolean }
 
 interface MotionArtwork { id: string; video_url: string; duration_seconds: number; is_active: boolean }
 
 /** Admin dialog to attach, toggle and remove videos for a song. */
-const SongVideosManager = ({ songId, songTitle, onClose }: Props) => {
+const SongVideosManager = ({ songId, songTitle, onClose, canManage = true }: Props) => {
   const [rows, setRows] = useState<Row[]>([]);
   const [langs, setLangs] = useState<{ code: string; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
@@ -29,14 +31,18 @@ const SongVideosManager = ({ songId, songTitle, onClose }: Props) => {
   const [motionUrl, setMotionUrl] = useState("");
   const [motionDuration, setMotionDuration] = useState<number | null>(null);
   const [motionSaving, setMotionSaving] = useState(false);
+  const [songCover, setSongCover] = useState<string | null>(null);
+  const [thumbRow, setThumbRow] = useState<string | null>(null);
 
   const load = async () => {
     if (!songId) return;
     setLoading(true);
-    const [{ data }, { data: motionData }] = await Promise.all([
-      supabase.from("song_videos").select("id, video_url, video_type, language_code, offset_ms, is_active").eq("song_id", songId).order("created_at"),
+    const [{ data }, { data: motionData }, { data: songData }] = await Promise.all([
+      supabase.from("song_videos").select("id, video_url, video_type, language_code, offset_ms, is_active, thumbnail_url").eq("song_id", songId).order("created_at"),
       supabase.from("song_motion_artwork").select("id, video_url, duration_seconds, is_active").eq("song_id", songId).maybeSingle(),
+      supabase.from("songs").select("cover_url").eq("id", songId).maybeSingle(),
     ]);
+    setSongCover((songData as { cover_url: string | null } | null)?.cover_url ?? null);
     setRows((data as Row[]) || []);
     const artwork = motionData as MotionArtwork | null;
     setMotion(artwork);
@@ -60,11 +66,11 @@ const SongVideosManager = ({ songId, songTitle, onClose }: Props) => {
     const u = url.trim();
     if (!/^https:\/\//.test(u)) { toast.error("Enter a full https:// video link"); return; }
     setSaving(true);
-    const thumb = ytId(u) ? `https://img.youtube.com/vi/${ytId(u)}/hqdefault.jpg` : null;
+    const thumb = ytId(u) ? `https://img.youtube.com/vi/${ytId(u)}/hqdefault.jpg` : songCover;
     const { data, error } = await supabase.from("song_videos").insert({
       song_id: songId, video_url: u, video_type: type, language_code: lang,
       offset_ms: Math.round((parseFloat(offset) || 0) * 1000), thumbnail_url: thumb, is_active: true,
-    }).select("id, video_url, video_type, language_code, offset_ms, is_active").single();
+    }).select("id, video_url, video_type, language_code, offset_ms, is_active, thumbnail_url").single();
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     const next = [...rows, data as Row];
