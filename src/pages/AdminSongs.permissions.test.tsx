@@ -28,7 +28,7 @@ vi.mock("@/integrations/supabase/client", () => {
   const query = (table: string) => {
     const result = () => ({ data: table === "songs" ? [state.song] : table === "albums" ? state.albums : [] });
     const q: any = {
-      eq: () => q, order: () => q, limit: () => q, in: () => q,
+      eq: () => q, order: () => q, limit: () => q, in: () => q, range: () => q,
       maybeSingle: async () => ({ data: table === "song_videos" ? state.video : null }),
       then: (res: any, rej: any) => Promise.resolve(result()).then(res, rej),
     };
