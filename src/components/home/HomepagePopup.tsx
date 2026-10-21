@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { X } from "lucide-react";
+import { X, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
 interface PopupData {
   enabled: boolean;
@@ -135,7 +136,22 @@ const HomepagePopup = () => {
 
         {/* Top banner image */}
         {popup.image_position === "top" && popup.image_url && (
-          <img src={popup.image_url} alt="" className="block w-full h-auto max-h-[60dvh] object-contain" />
+          <div className="relative">
+            <TransformWrapper minScale={1} maxScale={5} doubleClick={{ mode: "toggle", step: 2 }} wheel={{ step: 0.15 }}>
+              {({ zoomIn, zoomOut, resetTransform }) => (
+                <>
+                  <TransformComponent wrapperStyle={{ width: "100%" }} contentStyle={{ width: "100%" }}>
+                    <img src={popup.image_url!} alt={popup.title || "Popup image"} className="block w-full h-auto max-h-[60dvh] object-contain" />
+                  </TransformComponent>
+                  <div className="absolute bottom-2 right-2 z-10 flex gap-1.5">
+                    <button type="button" aria-label="Zoom out" onClick={() => zoomOut()} className="p-2 rounded-full bg-black/50 text-white hover:bg-black/70"><ZoomOut className="w-4 h-4" /></button>
+                    <button type="button" aria-label="Reset zoom" onClick={() => resetTransform()} className="p-2 rounded-full bg-black/50 text-white hover:bg-black/70"><RotateCcw className="w-4 h-4" /></button>
+                    <button type="button" aria-label="Zoom in" onClick={() => zoomIn()} className="p-2 rounded-full bg-black/50 text-white hover:bg-black/70"><ZoomIn className="w-4 h-4" /></button>
+                  </div>
+                </>
+              )}
+            </TransformWrapper>
+          </div>
         )}
 
         {/* Content */}
