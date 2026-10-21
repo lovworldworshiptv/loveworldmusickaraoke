@@ -125,7 +125,7 @@ describe("Adding a song whose title already exists", () => {
     await waitFor(() => expect(state.insert).toHaveBeenCalledWith("songs", expect.objectContaining({
       title: "Faithful And Just", album_id: "album-28", album: "Praise Night 28",
       audio_url: "https://cdn.example/faithful.mp3", cover_url: "https://cdn.example/pn28.jpg", has_video: true,
-    }))), { timeout: 4000 });
+    })), { timeout: 4000 });
     await waitFor(() => expect(state.insert).toHaveBeenCalledWith("song_videos", expect.objectContaining({ song_id: "new-song", video_url: state.video.video_url })));
     expect(state.update).not.toHaveBeenCalledWith("songs", expect.anything(), "id", "song-1");
   });
