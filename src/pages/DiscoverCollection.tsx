@@ -26,17 +26,12 @@ const DiscoverCollection = ({ kind }: { kind: Kind }) => {
     queryKey: ["discover-collection", kind, id],
     queryFn: async () => {
       if (kind === "music") {
-        const all: SongRow[] = [];
-        for (let from = 0; ; from += 1000) {
-          const { data } = await db.from("songs").select(SONG_COLUMNS).order("id").range(from, from + 999);
-          all.push(...((data || []) as SongRow[]));
-          if (!data || data.length < 1000) break;
-        }
+        const all = await fetchAllRows<SongRow>((from, to) => db.from("songs").select(SONG_COLUMNS).order("id").range(from, to));
         return { title: "Loveworld Songs & Lyrics", subtitle: "Every song and its lyrics, all in one place", cover: musicHero, songs: sortSongsByTitle(all) };
       }
       if (kind === "karaoke") {
-        const { data } = await db.from("songs").select(SONG_COLUMNS).not("instrumental_url", "is", null);
-        return { title: "Karaoke", subtitle: "Every song you can sing along to", cover: null, songs: sortSongsByTitle((data || []) as SongRow[]) };
+        const data = await fetchAllRows<SongRow>((from, to) => db.from("songs").select(SONG_COLUMNS).not("instrumental_url", "is", null).order("id").range(from, to));
+        return { title: "Karaoke", subtitle: "Every song you can sing along to", cover: null, songs: sortSongsByTitle(data) };
       }
       if (kind === "videos") {
         const { data } = await db.from("songs").select(`${SONG_COLUMNS}, song_videos!inner(id)`)
