@@ -46,6 +46,7 @@ vi.mock("@/integrations/supabase/client", () => {
         },
       }),
       storage: { from: () => ({ list: async () => ({ data: [] }) }) },
+      functions: { invoke: async (_name: string, { body }: { body: { url: string } }) => ({ data: { url: body.url, source: "youtube" }, error: null }) },
     },
   };
 });
