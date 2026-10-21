@@ -73,3 +73,12 @@
 - [x] Praise Night albums from LMM LIVE TV (loveworldmusic.org): 15 albums + 248 songs added, audio linked to outside hosts, no karaoke; 79 without working audio, 23 unopenable pages, 1 full-concert recording skipped.
 - [x] songs_library_v2.csv import: 67 missing songs added (10 HSLHS compilation albums + Loveworld Best Songs Vol 3 created, covers in app assets), no karaoke; skipped 67 without audio, 21 dead/page links, 19 already present under a variant title, repeats already in other albums, 1 full concert. Playback verified.
 - [x] loveworldlyrics.com/albums import: 10 missing albums created (7 new generated covers, 3 source covers in app assets) + 502 songs, audio linked to outside hosts, no karaoke (instrumental pieces use their own audio); skipped 164 already in app, 35 repeat listings, 13 without working audio. Playback verified.
+
+## Scale audit (10k users)
+- [x] Faster lookups for notifications, song videos, games, categories, albums, playlists
+- [x] Access rules checked once per request instead of once per row
+- [x] Old scheduled-job history trimmed, auto-cleared daily (keeps 3 days)
+- [x] Background refresh slowed: bell 2 min, feature switches 5 min, albums/recent no polling, challenge gate 1 min
+- [x] Scheduled notifications hidden until their send time
+- [x] Song lists past 1,000 songs load in full (Library, Manage Songs, playlist pickers, analytics, Stem Studio, Discover karaoke)
+- [ ] Real 10,000-user load test — needs a load-testing service and the user's go-ahead (costs and traffic)
