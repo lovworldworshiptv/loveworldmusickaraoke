@@ -25,10 +25,14 @@ const NotificationCenter = () => {
         .order("created_at", { ascending: false })
         .limit(30);
       if (error) throw error;
-      return data;
+      // Scheduled messages stay hidden until their send time.
+      const now = Date.now();
+      return (data || []).filter((n: any) => !n.notification?.scheduled_at || new Date(n.notification.scheduled_at).getTime() <= now);
     },
     enabled: !!user,
-    refetchInterval: 30000,
+    // Every 2 minutes while the app is on screen, plus whenever the app is reopened.
+    refetchInterval: 120_000,
+    refetchOnWindowFocus: true,
   });
 
   const unreadCount = notifications?.filter((n: any) => !n.is_read).length || 0;
