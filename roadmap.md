@@ -69,3 +69,5 @@
 - [x] Admin self-test page /dev/offline-selftest with copy report + expire/renew tools
 - [x] QA report + manual device checklist
 - [ ] Real-device checks (Android, iPhone, desktop) from the QA report checklist — needs physical phones
+
+- [x] Praise Night albums from LMM LIVE TV (loveworldmusic.org): 15 albums + 248 songs added, audio linked to outside hosts, no karaoke; 79 without working audio, 23 unopenable pages, 1 full-concert recording skipped.
