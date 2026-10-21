@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, RotateCcw, RotateCw, Loader2 } from "lucide-react";
+import { Play, Pause, RotateCcw, RotateCw, Loader2, AlertTriangle } from "lucide-react";
 import PlaybackProgress from "@/components/player/PlaybackProgress";
+import { isKingsSpacePage } from "@/lib/videoLinks";
 
 export interface SongVideo {
   id: string;
@@ -91,6 +92,47 @@ const VideoMode = ({ video, startAt, positionRef, onEnded }: Props) => {
 
   useEffect(() => { endedFiredRef.current = false; }, [video.video_url]);
 
+  // A web-page link (not a video file) can never play — say so instead of spinning forever.
+  const pageLink = !yt && isKingsSpacePage(video.video_url);
+  const [failed, setFailed] = useState<string | null>(
+    pageLink ? "This video link points to a web page, not a video file. Ask an admin to update it." : null,
+  );
+  const [slow, setSlow] = useState(false);
+
+  useEffect(() => {
+    setFailed(pageLink ? "This video link points to a web page, not a video file. Ask an admin to update it." : null);
+    setSlow(false);
+  }, [video.video_url, pageLink]);
+
+  // Show a gentle "slow connection" hint, then a retry prompt if nothing arrives.
+  useEffect(() => {
+    if (ready || failed) { setSlow(false); return; }
+    const hint = window.setTimeout(() => setSlow(true), 6000);
+    const giveUp = window.setTimeout(() => {
+      if (yt || (videoRef.current && videoRef.current.readyState < 2)) {
+        setFailed("This video is taking too long to load. Check your connection and try again.");
+      }
+    }, 30000);
+    return () => { clearTimeout(hint); clearTimeout(giveUp); };
+  }, [ready, failed, yt, video.video_url]);
+
+  const retry = () => {
+    if (pageLink) return;
+    setFailed(null);
+    setReady(false);
+    if (yt) {
+      const f = iframeRef.current;
+      if (f) f.src = f.src;
+      return;
+    }
+    const v = videoRef.current;
+    if (!v) return;
+    const at = v.currentTime || start;
+    v.load();
+    v.addEventListener("loadedmetadata", () => { v.currentTime = at; }, { once: true });
+    v.play().catch(() => setPlaying(false));
+  };
+
   // Slow network: if the video stalls for 10s, re-request it from the same position.
   useEffect(() => {
     if (yt || ready) return;
@@ -106,12 +148,12 @@ const VideoMode = ({ video, startAt, positionRef, onEnded }: Props) => {
   }, [ready, yt]);
 
   useEffect(() => {
-    if (yt) return;
+    if (yt || pageLink) return;
     const player = videoRef.current;
     if (!player) return;
     player.load();
     player.play().catch(() => setPlaying(false));
-  }, [video.video_url, yt]);
+  }, [video.video_url, yt, pageLink]);
 
   const seek = (t: number) => {
     const target = Math.max(0, dur ? Math.min(t, dur) : t);
@@ -123,7 +165,18 @@ const VideoMode = ({ video, startAt, positionRef, onEnded }: Props) => {
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-4 min-h-0 gap-4">
       <div className="relative w-full max-w-3xl aspect-video rounded-2xl overflow-hidden glass-card glow-gold bg-background">
-        {!ready && <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70"><Loader2 className="w-7 h-7 animate-spin text-gold" /></div>}
+        {failed ? (
+          <div role="alert" className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-background/90 px-6 text-center">
+            <AlertTriangle className="w-7 h-7 text-gold" />
+            <p className="text-sm text-foreground font-medium">{failed}</p>
+            <button onClick={retry} className="px-4 py-2 rounded-full bg-gold text-primary-foreground text-sm font-semibold hover:opacity-90">Try again</button>
+          </div>
+        ) : !ready && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background/70">
+            <Loader2 className="w-7 h-7 animate-spin text-gold" />
+            {slow && <p className="text-xs text-muted-foreground">Slow connection — still loading…</p>}
+          </div>
+        )}
         {yt ? (
           <iframe
             ref={iframeRef}
@@ -135,7 +188,7 @@ const VideoMode = ({ video, startAt, positionRef, onEnded }: Props) => {
             allowFullScreen
             loading="eager"
           />
-        ) : (
+        ) : pageLink ? null : (
           <video
             ref={videoRef}
             src={video.video_url}
@@ -146,9 +199,10 @@ const VideoMode = ({ video, startAt, positionRef, onEnded }: Props) => {
             playsInline
             onClick={toggle}
             onLoadedMetadata={(e) => { if (e.currentTarget.currentTime < 0.5) e.currentTarget.currentTime = start; setDur(e.currentTarget.duration); }}
-            onPlaying={() => setReady(true)}
+            onPlaying={() => { setReady(true); setFailed(null); }}
             onCanPlay={(e) => { setReady(true); e.currentTarget.play().catch(() => setPlaying(false)); }}
             onWaiting={() => setReady(false)}
+            onError={() => { setReady(true); setFailed("This video couldn't be played. Check your connection and try again."); }}
             onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
             onPlay={() => setPlaying(true)}
             onPause={() => setPlaying(false)}
