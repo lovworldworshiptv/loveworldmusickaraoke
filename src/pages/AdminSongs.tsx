@@ -368,11 +368,10 @@ const AdminSongs = () => {
     if (!form.title.trim()) { toast.error("Title required"); return; }
     let videoUrl = form.video_url.trim();
     if (videoUrl && !/^https:\/\//i.test(videoUrl)) { toast.error("Enter a full https:// video link"); return; }
+    const meta = videoUrl && videoImport && videoImport.video_url === videoUrl ? videoImport : null;
     if (videoUrl) {
       try {
-        const resolved = await resolveVideoLink(videoUrl);
-        if (videoImport && videoImport.video_url === videoUrl) setVideoImport({ ...videoImport, video_url: resolved.url });
-        videoUrl = resolved.url;
+        videoUrl = (await resolveVideoLink(videoUrl)).url;
       } catch (e) {
         toast.error("Video link: " + (e instanceof Error ? e.message : "couldn't be checked"));
         return;
@@ -395,7 +394,6 @@ const AdminSongs = () => {
     }
 
     if (videoUrl) {
-      const meta = videoImport && videoImport.video_url === videoUrl ? videoImport : null;
       const yt = youTubeId(videoUrl);
       const { error: videoError } = await supabase.from("song_videos").insert({
         song_id: newSong.id, video_url: videoUrl,
