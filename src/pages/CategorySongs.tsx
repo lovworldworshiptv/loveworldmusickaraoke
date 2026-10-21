@@ -4,6 +4,7 @@ import { useSaveSong } from "@/hooks/useSaveSong";
 import DownloadAllButton from "@/components/offline/DownloadAllButton";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { SONG_ROW_COLUMNS } from "@/lib/fetchAll";
 import { useQuery } from "@tanstack/react-query";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { Music, Play, Pause, Shuffle, ListMusic } from "lucide-react";
@@ -31,7 +32,7 @@ const CategorySongs = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("songs")
-        .select("*")
+        .select(SONG_ROW_COLUMNS)
         .eq("category_id", id!);
       const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
       return (data || []).sort((a: any, b: any) => collator.compare(a.title || "", b.title || ""));

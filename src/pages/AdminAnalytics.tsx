@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAll";
 import { CHANNEL_LABELS } from "@/lib/acquisitionAnalytics";
 
 type Range = "7d" | "30d" | "all";
@@ -45,7 +46,7 @@ const AdminAnalytics = () => {
     queryFn: async () => {
       const results = await Promise.all([
         supabase.from("profiles").select("user_id, username, avatar_url, region, zone, created_at, profile_completed").order("created_at", { ascending: false }),
-        supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, category_id, has_video, is_featured").order("title"),
+        fetchAllRows((from, to) => supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, category_id, has_video, is_featured").order("title").order("id").range(from, to)).then((data) => ({ data, error: null }), (error) => ({ data: null, error })),
         supabase.from("play_events").select("user_id, song_id, mode, created_at").order("created_at", { ascending: false }).limit(5000),
         supabase.from("favorites").select("user_id, song_id").limit(5000),
         supabase.from("downloads").select("user_id, song_id").is("deleted_at", null).limit(5000),

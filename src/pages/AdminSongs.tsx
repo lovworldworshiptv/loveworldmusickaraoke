@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows, SONG_ROW_COLUMNS } from "@/lib/fetchAll";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsEditor } from "@/hooks/useIsEditor";
 import { Music, Upload, Save, Plus, Trash2, Edit3, X, Play, Pause, Square, MousePointer, FileAudio, ChevronDown, Rewind, FastForward, Pencil, Check, CheckCircle, Wand2, Loader2, Search, SlidersHorizontal, Languages } from "lucide-react";
@@ -258,8 +259,8 @@ const AdminSongs = () => {
   };
 
   const fetchSongs = async () => {
-    const { data } = await supabase.from("songs").select("*").order("created_at", { ascending: false });
-    if (data) setSongs(sortSongsByTitle(data));
+    const data = await fetchAllRows((from, to) => supabase.from("songs").select(SONG_ROW_COLUMNS).order("created_at", { ascending: false }).order("id").range(from, to)).catch(() => null);
+    if (data) setSongs(sortSongsByTitle(data as Song[]));
     setLoading(false);
   };
   fetchSongsRef.current = fetchSongs;

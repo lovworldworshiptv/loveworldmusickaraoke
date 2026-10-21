@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows, SONG_ROW_COLUMNS } from "@/lib/fetchAll";
 import { BookOpen, Type, Video, Headphones, FileText, Music, X, ChevronRight, Minus, Plus, Search, Play } from "lucide-react";
 import ShareInviteButton from "@/components/articles/ShareInviteButton";
 import BibleWidget from "@/components/articles/BibleWidget";
@@ -109,7 +110,7 @@ const Articles = () => {
     setShowSongSuggestion(false);
     // Fetch songs for the picker
     if (allSongs.length === 0) {
-      const { data } = await supabase.from("songs").select("id, title, artist, cover_url, audio_url, duration_seconds").not("audio_url", "is", null).order("title");
+      const data = await fetchAllRows((from, to) => supabase.from("songs").select("id, title, artist, cover_url, audio_url, duration_seconds").not("audio_url", "is", null).order("title").order("id").range(from, to)).catch(() => null);
       if (data) setAllSongs(sortSongsByTitle(data));
     }
     setShowSongPicker(true);
@@ -128,7 +129,7 @@ const Articles = () => {
   const handleRandomFeatured = async () => {
     const { data } = await supabase
       .from("songs")
-      .select("*")
+      .select(SONG_ROW_COLUMNS)
       .eq("is_featured", true)
       .not("audio_url", "is", null);
     if (data && data.length > 0) {
