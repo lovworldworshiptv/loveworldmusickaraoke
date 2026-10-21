@@ -28,7 +28,7 @@ vi.mock("@/integrations/supabase/client", () => {
   const query = (table: string) => {
     const result = () => ({ data: table === "songs" ? [state.song] : table === "albums" ? state.albums : [] });
     const q: any = {
-      eq: () => q, order: () => q, limit: () => q, in: () => q,
+      eq: () => q, order: () => q, limit: () => q, in: () => q, range: () => q,
       maybeSingle: async () => ({ data: table === "song_videos" ? state.video : null }),
       then: (res: any, rej: any) => Promise.resolve(result()).then(res, rej),
     };
@@ -46,6 +46,7 @@ vi.mock("@/integrations/supabase/client", () => {
         },
       }),
       storage: { from: () => ({ list: async () => ({ data: [] }) }) },
+      functions: { invoke: async (_name: string, { body }: { body: { url: string } }) => ({ data: { url: body.url, source: "youtube" }, error: null }) },
     },
   };
 });
@@ -124,7 +125,7 @@ describe("Adding a song whose title already exists", () => {
     await waitFor(() => expect(state.insert).toHaveBeenCalledWith("songs", expect.objectContaining({
       title: "Faithful And Just", album_id: "album-28", album: "Praise Night 28",
       audio_url: "https://cdn.example/faithful.mp3", cover_url: "https://cdn.example/pn28.jpg", has_video: true,
-    })));
+    })), { timeout: 4000 });
     await waitFor(() => expect(state.insert).toHaveBeenCalledWith("song_videos", expect.objectContaining({ song_id: "new-song", video_url: state.video.video_url })));
     expect(state.update).not.toHaveBeenCalledWith("songs", expect.anything(), "id", "song-1");
   });

@@ -186,7 +186,7 @@ export const useReferralGateStatus = (challengeId?: string) => {
     },
     enabled: !!user?.id && !!challengeId,
     staleTime: 5_000,
-    refetchInterval: 15_000,
+    refetchInterval: 60_000,
   });
 };
 

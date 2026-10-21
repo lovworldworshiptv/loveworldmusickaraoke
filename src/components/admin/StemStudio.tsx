@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAll";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Bell, CheckCheck, Headphones, Layers, Loader2, Pause, Play, RefreshCw } from "lucide-react";
@@ -95,7 +96,7 @@ export default function StemStudio({ onStatusChange, refreshKey = 0 }: { onStatu
   };
 
   const loadMissing = useCallback(async () => {
-    const { data } = await supabase.from("songs").select("id, title, artist, audio_url").is("instrumental_url", null);
+    const data = await fetchAllRows((from, to) => supabase.from("songs").select("id, title, artist, audio_url").is("instrumental_url", null).order("id").range(from, to)).catch(() => null);
     setMissing(sortSongsByTitle((data ?? []) as any));
   }, []);
   useEffect(() => { loadMissing(); }, [loadMissing, refreshKey, summary]);

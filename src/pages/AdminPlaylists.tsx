@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAll";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsEditor } from "@/hooks/useIsEditor";
 import { useAuth } from "@/contexts/AuthContext";
@@ -191,7 +192,7 @@ const AdminPlaylists = () => {
     setSongSearch("");
 
     const [{ data: songs }, { data: existing }] = await Promise.all([
-      supabase.from("songs").select("id, title, artist, cover_url").order("title"),
+      fetchAllRows((from, to) => supabase.from("songs").select("id, title, artist, cover_url").order("title").order("id").range(from, to)).then((data) => ({ data }), () => ({ data: null })),
       supabase.from("playlist_songs").select("song_id").eq("playlist_id", playlistId),
     ]);
 

@@ -4,7 +4,6 @@ import { sortSongsByTitle } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
 export const useAlbums = () => useQuery({
   queryKey: ["all-albums"],
-  refetchInterval: 30_000,
   queryFn: async () => {
     const albums: Tables<"albums">[] = [];
     for (let offset = 0; ; offset += 1000) {

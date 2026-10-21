@@ -29,7 +29,6 @@ const RecentlyPlayed = () => {
         return true;
       }).slice(0, 8);
     },
-    refetchInterval: 30000,
   });
 
   useEffect(() => {

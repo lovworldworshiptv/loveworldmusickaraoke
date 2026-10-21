@@ -29,9 +29,18 @@ export function FeatureProvider({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => {
     void refresh();
-    const timer = window.setInterval(refresh, 30000);
-    window.addEventListener("focus", refresh);
-    return () => { clearInterval(timer); window.removeEventListener("focus", refresh); };
+    // Re-check every 5 minutes while visible, and when the app comes back on screen (at most once a minute).
+    let last = Date.now();
+    const maybeRefresh = (minGap: number) => {
+      if (document.visibilityState !== "visible" || Date.now() - last < minGap) return;
+      last = Date.now();
+      void refresh();
+    };
+    const timer = window.setInterval(() => maybeRefresh(0), 5 * 60_000);
+    const onShow = () => maybeRefresh(60_000);
+    window.addEventListener("focus", onShow);
+    document.addEventListener("visibilitychange", onShow);
+    return () => { clearInterval(timer); window.removeEventListener("focus", onShow); document.removeEventListener("visibilitychange", onShow); };
   }, [refresh]);
   const enabled = useCallback((id: FeatureId) => !loading && isFeatureEnabled(values, id), [loading, values]);
   const pathEnabled = useCallback((path: string) => {

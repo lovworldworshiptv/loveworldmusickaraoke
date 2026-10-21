@@ -6,6 +6,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAll";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ListMusic, Plus, Trash2, Play, Music, Shuffle, Pencil, Check, X, Minus, ChevronDown, Search, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -115,7 +116,7 @@ const Playlists = () => {
     setManagingSongsPlaylistId(playlistId);
     setSongSearch("");
     const [{ data: songs }, { data: existing }] = await Promise.all([
-      supabase.from("songs").select("id, title, artist, cover_url").order("title"),
+      fetchAllRows((from, to) => supabase.from("songs").select("id, title, artist, cover_url").order("title").order("id").range(from, to)).then((data) => ({ data }), () => ({ data: null })),
       supabase.from("playlist_songs").select("song_id").eq("playlist_id", playlistId),
     ]);
     setAllSongs(sortSongsByTitle(songs || []));

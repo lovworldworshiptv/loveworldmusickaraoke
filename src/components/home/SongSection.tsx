@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { SONG_ROW_COLUMNS } from "@/lib/fetchAll";
 import SongCard from "./SongCard";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useNavigate } from "react-router-dom";
@@ -15,7 +16,7 @@ const SongSection = ({ title }: SongSectionProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    supabase.from("songs").select("*").eq("is_featured", true).order("play_count", { ascending: false }).limit(10)
+    supabase.from("songs").select(SONG_ROW_COLUMNS).eq("is_featured", true).order("play_count", { ascending: false }).limit(10)
       .then(({ data }) => {
         if (data) {
           setSongs(data.map(s => ({

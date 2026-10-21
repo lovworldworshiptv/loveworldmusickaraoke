@@ -7,6 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAll";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,9 +112,8 @@ const Library = () => {
     queryKey: ["library-songs"],
     enabled: isOnline,
     queryFn: async () => {
-      const { data, error } = await supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, duration_seconds, album, is_free_download").order("title");
-      if (error) throw error;
-      return sortSongsByTitle((data || []) as SongRow[]);
+      const data = await fetchAllRows((from, to) => supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, duration_seconds, album, is_free_download").order("title").order("id").range(from, to));
+      return sortSongsByTitle(data as SongRow[]);
     },
   });
 
