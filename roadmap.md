@@ -71,3 +71,4 @@
 - [ ] Real-device checks (Android, iPhone, desktop) from the QA report checklist — needs physical phones
 
 - [x] Praise Night albums from LMM LIVE TV (loveworldmusic.org): 15 albums + 248 songs added, audio linked to outside hosts, no karaoke; 79 without working audio, 23 unopenable pages, 1 full-concert recording skipped.
+- [x] songs_library_v2.csv import: 67 missing songs added (10 HSLHS compilation albums + Loveworld Best Songs Vol 3 created, covers in app assets), no karaoke; skipped 67 without audio, 21 dead/page links, 19 already present under a variant title, repeats already in other albums, 1 full concert. Playback verified.
