@@ -1,5 +1,6 @@
 # Roadmap
 - [x] Praise Night Discover card: nine matching albums, edition 28 cover, album open/back flow and loaded artwork verified; three selection tests pass.
+- [x] Praise Night 29: 17 missing songs ingested from loveworldlyrics.com (lyrics, audio in app storage, album cover, durations); album now 26 songs, playback and search verified; 16 karaoke tracks queued.
 - [x] My Referrals: every stat box opens its breakdown
 - [x] Admin on/off switch for the whole referral feature
 - [x] Onboarding refresh reflecting new features, fully CMS-managed (badge, order, preview)
