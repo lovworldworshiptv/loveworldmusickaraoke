@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, RotateCcw, RotateCw, Loader2 } from "lucide-react";
+import { Play, Pause, RotateCcw, RotateCw, Loader2, AlertTriangle } from "lucide-react";
 import PlaybackProgress from "@/components/player/PlaybackProgress";
+import { isKingsSpacePage } from "@/lib/videoLinks";
 
 export interface SongVideo {
   id: string;
@@ -91,6 +92,47 @@ const VideoMode = ({ video, startAt, positionRef, onEnded }: Props) => {
 
   useEffect(() => { endedFiredRef.current = false; }, [video.video_url]);
 
+  // A web-page link (not a video file) can never play — say so instead of spinning forever.
+  const pageLink = !yt && isKingsSpacePage(video.video_url);
+  const [failed, setFailed] = useState<string | null>(
+    pageLink ? "This video link points to a web page, not a video file. Ask an admin to update it." : null,
+  );
+  const [slow, setSlow] = useState(false);
+
+  useEffect(() => {
+    setFailed(pageLink ? "This video link points to a web page, not a video file. Ask an admin to update it." : null);
+    setSlow(false);
+  }, [video.video_url, pageLink]);
+
+  // Show a gentle "slow connection" hint, then a retry prompt if nothing arrives.
+  useEffect(() => {
+    if (ready || failed) { setSlow(false); return; }
+    const hint = window.setTimeout(() => setSlow(true), 6000);
+    const giveUp = window.setTimeout(() => {
+      if (yt || (videoRef.current && videoRef.current.readyState < 2)) {
+        setFailed("This video is taking too long to load. Check your connection and try again.");
+      }
+    }, 30000);
+    return () => { clearTimeout(hint); clearTimeout(giveUp); };
+  }, [ready, failed, yt, video.video_url]);
+
+  const retry = () => {
+    if (pageLink) return;
+    setFailed(null);
+    setReady(false);
+    if (yt) {
+      const f = iframeRef.current;
+      if (f) f.src = f.src;
+      return;
+    }
+    const v = videoRef.current;
+    if (!v) return;
+    const at = v.currentTime || start;
+    v.load();
+    v.addEventListener("loadedmetadata", () => { v.currentTime = at; }, { once: true });
+    v.play().catch(() => setPlaying(false));
+  };
+
   // Slow network: if the video stalls for 10s, re-request it from the same position.
   useEffect(() => {
     if (yt || ready) return;
@@ -106,12 +148,12 @@ const VideoMode = ({ video, startAt, positionRef, onEnded }: Props) => {
   }, [ready, yt]);
 
   useEffect(() => {
-    if (yt) return;
+    if (yt || pageLink) return;
     const player = videoRef.current;
     if (!player) return;
     player.load();
     player.play().catch(() => setPlaying(false));
-  }, [video.video_url, yt]);
+  }, [video.video_url, yt, pageLink]);
 
   const seek = (t: number) => {
     const target = Math.max(0, dur ? Math.min(t, dur) : t);
