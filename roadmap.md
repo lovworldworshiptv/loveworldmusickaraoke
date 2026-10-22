@@ -74,7 +74,7 @@
 - [x] songs_library_v2.csv import: 67 missing songs added (10 HSLHS compilation albums + Loveworld Best Songs Vol 3 created, covers in app assets), no karaoke; skipped 67 without audio, 21 dead/page links, 19 already present under a variant title, repeats already in other albums, 1 full concert. Playback verified.
 - [x] loveworldlyrics.com/albums import: 10 missing albums created (7 new generated covers, 3 source covers in app assets) + 502 songs, audio linked to outside hosts, no karaoke (instrumental pieces use their own audio); skipped 164 already in app, 35 repeat listings, 13 without working audio. Playback verified.
 - [x] KingsSpace channel 2104 video import: 654 direct MP4 videos linked (all files checked: playable, quick-start), songs with video 87 → 741; Videos lists paged past 1,000
-- [ ] 19 doubtful KingsSpace title matches held back — waiting on the user's review (kingsspace_videos_held_for_review.csv)
+- [x] 19 doubtful KingsSpace title matches reviewed by the user: all are different songs, none linked
 - [ ] YouTube batch (505 matches) — waiting on the user's go-ahead; many now covered by KingsSpace
 
 ## Scale audit (10k users)
