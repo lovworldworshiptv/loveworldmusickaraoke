@@ -1,9 +1,13 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
+const unauthorized = () =>
+  new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: jsonHeaders });
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -12,9 +16,7 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-    }
+    if (!authHeader?.startsWith("Bearer ")) return unauthorized();
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -24,11 +26,11 @@ Deno.serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    const userId = claimsData?.claims?.sub as string | undefined;
+    if (claimsError || !userId) {
+      console.warn("sync-onesignal-tag: rejected token", claimsError?.message ?? "no user in token");
+      return unauthorized();
     }
-
-    const userId = claimsData.claims.sub as string;
 
     // Get user subscription
     const { data: sub } = await supabase
