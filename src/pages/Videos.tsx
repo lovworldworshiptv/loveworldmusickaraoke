@@ -9,6 +9,7 @@ import { Play, Search, Video as VideoIcon, Clapperboard } from "lucide-react";
 import { SongRowSkeleton, EmptyState } from "@/components/ui/loading-skeleton";
 import { SONG_COLUMNS, toPlayerSong, type SongRow } from "@/lib/homeSongs";
 import { sortSongsByTitle } from "@/lib/utils";
+import { fetchAllRows } from "@/lib/fetchAll";
 
 type VideoSongRow = SongRow & {
   song_videos: { video_type: string; thumbnail_url: string | null }[];
@@ -29,15 +30,17 @@ const Videos = () => {
   const { data: songs = [], isLoading } = useQuery({
     queryKey: ["videos-hub"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Paged so the list never stops at the backend's 1,000-row cap.
+      const data = await fetchAllRows<VideoSongRow>((from, to) => supabase
         .from("songs")
         .select(`${SONG_COLUMNS}, song_videos!inner(video_type, thumbnail_url)`)
         .eq("has_video", true)
-        .eq("song_videos.is_active", true);
-      if (error) throw error;
+        .eq("song_videos.is_active", true)
+        .order("id")
+        .range(from, to) as unknown as PromiseLike<{ data: VideoSongRow[] | null; error: unknown }>);
       // Dedupe: a song with several videos appears once per video row.
       const seen = new Set<string>();
-      const deduped = ((data as VideoSongRow[] | null) || []).filter((s) => {
+      const deduped = data.filter((s) => {
         if (seen.has(s.id)) return false;
         seen.add(s.id);
         return true;
