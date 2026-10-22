@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       .from("user_subscriptions")
       .select("subscription")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     const subscription = sub?.subscription || "free";
 
@@ -58,12 +58,12 @@ Deno.serve(async (req) => {
       }),
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => null);
 
     return new Response(JSON.stringify({ success: res.ok, subscription, data }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: jsonHeaders,
     });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: jsonHeaders });
   }
 });
