@@ -35,8 +35,8 @@ const DiscoverCollection = ({ kind }: { kind: Kind }) => {
         return { title: "Karaoke", subtitle: "Every song you can sing along to", cover: null, songs: sortSongsByTitle(data) };
       }
       if (kind === "videos") {
-        const { data } = await db.from("songs").select(`${SONG_COLUMNS}, song_videos!inner(id)`)
-          .eq("has_video", true).eq("song_videos.is_active", true);
+        const data = await fetchAllRows<SongRow>((from, to) => db.from("songs").select(`${SONG_COLUMNS}, song_videos!inner(id)`)
+          .eq("has_video", true).eq("song_videos.is_active", true).order("id").range(from, to));
         const seen = new Set<string>();
         const songs = ((data || []) as SongRow[]).filter((s) => !seen.has(s.id) && seen.add(s.id));
         return { title: "Videos", subtitle: "Every song with a video", cover: null, songs: sortSongsByTitle(songs) };
