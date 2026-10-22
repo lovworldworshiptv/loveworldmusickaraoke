@@ -42,9 +42,23 @@ export const useOneSignalSync = () => {
 
   const syncSubscriptionTag = async () => {
     try {
-      await supabase.functions.invoke("sync-onesignal-tag");
+      // Only call the function with a live, signed-in session. If the stored
+      // session could not be refreshed, the client would otherwise fall back to
+      // the public key and the function would (correctly) answer 401.
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token || (user && session.user.id !== user.id)) return;
+
+      const { error } = await supabase.functions.invoke("sync-onesignal-tag", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (error) {
+        const status = (error as any)?.context?.status;
+        if (status === 401) return; // session ended; the next sign-in re-syncs
+        console.warn("OneSignal tag sync failed:", error.message);
+      }
     } catch (err) {
-      console.error("Failed to sync OneSignal tag:", err);
+      console.warn("OneSignal tag sync failed:", err);
     }
   };
 
