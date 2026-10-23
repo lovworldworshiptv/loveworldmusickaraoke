@@ -26,6 +26,7 @@ const Videos = () => {
   const { playVideo, currentSong } = usePlayer();
   const { save, canSave } = useSaveSong();
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("All");
 
   const { data: songs = [], isLoading } = useQuery({
     queryKey: ["videos-hub"],
@@ -49,10 +50,26 @@ const Videos = () => {
     },
   });
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ["video-filter-categories"],
+    queryFn: async () => {
+      const { data } = await supabase.from("categories").select("id,name");
+      return data || [];
+    },
+  });
+
+  const norm = (n: string) => n.toLowerCase().replace(/&/g, "and").replace(/[^a-z]/g, "");
+  const catId = (label: string) => categories.find((c) => norm(c.name) === norm(label))?.id;
+
   const q = search.trim().toLowerCase();
-  const filtered = q
+  let filtered = q
     ? songs.filter((s) => s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q))
     : songs;
+  if (filter !== "All" && filter !== "A-Z" && filter !== "Z-A") {
+    const id = catId(filter);
+    filtered = filtered.filter((s) => s.category_id === id);
+  }
+  if (filter === "Z-A") filtered = [...filtered].reverse();
 
   const formatDuration = (sec: number) => `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, "0")}`;
 
