@@ -218,6 +218,13 @@
       "when": 1792781582337,
       "tag": "0030_songs_default_artist",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792782931949,
+      "tag": "0031_karaoke_recording_free_songs_only",
+      "breakpoints": true
     }
   ]
 }
