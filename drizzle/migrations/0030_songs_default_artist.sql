@@ -1,0 +1,1 @@
+ALTER TABLE public.songs ALTER COLUMN artist SET DEFAULT 'Loveworld Singers';

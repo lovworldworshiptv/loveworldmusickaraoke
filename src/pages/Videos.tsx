@@ -26,6 +26,7 @@ const Videos = () => {
   const { playVideo, currentSong } = usePlayer();
   const { save, canSave } = useSaveSong();
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("All");
 
   const { data: songs = [], isLoading } = useQuery({
     queryKey: ["videos-hub"],
@@ -49,10 +50,26 @@ const Videos = () => {
     },
   });
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ["video-filter-categories"],
+    queryFn: async () => {
+      const { data } = await supabase.from("categories").select("id,name");
+      return data || [];
+    },
+  });
+
+  const norm = (n: string) => n.toLowerCase().replace(/&/g, "and").replace(/[^a-z]/g, "");
+  const catId = (label: string) => categories.find((c) => norm(c.name) === norm(label))?.id;
+
   const q = search.trim().toLowerCase();
-  const filtered = q
+  let filtered = q
     ? songs.filter((s) => s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q))
     : songs;
+  if (filter !== "All" && filter !== "A-Z" && filter !== "Z-A") {
+    const id = catId(filter);
+    filtered = filtered.filter((s) => s.category_id === id);
+  }
+  if (filter === "Z-A") filtered = [...filtered].reverse();
 
   const formatDuration = (sec: number) => `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, "0")}`;
 
@@ -69,7 +86,7 @@ const Videos = () => {
           </div>
         </div>
 
-        <div className="relative mb-6">
+        <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             value={search}
@@ -77,6 +94,23 @@ const Videos = () => {
             placeholder="Search videos…"
             className="w-full bg-card/60 backdrop-blur-xl border border-border/50 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-400/40"
           />
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 mb-6 pb-1" role="group" aria-label="Filter videos">
+          {["All", "Praise & Worship", "Healing", "Salvation", "Christmas", "Orchestra", "Medleys", "Communion", "A-Z", "Z-A"].map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              aria-pressed={filter === f}
+              className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold border backdrop-blur-xl transition-colors touch-manipulation ${
+                filter === f
+                  ? "bg-gradient-to-br from-amber-400 to-amber-600 text-foreground border-amber-400/60"
+                  : "bg-card/60 text-foreground border-border/50"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
         </div>
 
         {isLoading ? (
