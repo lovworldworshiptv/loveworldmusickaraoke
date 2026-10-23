@@ -225,6 +225,13 @@
       "when": 1792782931949,
       "tag": "0031_karaoke_recording_free_songs_only",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792783186647,
+      "tag": "0032_restore_role_guards",
+      "breakpoints": true
     }
   ]
 }
