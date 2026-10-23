@@ -21,3 +21,4 @@
 <!-- LOVABLE:END -->
 - Subdirectories may have their own AGENTS.md (e.g. src/lib/secureDownloads for encrypted offline downloads); read it before changing files there.
 - Pasted song-video links are checked by the resolve-video-url function (admins/editors) before saving: KingsSpace watch pages resolve to their direct video file and web pages are rejected — why: song_videos.video_url must always be a playable file or YouTube link.
+- Free-song access (songs.is_free_download) is decided client-side by canUseSong/isFreeSong in src/lib/freeSongs.ts, which also checks an on-demand cached set of free song IDs; offline entitlement stays server-side in offline-media — why: many lists build player songs without the flag, and the server remains the authority for saves.
