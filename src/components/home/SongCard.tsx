@@ -3,6 +3,7 @@ import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { memo, useState, useEffect, useCallback } from "react";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsPremium } from "@/hooks/useIsPremium";
+import { canUseSong, isFreeSong, useFreeSongIds } from "@/lib/freeSongs";
 import { isDownloaded as checkDownloaded, saveDownload } from "@/lib/downloadManager";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -23,7 +24,8 @@ const SongCard = memo(({ song, index, allSongs }: SongCardProps) => {
   const { isAdmin } = useIsAdmin();
   const { isPremium } = useIsPremium();
   const isActive = currentSong?.id === song.id;
-  const canDl = isPremium || !!song.isFreeDownload;
+  const freeIds = useFreeSongIds();
+  const canDl = canUseSong(isPremium, song, freeIds);
 
   const { status } = useSongDownload(song.id);
   const [legacySaved, setLegacySaved] = useState(false);
@@ -54,7 +56,7 @@ const SongCard = memo(({ song, index, allSongs }: SongCardProps) => {
         id: song.id, title: song.title, artist: song.artist,
         coverUrl: song.coverUrl, lyricsLrc: song.lyricsLrc,
         durationSeconds: song.durationSeconds || 0, album: song.album,
-        isFreeDownload: !!song.isFreeDownload, downloadedAt: Date.now(),
+        isFreeDownload: isFreeSong(song, freeIds), downloadedAt: Date.now(),
       }, song.instrumentalUrl);
       toast.success(`Saved “${song.title}” for offline listening`);
     } catch (e) {

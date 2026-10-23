@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsPremium } from "@/hooks/useIsPremium";
+import { canUseSong, isFreeSong, useFreeSongIds } from "@/lib/freeSongs";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { isDownloaded as checkDownloaded, saveDownload, getDownloadedTrack, getDownloadedVideoUrl } from "@/lib/downloadManager";
 import DownloadButton from "@/components/offline/DownloadButton";
@@ -200,7 +201,10 @@ const ExpandedPlayer = () => {
   const dlUi = legacySaved && !dl.status ? "done" : downloadUiState(dl.status, dl.active);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
-  const canDl = isPremium || !!currentSong?.isFreeDownload;
+  const freeIds = useFreeSongIds();
+  /** Free songs are fully open (save, karaoke recording) to every listener. */
+  const canDl = canUseSong(isPremium, currentSong, freeIds);
+  const canRecord = canDl;
   const VolumeIcon = volume === 0 ? VolumeX : Volume2;
 
   useEffect(() => {
@@ -216,14 +220,14 @@ const ExpandedPlayer = () => {
         id: currentSong.id, title: currentSong.title, artist: currentSong.artist,
         coverUrl: currentSong.coverUrl, lyricsLrc: currentSong.lyricsLrc,
         durationSeconds: currentSong.durationSeconds || 0, album: currentSong.album,
-        isFreeDownload: !!currentSong.isFreeDownload, downloadedAt: Date.now(),
+        isFreeDownload: isFreeSong(currentSong, freeIds), downloadedAt: Date.now(),
       }, currentSong.instrumentalUrl);
       toast.success(`Saved “${currentSong.title}” for offline listening`);
     } catch (e) {
       const msg = (e as Error)?.message || "";
       if (msg !== "Download cancelled") toast.error(msg.startsWith("Sign in") ? msg : "Couldn't save this song — tap to try again");
     }
-  }, [currentSong, canDl]);
+  }, [currentSong, canDl, freeIds]);
   const dlMenuAction = () => {
     if (!currentSong?.audioUrl) return;
     if (dlUi === "downloading" || dlUi === "queued") pauseItem(currentSong.id);
@@ -322,7 +326,7 @@ const ExpandedPlayer = () => {
                     className="-my-2"
                   />
                 )}
-                {recordFeatureEnabled && (isPremium ? (
+                {recordFeatureEnabled && (canRecord ? (
                   <button onClick={() => { if (!isKaraoke) toggleKaraoke(); setShowRecorder(true); }} className="text-destructive/70 hover:text-destructive p-1" title="Record Karaoke">
                     <Disc3 className={`w-5 h-5 ${isRecordingActive ? "animate-spin" : ""}`} />
                   </button>
@@ -412,7 +416,7 @@ const ExpandedPlayer = () => {
             ))}
           </div>
           {mode !== "video" && enabled("translations") && <LyricsLanguageSheet />}
-          {recordFeatureEnabled && (isPremium ? (
+          {recordFeatureEnabled && (canRecord ? (
             <button
               onClick={() => { if (!isKaraoke) toggleKaraoke(); setShowRecorder(true); setShowLyrics(true); }}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
@@ -435,10 +439,11 @@ const ExpandedPlayer = () => {
 
 
         {/* Karaoke Recorder Panel - minimizable */}
-        {showRecorder && isPremium && currentSong && (
+        {showRecorder && canRecord && currentSong && (
           <div className={`px-6 mb-3 flex-shrink-0 ${recorderMinimized ? 'hidden' : ''}`}>
             <KaraokeRecorder
               songId={currentSong.id}
+              allowed={canRecord}
               songTitle={currentSong.title}
               instrumentalUrl={currentSong.instrumentalUrl}
               isKaraokeMode={isKaraoke}
@@ -636,12 +641,12 @@ const ExpandedPlayer = () => {
           {/* Record */}
           {recordFeatureEnabled && (
             <button
-              onClick={() => { setShowMobileMenu(false); if (isPremium) { if (!isKaraoke) toggleKaraoke(); setShowRecorder(true); } else setShowUpgrade(true); }}
+              onClick={() => { setShowMobileMenu(false); if (canRecord) { if (!isKaraoke) toggleKaraoke(); setShowRecorder(true); } else setShowUpgrade(true); }}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm hover:bg-muted transition-colors text-foreground"
             >
               <Disc3 className={`w-5 h-5 ${isRecordingActive ? "animate-spin text-destructive" : "text-destructive/70"}`} />
               Record Karaoke
-              {!isPremium && <Crown className="w-3.5 h-3.5 text-gold ml-auto" />}
+              {!canRecord && <Crown className="w-3.5 h-3.5 text-gold ml-auto" />}
             </button>
           )}
           {/* Karaoke Toggle */}
