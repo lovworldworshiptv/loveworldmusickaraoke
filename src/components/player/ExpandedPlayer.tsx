@@ -443,6 +443,7 @@ const ExpandedPlayer = () => {
           <div className={`px-6 mb-3 flex-shrink-0 ${recorderMinimized ? 'hidden' : ''}`}>
             <KaraokeRecorder
               songId={currentSong.id}
+              allowed={canRecord}
               songTitle={currentSong.title}
               instrumentalUrl={currentSong.instrumentalUrl}
               isKaraokeMode={isKaraoke}
