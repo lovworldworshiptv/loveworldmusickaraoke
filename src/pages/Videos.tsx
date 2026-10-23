@@ -96,6 +96,23 @@ const Videos = () => {
           />
         </div>
 
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 mb-6 pb-1" role="group" aria-label="Filter videos">
+          {["All", "Praise & Worship", "Healing", "Salvation", "Christmas", "Orchestra", "Medleys", "Communion", "A-Z", "Z-A"].map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              aria-pressed={filter === f}
+              className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold border backdrop-blur-xl transition-colors touch-manipulation ${
+                filter === f
+                  ? "bg-gradient-to-br from-amber-400 to-amber-600 text-foreground border-amber-400/60"
+                  : "bg-card/60 text-foreground border-border/50"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
         {isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => <SongRowSkeleton key={i} />)}
