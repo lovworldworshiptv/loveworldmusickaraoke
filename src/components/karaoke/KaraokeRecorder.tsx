@@ -8,6 +8,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsPremium } from "@/hooks/useIsPremium";
+import { canUseSong, useFreeSongIds } from "@/lib/freeSongs";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -177,6 +178,8 @@ const WaveformVisualizer = ({ audioUrl, isPlaying, progress }: { audioUrl: strin
 const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, onClose, onRecordingStateChange, onMinimize, externalStopRef }: KaraokeRecorderProps) => {
   const { user } = useAuth();
   const { isPremium } = useIsPremium();
+  const freeIds = useFreeSongIds();
+  const canRecord = canUseSong(isPremium, { id: songId }, freeIds);
   const navigate = useNavigate();
   const { isPlaying, togglePlay } = usePlayer();
   const [recording, setRecording] = useState(false);
@@ -233,7 +236,7 @@ const KaraokeRecorder = ({ songId, songTitle, instrumentalUrl, isKaraokeMode, on
     let audioContext: AudioContext | null = null;
 
     try {
-      if (!isPremium) {
+      if (!canRecord) {
         toast.error("Karaoke recording is a Premium feature. Please upgrade to record.");
         navigate("/subscription");
         return;

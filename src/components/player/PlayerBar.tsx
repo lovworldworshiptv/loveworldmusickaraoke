@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsPremium } from "@/hooks/useIsPremium";
+import { canUseSong, isFreeSong, useFreeSongIds } from "@/lib/freeSongs";
 import { supabase } from "@/integrations/supabase/client";
 import { isDownloaded, saveDownload, type DownloadedTrack } from "@/lib/downloadManager";
 import { toast } from "sonner";
@@ -41,6 +42,7 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
   const { user } = useAuth();
   const { isAdmin } = useIsAdmin();
   const { isPremium } = useIsPremium();
+  const freeIds = useFreeSongIds();
   const navigate = useNavigate();
   const [hidden, setHidden] = usePlayerHidden();
   const isMobile = useIsMobile();
@@ -107,15 +109,19 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
   const prevTrackEndRef = useRef(trackEndCount);
   const recordFeatureEnabled = enabled("recording");
 
-  // Show premium modal after each track ends for free users
+  // Song that was playing when the last track ended (updated after the effect below reads it).
+  const lastSongRef = useRef(currentSong);
+
+  // Show premium modal after each track ends for free users — never after a free song.
   useEffect(() => {
-    if (trackEndCount > prevTrackEndRef.current && !isPremium && user) {
+    if (trackEndCount > prevTrackEndRef.current && !isPremium && user && !isFreeSong(lastSongRef.current, freeIds)) {
       setShowUpgrade(true);
     }
     prevTrackEndRef.current = trackEndCount;
-  }, [trackEndCount, isPremium, user]);
+  }, [trackEndCount, isPremium, user, freeIds]);
+  useEffect(() => { lastSongRef.current = currentSong; }, [currentSong]);
 
-  const canDownload = isPremium || !!currentSong?.isFreeDownload;
+  const canDownload = canUseSong(isPremium, currentSong, freeIds);
 
   useEffect(() => {
     if (!currentSong || dlStatus) { setDownloaded(false); return; }
@@ -137,13 +143,13 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
         lyricsLrc: currentSong.lyricsLrc,
         durationSeconds: currentSong.durationSeconds || 0,
         album: currentSong.album,
-        isFreeDownload: !!currentSong.isFreeDownload, downloadedAt: Date.now(),
+        isFreeDownload: isFreeSong(currentSong, freeIds), downloadedAt: Date.now(),
       }, currentSong.instrumentalUrl);
       toast.success(`Saved “${currentSong.title}” for offline listening`);
     } catch (err: any) {
       if (err?.message !== "Download cancelled") toast.error(err?.message?.startsWith("Sign in") ? err.message : "Couldn't save this song — tap to try again");
     }
-  }, [currentSong, canDownload]);
+  }, [currentSong, canDownload, freeIds]);
 
   const tone = playerTone(useDominantColor(currentSong?.coverUrl), 90);
   if (!currentSong) return null;
@@ -278,7 +284,7 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
               <Mic2 className="w-4 h-4" />
             </button>}
             {recordFeatureEnabled && (
-              isPremium ? (
+              canDownload ? (
                 <button onClick={() => { if (!isExpanded) toggleExpanded(); }} className="text-destructive/70 hover:text-destructive transition-colors" title="Record Karaoke">
                   <Disc3 className="w-4 h-4" />
                 </button>

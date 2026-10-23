@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsPremium } from "@/hooks/useIsPremium";
+import { canUseSong, isFreeSong, useFreeSongIds } from "@/lib/freeSongs";
 import { useSecureDownloads } from "@/hooks/useSecureDownloads";
 import { saveMany } from "@/lib/downloadManager";
 import { pauseItem, retry } from "@/lib/secureDownloads/engine";
@@ -26,11 +27,12 @@ interface Props {
 const DownloadAllButton = ({ songs, what = "list", className }: Props) => {
   const { user } = useAuth();
   const { isPremium } = useIsPremium();
+  const freeIds = useFreeSongIds();
   const navigate = useNavigate();
   const s = useSecureDownloads();
   const [starting, setStarting] = useState(false);
 
-  const eligible = useMemo(() => songs.filter((x) => x.audioUrl && (isPremium || x.isFreeDownload)), [songs, isPremium]);
+  const eligible = useMemo(() => songs.filter((x) => x.audioUrl && canUseSong(isPremium, x, freeIds)), [songs, isPremium, freeIds]);
   const ids = useMemo(() => eligible.map((x) => x.id), [eligible]);
   const byId = useMemo(() => new Map(s.items.map((i) => [i.songId, i])), [s.items]);
   const prog = bulkProgress(ids, (id) => byId.get(id)?.status, (id) => s.progress[id]);
@@ -47,7 +49,7 @@ const DownloadAllButton = ({ songs, what = "list", className }: Props) => {
     setStarting(true);
     const run = saveMany(todo.map((x) => ({
       id: x.id, title: x.title, artist: x.artist, coverUrl: x.coverUrl, lyricsLrc: x.lyricsLrc,
-      durationSeconds: x.durationSeconds || 0, album: x.album, isFreeDownload: !!x.isFreeDownload, downloadedAt: Date.now(),
+      durationSeconds: x.durationSeconds || 0, album: x.album, isFreeDownload: isFreeSong(x, freeIds), downloadedAt: Date.now(),
     })));
     setStarting(false);
     toast.success(`Saving ${todo.length} ${todo.length === 1 ? "song" : "songs"} for offline listening`);
