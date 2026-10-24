@@ -4,6 +4,10 @@
 //
 // Secrets: ONESIGNAL_APP_ID + ONESIGNAL_REST_API_KEY (website),
 //          ONESIGNAL_ANDROID_REST_API_KEY (+ optional ONESIGNAL_ANDROID_APP_ID) for Android.
+//
+// Keys: OneSignal's current App API keys ("os_v2_app_…") must be sent as "Authorization: Key …";
+// older REST keys use "Basic …". We send the scheme matching the key and fall back to the other
+// one on an auth refusal, so either kind of key works.
 
 export type OneSignalPlatform = "web" | "android";
 
@@ -14,16 +18,45 @@ export interface OneSignalApp {
 }
 
 const ANDROID_APP_ID = "171a3c44-9d0e-4177-aa1b-26d8073b6f2f";
+const API_BASE = "https://api.onesignal.com";
+
+/** Strips whitespace, quotes and any pasted "Basic "/"Key " prefix from a stored secret. */
+function cleanKey(raw: string | undefined): string {
+  return (raw ?? "").trim().replace(/^["']|["']$/g, "").replace(/^(Basic|Key|Bearer)\s+/i, "").trim();
+}
 
 export function oneSignalApps(): OneSignalApp[] {
   const apps: OneSignalApp[] = [];
-  const webId = Deno.env.get("ONESIGNAL_APP_ID");
-  const webKey = Deno.env.get("ONESIGNAL_REST_API_KEY");
+  const webId = (Deno.env.get("ONESIGNAL_APP_ID") ?? "").trim();
+  const webKey = cleanKey(Deno.env.get("ONESIGNAL_REST_API_KEY"));
   if (webId && webKey) apps.push({ platform: "web", appId: webId, apiKey: webKey });
-  const androidId = Deno.env.get("ONESIGNAL_ANDROID_APP_ID") || ANDROID_APP_ID;
-  const androidKey = Deno.env.get("ONESIGNAL_ANDROID_REST_API_KEY");
+  const androidId = (Deno.env.get("ONESIGNAL_ANDROID_APP_ID") ?? "").trim() || ANDROID_APP_ID;
+  const androidKey = cleanKey(Deno.env.get("ONESIGNAL_ANDROID_REST_API_KEY"));
   if (androidKey && androidId !== webId) apps.push({ platform: "android", appId: androidId, apiKey: androidKey });
   return apps;
+}
+
+// Remembers which auth scheme each key accepted, for the life of this function instance.
+const workingScheme = new Map<string, "Key" | "Basic">();
+
+/** Calls the OneSignal API, trying the right auth scheme for the key and falling back once. */
+async function oneSignalFetch(app: OneSignalApp, path: string, method: string, body: unknown): Promise<Response> {
+  const preferred = workingScheme.get(app.apiKey) ?? (app.apiKey.startsWith("os_v2_") ? "Key" : "Basic");
+  const schemes: ("Key" | "Basic")[] = preferred === "Key" ? ["Key", "Basic"] : ["Basic", "Key"];
+  let last: Response | null = null;
+  for (const scheme of schemes) {
+    const res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers: { "Content-Type": "application/json", Authorization: `${scheme} ${app.apiKey}` },
+      body: JSON.stringify(body),
+    });
+    if (res.status !== 401 && res.status !== 403) {
+      workingScheme.set(app.apiKey, scheme);
+      return res;
+    }
+    last = res;
+  }
+  return last!;
 }
 
 export interface PushContent {
@@ -52,10 +85,14 @@ export interface PushResult {
 function payloadFor(app: OneSignalApp, c: PushContent): Record<string, unknown> {
   const p: Record<string, unknown> = {
     app_id: app.appId,
+    target_channel: "push",
     headings: { en: c.title },
     contents: { en: c.message },
   };
-  if (c.image_url) p.big_picture = c.image_url;
+  if (c.image_url) {
+    p.big_picture = c.image_url;
+    p.chrome_web_image = c.image_url;
+  }
   if (c.send_after) p.send_after = c.send_after;
   if (app.platform === "web") {
     // Unchanged from before: the website opens the deep link.
@@ -68,8 +105,7 @@ function payloadFor(app: OneSignalApp, c: PushContent): Record<string, unknown> 
     if (Object.keys(data).length) p.data = data;
   }
   if (c.external_user_ids && c.external_user_ids.length > 0) {
-    p.include_external_user_ids = c.external_user_ids;
-    p.channel_for_external_user_ids = "push";
+    p.include_aliases = { external_id: c.external_user_ids };
   } else {
     p.included_segments = c.included_segments ?? ["All"];
     if (c.filters) p.filters = c.filters;
@@ -90,18 +126,17 @@ export async function sendPushToAllApps(content: PushContent): Promise<PushResul
     const errors: unknown[] = [];
     for (const batch of batches) {
       try {
-        const res = await fetch("https://onesignal.com/api/v1/notifications", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Basic ${app.apiKey}` },
-          body: JSON.stringify(payloadFor(app, { ...content, external_user_ids: ids.length ? batch : undefined })),
-        });
+        const res = await oneSignalFetch(app, "/notifications?c=push", "POST",
+          payloadFor(app, { ...content, external_user_ids: ids.length ? batch : undefined }));
         const data = await res.json().catch(() => ({}));
-        if (res.ok) { ok = true; firstId ??= data.id ?? null; }
+        if (res.ok && data.id) { ok = true; firstId ??= data.id ?? null; }
         if (data.errors) errors.push(data.errors);
+        else if (!res.ok) errors.push(`HTTP ${res.status}`);
       } catch (e) {
         errors.push((e as Error).message);
       }
     }
+    if (!ok) console.warn(`OneSignal ${app.platform} push refused:`, JSON.stringify(errors));
     return { platform: app.platform, ok, id: firstId, errors: errors.length ? errors : null };
   }));
   return { success: results.some((r) => r.ok), id: results.find((r) => r.ok)?.id ?? null, results };
@@ -112,17 +147,15 @@ export async function updateUserInAllApps(externalId: string, body: Record<strin
   const apps = oneSignalApps();
   return Promise.all(apps.map(async (app) => {
     try {
-      const res = await fetch(
-        `https://onesignal.com/api/v1/apps/${app.appId}/users/by/external_id/${encodeURIComponent(externalId)}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json", Authorization: `Basic ${app.apiKey}` },
-          body: JSON.stringify(body),
-        },
+      const res = await oneSignalFetch(
+        app,
+        `/apps/${app.appId}/users/by/external_id/${encodeURIComponent(externalId)}`,
+        "PATCH",
+        body,
       );
-      return { platform: app.platform, ok: res.ok, data: await res.json().catch(() => null) };
+      return { platform: app.platform, ok: res.ok, status: res.status, data: await res.json().catch(() => null) };
     } catch (e) {
-      return { platform: app.platform, ok: false, data: (e as Error).message };
+      return { platform: app.platform, ok: false, status: 0, data: (e as Error).message };
     }
   }));
 }
