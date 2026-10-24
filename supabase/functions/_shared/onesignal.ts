@@ -25,13 +25,34 @@ function cleanKey(raw: string | undefined): string {
   return (raw ?? "").trim().replace(/^["']|["']$/g, "").replace(/^(Basic|Key|Bearer)\s+/i, "").trim();
 }
 
+/**
+ * Current App API keys ("os_v2_app_<26 base32 chars>…") carry their own app id. Reading it from
+ * the key means a key is always used with its own app, whatever app id is configured.
+ */
+export function appIdFromKey(key: string): string | null {
+  if (!key.startsWith("os_v2_app_")) return null;
+  const alpha = "abcdefghijklmnopqrstuvwxyz234567";
+  let bits = 0, val = 0;
+  const out: number[] = [];
+  for (const ch of key.slice(10, 36).toLowerCase()) {
+    const i = alpha.indexOf(ch);
+    if (i < 0) return null;
+    val = ((val << 5) | i) & 0xffff;
+    bits += 5;
+    if (bits >= 8) { out.push((val >>> (bits - 8)) & 255); bits -= 8; }
+  }
+  if (out.length < 16) return null;
+  const h = out.slice(0, 16).map((x) => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20, 32)}`;
+}
+
 export function oneSignalApps(): OneSignalApp[] {
   const apps: OneSignalApp[] = [];
-  const webId = (Deno.env.get("ONESIGNAL_APP_ID") ?? "").trim();
   const webKey = cleanKey(Deno.env.get("ONESIGNAL_REST_API_KEY"));
+  const webId = appIdFromKey(webKey) || (Deno.env.get("ONESIGNAL_APP_ID") ?? "").trim();
   if (webId && webKey) apps.push({ platform: "web", appId: webId, apiKey: webKey });
-  const androidId = (Deno.env.get("ONESIGNAL_ANDROID_APP_ID") ?? "").trim() || ANDROID_APP_ID;
   const androidKey = cleanKey(Deno.env.get("ONESIGNAL_ANDROID_REST_API_KEY"));
+  const androidId = appIdFromKey(androidKey) || (Deno.env.get("ONESIGNAL_ANDROID_APP_ID") ?? "").trim() || ANDROID_APP_ID;
   if (androidKey && androidId !== webId) apps.push({ platform: "android", appId: androidId, apiKey: androidKey });
   return apps;
 }
