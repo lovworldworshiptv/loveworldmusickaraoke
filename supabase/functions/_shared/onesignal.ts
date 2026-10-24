@@ -122,15 +122,14 @@ function payloadFor(app: OneSignalApp, c: PushContent): Record<string, unknown> 
     p.chrome_web_image = c.image_url;
   }
   if (c.send_after) p.send_after = c.send_after;
-  if (app.platform === "web") {
-    // Unchanged from before: the website opens the deep link.
-    if (c.deep_link) p.url = c.deep_link;
-  } else {
-    // A url would open the phone's browser; the app reads these and opens its own screen.
-    const data: Record<string, string> = {};
-    if (c.deep_link) data.deep_link = c.deep_link;
-    if (c.action_url) data.action_url = c.action_url;
-    if (Object.keys(data).length) p.data = data;
+  // Phones get links as data (a url would open the phone's browser instead of the app screen).
+  const data: Record<string, string> = {};
+  if (c.deep_link) data.deep_link = c.deep_link;
+  if (c.action_url) data.action_url = c.action_url;
+  if (Object.keys(data).length) p.data = data;
+  if (app.platform === "web" && c.deep_link) {
+    // The website app may also hold Android subscribers: web_url applies only to browsers.
+    p.web_url = c.deep_link.startsWith("/") ? `https://loveworldmusickaraoke.com${c.deep_link}` : c.deep_link;
   }
   if (c.external_user_ids && c.external_user_ids.length > 0) {
     p.include_aliases = { external_id: c.external_user_ids };
