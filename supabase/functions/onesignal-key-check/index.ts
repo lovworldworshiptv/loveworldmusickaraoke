@@ -27,7 +27,7 @@ function describe(key: string | undefined, appId: string | undefined) {
   return {
     present: raw.length > 0, length: k.length, hadSurroundingSpaces: raw !== k,
     format: v2 ? "os_v2_app" : k.startsWith("os_v2_") ? "os_v2_other(org/user key)" : k ? "legacy" : "none",
-    appIdConfigured: appId ?? null, keyBelongsToApp: embeddedApp, keyMatchesApp: embeddedMatches,
+    appIdConfigured: appId ?? null, looksLikeUuid: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(k), equalsWebAppId: k === (Deno.env.get("ONESIGNAL_APP_ID") ?? "").trim(), equalsAndroidAppId: k === "171a3c44-9d0e-4177-aa1b-26d8073b6f2f", keyBelongsToApp: embeddedApp, keyMatchesApp: embeddedMatches,
   };
 }
 Deno.serve(() => new Response(JSON.stringify({
