@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { updateUserInAllApps } from "../_shared/onesignal.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,26 +42,11 @@ Deno.serve(async (req) => {
 
     const subscription = sub?.subscription || "free";
 
-    // Update OneSignal tag via REST API
-    const appId = Deno.env.get("ONESIGNAL_APP_ID")!;
-    const apiKey = Deno.env.get("ONESIGNAL_REST_API_KEY")!;
+    // Update the subscription tag in every configured OneSignal app (website + Android).
+    // A user who has only used one platform gets a 404 from the other app — expected.
+    const results = await updateUserInAllApps(userId, { properties: { tags: { subscription } } });
 
-    const res = await fetch(`https://onesignal.com/api/v1/apps/${appId}/users/by/external_id/${userId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Basic ${apiKey}`,
-      },
-      body: JSON.stringify({
-        properties: {
-          tags: { subscription },
-        },
-      }),
-    });
-
-    const data = await res.json().catch(() => null);
-
-    return new Response(JSON.stringify({ success: res.ok, subscription, data }), {
+    return new Response(JSON.stringify({ success: results.some((r) => r.ok), subscription, data: results }), {
       headers: jsonHeaders,
     });
   } catch (err: any) {

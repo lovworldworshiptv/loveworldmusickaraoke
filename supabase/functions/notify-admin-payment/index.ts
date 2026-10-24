@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendPushToAllApps } from "../_shared/onesignal.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -76,30 +77,12 @@ Deno.serve(async (req) => {
     }));
     await supabaseAdmin.from("user_notifications").insert(records);
 
-    // Send push via OneSignal to admin users by external_user_id
-    const appId = Deno.env.get("ONESIGNAL_APP_ID");
-    const apiKey = Deno.env.get("ONESIGNAL_REST_API_KEY");
-
-    if (appId && apiKey) {
-      const adminIds = admins.map((a: any) => a.user_id);
-      try {
-        await fetch("https://onesignal.com/api/v1/notifications", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Basic ${apiKey}`,
-          },
-          body: JSON.stringify({
-            app_id: appId,
-            headings: { en: title },
-            contents: { en: message },
-            include_external_user_ids: adminIds,
-            url: "/admin/subscriptions",
-          }),
-        });
-      } catch (_) {
-        // Push failed silently – in-app notification still saved
-      }
+    // Send push via OneSignal (website + Android) to admin users by external_user_id
+    const adminIds = admins.map((a: any) => a.user_id);
+    try {
+      await sendPushToAllApps({ title, message, external_user_ids: adminIds, deep_link: "/admin/subscriptions" });
+    } catch (_) {
+      // Push failed silently – in-app notification still saved
     }
 
     return new Response(JSON.stringify({ success: true }), {
