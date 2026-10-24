@@ -103,12 +103,19 @@ export interface PushResult {
   results: { platform: OneSignalPlatform; ok: boolean; id: string | null; errors: unknown }[];
 }
 
+// The Loveworld Music+ app logo, shown as the notification's picture instead of the default bell.
+const BRAND_ICON = "https://loveworldmusickaraoke.com/icon-512.png";
+
 function payloadFor(app: OneSignalApp, c: PushContent): Record<string, unknown> {
   const p: Record<string, unknown> = {
     app_id: app.appId,
     target_channel: "push",
     headings: { en: c.title },
     contents: { en: c.message },
+    large_icon: BRAND_ICON,
+    huawei_large_icon: BRAND_ICON,
+    chrome_web_icon: BRAND_ICON,
+    firefox_icon: BRAND_ICON,
   };
   if (c.image_url) {
     p.big_picture = c.image_url;
