@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendPushToAllApps, type PushContent } from "../_shared/onesignal.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,7 +106,7 @@ Deno.serve(async (req) => {
     // 3. Send via OneSignal
     if (!scheduled_at) {
       const onesignalResult = await sendOneSignalPush({
-        title, message, image_url, deep_link, segment, target_user_ids: segment === "direct" ? target_user_ids : undefined,
+        title, message, image_url, deep_link, action_url, segment, target_user_ids: segment === "direct" ? target_user_ids : undefined,
       });
 
       await supabaseAdmin
@@ -120,7 +121,7 @@ Deno.serve(async (req) => {
 
     // For scheduled: use OneSignal's send_after
     const onesignalResult = await sendOneSignalPush({
-      title, message, image_url, deep_link, segment, send_after: scheduled_at,
+      title, message, image_url, deep_link, action_url, segment, send_after: scheduled_at,
       target_user_ids: segment === "direct" ? target_user_ids : undefined,
     });
 
@@ -144,48 +145,36 @@ async function sendOneSignalPush(opts: {
   message: string;
   image_url?: string;
   deep_link?: string;
+  action_url?: string;
   segment: string;
   send_after?: string;
   target_user_ids?: string[];
 }) {
-  const appId = Deno.env.get("ONESIGNAL_APP_ID")!;
-  const apiKey = Deno.env.get("ONESIGNAL_REST_API_KEY")!;
-
-  const payload: any = {
-    app_id: appId,
-    headings: { en: opts.title },
-    contents: { en: opts.message },
+  const content: PushContent = {
+    title: opts.title,
+    message: opts.message,
+    image_url: opts.image_url,
+    deep_link: opts.deep_link,
+    action_url: opts.action_url,
+    send_after: opts.send_after,
   };
 
-  if (opts.image_url) payload.big_picture = opts.image_url;
-  if (opts.deep_link) payload.url = opts.deep_link;
-  if (opts.send_after) payload.send_after = opts.send_after;
-
   if (opts.segment === "direct" && opts.target_user_ids && opts.target_user_ids.length > 0) {
-    payload.include_external_user_ids = opts.target_user_ids;
-    payload.channel_for_external_user_ids = "push";
+    content.external_user_ids = opts.target_user_ids;
   } else if (opts.segment === "all") {
-    payload.included_segments = ["All"];
+    content.included_segments = ["All"];
   } else {
-    payload.included_segments = ["All"];
-    payload.filters = [
+    content.included_segments = ["All"];
+    content.filters = [
       { field: "tag", key: "subscription", relation: "=", value: opts.segment },
     ];
   }
 
   try {
-    const res = await fetch("https://onesignal.com/api/v1/notifications", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Basic ${apiKey}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-    return { success: res.ok, id: data.id || null, errors: data.errors || null };
+    const result = await sendPushToAllApps(content);
+    const errors = result.results.filter((r) => r.errors).map((r) => ({ platform: r.platform, errors: r.errors }));
+    return { success: result.success, id: result.id, errors: errors.length ? errors : null, apps: result.results };
   } catch (e: any) {
-    return { success: false, id: null, errors: [e.message] };
+    return { success: false, id: null, errors: [e.message], apps: [] };
   }
 }

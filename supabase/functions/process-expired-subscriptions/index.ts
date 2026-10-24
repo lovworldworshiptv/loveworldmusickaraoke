@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendPushToAllApps } from "../_shared/onesignal.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -112,23 +113,9 @@ Deno.serve(async (req) => {
         await supabase.from("user_notifications").insert({ user_id: sub.user_id, notification_id: notification.id });
       }
 
-      // OneSignal push (best effort — never blocks the job)
+      // OneSignal push to website + Android (best effort — never blocks the job)
       try {
-        const appId = Deno.env.get("ONESIGNAL_APP_ID");
-        const apiKey = Deno.env.get("ONESIGNAL_REST_API_KEY");
-        if (appId && apiKey) {
-          await fetch("https://onesignal.com/api/v1/notifications", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Basic ${apiKey}` },
-            body: JSON.stringify({
-              app_id: appId,
-              headings: { en: title },
-              contents: { en: message },
-              include_external_user_ids: [sub.user_id],
-              channel_for_external_user_ids: "push",
-            }),
-          });
-        }
+        await sendPushToAllApps({ title, message, external_user_ids: [sub.user_id] });
       } catch (pushErr) {
         console.error("OneSignal renewal push failed:", pushErr);
       }
