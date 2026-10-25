@@ -34,7 +34,7 @@ export function RhapsodyDailyCard({ devotional, loading, onOpen }: CardProps) {
         </span>
       </div>
 
-      <div className="glass-card rhapsody-card rounded-3xl overflow-hidden border border-gold/40 glow-gold flex flex-col md:flex-row">
+      <div className="glass-card rhapsody-card rounded-3xl overflow-hidden glow-gold flex flex-col md:flex-row">
         {d.imageUrl && (
           <button onClick={() => onOpen()} className="md:w-2/5 aspect-[16/10] md:aspect-auto overflow-hidden group" aria-label={`Read ${d.title}`}>
             <img src={d.imageUrl} alt={d.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
