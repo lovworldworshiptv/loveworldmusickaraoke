@@ -1,11 +1,14 @@
 import SeeAll from "./SeeAll";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { ListMusic, Play } from "lucide-react";
-import { cardGradient, useGlobalCardColor } from "@/lib/siteSettings";
+import { cardGradient, SETTING_KEYS, useGlobalCardColor, useSetting } from "@/lib/siteSettings";
+import { sectionText, type HomeSectionContent } from "@/lib/homeSections";
+import { loadHomePlaylists } from "@/lib/homePlaylists";
 
 type Rec = { id: string; name: string; description: string | null; card_color: string | null; cover_url: string | null; playlist_songs: { songs: { title: string; artist: string; cover_url: string | null } | null }[] | null };
+
+const REC_COLUMNS = "id,name,description,cover_url,card_color,playlist_songs(songs(title,artist,cover_url))";
 
 /** Spotify-style recommendation cards; each opens the playlist's collection page. */
 
@@ -13,13 +16,11 @@ const PlatformRecommendations = () => {
   const [items, setItems] = useState<Rec[]>([]);
   const navigate = useNavigate();
   const globalColor = useGlobalCardColor();
+  const text = sectionText(useSetting<HomeSectionContent>(SETTING_KEYS.homeSectionContent), "recommendations");
 
   useEffect(() => {
-    supabase.from("playlists")
-      .select("id,name,description,cover_url,card_color,playlist_songs(songs(title,artist,cover_url))")
-      .eq("is_visible_on_homepage", true)
-      .order("created_at", { ascending: false }).limit(8)
-      .then(({ data }) => setItems(((data as unknown as Rec[]) || []).filter((p) => (p.playlist_songs || []).some((s) => s.songs))));
+    loadHomePlaylists<Rec>(SETTING_KEYS.recommendedPlaylists, REC_COLUMNS, 8)
+      .then((rows) => setItems(rows.filter((p) => (p.playlist_songs || []).some((s) => s.songs))));
   }, []);
 
   if (!items.length) return null;
@@ -27,8 +28,8 @@ const PlatformRecommendations = () => {
   return (
     <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" aria-labelledby="recs-h">
       <div className="flex items-end justify-between gap-3 mb-4"><div>
-      <p className="text-[11px] uppercase tracking-[0.2em] text-gold/80">Curated for you</p>
-      <h3 id="recs-h" className="text-xl font-serif font-bold text-foreground">Recommended Playlists</h3>
+      {text.eyebrow && <p className="text-[11px] uppercase tracking-[0.2em] text-gold/80">{text.eyebrow}</p>}
+      <h3 id="recs-h" className="text-xl font-serif font-bold text-foreground">{text.title}</h3>
       </div><SeeAll to="/playlists" /></div>
       <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 touch-pan-x overscroll-x-contain">
         {items.map((p) => {

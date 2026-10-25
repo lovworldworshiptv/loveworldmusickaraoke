@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { ListMusic, Play } from "lucide-react";
-import { cardGradient, GLOBAL_PLAYLISTS_CARD } from "@/lib/siteSettings";
+import { cardGradient, GLOBAL_PLAYLISTS_CARD, hexToHsl, SETTING_KEYS, useSetting } from "@/lib/siteSettings";
+import { sectionText, type HomeSectionContent } from "@/lib/homeSections";
+import { loadHomePlaylists } from "@/lib/homePlaylists";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 
 interface PlaylistSongRow {
@@ -45,33 +46,28 @@ const GlobalPlaylistsSection = () => {
   const [playlists, setPlaylists] = useState<GlobalPlaylist[]>([]);
   const navigate = useNavigate();
   const { playQueue } = usePlayer();
-  const globalColor = GLOBAL_PLAYLISTS_CARD;
+  const content = useSetting<HomeSectionContent>(SETTING_KEYS.homeSectionContent);
+  const text = sectionText(content, "global_playlists");
+  const savedColor = content?.global_playlists?.cardColor;
+  const globalColor = savedColor && hexToHsl(savedColor) ? savedColor : GLOBAL_PLAYLISTS_CARD;
 
   useEffect(() => {
-    const fetchGlobalPlaylists = async () => {
-      const { data } = await supabase
-        .from("playlists")
-        .select(
-          "id, name, cover_url, card_color, playlist_songs(sort_order, songs(id, title, artist, album, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds))",
-        )
-        .eq("is_visible_on_homepage", true)
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      if (data) {
-        setPlaylists(data as unknown as GlobalPlaylist[]);
-      }
-    };
-
-    fetchGlobalPlaylists();
+    loadHomePlaylists<GlobalPlaylist>(
+      SETTING_KEYS.globalPlaylists,
+      "id, name, cover_url, card_color, playlist_songs(sort_order, songs(id, title, artist, album, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds))",
+      10,
+    ).then(setPlaylists);
   }, []);
 
   if (playlists.length === 0) return null;
 
   return (
     <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-serif font-bold text-foreground">Global Playlists</h3>
+      <div className="flex items-end justify-between gap-3 mb-4">
+        <div>
+          {text.eyebrow && <p className="text-[11px] uppercase tracking-[0.2em] text-gold/80">{text.eyebrow}</p>}
+          <h3 className="text-xl font-serif font-bold text-foreground">{text.title}</h3>
+        </div>
         <button
           onClick={() => navigate("/playlists")}
           className="text-xs text-gold hover:text-gold-light font-medium transition-colors duration-200"

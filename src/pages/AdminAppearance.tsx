@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowDown, ArrowUp, GripVertical, Image, Loader2, Search, Trash2, Upload, Video } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import SettingSongPicker from "@/components/admin/SettingSongPicker";
+import { ArrowDown, ArrowUp, GripVertical, Image, Loader2, Trash2, Upload, Video } from "lucide-react";
 import { toast } from "sonner";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,64 +34,6 @@ const Card = ({ title, children }: { title: string; children: React.ReactNode })
   </section>
 );
 
-const SongPicker = ({ settingKey, label }: { settingKey: string; label: string }) => {
-  const [ids, setIds] = useState<string[]>([]);
-  const [chosen, setChosen] = useState<SongLite[]>([]);
-  const [q, setQ] = useState("");
-  const [results, setResults] = useState<SongLite[]>([]);
-
-  useEffect(() => {
-    getSetting<string[]>(settingKey).then(async (v) => {
-      const list = v || [];
-      setIds(list);
-      if (list.length) {
-        const { data } = await supabase.from("songs").select("id,title,artist").in("id", list);
-        setChosen(list.map((id) => (data || []).find((s) => s.id === id)).filter(Boolean) as SongLite[]);
-      }
-    });
-  }, [settingKey]);
-
-  useEffect(() => {
-    if (q.trim().length < 2) { setResults([]); return; }
-    const t = setTimeout(() => {
-      supabase.from("songs").select("id,title,artist").ilike("title", `%${q.trim()}%`).limit(8).then(({ data }) => setResults(data || []));
-    }, 250);
-    return () => clearTimeout(t);
-  }, [q]);
-
-  const persist = async (next: SongLite[]) => {
-    setChosen(next); setIds(next.map((s) => s.id));
-    const { error } = await saveSetting(settingKey, next.map((s) => s.id));
-    error ? toast.error("Could not save") : toast.success("Saved");
-  };
-
-  return (
-    <div className="mb-4">
-      <p className="text-sm font-semibold text-foreground mb-1">{label}</p>
-      <p className="text-xs text-muted-foreground mb-2">Leave empty to pick automatically from popular songs.</p>
-      <div className="relative mb-2">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search songs to add" className="pl-9" />
-      </div>
-      {results.filter((r) => !ids.includes(r.id)).map((r) => (
-        <button key={r.id} onClick={() => { persist([...chosen, r]); setQ(""); }} className="block w-full text-left text-sm px-3 py-2 rounded-lg hover:bg-muted text-foreground">
-          + {r.title} <span className="text-foreground">· {r.artist}</span>
-        </button>
-      ))}
-      <ol className="mt-2 space-y-1">
-        {chosen.map((s, i) => (
-          <li key={s.id} className="flex items-center gap-2 text-sm bg-muted/50 rounded-lg px-3 py-2 text-foreground">
-            <span className="flex-1 truncate">{i + 1}. {s.title}</span>
-            <button aria-label="Move up" disabled={i === 0} onClick={() => { const n = [...chosen]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; persist(n); }}><ArrowUp className="w-4 h-4" /></button>
-            <button aria-label="Move down" disabled={i === chosen.length - 1} onClick={() => { const n = [...chosen]; [n[i + 1], n[i]] = [n[i], n[i + 1]]; persist(n); }}><ArrowDown className="w-4 h-4" /></button>
-            <button className="text-destructive text-xs" onClick={() => persist(chosen.filter((x) => x.id !== s.id))}>Remove</button>
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-};
-
 const DailyDiscoverEditor = () => {
   const [cfg, setCfg] = useState<DailyDiscoverConfig>({});
   useEffect(() => { getSetting<DailyDiscoverConfig>(SETTING_KEYS.dailyDiscoverConfig).then((v) => setCfg(v || {})); }, []);
@@ -110,7 +53,7 @@ const DailyDiscoverEditor = () => {
         <Button variant="outline" size="sm" onClick={() => setCfg({ ...cfg, cardColor: undefined })}>Reset</Button>
         <Button size="sm" onClick={save}>Save</Button>
       </div>
-      <SongPicker settingKey={SETTING_KEYS.dailyDiscoverSongs} label="Daily Discover songs" />
+      <SettingSongPicker settingKey={SETTING_KEYS.dailyDiscoverSongs} label="Daily Discover songs" />
     </div>
   );
 };
@@ -413,8 +356,8 @@ const AdminAppearance = () => {
         </Card>
 
         <Card title="Curated songs">
-          <SongPicker settingKey={SETTING_KEYS.curatedVideos} label="Music Videos For You" />
-          <SongPicker settingKey={SETTING_KEYS.curatedKaraoke} label="Soundtrack For Your Day" />
+          <SettingSongPicker settingKey={SETTING_KEYS.curatedVideos} label="Music Videos For You" />
+          <p className="text-xs text-muted-foreground">Quick Picks, Recommended Playlists, Soundtrack For Your Day, Categories and Global Playlists are managed in <Link to="/admin/home-sections" className="underline">Home Sections</Link>.</p>
         </Card>
       </div>
     </AppLayout>

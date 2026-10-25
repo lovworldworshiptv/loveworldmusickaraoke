@@ -5,13 +5,16 @@ import { usePlayer } from "@/contexts/PlayerContext";
 import { fetchSongsByIds, toPlayerSong, type SongRow } from "@/lib/homeSongs";
 import { Play, Pause, Music2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getSetting, SETTING_KEYS, useSetting } from "@/lib/siteSettings";
+import { curatedOrder, sectionText, type HomeSectionContent } from "@/lib/homeSections";
 
 interface Props { moodId: string | null; moodName?: string }
 
-/** 4-row snap carousel of quick-play songs (recent + trending + featured). */
+/** 4-row snap carousel: admin-picked songs, else recent + trending + featured; a mood shows that mood's songs. */
 const QuickPicks = ({ moodId, moodName }: Props) => {
   const [songs, setSongs] = useState<SongRow[]>([]);
   const { playQueue, currentSong, isPlaying, togglePlay } = usePlayer();
+  const text = sectionText(useSetting<HomeSectionContent>(SETTING_KEYS.homeSectionContent), "quick_picks");
 
   useEffect(() => {
     let cancelled = false;
@@ -23,8 +26,12 @@ const QuickPicks = ({ moodId, moodName }: Props) => {
           .eq("category_id", moodId).order("play_count", { ascending: false }).limit(16);
         rows = (data as SongRow[]) || [];
       } else {
-        const { data } = await supabase.rpc("get_quick_picks", { p_limit: 16 });
-        rows = await fetchSongsByIds(((data as { song_id: string }[]) || []).map((r) => r.song_id));
+        const ids = await getSetting<string[]>(SETTING_KEYS.curatedQuickPicks);
+        if (ids?.length) rows = curatedOrder(await fetchSongsByIds(ids), ids).filter((s) => ids.includes(s.id));
+        if (!rows.length) {
+          const { data } = await supabase.rpc("get_quick_picks", { p_limit: 16 });
+          rows = await fetchSongsByIds(((data as { song_id: string }[]) || []).map((r) => r.song_id));
+        }
       }
       if (!cancelled) setSongs(rows.filter((s) => s.audio_url));
     })();
@@ -39,12 +46,13 @@ const QuickPicks = ({ moodId, moodName }: Props) => {
 
   if (!songs.length) return null;
   const queue = songs.map(toPlayerSong);
+  const eyebrow = moodName || text.eyebrow;
 
   return (
     <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" aria-labelledby="quick-picks-h">
       <div className="mb-4 flex items-end justify-between gap-3"><div>
-        <p className="text-[11px] uppercase tracking-[0.2em] text-gold/80">{moodName ? moodName : "Start singing"}</p>
-        <h3 id="quick-picks-h" className="text-xl font-serif font-bold text-foreground">Quick Picks</h3>
+        {eyebrow && <p className="text-[11px] uppercase tracking-[0.2em] text-gold/80">{eyebrow}</p>}
+        <h3 id="quick-picks-h" className="text-xl font-serif font-bold text-foreground">{text.title}</h3>
       </div><SeeAll to="/discover" /></div>
       <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 -mx-1 px-1 touch-pan-x overscroll-x-contain" style={{ WebkitOverflowScrolling: "touch" }}>
         {columns.map((col, ci) => (

@@ -1,5 +1,6 @@
 import SeeAll from "./SeeAll";
-import { getSetting, SETTING_KEYS } from "@/lib/siteSettings";
+import { getSetting, SETTING_KEYS, useSetting } from "@/lib/siteSettings";
+import { curatedOrder, sectionText, type HomeSectionContent } from "@/lib/homeSections";
 import { fetchSongsByIds } from "@/lib/homeSongs";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +15,8 @@ const ModeSongRail = ({ mode, eyebrow, title }: Props) => {
   const [songs, setSongs] = useState<SongRow[]>([]);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const { playVideo, singThis } = usePlayer();
+  const content = useSetting<HomeSectionContent>(SETTING_KEYS.homeSectionContent);
+  const text = mode === "karaoke" ? sectionText(content, "karaoke") : { eyebrow, title };
 
   // Video cards prefer the video's own thumbnail; fall back to the song artwork.
   useEffect(() => {
@@ -30,7 +33,7 @@ const ModeSongRail = ({ mode, eyebrow, title }: Props) => {
     let cancelled = false;
     getSetting<string[]>(mode === "video" ? SETTING_KEYS.curatedVideos : SETTING_KEYS.curatedKaraoke).then(async (ids) => {
       if (cancelled) return;
-      if (ids && ids.length) { const rows = await fetchSongsByIds(ids); if (!cancelled && rows.length) { setSongs(rows as SongRow[]); return; } }
+      if (ids && ids.length) { const rows = curatedOrder(await fetchSongsByIds(ids), ids).filter((r) => ids.includes(r.id)); if (!cancelled && rows.length) { setSongs(rows as SongRow[]); return; } }
     const q = supabase.from("songs").select(SONG_COLUMNS).not("audio_url", "is", null);
     const filtered = mode === "video" ? q.eq("has_video", true) : q.not("instrumental_url", "is", null);
     filtered.order("play_count", { ascending: false }).limit(20).then(({ data }) => {
@@ -49,8 +52,8 @@ const ModeSongRail = ({ mode, eyebrow, title }: Props) => {
   return (
     <section className="px-4 lg:px-6 mt-8 animate-fade-in-up">
       <div className="flex items-end justify-between gap-3 mb-4"><div>
-      <p className="text-[11px] uppercase tracking-[0.2em] text-gold/80">{eyebrow}</p>
-      <h3 className="text-xl font-serif font-bold text-foreground">{title}</h3>
+      {text.eyebrow && <p className="text-[11px] uppercase tracking-[0.2em] text-gold/80">{text.eyebrow}</p>}
+      <h3 className="text-xl font-serif font-bold text-foreground">{text.title}</h3>
       </div><SeeAll to={mode === "video" ? "/videos" : "/discover"} /></div>
       <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 touch-pan-x overscroll-x-contain">
         {songs.map((s, i) => (

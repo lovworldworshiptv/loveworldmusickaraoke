@@ -15,6 +15,10 @@ export const SETTING_KEYS = {
   communityColors: "community_background_colors",
   gameCards: "game_hub_cards",
   rhapsodyAppCta: "rhapsody_app_cta",
+  curatedQuickPicks: "curated_quick_picks",
+  recommendedPlaylists: "home_recommended_playlists",
+  globalPlaylists: "home_global_playlists",
+  homeSectionContent: "home_section_content",
 } as const;
 
 /** Admin-managed "Get Rhapsody App" button on the Rhapsody Daily section. */

@@ -65,6 +65,7 @@ import ChallengeReferrals from "./pages/ChallengeReferrals";
 import AdminChallenges from "./pages/AdminChallenges";
 import AdminAppearance from "./pages/AdminAppearance";
 import AdminDiscover from "./pages/AdminDiscover";
+import AdminHomeSections from "./pages/AdminHomeSections";
 import DiscoverTag from "./pages/DiscoverTag";
 import DiscoverCollection from "./pages/DiscoverCollection";
 import OfflineSelfTest from "./pages/OfflineSelfTest";
@@ -166,6 +167,7 @@ const App = () => (
                 <Route path="/admin/karaoke-stories" element={<AdminRouteGate><AdminKaraokeStories /></AdminRouteGate>} />
                 <Route path="/admin/appearance" element={<AdminRouteGate><AdminAppearance /></AdminRouteGate>} />
                 <Route path="/admin/discover" element={<AdminRouteGate><AdminDiscover /></AdminRouteGate>} />
+                <Route path="/admin/home-sections" element={<AdminRouteGate><AdminHomeSections /></AdminRouteGate>} />
                 <Route path="/dev/offline-selftest" element={<AdminRouteGate><OfflineSelfTest /></AdminRouteGate>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
