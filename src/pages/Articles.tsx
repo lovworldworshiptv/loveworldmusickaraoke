@@ -376,6 +376,8 @@ const Articles = () => {
           </h2>
         </div>
 
+        <RhapsodyDailyCard devotional={devotional} loading={rhapsodyLoading} onOpen={openRhapsody} />
+
         {loading ? (
           <div className="space-y-4">{[0, 1, 2].map(i => <div key={i} className="h-32 rounded-3xl bg-muted/40 animate-pulse" />)}</div>
         ) : articles.length === 0 ? (
