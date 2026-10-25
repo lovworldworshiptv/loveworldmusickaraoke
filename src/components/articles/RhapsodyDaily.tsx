@@ -53,13 +53,13 @@ export function RhapsodyDailyCard({ devotional, loading, onOpen }: CardProps) {
               Read Today's Devotional <ChevronRight className="w-3.5 h-3.5" />
             </button>
             {d.audioUrl && (
-              <button onClick={() => onOpen(true)} className="bg-secondary/60 text-foreground text-xs font-semibold px-4 py-2.5 rounded-full flex items-center gap-1.5 hover:bg-secondary">
-                <Headphones className="w-3.5 h-3.5 text-gold" /> Listen
+              <button onClick={() => onOpen(true)} className="group/listen bg-secondary/60 text-foreground text-xs font-semibold px-4 py-2.5 rounded-full flex items-center gap-1.5 transition-colors hover:gradient-gold hover:text-primary-foreground">
+                <Headphones className="w-3.5 h-3.5 text-gold group-hover/listen:text-primary-foreground" /> Listen
               </button>
             )}
             {ctaLink && (
               <a href={ctaLink} target="_blank" rel="noopener noreferrer"
-                className="border border-gold/60 text-gold text-xs font-semibold px-4 py-2.5 rounded-full flex items-center gap-1.5 hover:bg-gold/10 transition-colors">
+                className="border border-gold/60 text-gold text-xs font-semibold px-4 py-2.5 rounded-full flex items-center gap-1.5 hover:gradient-gold hover:text-primary-foreground hover:border-transparent transition-colors">
                 <Smartphone className="w-3.5 h-3.5" /> {cta!.label}
               </a>
             )}
@@ -120,11 +120,11 @@ export function RhapsodyDailyReader({ devotional: d, autoListen, onBack }: Reade
 
       <div className="flex items-center gap-2 mb-6 rounded-full glass-card px-3 py-1.5 w-fit">
         <Type className="w-4 h-4 text-gold" />
-        <button aria-label="Smaller text" onClick={() => setFontSize(Math.max(14, fontSize - 2))} className="text-foreground hover:text-gold p-1.5 rounded-full hover:bg-gold/10 transition-colors">
+        <button aria-label="Smaller text" onClick={() => setFontSize(Math.max(14, fontSize - 2))} className="text-foreground hover:text-gold p-1.5 rounded-full hover:gradient-gold hover:text-primary-foreground hover:border-transparent transition-colors">
           <Minus className="w-4 h-4" />
         </button>
         <span className="text-xs text-foreground font-semibold w-8 text-center tabular-nums">{fontSize}</span>
-        <button aria-label="Larger text" onClick={() => setFontSize(Math.min(28, fontSize + 2))} className="text-foreground hover:text-gold p-1.5 rounded-full hover:bg-gold/10 transition-colors">
+        <button aria-label="Larger text" onClick={() => setFontSize(Math.min(28, fontSize + 2))} className="text-foreground hover:text-gold p-1.5 rounded-full hover:gradient-gold hover:text-primary-foreground hover:border-transparent transition-colors">
           <Plus className="w-4 h-4" />
         </button>
       </div>
