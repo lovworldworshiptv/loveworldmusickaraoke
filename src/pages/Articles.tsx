@@ -7,6 +7,8 @@ import { fetchAllRows, SONG_ROW_COLUMNS } from "@/lib/fetchAll";
 import { BookOpen, Type, Video, Headphones, FileText, Music, X, ChevronRight, Minus, Plus, Search, Play } from "lucide-react";
 import ShareInviteButton from "@/components/articles/ShareInviteButton";
 import BibleWidget from "@/components/articles/BibleWidget";
+import { RhapsodyDailyCard, RhapsodyDailyReader } from "@/components/articles/RhapsodyDaily";
+import { useRhapsodyDaily } from "@/hooks/useRhapsodyDaily";
 
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { sortSongsByTitle, compareTitles } from "@/lib/utils";
@@ -28,7 +30,16 @@ interface Article {
 type ContentMode = "text" | "video" | "audio";
 
 const Articles = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { devotional, loading: rhapsodyLoading } = useRhapsodyDaily();
+  const showRhapsody = searchParams.get("rhapsody") === "today";
+  const [rhapsodyListen, setRhapsodyListen] = useState(false);
+  const openRhapsody = (listen = false) => {
+    setRhapsodyListen(listen);
+    setSearchParams(prev => { const p = new URLSearchParams(prev); p.set("rhapsody", "today"); return p; });
+    window.scrollTo({ top: 0 });
+  };
+  const closeRhapsody = () => setSearchParams(prev => { const p = new URLSearchParams(prev); p.delete("rhapsody"); return p; });
   const { user } = useAuth();
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
@@ -143,6 +154,15 @@ const Articles = () => {
     }
     setShowSongSuggestion(false);
   };
+
+  // Rhapsody Daily reading view
+  if (showRhapsody && devotional) {
+    return (
+      <AppLayout>
+        <RhapsodyDailyReader devotional={devotional} autoListen={rhapsodyListen} onBack={closeRhapsody} />
+      </AppLayout>
+    );
+  }
 
   // Article reading view
   if (selectedArticle) {
@@ -355,6 +375,8 @@ const Articles = () => {
             <BookOpen className="w-7 h-7 text-gold" /> Articles
           </h2>
         </div>
+
+        <RhapsodyDailyCard devotional={devotional} loading={rhapsodyLoading} onOpen={openRhapsody} />
 
         {loading ? (
           <div className="space-y-4">{[0, 1, 2].map(i => <div key={i} className="h-32 rounded-3xl bg-muted/40 animate-pulse" />)}</div>
