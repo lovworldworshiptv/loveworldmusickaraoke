@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { SETTING_KEYS, useSetting } from "@/lib/siteSettings";
+import { sectionText, type HomeSectionContent } from "@/lib/homeSections";
 
 interface Category {
   id: string;
@@ -11,6 +13,7 @@ interface Category {
 const CategorySection = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const navigate = useNavigate();
+  const text = sectionText(useSetting<HomeSectionContent>(SETTING_KEYS.homeSectionContent), "categories");
 
   useEffect(() => {
     supabase
@@ -27,8 +30,11 @@ const CategorySection = () => {
 
   return (
     <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-serif font-bold text-foreground">Categories</h3>
+      <div className="flex items-end justify-between gap-3 mb-4">
+        <div>
+          {text.eyebrow && <p className="text-[11px] uppercase tracking-[0.2em] text-gold/80">{text.eyebrow}</p>}
+          <h3 className="text-xl font-serif font-bold text-foreground">{text.title}</h3>
+        </div>
         <button onClick={() => navigate("/library")} className="text-xs text-gold hover:text-gold-light font-medium transition-colors duration-200">See All</button>
       </div>
       <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-2">
