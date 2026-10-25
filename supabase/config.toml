@@ -35,3 +35,6 @@ verify_jwt = true
 
 [functions.offline-media]
 verify_jwt = false
+
+[functions.rhapsody-daily]
+verify_jwt = false
