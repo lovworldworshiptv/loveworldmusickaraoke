@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { BookOpenCheck, CalendarDays, ChevronRight, Headphones, Minus, Plus, Type, Quote, HandHeart, BookMarked } from "lucide-react";
+import { BookOpenCheck, CalendarDays, ChevronRight, Headphones, Minus, Plus, Type, Quote, HandHeart, BookMarked, Smartphone } from "lucide-react";
 import { formatDevotionalDate, type RhapsodyDevotional } from "@/lib/rhapsodyDaily";
+import { SETTING_KEYS, useSetting, rhapsodyCtaLink, type RhapsodyAppCta } from "@/lib/siteSettings";
 
 interface CardProps {
   devotional: RhapsodyDevotional | null;
@@ -10,6 +11,8 @@ interface CardProps {
 
 /** Featured "Rhapsody Daily" section at the top of the Articles page. */
 export function RhapsodyDailyCard({ devotional, loading, onOpen }: CardProps) {
+  const cta = useSetting<RhapsodyAppCta>(SETTING_KEYS.rhapsodyAppCta);
+  const ctaLink = rhapsodyCtaLink(cta, typeof navigator !== "undefined" ? navigator.userAgent : "");
   if (!devotional) {
     if (!loading) return null;
     return (
@@ -53,6 +56,12 @@ export function RhapsodyDailyCard({ devotional, loading, onOpen }: CardProps) {
               <button onClick={() => onOpen(true)} className="bg-secondary/60 text-foreground text-xs font-semibold px-4 py-2.5 rounded-full flex items-center gap-1.5 hover:bg-secondary">
                 <Headphones className="w-3.5 h-3.5 text-gold" /> Listen
               </button>
+            )}
+            {ctaLink && (
+              <a href={ctaLink} target="_blank" rel="noopener noreferrer"
+                className="border border-gold/60 text-gold text-xs font-semibold px-4 py-2.5 rounded-full flex items-center gap-1.5 hover:bg-gold/10 transition-colors">
+                <Smartphone className="w-3.5 h-3.5" /> {cta!.label}
+              </a>
             )}
           </div>
         </div>

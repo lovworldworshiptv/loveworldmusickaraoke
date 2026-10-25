@@ -14,7 +14,20 @@ export const SETTING_KEYS = {
   dailyDiscoverSongs: "daily_discover_songs",
   communityColors: "community_background_colors",
   gameCards: "game_hub_cards",
+  rhapsodyAppCta: "rhapsody_app_cta",
 } as const;
+
+/** Admin-managed "Get Rhapsody App" button on the Rhapsody Daily section. */
+export type RhapsodyAppCta = { enabled?: boolean; label?: string; url?: string; androidUrl?: string; iosUrl?: string };
+
+/** Picks the store link for the visitor's phone, else the general link; null hides the button. */
+export function rhapsodyCtaLink(cta: RhapsodyAppCta | null | undefined, userAgent = ""): string | null {
+  if (!cta || cta.enabled === false || !cta.label?.trim()) return null;
+  const ua = userAgent.toLowerCase();
+  const pick = /iphone|ipad|ipod/.test(ua) ? cta.iosUrl : /android/.test(ua) ? cta.androidUrl : undefined;
+  const link = (pick || cta.url || cta.androidUrl || cta.iosUrl || "").trim();
+  return /^https?:\/\//i.test(link) ? link : null;
+}
 
 export type ThemeColors = { gold?: string; background?: string; accent?: string; foreground?: string; dailyDiscover?: string };
 export type HomeSectionSetting = { id: string; visible: boolean };
