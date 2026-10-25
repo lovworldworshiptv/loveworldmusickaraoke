@@ -55,7 +55,7 @@ const HeroBanner = () => {
       <div className="absolute inset-0 bg-gradient-to-r from-background/40 to-transparent" />
       <div className="absolute bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-6">
         {banner?.title && (
-          <h2 className="text-lg sm:text-xl md:text-3xl lg:text-4xl font-serif font-bold text-foreground mb-1 md:mb-2 animate-fade-in-up" style={{ animationDelay: "0.35s" }}>
+          <h2 className="max-w-[18ch] sm:max-w-md md:max-w-xl text-lg sm:text-xl md:text-3xl lg:text-4xl font-serif font-bold text-foreground mb-1 md:mb-2 animate-fade-in-up text-balance" style={{ animationDelay: "0.35s" }}>
             {banner.title}
           </h2>
         )}
