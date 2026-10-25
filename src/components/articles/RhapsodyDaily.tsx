@@ -120,11 +120,11 @@ export function RhapsodyDailyReader({ devotional: d, autoListen, onBack }: Reade
 
       <div className="flex items-center gap-2 mb-6 rounded-full glass-card px-3 py-1.5 w-fit">
         <Type className="w-4 h-4 text-gold" />
-        <button aria-label="Smaller text" onClick={() => setFontSize(Math.max(14, fontSize - 2))} className="text-foreground hover:text-gold p-1.5 rounded-full hover:gradient-gold hover:text-primary-foreground hover:border-transparent transition-colors">
+        <button aria-label="Smaller text" onClick={() => setFontSize(Math.max(14, fontSize - 2))} className="text-foreground hover:text-gold p-1.5 rounded-full hover:bg-gold/10 transition-colors">
           <Minus className="w-4 h-4" />
         </button>
         <span className="text-xs text-foreground font-semibold w-8 text-center tabular-nums">{fontSize}</span>
-        <button aria-label="Larger text" onClick={() => setFontSize(Math.min(28, fontSize + 2))} className="text-foreground hover:text-gold p-1.5 rounded-full hover:gradient-gold hover:text-primary-foreground hover:border-transparent transition-colors">
+        <button aria-label="Larger text" onClick={() => setFontSize(Math.min(28, fontSize + 2))} className="text-foreground hover:text-gold p-1.5 rounded-full hover:bg-gold/10 transition-colors">
           <Plus className="w-4 h-4" />
         </button>
       </div>
