@@ -442,7 +442,7 @@
 
   .glass-card.rhapsody-card {
     background: linear-gradient(135deg, hsl(199 85% 42%), hsl(205 85% 30%));
-    border-color: hsl(var(--gold) / 0.45);
+    border: none;
   }
 
   .community-color-card, .glass-card.community-color-card {
