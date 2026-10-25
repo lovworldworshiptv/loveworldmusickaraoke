@@ -440,6 +440,11 @@
     .challenge-rank-row:hover, .challenge-rank-row:active { transform: none; }
   }
 
+  .glass-card.rhapsody-card {
+    background: linear-gradient(135deg, hsl(155 64% 8%), hsl(158 64% 5%));
+    border-color: hsl(var(--gold) / 0.45);
+  }
+
   .community-color-card, .glass-card.community-color-card {
     background: hsl(var(--community-color));
     --foreground: var(--community-foreground);
