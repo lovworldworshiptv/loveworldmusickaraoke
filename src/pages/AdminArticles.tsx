@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
 import FileUploadPicker from "@/components/admin/FileUploadPicker";
+import RhapsodyCtaEditor from "@/components/admin/RhapsodyCtaEditor";
 
 interface Article {
   id: string;
@@ -105,6 +106,8 @@ const AdminArticles = () => {
             <Plus className="w-4 h-4" /> {showForm ? "Cancel" : "Add Article"}
           </Button>
         </div>
+
+        <RhapsodyCtaEditor />
 
         {showForm && (
           <div className="glass-card p-5 mb-6 space-y-4">
