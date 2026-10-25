@@ -53,13 +53,13 @@ export function RhapsodyDailyCard({ devotional, loading, onOpen }: CardProps) {
               Read Today's Devotional <ChevronRight className="w-3.5 h-3.5" />
             </button>
             {d.audioUrl && (
-              <button onClick={() => onOpen(true)} className="bg-secondary/60 text-foreground text-xs font-semibold px-4 py-2.5 rounded-full flex items-center gap-1.5 hover:bg-secondary">
-                <Headphones className="w-3.5 h-3.5 text-gold" /> Listen
+              <button onClick={() => onOpen(true)} className="group/listen bg-secondary/60 text-foreground text-xs font-semibold px-4 py-2.5 rounded-full flex items-center gap-1.5 transition-colors hover:gradient-gold hover:text-primary-foreground">
+                <Headphones className="w-3.5 h-3.5 text-gold group-hover/listen:text-primary-foreground" /> Listen
               </button>
             )}
             {ctaLink && (
               <a href={ctaLink} target="_blank" rel="noopener noreferrer"
-                className="border border-gold/60 text-gold text-xs font-semibold px-4 py-2.5 rounded-full flex items-center gap-1.5 hover:bg-gold/10 transition-colors">
+                className="border border-gold/60 text-gold text-xs font-semibold px-4 py-2.5 rounded-full flex items-center gap-1.5 hover:gradient-gold hover:text-primary-foreground hover:border-transparent transition-colors">
                 <Smartphone className="w-3.5 h-3.5" /> {cta!.label}
               </a>
             )}
