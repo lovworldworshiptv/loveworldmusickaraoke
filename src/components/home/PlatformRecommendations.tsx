@@ -1,27 +1,14 @@
 import SeeAll from "./SeeAll";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { ListMusic, Play } from "lucide-react";
-import { cardGradient, getSetting, SETTING_KEYS, useGlobalCardColor, useSetting } from "@/lib/siteSettings";
-import { curatedOrder, sectionText, type HomeSectionContent } from "@/lib/homeSections";
+import { cardGradient, SETTING_KEYS, useGlobalCardColor, useSetting } from "@/lib/siteSettings";
+import { sectionText, type HomeSectionContent } from "@/lib/homeSections";
+import { loadHomePlaylists } from "@/lib/homePlaylists";
 
 type Rec = { id: string; name: string; description: string | null; card_color: string | null; cover_url: string | null; playlist_songs: { songs: { title: string; artist: string; cover_url: string | null } | null }[] | null };
 
 const REC_COLUMNS = "id,name,description,cover_url,card_color,playlist_songs(songs(title,artist,cover_url))";
-
-/** Home playlists: the admin's picks in order, else the newest homepage playlists. */
-export async function loadHomePlaylists<T extends { id: string }>(settingKey: string, columns: string, limit: number): Promise<T[]> {
-  const ids = await getSetting<string[]>(settingKey);
-  if (ids?.length) {
-    const { data } = await supabase.from("playlists").select(columns).eq("is_visible_on_homepage", true).in("id", ids);
-    const picked = curatedOrder((data as unknown as T[]) || [], ids).filter((p) => ids.includes(p.id));
-    if (picked.length) return picked;
-  }
-  const { data } = await supabase.from("playlists").select(columns).eq("is_visible_on_homepage", true)
-    .order("created_at", { ascending: false }).limit(limit);
-  return (data as unknown as T[]) || [];
-}
 
 /** Spotify-style recommendation cards; each opens the playlist's collection page. */
 

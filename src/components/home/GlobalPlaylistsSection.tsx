@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ListMusic, Play } from "lucide-react";
 import { cardGradient, GLOBAL_PLAYLISTS_CARD, hexToHsl, SETTING_KEYS, useSetting } from "@/lib/siteSettings";
 import { sectionText, type HomeSectionContent } from "@/lib/homeSections";
-import { loadHomePlaylists } from "@/components/home/PlatformRecommendations";
+import { loadHomePlaylists } from "@/lib/homePlaylists";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 
 interface PlaylistSongRow {
