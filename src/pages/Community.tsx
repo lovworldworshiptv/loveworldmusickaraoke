@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Heart, MessageCircle, Play, Plus, Send, Share2, Sparkles, Trash2, Users, X, Music4, Flame, BookOpen, Sunrise, Globe, Check, Palette, Camera, ArrowLeft, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import communityHero from "@/assets/community-hero.jpg";
+import { useDiscoverCategories } from "@/hooks/useDiscoverCategories";
+import { categoryImage } from "@/lib/discover";
 import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
 import CommunityModeratorsDialog from "@/components/community/CommunityModeratorsDialog";
 import CommunityManageDialog from "@/components/community/CommunityManageDialog";
@@ -38,6 +40,9 @@ const Community = () => {
   const { user } = useAuth();
   const { playSong } = usePlayer();
   const { isAdmin } = useIsAdmin();
+  // The communities directory uses the tilted picture from its Discover card as the hero.
+  const { data: discoverCards = [] } = useDiscoverCategories();
+  const communityTile = discoverCards.find((c) => c.route === "/community");
   const [communities, setCommunities] = useState<CommunityRow[]>([]);
   const { communityId } = useParams<{ communityId: string }>();
   const navigate = useNavigate();
@@ -316,7 +321,7 @@ const Community = () => {
         )}
         {/* Hero */}
         <div className="relative rounded-3xl overflow-hidden shadow-[0_18px_50px_-20px_rgba(201,162,39,0.45)]">
-          <img src={activeCommunity?.cover_url || communityHero} alt="" className="w-full h-48 md:h-72 object-cover" />
+          <img src={activeCommunity?.cover_url || (communityTile ? categoryImage(communityTile) : communityHero)} alt="" className="w-full h-48 md:h-72 object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-transparent" />
           {isAdmin && !activeId && (

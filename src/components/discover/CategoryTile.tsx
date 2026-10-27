@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { type DiscoverCategory, categoryGradient, fallbackImage } from "@/lib/discover";
+import { type DiscoverCategory, categoryGradient, categoryImage } from "@/lib/discover";
 
 const CategoryTile = ({ c, preview = false }: { c: DiscoverCategory; preview?: boolean }) => {
-  const img = c.image_url || fallbackImage(c.route + " " + c.title);
+  const img = categoryImage(c);
   const body = (
     <div
       className={cn(

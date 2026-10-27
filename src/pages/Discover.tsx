@@ -10,20 +10,15 @@ import PraiseNightCard from "@/components/discover/PraiseNightCard";
 import GlobalSearch from "@/components/search/GlobalSearch";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsEditor } from "@/hooks/useIsEditor";
-import type { DiscoverCategory, DiscoverFeatured } from "@/lib/discover";
+import type { DiscoverFeatured } from "@/lib/discover";
+import { useDiscoverCategories } from "@/hooks/useDiscoverCategories";
 
 const Discover = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const { isAdmin } = useIsAdmin();
   const { isEditor } = useIsEditor();
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ["discover-categories"],
-    queryFn: async () => {
-      const { data } = await supabase.from("discover_categories").select("*").eq("is_visible", true).order("sort_order");
-      return (data || []) as DiscoverCategory[];
-    },
-  });
+  const { data: categories = [] } = useDiscoverCategories();
   const { data: featured = [] } = useQuery({
     queryKey: ["discover-featured"],
     queryFn: async () => {

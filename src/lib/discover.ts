@@ -49,6 +49,10 @@ export const fallbackImage = (key: string) => {
   return FALLBACKS.find(([m]) => k.includes(m))?.[1] ?? music;
 };
 
+/** The tilted picture on a Discover card — also used as the hero of the page the card opens. */
+export const categoryImage = (c: Pick<DiscoverCategory, "image_url" | "route" | "title">) =>
+  c.image_url || fallbackImage(c.route + " " + c.title);
+
 export const categoryGradient = (c: Pick<DiscoverCategory, "gradient_from" | "gradient_via" | "gradient_to">) =>
   `linear-gradient(135deg, ${c.gradient_from}, ${c.gradient_via ? c.gradient_via + ", " : ""}${c.gradient_to})`;
 
