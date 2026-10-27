@@ -8,10 +8,10 @@ import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetchAll";
 import { usePlayer } from "@/contexts/PlayerContext";
-import { fallbackImage } from "@/lib/discover";
+import { categoryImage, fallbackImage } from "@/lib/discover";
+import { useDiscoverCategories } from "@/hooks/useDiscoverCategories";
 import { SONG_COLUMNS, toPlayerSong, type SongRow } from "@/lib/homeSongs";
 import { sortSongsByTitle } from "@/lib/utils";
-import musicHero from "@/assets/discover/music-hero.jpg";
 
 type Kind = "music" | "karaoke" | "videos" | "featured";
 
@@ -28,7 +28,7 @@ const DiscoverCollection = ({ kind }: { kind: Kind }) => {
     queryFn: async () => {
       if (kind === "music") {
         const all = await fetchAllRows<SongRow>((from, to) => db.from("songs").select(SONG_COLUMNS).order("id").range(from, to));
-        return { title: "Loveworld Songs & Lyrics", subtitle: "Every song and its lyrics, all in one place", cover: musicHero, songs: sortSongsByTitle(all) };
+        return { title: "Loveworld Songs & Lyrics", subtitle: "Every song and its lyrics, all in one place", cover: null, songs: sortSongsByTitle(all) };
       }
       if (kind === "karaoke") {
         const data = await fetchAllRows<SongRow>((from, to) => db.from("songs").select(SONG_COLUMNS).not("instrumental_url", "is", null).order("id").range(from, to));
@@ -53,12 +53,18 @@ const DiscoverCollection = ({ kind }: { kind: Kind }) => {
     },
   });
 
+  const { data: categories = [] } = useDiscoverCategories();
   const songs = data?.songs || [];
   const queue = songs.map(toPlayerSong);
   const play = (i: number) =>
     kind === "videos" ? playVideoQueue(queue, i) : playQueue(queue, i, { karaoke: kind === "karaoke" });
   const Icon = kind === "karaoke" ? Mic2 : kind === "videos" ? Clapperboard : kind === "music" ? Music : Play;
-  const cover = data?.cover || songs[0]?.cover_url || fallbackImage(kind === "featured" ? data?.title || "" : kind);
+  // Music, Karaoke and Videos reuse the tilted picture from their Discover card as the hero.
+  const route = `/discover/${kind}`;
+  const tile = kind === "featured" ? undefined : categories.find((c) => c.route === route);
+  const cover = kind === "featured"
+    ? data?.cover || songs[0]?.cover_url || fallbackImage(data?.title || "")
+    : tile ? categoryImage(tile) : fallbackImage(route);
 
   return (
     <AppLayout>
