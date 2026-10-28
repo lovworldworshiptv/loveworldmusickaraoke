@@ -4,6 +4,7 @@ import { useState, useEffect, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import HeroBanner from "@/components/home/HeroBanner";
+import FreeDownloads from "@/components/home/FreeDownloads";
 import KaraokeStories from "@/components/home/KaraokeStories";
 import SongSection from "@/components/home/SongSection";
 import AlbumSection from "@/components/home/AlbumSection";
@@ -61,6 +62,7 @@ const Index = () => {
         const node = ({
           moods: <MoodCapsules value={mood.id} onChange={setMood} />,
           hero: <HeroBanner />,
+          free_downloads: <FreeDownloads />,
           quick_picks: <QuickPicks moodId={mood.id} moodName={mood.id ? mood.name : undefined} />,
           recommendations: <PlatformRecommendations />,
           albums: <AlbumSection />,
