@@ -16,3 +16,38 @@ export function effectiveSubscription(subscription: string, expiry: string | nul
   const expired = !!expiry && new Date(expiry).getTime() < now;
   return (subscription === "premium" || subscription === "trial") && expired ? "free" : subscription;
 }
+
+export type UserFilterKey = "all" | "admin" | "editor" | "free" | "trial" | "premium_1_month" | "premium_6_months" | "premium_1_year";
+
+export const USER_FILTERS: { key: UserFilterKey; label: string }[] = [
+  { key: "all", label: "All users" },
+  { key: "admin", label: "Admins" },
+  { key: "editor", label: "Editors" },
+  { key: "free", label: "Free" },
+  { key: "trial", label: "Free trial" },
+  { key: "premium_1_month", label: "Premium · 1 month" },
+  { key: "premium_6_months", label: "Premium · 6 months" },
+  { key: "premium_1_year", label: "Premium · 1 year" },
+];
+
+type Countable = { role: string; subscription: string; subscription_plan: string | null };
+
+/** `subscription` must already be the effective one (expired plans count as free). */
+export function matchesUserFilter(u: Countable, key: UserFilterKey): boolean {
+  switch (key) {
+    case "all": return true;
+    case "admin": return u.role === "admin";
+    case "editor": return u.role === "editor";
+    case "free": return u.subscription === "free";
+    case "trial": return u.subscription === "trial";
+    case "premium_1_month": return u.subscription === "premium" && u.subscription_plan === "1_month";
+    case "premium_6_months": return u.subscription === "premium" && u.subscription_plan === "6_months";
+    case "premium_1_year": return u.subscription === "premium" && u.subscription_plan === "1_year";
+  }
+}
+
+export function countUserFilters(users: Countable[]): Record<UserFilterKey, number> {
+  const counts = Object.fromEntries(USER_FILTERS.map((f) => [f.key, 0])) as Record<UserFilterKey, number>;
+  for (const u of users) for (const f of USER_FILTERS) if (matchesUserFilter(u, f.key)) counts[f.key]++;
+  return counts;
+}
