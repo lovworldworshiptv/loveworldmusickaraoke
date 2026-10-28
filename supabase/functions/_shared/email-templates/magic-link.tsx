@@ -9,6 +9,7 @@ import {
   Head,
   Heading,
   Html,
+  Img,
   Preview,
   Text,
 } from 'npm:@react-email/components@0.0.22'
@@ -29,6 +30,7 @@ export const MagicLinkEmail = ({
     <Preview>Your login link for {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
+        <Img src="https://loveworldmusickaraoke.com/icon-512.png" width="72" height="72" alt="Loveworld Music+" style={{ borderRadius: '16px', margin: '0 0 20px' }} />
         <Heading style={h1}>Your login link</Heading>
         <Text style={text}>
           Click the button below to log in to {siteName}. This link will expire
@@ -52,7 +54,7 @@ const container = { padding: '20px 25px' }
 const h1 = {
   fontSize: '22px',
   fontWeight: 'bold' as const,
-  color: '#000000',
+  color: '#0a1a3a',
   margin: '0 0 20px',
 }
 const text = {
@@ -62,10 +64,10 @@ const text = {
   margin: '0 0 25px',
 }
 const button = {
-  backgroundColor: '#000000',
+  backgroundColor: '#d4af37',
   color: '#ffffff',
   fontSize: '14px',
-  border: '1px solid #000000',
+  border: '1px solid #d4af37',
   borderRadius: '8px',
   padding: '12px 20px',
   textDecoration: 'none',

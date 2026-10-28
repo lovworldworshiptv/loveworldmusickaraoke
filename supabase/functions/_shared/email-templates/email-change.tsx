@@ -9,6 +9,7 @@ import {
   Head,
   Heading,
   Html,
+  Img,
   Link,
   Preview,
   Text,
@@ -39,6 +40,7 @@ export const EmailChangeEmail = ({
     <Preview>Confirm your email change for {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
+        <Img src="https://loveworldmusickaraoke.com/icon-512.png" width="72" height="72" alt="Loveworld Music+" style={{ borderRadius: '16px', margin: '0 0 20px' }} />
         <Heading style={h1}>Confirm your email change</Heading>
         <Text style={text}>
           You requested to change your email address for {siteName} from{' '}
@@ -73,7 +75,7 @@ const container = { padding: '20px 25px' }
 const h1 = {
   fontSize: '22px',
   fontWeight: 'bold' as const,
-  color: '#000000',
+  color: '#0a1a3a',
   margin: '0 0 20px',
 }
 const text = {
@@ -84,10 +86,10 @@ const text = {
 }
 const link = { color: 'inherit', textDecoration: 'underline' }
 const button = {
-  backgroundColor: '#000000',
+  backgroundColor: '#d4af37',
   color: '#ffffff',
   fontSize: '14px',
-  border: '1px solid #000000',
+  border: '1px solid #d4af37',
   borderRadius: '8px',
   padding: '12px 20px',
   textDecoration: 'none',

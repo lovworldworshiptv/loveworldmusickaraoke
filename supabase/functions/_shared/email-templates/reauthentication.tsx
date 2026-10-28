@@ -8,6 +8,7 @@ import {
   Head,
   Heading,
   Html,
+  Img,
   Preview,
   Text,
 } from 'npm:@react-email/components@0.0.22'
@@ -22,6 +23,7 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
     <Preview>Your verification code</Preview>
     <Body style={main}>
       <Container style={container}>
+        <Img src="https://loveworldmusickaraoke.com/icon-512.png" width="72" height="72" alt="Loveworld Music+" style={{ borderRadius: '16px', margin: '0 0 20px' }} />
         <Heading style={h1}>Confirm reauthentication</Heading>
         <Text style={text}>Use the code below to confirm your identity:</Text>
         <Text style={codeStyle}>{token}</Text>
@@ -41,7 +43,7 @@ const container = { padding: '20px 25px' }
 const h1 = {
   fontSize: '22px',
   fontWeight: 'bold' as const,
-  color: '#000000',
+  color: '#0a1a3a',
   margin: '0 0 20px',
 }
 const text = {
