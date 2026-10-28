@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { canStartTrial } from "@/lib/trial";
 
 export const useIsPremium = () => {
   const { user } = useAuth();
@@ -8,23 +9,26 @@ export const useIsPremium = () => {
   const [isTrial, setIsTrial] = useState(false);
   const [loading, setLoading] = useState(true);
   const [subscriptionExpiry, setSubscriptionExpiry] = useState<string | null>(null);
+  const [trialAvailable, setTrialAvailable] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!user) {
       setIsPremium(false);
       setIsTrial(false);
       setSubscriptionExpiry(null);
+      setTrialAvailable(false);
       setLoading(false);
       return;
     }
 
     supabase.from("user_subscriptions")
-      .select("subscription, subscription_expiry_date")
+      .select("subscription, subscription_expiry_date, trial_used_at")
       .eq("user_id", user.id)
-      .single()
+      .maybeSingle()
       .then(({ data }) => {
         const sub = data?.subscription;
-        const expiry = (data as any)?.subscription_expiry_date;
+        const expiry = data?.subscription_expiry_date ?? null;
         const expired = expiry && new Date(expiry) < new Date();
 
         if (expired) {
@@ -34,10 +38,13 @@ export const useIsPremium = () => {
           setIsPremium(sub === "premium" || sub === "trial");
           setIsTrial(sub === "trial");
         }
-        setSubscriptionExpiry(expiry || null);
+        setTrialAvailable(canStartTrial(data ?? null));
+        setSubscriptionExpiry(expiry);
         setLoading(false);
       });
-  }, [user]);
+  }, [user, refreshKey]);
 
-  return { isPremium, isTrial, loading, subscriptionExpiry };
+  const refresh = () => setRefreshKey((k) => k + 1);
+
+  return { isPremium, isTrial, loading, subscriptionExpiry, trialAvailable, refresh };
 };
