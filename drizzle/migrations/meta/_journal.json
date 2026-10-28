@@ -232,6 +232,13 @@
       "when": 1792783186647,
       "tag": "0032_restore_role_guards",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793174905190,
+      "tag": "0033_migration",
+      "breakpoints": true
     }
   ]
 }
