@@ -66,6 +66,7 @@ export function resolveStageMediaUrl(url: string) {
 export const HOME_SECTIONS: { id: string; label: string }[] = [
   { id: "moods", label: "Mood Capsules" },
   { id: "hero", label: "Hero Banner" },
+  { id: "free_downloads", label: "Available For Free Download" },
   { id: "quick_picks", label: "Quick Picks" },
   { id: "recommendations", label: "Recommended Playlists" },
   { id: "albums", label: "Top Albums" },
@@ -102,10 +103,14 @@ export function useSetting<T>(key: string) {
   return value;
 }
 
-/** Merge saved order with known sections so new sections still appear. */
+/** Merge saved order with known sections; a new section lands right after its default predecessor. */
 export function resolveHomeLayout(saved: HomeSectionSetting[] | null | undefined): HomeSectionSetting[] {
   const list = (saved || []).filter((s) => HOME_SECTIONS.some((h) => h.id === s.id));
-  for (const h of HOME_SECTIONS) if (!list.some((s) => s.id === h.id)) list.push({ id: h.id, visible: true });
+  HOME_SECTIONS.forEach((h, i) => {
+    if (list.some((s) => s.id === h.id)) return;
+    const prev = i > 0 ? list.findIndex((s) => s.id === HOME_SECTIONS[i - 1].id) : -1;
+    list.splice(prev >= 0 ? prev + 1 : i === 0 ? 0 : list.length, 0, { id: h.id, visible: true });
+  });
   return list;
 }
 

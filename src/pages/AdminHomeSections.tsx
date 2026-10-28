@@ -135,6 +135,11 @@ const AdminHomeSections = () => {
         <h1 className="text-2xl font-serif font-bold text-foreground mb-1">Home Sections</h1>
         <p className="text-sm text-muted-foreground mb-5">Choose what appears in each home page section and how it's named. Show, hide or reorder whole sections in <Link to="/admin/appearance" className="underline">Appearance & Home</Link>.</p>
 
+        <Card title="Available For Free Download">
+          <TextEditor id="free_downloads" value={content.free_downloads || {}} onSave={(v) => saveText("free_downloads", v)} />
+          <p className="text-xs text-muted-foreground">Lists every song marked free to download. Mark songs free in <Link to="/admin/songs" className="underline">Manage Songs</Link>.</p>
+        </Card>
+
         <Card title="Quick Picks">
           <TextEditor id="quick_picks" value={content.quick_picks || {}} onSave={(v) => saveText("quick_picks", v)} />
           <SettingSongPicker settingKey={SETTING_KEYS.curatedQuickPicks} label="Songs"

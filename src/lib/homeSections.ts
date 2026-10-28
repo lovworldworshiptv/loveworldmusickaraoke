@@ -3,6 +3,7 @@ export type HomeSectionText = { eyebrow?: string; title?: string; cardColor?: st
 export type HomeSectionContent = Record<string, HomeSectionText>;
 
 export const HOME_SECTION_DEFAULTS: Record<string, { eyebrow: string; title: string }> = {
+  free_downloads: { eyebrow: "Free for everyone", title: "Available For Free Download" },
   quick_picks: { eyebrow: "Start singing", title: "Quick Picks" },
   recommendations: { eyebrow: "Curated for you", title: "Recommended Playlists" },
   karaoke: { eyebrow: "Sing along", title: "Soundtrack For Your Day" },
