@@ -20,7 +20,7 @@ const Referrals = () => {
   const [kc, setKc] = useState(kingschatHandle || "");
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<null | "people" | "payers" | "earned" | "balance">(null);
-  const link = username && username !== "Guest" ? buildInviteUrl(username) : "";
+  const link = username && username !== "Guest" ? buildInviteUrl(username, user?.id) : "";
 
   const { data: people = [] } = useQuery({
     queryKey: ["my-referrals", user?.id],

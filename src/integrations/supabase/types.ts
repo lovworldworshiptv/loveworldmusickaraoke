@@ -2981,6 +2981,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      invite_referrer_name: { Args: { p_code: string }; Returns: string }
       is_community_member: {
         Args: { _community_id: string; _user_id: string }
         Returns: boolean
@@ -3027,6 +3028,7 @@ export type Database = {
         }
         Returns: Json
       }
+      resolve_invite_code: { Args: { p_code: string }; Returns: string }
       review_referral_payout: {
         Args: { p_id: string; p_notes: string; p_status: string }
         Returns: undefined
