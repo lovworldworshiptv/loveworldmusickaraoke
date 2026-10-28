@@ -21,6 +21,8 @@ type Song = {
   category_id: string | null; has_video: boolean; is_featured: boolean;
 };
 type PlayEvent = { user_id: string | null; song_id: string; mode: string; created_at: string };
+type ProfileRow = { user_id: string; username: string; avatar_url: string | null; region: string | null; zone: string | null; created_at: string; profile_completed: boolean };
+type SubRow = { user_id: string; subscription: string; subscription_expiry_date: string | null };
 
 const panel = "rounded-xl border border-border bg-card p-4";
 const tooltipStyle = { background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 };
@@ -62,9 +64,9 @@ const AdminAnalytics = () => {
       const failed = results.find((result) => result.error);
       if (failed?.error) throw failed.error;
       return {
-        profiles: results[0].data ?? [], songs: (results[1].data ?? []) as Song[], plays: (results[2].data ?? []) as PlayEvent[],
+        profiles: (results[0].data ?? []) as ProfileRow[], songs: (results[1].data ?? []) as Song[], plays: (results[2].data ?? []) as PlayEvent[],
         favorites: results[3].data ?? [], downloads: results[4].data ?? [], karaoke: results[5].data ?? [],
-        subscriptions: results[6].data ?? [], notifications: results[7].data ?? [], stems: results[8].data ?? [],
+        subscriptions: (results[6].data ?? []) as SubRow[], notifications: results[7].data ?? [], stems: results[8].data ?? [],
         articles: results[9].count ?? 0, games: results[10].data ?? [],
         createClicks: (results[11].data ?? []) as { event_data: any; created_at: string }[],
         acquisition: (results[12].data ?? []) as { event_type: string; event_data: any; created_at: string }[],
