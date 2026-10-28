@@ -8,18 +8,20 @@ export const useIsPremium = () => {
   const [isTrial, setIsTrial] = useState(false);
   const [loading, setLoading] = useState(true);
   const [subscriptionExpiry, setSubscriptionExpiry] = useState<string | null>(null);
+  const [trialUsed, setTrialUsed] = useState(false);
 
   useEffect(() => {
     if (!user) {
       setIsPremium(false);
       setIsTrial(false);
       setSubscriptionExpiry(null);
+      setTrialUsed(false);
       setLoading(false);
       return;
     }
 
     supabase.from("user_subscriptions")
-      .select("subscription, subscription_expiry_date")
+      .select("subscription, subscription_plan, subscription_expiry_date, trial_used_at")
       .eq("user_id", user.id)
       .single()
       .then(({ data }) => {
@@ -35,9 +37,11 @@ export const useIsPremium = () => {
           setIsTrial(sub === "trial");
         }
         setSubscriptionExpiry(expiry || null);
+        // One-time free trial: once used it never comes back.
+        setTrialUsed(!!(data as any)?.trial_used_at || sub === "trial" || (data as any)?.subscription_plan === "3_day_trial");
         setLoading(false);
       });
   }, [user]);
 
-  return { isPremium, isTrial, loading, subscriptionExpiry };
+  return { isPremium, isTrial, loading, subscriptionExpiry, trialUsed };
 };
