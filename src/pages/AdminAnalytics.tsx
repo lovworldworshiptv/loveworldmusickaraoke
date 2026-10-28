@@ -45,13 +45,13 @@ const AdminAnalytics = () => {
     enabled: isAdmin,
     queryFn: async () => {
       const results = await Promise.all([
-        supabase.from("profiles").select("user_id, username, avatar_url, region, zone, created_at, profile_completed").order("created_at", { ascending: false }),
+        fetchAllRows((from, to) => supabase.from("profiles").select("user_id, username, avatar_url, region, zone, created_at, profile_completed").order("created_at", { ascending: false }).order("id").range(from, to)).then((data) => ({ data, error: null }), (error) => ({ data: null, error })),
         fetchAllRows((from, to) => supabase.from("songs").select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, category_id, has_video, is_featured").order("title").order("id").range(from, to)).then((data) => ({ data, error: null }), (error) => ({ data: null, error })),
         supabase.from("play_events").select("user_id, song_id, mode, created_at").order("created_at", { ascending: false }).limit(5000),
         supabase.from("favorites").select("user_id, song_id").limit(5000),
         supabase.from("downloads").select("user_id, song_id").is("deleted_at", null).limit(5000),
         supabase.from("karaoke_recordings").select("user_id, song_id, created_at").limit(5000),
-        supabase.from("user_subscriptions").select("user_id, subscription, subscription_expiry_date"),
+        fetchAllRows((from, to) => supabase.from("user_subscriptions").select("user_id, subscription, subscription_expiry_date").order("id").range(from, to)).then((data) => ({ data, error: null }), (error) => ({ data: null, error })),
         supabase.from("admin_notifications").select("id, type, title, message, is_read, created_at").order("created_at", { ascending: false }).limit(30),
         supabase.from("song_audio_versions").select("song_id, status, error, updated_at").eq("kind", "instrumental").order("updated_at", { ascending: false }),
         supabase.from("articles").select("id", { count: "exact", head: true }),
