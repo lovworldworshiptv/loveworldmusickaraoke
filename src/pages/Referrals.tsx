@@ -66,7 +66,7 @@ const Referrals = () => {
   const share = async () => {
     if (navigator.share) {
       logShareClick("native", link);
-      try { await navigator.share({ title: "Join Loveworld Music+", text: "Join me on Loveworld Music+!\n\nGet the app: https://web.lwappstore.com/share/lW-APP-Y26-XX5010", url: tagShareUrl(link, "native") }); } catch { /* cancelled */ }
+      try { await navigator.share({ title: "Join Loveworld Music+", text: "Join me on Loveworld Music+!\n\nGet the app: https://web.lwappstore.com/share/lW-APP-Y26-OO1356", url: tagShareUrl(link, "native") }); } catch { /* cancelled */ }
     } else copy();
   };
 
