@@ -26,7 +26,8 @@ const Auth = () => {
   const [email, setEmail] = useState(getRememberedEmail());
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
-  const [inviteCode, setInviteCode] = useState(() => new URLSearchParams(location.search).get("invite") || "");
+  const [inviteCode, setInviteCode] = useState("");
+  const [inviteEdited, setInviteEdited] = useState(false);
   const [inviter, setInviter] = useState<string | null>(null);
   const [remember, setRemember] = useState(getRememberMe());
   const [showPassword, setShowPassword] = useState(false);
@@ -43,21 +44,20 @@ const Auth = () => {
     if (!code) return;
     lookupInviter(code).then((name) => {
       setInviter(name);
-      if (name) setInviteCode((c) => c || name);
+      setInviteCode((c) => c || name || code);
     });
   }, [urlInvite]);
 
   // Already signed in (e.g. opened an invite link while logged in): go on.
   useEffect(() => { if (user && mode !== "forgot") navigate(nextPath, { replace: true }); }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /** Typed codes replace the stored one unless they still name the same inviter from the link. */
+  /** Keep the precise code from the link unless the visitor typed a different one. */
   const commitInviteCode = () => {
-    const typed = inviteCode.trim();
-    if (!typed) return undefined;
     const stored = getStoredInvite();
-    if (stored && inviter && typed.toLowerCase() === inviter.toLowerCase()) return stored;
-    storeInvite(typed);
-    return typed;
+    if (!inviteEdited) return stored || undefined;
+    const typed = inviteCode.trim();
+    storeInvite(typed || null);
+    return typed || undefined;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -189,7 +189,7 @@ const Auth = () => {
               </div>
 
               {mode === "signup" && (
-                <input type="text" placeholder="Invite code (optional)" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} aria-label="Invite code" className={inputCls} />
+                <input type="text" placeholder="Invite code (optional)" value={inviteCode} onChange={(e) => { setInviteCode(e.target.value); setInviteEdited(true); }} aria-label="Invite code" className={inputCls} />
               )}
 
               {mode === "signin" && (
