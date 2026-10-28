@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import UserDetailDialog from "@/components/admin/UserDetailDialog";
 import SendMessageModal from "@/components/admin/SendMessageModal";
 import { fetchAllRows } from "@/lib/fetchAll";
-import { buildRoleMap, effectiveSubscription } from "@/lib/adminUsers";
+import { buildRoleMap, effectiveSubscription, USER_FILTERS, matchesUserFilter, countUserFilters, type UserFilterKey } from "@/lib/adminUsers";
 
 interface UserRow {
   user_id: string;
@@ -25,6 +25,7 @@ interface UserRow {
   role: string;
   subscription: string;
   subscription_expiry_date: string | null;
+  subscription_plan: string | null;
   created_at: string;
 }
 
@@ -40,6 +41,7 @@ const AdminUsers = () => {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<UserFilterKey>("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const [planModalOpen, setPlanModalOpen] = useState(false);
@@ -63,7 +65,7 @@ const AdminUsers = () => {
           .order("created_at", { ascending: false }).order("id").range(from, to)),
         fetchAllRows((from, to) => supabase.from("user_roles").select("user_id, role").order("id").range(from, to)),
         fetchAllRows((from, to) => supabase.from("user_subscriptions")
-          .select("user_id, subscription, subscription_expiry_date").order("id").range(from, to)),
+          .select("user_id, subscription, subscription_expiry_date, subscription_plan").order("id").range(from, to)),
       ]);
     } catch {
       toast.error("Failed to load users");
@@ -73,9 +75,9 @@ const AdminUsers = () => {
 
     const roleMap = buildRoleMap(roles);
 
-    const subMap = new Map<string, { subscription: string; expiry: string | null }>();
+    const subMap = new Map<string, { subscription: string; expiry: string | null; plan: string | null }>();
     subs.forEach((s: any) => {
-      subMap.set(s.user_id, { subscription: effectiveSubscription(s.subscription, s.subscription_expiry_date), expiry: s.subscription_expiry_date });
+      subMap.set(s.user_id, { subscription: effectiveSubscription(s.subscription, s.subscription_expiry_date), expiry: s.subscription_expiry_date, plan: s.subscription_plan ?? null });
     });
 
     const merged: UserRow[] = profiles.map((p: any) => ({
@@ -87,6 +89,7 @@ const AdminUsers = () => {
       role: roleMap.get(p.user_id) || "user",
       subscription: subMap.get(p.user_id)?.subscription || "free",
       subscription_expiry_date: subMap.get(p.user_id)?.expiry || null,
+      subscription_plan: subMap.get(p.user_id)?.plan || null,
       created_at: p.created_at,
     }));
 
@@ -135,7 +138,7 @@ const AdminUsers = () => {
       if (insertErr) { toast.error("Failed to update subscription"); setUpdatingId(null); return; }
     }
     toast.success(newSub === "premium" ? "Premium activated" : newSub === "trial" ? "Trial activated" : "Subscription reverted to free");
-    setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, subscription: newSub, subscription_expiry_date: expiryDate } : u));
+    setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, subscription: newSub, subscription_expiry_date: expiryDate, subscription_plan: plan || "none" } : u));
     setUpdatingId(null);
   };
 
@@ -166,7 +169,8 @@ const AdminUsers = () => {
   if (adminLoading) return <AppLayout><div className="p-6 text-center text-muted-foreground">Loading...</div></AppLayout>;
   if (!isAdmin) return <AppLayout><div className="p-6 text-center text-muted-foreground">Admin access required.</div></AppLayout>;
 
-  const filtered = users.filter(u =>
+  const counts = countUserFilters(users);
+  const filtered = users.filter(u => matchesUserFilter(u, filter)).filter(u =>
     u.username.toLowerCase().includes(search.toLowerCase()) ||
     u.user_id.toLowerCase().includes(search.toLowerCase()) ||
     (u.kingschat_handle || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -198,6 +202,26 @@ const AdminUsers = () => {
             value={search} onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-muted border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-4" role="group" aria-label="Filter users">
+          {USER_FILTERS.map((f) => {
+            const active = filter === f.key;
+            return (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setFilter(f.key)}
+                aria-pressed={active}
+                className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${active ? "gradient-gold text-primary-foreground border-transparent" : "bg-muted text-foreground border-border hover:border-gold/50"}`}
+              >
+                {f.label}
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${active ? "bg-background/20" : "bg-background text-muted-foreground"}`}>
+                  {loading ? "…" : counts[f.key]}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {loading ? (
