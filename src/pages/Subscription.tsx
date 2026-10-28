@@ -233,7 +233,7 @@ const Subscription = () => {
 
         {/* Plans */}
         <div className="space-y-3 mb-6">
-          {!subLoading && !isPremium && (trialUsed || trialJustUsed) && (
+          {!subLoading && !isPremium && trialUsed && (
             <div className="flex items-start gap-2 rounded-xl border border-gold/30 bg-gold/10 p-3 text-sm text-foreground">
               <Clock className="w-4 h-4 text-gold mt-0.5 shrink-0" />
               <p>You've already enjoyed your free 3-day trial. Choose a Premium plan below to keep enjoying all features.</p>
