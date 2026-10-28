@@ -51,3 +51,42 @@ export function countUserFilters(users: Countable[]): Record<UserFilterKey, numb
   for (const u of users) for (const f of USER_FILTERS) if (matchesUserFilter(u, f.key)) counts[f.key]++;
   return counts;
 }
+
+/** Subscription tiers for the Manage Subscriptions page (roles are not part of it). */
+export type TierFilterKey =
+  | "all" | "free" | "trial" | "premium"
+  | "premium_1_month" | "premium_3_months" | "premium_6_months" | "premium_1_year";
+
+/** Premium plan stored in subscription_plan for each per-plan tier. */
+const TIER_PLAN: Partial<Record<TierFilterKey, string>> = {
+  premium_1_month: "1_month",
+  premium_3_months: "3_months",
+  premium_6_months: "6_months",
+  premium_1_year: "1_year",
+};
+
+export const TIER_FILTERS: { key: TierFilterKey; label: string }[] = [
+  { key: "all", label: "All users" },
+  { key: "free", label: "Free" },
+  { key: "trial", label: "Free trial" },
+  { key: "premium", label: "All Premium" },
+  { key: "premium_1_month", label: "Premium · 1 month" },
+  { key: "premium_3_months", label: "Premium · 3 months" },
+  { key: "premium_6_months", label: "Premium · 6 months" },
+  { key: "premium_1_year", label: "Premium · 1 year" },
+];
+
+type TierCountable = { subscription: string; subscription_plan: string | null };
+
+/** `subscription` must already be the effective one (expired plans count as free). */
+export function matchesTierFilter(u: TierCountable, key: TierFilterKey): boolean {
+  if (key === "all") return true;
+  if (key === "free" || key === "trial" || key === "premium") return u.subscription === key;
+  return u.subscription === "premium" && u.subscription_plan === TIER_PLAN[key];
+}
+
+export function countTierFilters(users: TierCountable[]): Record<TierFilterKey, number> {
+  const counts = Object.fromEntries(TIER_FILTERS.map((f) => [f.key, 0])) as Record<TierFilterKey, number>;
+  for (const u of users) for (const f of TIER_FILTERS) if (matchesTierFilter(u, f.key)) counts[f.key]++;
+  return counts;
+}
