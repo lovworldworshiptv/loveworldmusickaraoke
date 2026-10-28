@@ -13,6 +13,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import UserDetailDialog from "@/components/admin/UserDetailDialog";
 import SendMessageModal from "@/components/admin/SendMessageModal";
+import { fetchAllRows } from "@/lib/fetchAll";
+import { buildRoleMap, effectiveSubscription } from "@/lib/adminUsers";
 
 interface UserRow {
   user_id: string;
@@ -52,29 +54,28 @@ const AdminUsers = () => {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data: profiles, error: pErr } = await supabase
-      .from("profiles")
-      .select("user_id, username, avatar_url, kingschat_handle, email, created_at")
-      .order("created_at", { ascending: false });
-
-    if (pErr || !profiles) {
+    let profiles: any[], roles: any[], subs: any[];
+    try {
+      // Load every page: the backend returns at most 1,000 rows per request.
+      [profiles, roles, subs] = await Promise.all([
+        fetchAllRows((from, to) => supabase.from("profiles")
+          .select("user_id, username, avatar_url, kingschat_handle, email, created_at")
+          .order("created_at", { ascending: false }).order("id").range(from, to)),
+        fetchAllRows((from, to) => supabase.from("user_roles").select("user_id, role").order("id").range(from, to)),
+        fetchAllRows((from, to) => supabase.from("user_subscriptions")
+          .select("user_id, subscription, subscription_expiry_date").order("id").range(from, to)),
+      ]);
+    } catch {
       toast.error("Failed to load users");
       setLoading(false);
       return;
     }
 
-    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
-    const { data: subs } = await supabase.from("user_subscriptions").select("user_id, subscription, subscription_expiry_date");
-
-    const roleMap = new Map<string, string>();
-    (roles || []).forEach((r: any) => roleMap.set(r.user_id, r.role));
+    const roleMap = buildRoleMap(roles);
 
     const subMap = new Map<string, { subscription: string; expiry: string | null }>();
-    (subs || []).forEach((s: any) => {
-      // Auto-detect expired subscriptions that haven't been reverted yet
-      const isExpired = s.subscription_expiry_date && new Date(s.subscription_expiry_date) < new Date();
-      const effectiveSub = (s.subscription === "premium" || s.subscription === "trial") && isExpired ? "free" : s.subscription;
-      subMap.set(s.user_id, { subscription: effectiveSub, expiry: s.subscription_expiry_date });
+    subs.forEach((s: any) => {
+      subMap.set(s.user_id, { subscription: effectiveSubscription(s.subscription, s.subscription_expiry_date), expiry: s.subscription_expiry_date });
     });
 
     const merged: UserRow[] = profiles.map((p: any) => ({
