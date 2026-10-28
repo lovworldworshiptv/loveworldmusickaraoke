@@ -1,40 +1,31 @@
 project_id = "qphlczkvepcxzgqagsmx"
 
-[functions.send-notification]
-verify_jwt = false
-
-[functions.sync-onesignal-tag]
-verify_jwt = false
-
-[functions.delete-account]
-verify_jwt = false
-
-[functions.download-audio]
-verify_jwt = false
-
-[functions.kingschat-login]
-verify_jwt = false
-
-[functions.kingschat-callback]
-verify_jwt = false
-
-[functions.kingschat-poll]
-verify_jwt = false
-
-[functions.kingschat-refresh]
-verify_jwt = false
-
-[functions.process-scheduled-notifications]
-verify_jwt = false
-
-[functions.notify-admin-payment]
-verify_jwt = false
-
-[functions.process-email-queue]
-verify_jwt = true
-
-[functions.offline-media]
-verify_jwt = false
-
-[functions.rhapsody-daily]
-verify_jwt = false
+[functions]
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.delete-account]
+    verify_jwt = false
+  [functions.download-audio]
+    verify_jwt = false
+  [functions.kingschat-callback]
+    verify_jwt = false
+  [functions.kingschat-login]
+    verify_jwt = false
+  [functions.kingschat-poll]
+    verify_jwt = false
+  [functions.kingschat-refresh]
+    verify_jwt = false
+  [functions.notify-admin-payment]
+    verify_jwt = false
+  [functions.offline-media]
+    verify_jwt = false
+  [functions.process-email-queue]
+    verify_jwt = true
+  [functions.process-scheduled-notifications]
+    verify_jwt = false
+  [functions.rhapsody-daily]
+    verify_jwt = false
+  [functions.send-notification]
+    verify_jwt = false
+  [functions.sync-onesignal-tag]
+    verify_jwt = false
