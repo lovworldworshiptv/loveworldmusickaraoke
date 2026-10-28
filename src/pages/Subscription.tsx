@@ -24,7 +24,7 @@ const GIFT_PLANS = PLANS.filter(p => p.id !== "3_day_trial");
 
 const Subscription = () => {
   const { user, username, kingschatHandle } = useAuth();
-  const { isPremium, isTrial, subscriptionExpiry, trialAvailable, refresh: refreshPremium } = useIsPremium();
+  const { isPremium, isTrial, subscriptionExpiry, trialAvailable, loading: premiumLoading, refresh: refreshPremium } = useIsPremium();
   // Once the free trial has been used (or while premium), only paid Premium plans are offered.
   const visiblePlans = trialAvailable ? PLANS : PLANS.filter(p => p.id !== "3_day_trial");
   const navigate = useNavigate();
@@ -232,6 +232,11 @@ const Subscription = () => {
         </div>
 
         {/* Plans */}
+        {user && !premiumLoading && !trialAvailable && !isPremium && (
+          <p className="text-xs text-muted-foreground text-center mb-3">
+            You've already used your free trial. Choose a Premium plan to keep enjoying all features.
+          </p>
+        )}
         <div className="space-y-3 mb-6">
           {visiblePlans.map((plan) => (
             <button
