@@ -3,7 +3,7 @@ import { Download, X } from "lucide-react";
 import { isMedianApp } from "@/lib/median";
 import { logAppDownloadClick } from "@/lib/acquisitionAnalytics";
 
-export const APP_DOWNLOAD_URL = "https://web.lwappstore.com/share/lW-APP-Y26-XX5010";
+export const APP_DOWNLOAD_URL = "https://web.lwappstore.com/share/lW-APP-Y26-OO1356";
 const DISMISS_KEY = "lw_app_prompt_dismissed_at";
 const WEEK = 7 * 86400000;
 
