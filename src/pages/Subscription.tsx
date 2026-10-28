@@ -24,7 +24,9 @@ const GIFT_PLANS = PLANS.filter(p => p.id !== "3_day_trial");
 
 const Subscription = () => {
   const { user, username, kingschatHandle } = useAuth();
-  const { isPremium, isTrial, subscriptionExpiry } = useIsPremium();
+  const { isPremium, isTrial, subscriptionExpiry, trialAvailable, loading: premiumLoading, refresh: refreshPremium } = useIsPremium();
+  // Once the free trial has been used (or while premium), only paid Premium plans are offered.
+  const visiblePlans = trialAvailable ? PLANS : PLANS.filter(p => p.id !== "3_day_trial");
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showGiftForm, setShowGiftForm] = useState(false);
@@ -106,13 +108,20 @@ const Subscription = () => {
       setSubmitting(true);
       try {
         const { data, error } = await supabase.functions.invoke("activate-trial");
-        if (error) throw error;
+        if (error) {
+          // Show the server's reason (e.g. trial already used) instead of a generic error.
+          let message = error.message;
+          try { message = (await (error as any).context?.json())?.error || message; } catch { /* keep generic */ }
+          throw new Error(message);
+        }
         if (data?.error) throw new Error(data.error);
         setSuccessDialog("trial");
         setSelectedPlan(null);
       } catch (err: any) {
         toast.error(err.message || "Failed to activate trial");
+        setSelectedPlan(null);
       } finally {
+        refreshPremium();
         setSubmitting(false);
       }
       return;
@@ -223,8 +232,13 @@ const Subscription = () => {
         </div>
 
         {/* Plans */}
+        {user && !premiumLoading && !trialAvailable && !isPremium && (
+          <p className="text-xs text-muted-foreground text-center mb-3">
+            You've already used your free trial. Choose a Premium plan to keep enjoying all features.
+          </p>
+        )}
         <div className="space-y-3 mb-6">
-          {PLANS.map((plan) => (
+          {visiblePlans.map((plan) => (
             <button
               key={plan.id}
               onClick={() => { setSelectedPlan(plan.id); setShowGiftForm(false); }}

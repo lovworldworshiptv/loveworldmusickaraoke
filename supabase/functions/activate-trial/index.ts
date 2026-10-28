@@ -33,38 +33,55 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check current subscription - prevent trial if already premium or already used trial
+    // A free trial can only ever be used once per account.
     const { data: sub } = await supabase
       .from("user_subscriptions")
-      .select("subscription, subscription_plan")
+      .select("subscription, subscription_expiry_date, trial_used_at")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
-    if (sub?.subscription === "premium") {
-      return new Response(JSON.stringify({ error: "You already have an active premium subscription" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
+      status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
+    if (sub?.trial_used_at) {
+      return json({ error: "You have already used your free trial. Choose a Premium plan to continue." }, 400);
+    }
+    const active = sub && (sub.subscription === "premium" || sub.subscription === "trial")
+      && (!sub.subscription_expiry_date || new Date(sub.subscription_expiry_date) > new Date());
+    if (active) {
+      return json({ error: "You already have an active premium subscription" }, 400);
     }
 
-    if (sub?.subscription_plan === "3_day_trial") {
-      return new Response(JSON.stringify({ error: "You have already used your free trial" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Activate trial
+    // Activate trial — only if it has never been used (guards against double taps too).
     const now = new Date();
     const expiry = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const values = {
+      subscription: "trial",
+      subscription_plan: "3_day_trial",
+      subscription_start_date: now.toISOString(),
+      subscription_expiry_date: expiry.toISOString(),
+    };
 
-    const { error: updateError } = await supabase
-      .from("user_subscriptions")
-      .update({
-        subscription: "trial",
-        subscription_plan: "3_day_trial",
-        subscription_start_date: now.toISOString(),
-        subscription_expiry_date: expiry.toISOString(),
-      })
-      .eq("user_id", user.id);
+    let updateError = null;
+    if (sub) {
+      const { data: rows, error } = await supabase
+        .from("user_subscriptions")
+        .update(values)
+        .eq("user_id", user.id)
+        .is("trial_used_at", null)
+        .select("user_id");
+      updateError = error;
+      if (!error && (!rows || rows.length === 0)) {
+        return json({ error: "You have already used your free trial. Choose a Premium plan to continue." }, 400);
+      }
+    } else {
+      const { error } = await supabase.from("user_subscriptions").insert({ user_id: user.id, ...values });
+      updateError = error;
+    }
+    if (updateError && /TRIAL_ALREADY_USED/.test(updateError.message)) {
+      return json({ error: "You have already used your free trial. Choose a Premium plan to continue." }, 400);
+    }
 
     if (updateError) throw updateError;
 

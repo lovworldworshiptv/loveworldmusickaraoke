@@ -26,6 +26,7 @@ interface UserRow {
   subscription: string;
   subscription_expiry_date: string | null;
   subscription_plan: string | null;
+  trial_used_at: string | null;
   created_at: string;
 }
 
@@ -65,7 +66,7 @@ const AdminUsers = () => {
           .order("created_at", { ascending: false }).order("id").range(from, to)),
         fetchAllRows((from, to) => supabase.from("user_roles").select("user_id, role").order("id").range(from, to)),
         fetchAllRows((from, to) => supabase.from("user_subscriptions")
-          .select("user_id, subscription, subscription_expiry_date, subscription_plan").order("id").range(from, to)),
+          .select("user_id, subscription, subscription_expiry_date, subscription_plan, trial_used_at").order("id").range(from, to)),
       ]);
     } catch {
       toast.error("Failed to load users");
@@ -75,9 +76,9 @@ const AdminUsers = () => {
 
     const roleMap = buildRoleMap(roles);
 
-    const subMap = new Map<string, { subscription: string; expiry: string | null; plan: string | null }>();
+    const subMap = new Map<string, { subscription: string; expiry: string | null; plan: string | null; trialUsed: string | null }>();
     subs.forEach((s: any) => {
-      subMap.set(s.user_id, { subscription: effectiveSubscription(s.subscription, s.subscription_expiry_date), expiry: s.subscription_expiry_date, plan: s.subscription_plan ?? null });
+      subMap.set(s.user_id, { subscription: effectiveSubscription(s.subscription, s.subscription_expiry_date), expiry: s.subscription_expiry_date, plan: s.subscription_plan ?? null, trialUsed: s.trial_used_at ?? null });
     });
 
     const merged: UserRow[] = profiles.map((p: any) => ({
@@ -90,6 +91,7 @@ const AdminUsers = () => {
       subscription: subMap.get(p.user_id)?.subscription || "free",
       subscription_expiry_date: subMap.get(p.user_id)?.expiry || null,
       subscription_plan: subMap.get(p.user_id)?.plan || null,
+      trial_used_at: subMap.get(p.user_id)?.trialUsed || null,
       created_at: p.created_at,
     }));
 
@@ -116,6 +118,10 @@ const AdminUsers = () => {
       setSelectedPlan("1_month");
       setPlanModalOpen(true);
     } else if (newSub === "trial") {
+      if (users.find(u => u.user_id === userId)?.trial_used_at) {
+        toast.error("This user has already used their free trial. Choose Premium instead.");
+        return;
+      }
       const expiry = new Date();
       expiry.setDate(expiry.getDate() + 3);
       confirmSubscriptionChange(userId, "trial", "3_day_trial", expiry.toISOString());
@@ -133,6 +139,11 @@ const AdminUsers = () => {
       subscription_expiry_date: expiryDate,
     };
     const { error } = await supabase.from("user_subscriptions").update(updateData).eq("user_id", userId);
+    if (error && /TRIAL_ALREADY_USED/.test(error.message)) {
+      toast.error("This user has already used their free trial. Choose Premium instead.");
+      setUpdatingId(null);
+      return;
+    }
     if (error) {
       const { error: insertErr } = await supabase.from("user_subscriptions").insert({ user_id: userId, ...updateData });
       if (insertErr) { toast.error("Failed to update subscription"); setUpdatingId(null); return; }
@@ -274,7 +285,7 @@ const AdminUsers = () => {
                         <SelectTrigger className="w-[110px] h-8 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="free"><span className="flex items-center gap-1.5"><User className="w-3 h-3" /> Free</span></SelectItem>
-                          <SelectItem value="trial"><span className="flex items-center gap-1.5"><Clock className="w-3 h-3 text-orange-400" /> Trial</span></SelectItem>
+                          <SelectItem value="trial" disabled={!!user.trial_used_at && user.subscription !== "trial"}><span className="flex items-center gap-1.5"><Clock className="w-3 h-3 text-orange-400" /> {user.trial_used_at && user.subscription !== "trial" ? "Trial used" : "Trial"}</span></SelectItem>
                           <SelectItem value="premium"><span className="flex items-center gap-1.5"><Crown className="w-3 h-3 text-gold" /> Premium</span></SelectItem>
                         </SelectContent>
                       </Select>
