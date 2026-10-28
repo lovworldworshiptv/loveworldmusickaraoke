@@ -2759,6 +2759,7 @@ export type Database = {
           subscription_expiry_date: string | null
           subscription_plan: string | null
           subscription_start_date: string | null
+          trial_used_at: string | null
           updated_at: string
           user_id: string
         }
@@ -2769,6 +2770,7 @@ export type Database = {
           subscription_expiry_date?: string | null
           subscription_plan?: string | null
           subscription_start_date?: string | null
+          trial_used_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -2779,6 +2781,7 @@ export type Database = {
           subscription_expiry_date?: string | null
           subscription_plan?: string | null
           subscription_start_date?: string | null
+          trial_used_at?: string | null
           updated_at?: string
           user_id?: string
         }
