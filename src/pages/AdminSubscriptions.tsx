@@ -10,6 +10,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import UserDetailDialog from "@/components/admin/UserDetailDialog";
+import SubscriberTiers from "@/components/admin/SubscriberTiers";
 
 interface SubRequest {
   id: string;
@@ -316,7 +317,7 @@ const AdminSubscriptions = () => {
         </div>
 
         <Tabs defaultValue="awaiting" className="w-full">
-          <TabsList className="mb-4">
+          <TabsList className="mb-4 h-auto flex-wrap justify-start">
             <TabsTrigger value="awaiting" className="text-sm">
               Awaiting Approval {pending.length > 0 && (
                 <Badge variant="destructive" className="ml-2 h-5 min-w-[20px] text-xs">{pending.length}</Badge>
@@ -330,6 +331,9 @@ const AdminSubscriptions = () => {
             <TabsTrigger value="rejected" className="text-sm">
               Rejected
             </TabsTrigger>
+            <TabsTrigger value="subscribers" className="text-sm">
+              <Crown className="w-3.5 h-3.5 mr-1.5 text-gold" /> Subscribers by plan
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="awaiting">
@@ -340,6 +344,9 @@ const AdminSubscriptions = () => {
           </TabsContent>
           <TabsContent value="rejected">
             {loading ? <p className="text-muted-foreground text-sm text-center py-12">Loading...</p> : renderTable(rejected, false)}
+          </TabsContent>
+          <TabsContent value="subscribers">
+            <SubscriberTiers onSelectUser={setDetailUserId} />
           </TabsContent>
         </Tabs>
       </div>
