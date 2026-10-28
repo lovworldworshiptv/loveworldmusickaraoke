@@ -7,6 +7,14 @@ getSetting<ThemeColors>(SETTING_KEYS.theme).then(applyTheme).catch(() => undefin
 
 createRoot(document.getElementById("root")!).render(<App />);
 
+// Block the right-click menu site-wide (protects artwork, audio and video),
+// but keep it in text fields so people can still paste.
+document.addEventListener("contextmenu", (e) => {
+  const t = e.target as HTMLElement | null;
+  if (t?.closest('input, textarea, [contenteditable="true"]')) return;
+  e.preventDefault();
+});
+
 // Skip custom service worker inside Median native wrapper —
 // Median manages its own push / SW infrastructure.
 const ua = navigator.userAgent.toLowerCase();
