@@ -25,6 +25,8 @@ interface LrcLine {
 }
 
 export type RepeatMode = "off" | "all" | "one";
+/** How a play was started, as logged in play_events.mode. */
+type PlayMode = "song" | "karaoke" | "video";
 
 interface PlayerContextType {
   currentSong: PlayerSong | null;
@@ -677,56 +679,64 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
   resolvePreferredRef.current = resolvePreferred;
 
-  const playSong = useCallback((song: PlayerSong) => {
+  const startSong = useCallback((song: PlayerSong, mode: PlayMode) => {
     resolvedCacheRef.current.clear();
+    sessionModeRef.current = mode === "video" ? "video" : "song";
     setQueue([song]);
     setQueueIndex(0);
     resolvePreferred(song).then((s) => {
       internalPlay(s, false);
-      recordPlayFn(s.id);
+      recordPlayFn(s.id, mode);
     });
   }, [internalPlay, recordPlayFn, resolvePreferred]);
 
+  const playSong = useCallback((song: PlayerSong) => startSong(song, "song"), [startSong]);
+
   const playVideo = useCallback((song: PlayerSong) => {
     if (!featuresRef.current("video")) return;
-    playSong(song);
+    startSong(song, "video");
     setIsExpanded(true);
     setVideoModeRequest(true);
-  }, [playSong]);
+  }, [startSong]);
 
   const clearVideoModeRequest = useCallback(() => setVideoModeRequest(false), []);
   const requestVideoMode = useCallback(() => setVideoModeRequest(true), []);
 
   const singThis = useCallback((song: PlayerSong) => {
     if (!featuresRef.current("karaoke")) return;
-    playSong(song);
+    startSong(song, "karaoke");
     setIsExpanded(true);
     setKaraokeModeRequest(true);
-  }, [playSong]);
+  }, [startSong]);
 
   const clearKaraokeModeRequest = useCallback(() => setKaraokeModeRequest(false), []);
 
-  const playQueue = useCallback((songs: PlayerSong[], startIndex = 0, opts?: { karaoke?: boolean }) => {
+  const startQueue = useCallback((songs: PlayerSong[], startIndex: number, karaoke: boolean, video: boolean) => {
     const q = shuffleOnRef.current ? shuffleArray(songs) : songs;
     resolvedCacheRef.current.clear();
+    sessionModeRef.current = video ? "video" : "song";
     queueRef.current = q;
     queueIndexRef.current = startIndex;
     setQueue(q);
     setQueueIndex(startIndex);
     if (q[startIndex]) {
       resolvePreferred(q[startIndex]).then((s) => {
-        internalPlay(s, !!opts?.karaoke);
-        recordPlayFn(s.id);
+        internalPlay(s, karaoke);
+        recordPlayFn(s.id, karaoke ? "karaoke" : video ? "video" : "song");
       });
     }
   }, [internalPlay, recordPlayFn, resolvePreferred]);
 
+  const playQueue = useCallback((songs: PlayerSong[], startIndex = 0, opts?: { karaoke?: boolean }) => {
+    startQueue(songs, startIndex, !!opts?.karaoke, false);
+  }, [startQueue]);
+
   const playVideoQueue = useCallback((songs: PlayerSong[], startIndex = 0) => {
     if (!featuresRef.current("video")) return;
-    playQueue(songs, startIndex);
+    startQueue(songs, startIndex, false, true);
     setIsExpanded(true);
     setVideoModeRequest(true);
-  }, [playQueue]);
+  }, [startQueue]);
 
   const skipNext = useCallback((opts?: { autoplay?: boolean } | unknown) => {
     const flag = (opts as { autoplay?: unknown } | undefined)?.autoplay;
