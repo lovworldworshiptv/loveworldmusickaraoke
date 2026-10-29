@@ -27,3 +27,4 @@
 - The OneSignal web worker lives at public/push/onesignal/ with its own scope (set in index.html init) — why: sharing scope "/" would replace the app's /serviceworker.js.
 - Rhapsody Daily is read live from read.rhapsodyofrealities.org (window.dailyDevotional) in src/lib/rhapsodyDaily.ts, sanitised, cached locally, with the rhapsody-daily function as fallback — why: no copy to maintain, new day appears on refresh.
 - The free trial is once per account: the mark_trial_used trigger rejects starting or extending a trial once trial_used_at is set, for everyone — why: subscription_plan resets on expiry, so it cannot prove a trial was used.
+- Command Centre figures come from the admin-only admin_command_centre/admin_referral_stats RPCs (SQL aggregates, expired plans = free, instrumentals excluded from lyric/karaoke gaps); plays log mode song/karaoke/video — why: client row fetches were capped at 1,000.

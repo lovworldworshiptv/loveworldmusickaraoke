@@ -25,6 +25,8 @@ interface LrcLine {
 }
 
 export type RepeatMode = "off" | "all" | "one";
+/** How a play was started, as logged in play_events.mode. */
+type PlayMode = "song" | "karaoke" | "video";
 
 interface PlayerContextType {
   currentSong: PlayerSong | null;
@@ -181,6 +183,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [isKaraoke, setIsKaraoke] = useState(false);
   const isKaraokeRef = useRef(false);
   useEffect(() => { isKaraokeRef.current = isKaraoke; }, [isKaraoke]);
+  /** Whether the current queue was started as videos; karaoke is read from isKaraokeRef. */
+  const sessionModeRef = useRef<"song" | "video">("song");
   const [isExpanded, setIsExpanded] = useState(false);
   const [videoModeRequest, setVideoModeRequest] = useState(false);
   const [karaokeModeRequest, setKaraokeModeRequest] = useState(false);
@@ -509,7 +513,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     setQueueIndex(idx);
     const cached = resolvedCacheRef.current.get(base.id);
     internalPlayRef.current(cached || base, karaoke, 0, autoplay);
-    recordPlayFn(base.id);
+    recordPlayFn(base.id, karaoke ? "karaoke" : sessionModeRef.current);
   };
 
   // Resume immediately when the connection comes back.
@@ -602,20 +606,20 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   // Plays made without a connection are queued locally and sent once back online,
   // so listening history and statistics stay complete across devices.
   const PENDING_PLAYS_KEY = "lmk-pending-plays";
-  const sendPlay = useCallback(async (userId: string, songId: string, playedAt?: string) => {
+  const sendPlay = useCallback(async (userId: string, songId: string, playedAt?: string, mode: PlayMode = "song") => {
     const { error } = await supabase.from("recently_played").insert({ user_id: userId, song_id: songId, ...(playedAt ? { played_at: playedAt } : {}) });
     if (error) throw error;
-    await supabase.rpc("record_play", { p_song_id: songId, p_mode: "song" });
+    await supabase.rpc("record_play", { p_song_id: songId, p_mode: mode });
   }, []);
 
   const flushPendingPlays = useCallback(async () => {
     if (!navigator.onLine) return;
-    let pending: { songId: string; userId: string; at: string }[] = [];
+    let pending: { songId: string; userId: string; at: string; mode?: PlayMode }[] = [];
     try { pending = JSON.parse(localStorage.getItem(PENDING_PLAYS_KEY) || "[]"); } catch {}
     if (!pending.length) return;
     const left: typeof pending = [];
     for (const p of pending) {
-      try { await sendPlay(p.userId, p.songId, p.at); } catch { left.push(p); }
+      try { await sendPlay(p.userId, p.songId, p.at, p.mode); } catch { left.push(p); }
     }
     localStorage.setItem(PENDING_PLAYS_KEY, JSON.stringify(left));
     window.dispatchEvent(new CustomEvent("recently-played-updated"));
@@ -627,20 +631,22 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     return () => window.removeEventListener("online", flushPendingPlays);
   }, [flushPendingPlays]);
 
-  const recordPlayFn = useCallback(async (songId: string) => {
+  /** Logs a play with the way it was started: listening, singing (karaoke) or watching (video). */
+  const recordPlayFn = useCallback(async (songId: string, mode?: PlayMode) => {
+    const playMode: PlayMode = mode ?? (isKaraokeRef.current ? "karaoke" : sessionModeRef.current);
     let userId: string | undefined;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       userId = session?.user?.id;
       if (!userId) return;
       if (!navigator.onLine) throw new Error("offline");
-      await sendPlay(userId, songId);
+      await sendPlay(userId, songId, undefined, playMode);
       window.dispatchEvent(new CustomEvent("recently-played-updated"));
     } catch {
       if (!userId) return;
       try {
         const pending = JSON.parse(localStorage.getItem(PENDING_PLAYS_KEY) || "[]");
-        pending.push({ songId, userId, at: new Date().toISOString() });
+        pending.push({ songId, userId, at: new Date().toISOString(), mode: playMode });
         localStorage.setItem(PENDING_PLAYS_KEY, JSON.stringify(pending.slice(-200)));
       } catch {}
     }
@@ -673,56 +679,64 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
   resolvePreferredRef.current = resolvePreferred;
 
-  const playSong = useCallback((song: PlayerSong) => {
+  const startSong = useCallback((song: PlayerSong, mode: PlayMode) => {
     resolvedCacheRef.current.clear();
+    sessionModeRef.current = mode === "video" ? "video" : "song";
     setQueue([song]);
     setQueueIndex(0);
     resolvePreferred(song).then((s) => {
       internalPlay(s, false);
-      recordPlayFn(s.id);
+      recordPlayFn(s.id, mode);
     });
   }, [internalPlay, recordPlayFn, resolvePreferred]);
 
+  const playSong = useCallback((song: PlayerSong) => startSong(song, "song"), [startSong]);
+
   const playVideo = useCallback((song: PlayerSong) => {
     if (!featuresRef.current("video")) return;
-    playSong(song);
+    startSong(song, "video");
     setIsExpanded(true);
     setVideoModeRequest(true);
-  }, [playSong]);
+  }, [startSong]);
 
   const clearVideoModeRequest = useCallback(() => setVideoModeRequest(false), []);
   const requestVideoMode = useCallback(() => setVideoModeRequest(true), []);
 
   const singThis = useCallback((song: PlayerSong) => {
     if (!featuresRef.current("karaoke")) return;
-    playSong(song);
+    startSong(song, "karaoke");
     setIsExpanded(true);
     setKaraokeModeRequest(true);
-  }, [playSong]);
+  }, [startSong]);
 
   const clearKaraokeModeRequest = useCallback(() => setKaraokeModeRequest(false), []);
 
-  const playQueue = useCallback((songs: PlayerSong[], startIndex = 0, opts?: { karaoke?: boolean }) => {
+  const startQueue = useCallback((songs: PlayerSong[], startIndex: number, karaoke: boolean, video: boolean) => {
     const q = shuffleOnRef.current ? shuffleArray(songs) : songs;
     resolvedCacheRef.current.clear();
+    sessionModeRef.current = video ? "video" : "song";
     queueRef.current = q;
     queueIndexRef.current = startIndex;
     setQueue(q);
     setQueueIndex(startIndex);
     if (q[startIndex]) {
       resolvePreferred(q[startIndex]).then((s) => {
-        internalPlay(s, !!opts?.karaoke);
-        recordPlayFn(s.id);
+        internalPlay(s, karaoke);
+        recordPlayFn(s.id, karaoke ? "karaoke" : video ? "video" : "song");
       });
     }
   }, [internalPlay, recordPlayFn, resolvePreferred]);
 
+  const playQueue = useCallback((songs: PlayerSong[], startIndex = 0, opts?: { karaoke?: boolean }) => {
+    startQueue(songs, startIndex, !!opts?.karaoke, false);
+  }, [startQueue]);
+
   const playVideoQueue = useCallback((songs: PlayerSong[], startIndex = 0) => {
     if (!featuresRef.current("video")) return;
-    playQueue(songs, startIndex);
+    startQueue(songs, startIndex, false, true);
     setIsExpanded(true);
     setVideoModeRequest(true);
-  }, [playQueue]);
+  }, [startQueue]);
 
   const skipNext = useCallback((opts?: { autoplay?: boolean } | unknown) => {
     const flag = (opts as { autoplay?: unknown } | undefined)?.autoplay;
