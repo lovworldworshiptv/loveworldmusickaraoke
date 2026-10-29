@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
+import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity, AlertTriangle, BarChart3, BookOpen, CheckCircle2, Clock3, Crown,
-  Download, Gamepad2, Share2, UserPlus, Heart, MapPin, Mic2, Music, Play, RefreshCw, Users,
+  Download, Gamepad2, Globe2, Share2, UserPlus, Heart, MapPin, Mic2, Music, Play, RefreshCw, Users,
 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import AppLayout from "@/components/layout/AppLayout";
@@ -13,9 +14,10 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { CHANNEL_LABELS } from "@/lib/acquisitionAnalytics";
 import {
-  CREATE_MENU_OPTIONS, alertTypeLabel, fmt, gameModeLabel, listenerTierParts, premiumPlanParts, rangeDays,
-  type CommandCentreStats, type Part, type Range,
+  CREATE_MENU_OPTIONS, MAX_RANGE_DAYS, RANGE_PRESETS, alertTypeLabel, fmt, gameModeLabel, listenerTierParts, parseRangeDays, premiumPlanParts, rangeLabel as labelFor,
+  type CommandCentreStats, type CountryStats, type Part, type RangeDays,
 } from "@/lib/commandCentre";
+import { countryFlag, countryName } from "@/lib/activityCountry";
 
 const panel = "rounded-xl border border-border bg-card p-4";
 const tooltipStyle = { background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 };
@@ -46,21 +48,34 @@ const empty = (message: string) => <p className="py-8 text-center text-sm text-m
 const AdminAnalytics = () => {
   const navigate = useNavigate();
   const { isAdmin, loading: adminLoading } = useIsAdmin();
-  const [range, setRange] = useState<Range>("30d");
+  const [days, setDays] = useState<RangeDays>(30);
+  const [customDays, setCustomDays] = useState("");
+  const isPreset = RANGE_PRESETS.some((p) => p.days === days);
+  const applyCustom = () => { const n = parseRangeDays(customDays); if (n) setDays(n); };
 
   const stats = useQuery({
-    queryKey: ["admin-command-centre", range],
+    queryKey: ["admin-command-centre", days],
     enabled: isAdmin,
     placeholderData: (previous) => previous,
     queryFn: async () => {
-      const days = rangeDays(range) as number;
       const [main, referrals] = await Promise.all([
-        supabase.rpc("admin_command_centre", { p_days: days }),
-        supabase.rpc("admin_referral_stats", { p_days: days }),
+        supabase.rpc("admin_command_centre", { p_days: days as number }),
+        supabase.rpc("admin_referral_stats", { p_days: days as number }),
       ]);
       if (main.error) throw main.error;
       if (referrals.error) throw referrals.error;
       return { ...(main.data as unknown as CommandCentreStats), referrals: referrals.data as unknown as CommandCentreStats["referrals"] };
+    },
+  });
+
+  const countries = useQuery({
+    queryKey: ["admin-command-centre-countries", days],
+    enabled: isAdmin,
+    placeholderData: (previous) => previous,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_country_stats", { p_days: days as number });
+      if (error) throw error;
+      return data as unknown as CountryStats;
     },
   });
 
@@ -102,8 +117,9 @@ const AdminAnalytics = () => {
   if (adminLoading) return <AppLayout><div className="p-6 text-center text-muted-foreground">Loading...</div></AppLayout>;
   if (!isAdmin) return <AppLayout><div className="p-6 text-center text-muted-foreground">Admin access required.</div></AppLayout>;
 
-  const rangeLabel = range === "all" ? "all time" : `last ${range.replace("d", " days")}`;
-  const refresh = () => { stats.refetch(); alerts.refetch(); };
+  const rangeLabel = labelFor(days);
+  const refresh = () => { stats.refetch(); countries.refetch(); alerts.refetch(); };
+  const c = countries.data;
   return (
     <AppLayout>
       <div className="mx-auto max-w-7xl px-4 pb-10 pt-4 lg:px-6 lg:pt-6">
@@ -113,10 +129,14 @@ const AdminAnalytics = () => {
             <h1 className="mt-1 flex items-center gap-2 text-2xl font-serif font-bold text-foreground"><BarChart3 className="h-6 w-6 text-gold" /> Command Centre</h1>
             {s && <p className="mt-1 text-xs text-muted-foreground">Live totals · updated {new Date(s.generated_at).toLocaleTimeString()} · activity figures cover the {rangeLabel}</p>}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="flex rounded-lg bg-muted p-1">
-              {(["7d", "30d", "all"] as Range[]).map((item) => <Button key={item} size="sm" variant={range === item ? "default" : "ghost"} onClick={() => setRange(item)} className="h-8 px-3 text-xs">{item === "all" ? "All" : item}</Button>)}
+              {RANGE_PRESETS.map((item) => <Button key={item.label} size="sm" variant={days === item.days ? "default" : "ghost"} onClick={() => { setDays(item.days); setCustomDays(""); }} className="h-8 px-3 text-xs">{item.label}</Button>)}
             </div>
+            <form className="flex items-center gap-1" onSubmit={(e) => { e.preventDefault(); applyCustom(); }}>
+              <Input type="number" inputMode="numeric" min={1} max={MAX_RANGE_DAYS} step={1} value={customDays} onChange={(e) => setCustomDays(e.target.value)} placeholder="Days" aria-label="Number of days" className={`h-9 w-20 text-xs ${!isPreset ? "border-gold" : ""}`} />
+              <Button type="submit" size="sm" variant={!isPreset ? "default" : "outline"} className="h-9 px-3 text-xs" disabled={!parseRangeDays(customDays)}>Apply</Button>
+            </form>
             <Button size="icon" variant="outline" onClick={refresh} aria-label="Refresh dashboard"><RefreshCw className={`h-4 w-4 ${stats.isFetching ? "animate-spin" : ""}`} /></Button>
           </div>
         </div>
@@ -168,6 +188,22 @@ const AdminAnalytics = () => {
             </TabsContent>
 
             <TabsContent value="audience" className="space-y-6">
+              <div className={panel}>
+                <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <h2 className="flex items-center gap-2 font-semibold text-foreground"><Globe2 className="h-4 w-4 text-gold" /> Countries using the app <span className="text-xs font-normal text-muted-foreground">({rangeLabel})</span></h2>
+                    {c && <p className="mt-1 text-xs text-muted-foreground">{fmt(c.active_users)} signed-in people opened the app in {fmt(c.countries_count)} {c.countries_count === 1 ? "country" : "countries"}{c.unknown_users ? ` · ${fmt(c.unknown_users)} couldn't be located` : ""}{c.tracked_since ? ` · counting since ${new Date(c.tracked_since + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}` : ""}</p>}
+                  </div>
+                  {c && c.active_users > 0 && <div className="flex gap-4 text-xs text-muted-foreground"><span>By network: <b className="text-foreground">{fmt(c.by_network)}</b></span><span>By time zone: <b className="text-foreground">{fmt(c.by_timezone)}</b></span></div>}
+                </div>
+                {countries.error ? empty("Countries could not be loaded. Tap refresh to try again.")
+                : !c ? empty("Loading countries...")
+                : c.countries.length ? <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">{c.countries.map((country) => {
+                    const share = c.located_users ? Math.round((country.users / c.located_users) * 100) : 0;
+                    return <div key={country.code}><div className="mb-1 flex items-center justify-between gap-2 text-sm"><span className="flex min-w-0 items-center gap-2 text-foreground"><span aria-hidden className="text-base leading-none">{countryFlag(country.code)}</span><span className="truncate">{countryName(country.code)}</span></span><span className="shrink-0 tabular-nums text-muted-foreground"><b className="text-foreground">{fmt(country.users)}</b> {country.users === 1 ? "person" : "people"} · {share}% · {fmt(country.active_days)} active days</span></div><div className="h-1.5 rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(4, country.users / Math.max(c.countries[0]?.users ?? 1, 1) * 100)}%` }} /></div></div>;
+                  })}</div>
+                : empty(c.tracked_since ? "Nobody signed in during this period" : "Countries start appearing as people open the app")}
+              </div>
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <StatCard icon={Users} label="Registered users" value={s.users.total} sub={`${fmt(s.users.new_in_range)} joined · ${rangeLabel}`} parts={[{ label: "Profile completed", value: s.users.completed_profile }, { label: "Profile not completed", value: s.users.incomplete_profile }, { label: "Admins", value: s.roles.admin }, { label: "Editors", value: s.roles.editor }]} />
                 <StatCard icon={Activity} label="Active listeners" value={s.plays.listeners} sub={`${s.users.total ? Math.round((s.plays.listeners / s.users.total) * 100) : 0}% of users · ${rangeLabel}`} parts={listenerTierParts(s.plays)} />
