@@ -181,6 +181,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [isKaraoke, setIsKaraoke] = useState(false);
   const isKaraokeRef = useRef(false);
   useEffect(() => { isKaraokeRef.current = isKaraoke; }, [isKaraoke]);
+  /** Whether the current queue was started as videos; karaoke is read from isKaraokeRef. */
+  const sessionModeRef = useRef<"song" | "video">("song");
   const [isExpanded, setIsExpanded] = useState(false);
   const [videoModeRequest, setVideoModeRequest] = useState(false);
   const [karaokeModeRequest, setKaraokeModeRequest] = useState(false);
