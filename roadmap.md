@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Make "King Of Eternity" a free download
 - [ ] Voice search in the search box (titles + lyrics, fast matching)
 - [x] Remove the song count "(1)" beside "Available For Free Download" on the home page
 - [x] Praise Night Discover card: nine matching albums, edition 28 cover, album open/back flow and loaded artwork verified; three selection tests pass.
