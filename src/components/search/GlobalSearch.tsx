@@ -7,7 +7,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { startVoiceCapture, transcribeVoice, cleanVoiceQuery, type VoiceCapture } from "@/lib/voiceSearch";
+import { startVoiceCapture, transcribeVoice, cleanVoiceQuery, startBrowserSpeech, browserSpeechAvailable, type VoiceCapture } from "@/lib/voiceSearch";
+import { isMedianApp } from "@/lib/median";
 import { normalize } from "@/lib/fuzzySearch";
 import { searchContent, searchVoiceContent, SEARCH_DEBOUNCE_MS, SEARCH_PAGE_SIZE } from "@/lib/contentSearch";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,7 +67,7 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
   const [activeIndex, setActiveIndex] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const { playSong } = usePlayer();
+  const { playSong, isPlaying, togglePlay } = usePlayer();
   const { user } = useAuth();
 
   // Voice search: "listening" while recording, "hearing" while the words come back.
@@ -150,7 +151,30 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
     } finally { setLoadingMore(false); }
   };
 
+  // Music is paused while listening (the mic would hear it) and picks up again afterwards.
+  const playerRef = useRef({ isPlaying, togglePlay });
+  playerRef.current = { isPlaying, togglePlay };
+  const pausedForVoice = useRef(false);
+  const pauseMusic = () => {
+    if (playerRef.current.isPlaying) { pausedForVoice.current = true; playerRef.current.togglePlay(); }
+  };
+  const resumeMusic = useCallback(() => {
+    if (!pausedForVoice.current) return;
+    pausedForVoice.current = false;
+    // Wait a beat so the player state reflects the earlier pause.
+    setTimeout(() => { if (!playerRef.current.isPlaying) playerRef.current.togglePlay(); }, 50);
+  }, []);
+  const browserRecRef = useRef<{ stop: () => void; cancel: () => void } | null>(null);
+  /** Bumped on every start/cancel so a microphone that opens after Cancel is shut straight away. */
+  const voiceSession = useRef(0);
+
+  const applyVoiceText = (text: string) => {
+    voiceQuery.current = true;
+    setQuery(cleanVoiceQuery(text));
+  };
+
   const finishVoice = useCallback(async () => {
+    if (browserRecRef.current) { browserRecRef.current.stop(); setVoiceState("hearing"); return; }
     const cap = captureRef.current;
     if (!cap || stoppingRef.current) return;
     stoppingRef.current = true;
@@ -161,11 +185,9 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
       setVoiceState("hearing");
       const ctrl = new AbortController();
       voiceAbort.current = ctrl;
-      voiceQuery.current = true;
-      const text = await transcribeVoice(file, (partial) => setQuery(cleanVoiceQuery(partial)), ctrl.signal);
+      const text = await transcribeVoice(file, applyVoiceText, ctrl.signal);
       const cleaned = cleanVoiceQuery(text);
-      voiceQuery.current = true;
-      setQuery(cleaned);
+      applyVoiceText(text);
       if (cleaned.length < 2) toast.message("We couldn't make out a song. Please try again.");
     } catch (e: any) {
       if (e?.name !== "AbortError") toast.error(e?.message || "Voice search failed. Please try again.");
@@ -173,10 +195,15 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
       voiceAbort.current = null;
       stoppingRef.current = false;
       setVoiceState("idle");
+      resumeMusic();
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumeMusic]);
 
   const cancelVoice = useCallback(() => {
+    voiceSession.current += 1;
+    browserRecRef.current?.cancel();
+    browserRecRef.current = null;
     captureRef.current?.cancel();
     captureRef.current = null;
     voiceAbort.current?.abort();
@@ -184,21 +211,62 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
     stoppingRef.current = false;
     setVoiceLevel(0);
     setVoiceState("idle");
-  }, []);
+    resumeMusic();
+  }, [resumeMusic]);
 
-  const startVoice = async () => {
+  /** Guests: the browser's own recogniser, so nothing is uploaded. */
+  const startGuestVoice = () => {
+    try {
+      pauseMusic();
+      setVoiceState("listening");
+      browserRecRef.current = startBrowserSpeech({
+        onText: (t) => { applyVoiceText(t); setVoiceLevel(0.6); },
+        onDone: (t) => {
+          browserRecRef.current = null;
+          setVoiceLevel(0);
+          setVoiceState("idle");
+          resumeMusic();
+          if (cleanVoiceQuery(t).length < 2) toast.message("We didn't hear anything. Tap the mic and try again.");
+          else applyVoiceText(t);
+        },
+        onError: (msg) => {
+          browserRecRef.current = null;
+          setVoiceLevel(0);
+          setVoiceState("idle");
+          resumeMusic();
+          toast.error(msg);
+        },
+      });
+    } catch (e: any) {
+      browserRecRef.current = null;
+      setVoiceState("idle");
+      resumeMusic();
+      toast.error(e?.message || "Voice search isn't supported on this device.");
+    }
+  };
+
+  const startVoice = () => {
     if (voiceState === "listening") { finishVoice(); return; }
     if (voiceState === "hearing") return;
-    if (!user) { toast.message("Sign in to search by voice."); return; }
-    if (!navigator.mediaDevices?.getUserMedia) { toast.error("Voice search isn't supported on this device."); return; }
-    try {
-      setVoiceState("listening");
-      captureRef.current = await startVoiceCapture({ onLevel: setVoiceLevel, onAutoStop: () => { finishVoice(); } });
-    } catch (e: any) {
-      setVoiceState("idle");
-      const denied = e?.name === "NotAllowedError" || e?.name === "SecurityError";
-      toast.error(denied ? "Allow microphone access to search by voice." : "Couldn't start the microphone.");
+    if (!user) {
+      if (browserSpeechAvailable() && !isMedianApp()) { startGuestVoice(); return; }
+      toast.message("Sign in to search by voice.", { action: { label: "Sign in", onClick: () => go("/auth") } });
+      return;
     }
+    if (!navigator.mediaDevices?.getUserMedia) { toast.error("Voice search isn't supported on this device."); return; }
+    pauseMusic();
+    setVoiceState("listening");
+    // Called straight from the tap (no await before it) so phones allow the microphone to start.
+    const session = ++voiceSession.current;
+    startVoiceCapture({ onLevel: setVoiceLevel, onAutoStop: () => { finishVoice(); } })
+      .then((cap) => { if (session !== voiceSession.current) cap.cancel(); else captureRef.current = cap; })
+      .catch((e: any) => {
+        if (session !== voiceSession.current) return;
+        setVoiceState("idle");
+        resumeMusic();
+        const denied = e?.name === "NotAllowedError" || e?.name === "SecurityError";
+        toast.error(denied ? "Allow microphone access to search by voice." : "Couldn't start the microphone.");
+      });
   };
 
   useEffect(() => () => cancelVoice(), [cancelVoice]);
