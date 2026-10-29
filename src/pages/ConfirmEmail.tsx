@@ -43,14 +43,14 @@ const ConfirmEmail = () => {
       const l = link.current;
       if (l.kind === "token_hash") return setStage("tap");
       if (l.kind === "tokens") {
-        const { error } = await supabase.auth.setSession({ access_token: l.accessToken, refresh_token: l.refreshToken });
-        return settle(error);
+        await supabase.auth.setSession({ access_token: l.accessToken, refresh_token: l.refreshToken });
+        return settle();
       }
       if (l.kind === "code") {
-        const { error } = await supabase.auth.exchangeCodeForSession(l.code);
-        return settle(error);
+        await supabase.auth.exchangeCodeForSession(l.code);
+        return settle();
       }
-      return settle(l.kind === "error" ? true : null);
+      return settle();
     };
     run().catch(() => setStage("expired"));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -61,7 +61,7 @@ const ConfirmEmail = () => {
     setStage("verifying");
     const { data, error } = await supabase.auth.verifyOtp({ token_hash: l.tokenHash, type: l.type });
     if (!error && data.session) return finish(data.session.user.user_metadata?.username);
-    settle(error);
+    settle();
   };
 
   return (
