@@ -29,3 +29,5 @@ project_id = "qphlczkvepcxzgqagsmx"
     verify_jwt = false
   [functions.sync-onesignal-tag]
     verify_jwt = false
+  [functions.voice-search]
+    verify_jwt = false
