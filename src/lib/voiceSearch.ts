@@ -67,13 +67,22 @@ export interface VoiceCapture {
  * reporting the input level for a live meter. `onAutoStop` fires when recording ends on its own.
  */
 export async function startVoiceCapture(opts: { onLevel?: (level: number) => void; onAutoStop?: () => void } = {}): Promise<VoiceCapture> {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 },
-  });
+  // Create and resume the audio context inside the tap itself — iPhones refuse it after an await.
   const Ctx = window.AudioContext || (window as any).webkitAudioContext;
   const ctx: AudioContext = new Ctx();
+  const resumed = ctx.resume().catch(() => {});
+  let stream: MediaStream;
   try {
-    await ctx.resume();
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 },
+    });
+  } catch (e) {
+    ctx.close().catch(() => {});
+    throw e;
+  }
+  try {
+    await resumed;
+    if (ctx.state !== "running") await ctx.resume();
     const source = ctx.createMediaStreamSource(stream);
     const node = ctx.createScriptProcessor(4096, 1, 1);
     const chunks: Float32Array[] = [];
@@ -120,6 +129,47 @@ export async function startVoiceCapture(opts: { onLevel?: (level: number) => voi
     ctx.close().catch(() => {});
     throw e;
   }
+}
+
+/* ---------- Browser speech recognition (used for guests, no upload) ---------- */
+
+type BrowserRecognition = {
+  lang: string; interimResults: boolean; continuous: boolean; maxAlternatives: number;
+  start: () => void; stop: () => void; abort: () => void;
+  onresult: ((e: any) => void) | null; onerror: ((e: any) => void) | null; onend: (() => void) | null;
+};
+
+const recognitionCtor = (): (new () => BrowserRecognition) | null =>
+  typeof window === "undefined" ? null : ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition || null);
+
+/** True when the browser can turn speech into text by itself (Chrome, Edge, Safari). */
+export const browserSpeechAvailable = () => !!recognitionCtor();
+
+/** Listens with the browser's own recogniser, streaming words as they're heard. */
+export function startBrowserSpeech(opts: { onText: (text: string) => void; onDone: (text: string) => void; onError: (message: string) => void }) {
+  const Ctor = recognitionCtor();
+  if (!Ctor) throw new Error("Voice search isn't supported on this device.");
+  const rec = new Ctor();
+  rec.lang = navigator.language || "en-US";
+  rec.interimResults = true;
+  rec.continuous = false;
+  rec.maxAlternatives = 1;
+  let text = "";
+  let failed = false;
+  rec.onresult = (e: any) => {
+    text = Array.from(e.results as ArrayLike<any>).map((r: any) => r[0]?.transcript || "").join(" ").replace(/\s+/g, " ").trim();
+    opts.onText(text);
+  };
+  rec.onerror = (e: any) => {
+    failed = true;
+    const code = e?.error;
+    opts.onError(code === "not-allowed" || code === "service-not-allowed" ? "Allow microphone access to search by voice."
+      : code === "no-speech" ? "We didn't hear anything. Tap the mic and try again."
+      : "Voice search isn't available right now. Please sign in or type your search.");
+  };
+  rec.onend = () => { if (!failed) opts.onDone(text); };
+  rec.start();
+  return { stop: () => rec.stop(), cancel: () => { failed = true; rec.abort(); } };
 }
 
 /** Friendly wording for gateway/function failures. */
