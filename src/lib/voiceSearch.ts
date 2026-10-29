@@ -187,8 +187,10 @@ export function bestLyricLines(lyrics: string | null | undefined, query: string)
   const lines = lyrics.replace(/\[[^\]]*\]/g, " ").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   let best = -1, bestScore = 0;
   for (let i = 0; i < lines.length; i++) {
-    const w = [...words(lines[i]), ...(lines[i + 1] ? words(lines[i + 1]) : [])];
-    const score = new Set(w.filter((x) => q.has(x))).size;
+    // The line itself counts double so the preview starts where the phrase starts.
+    const own = new Set(words(lines[i]).filter((x) => q.has(x))).size;
+    const next = lines[i + 1] ? new Set(words(lines[i + 1]).filter((x) => q.has(x))).size : 0;
+    const score = own * 2 + next;
     if (score > bestScore) { bestScore = score; best = i; }
   }
   if (best < 0) return null;
