@@ -267,6 +267,20 @@
       "when": 1793233080060,
       "tag": "0037_user_activity_countries",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1793240149029,
+      "tag": "0038_search_voice",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1793240206983,
+      "tag": "0039_search_voice_ranking",
+      "breakpoints": true
     }
   ]
 }

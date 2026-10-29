@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { bestLyricLines } from "@/lib/voiceSearch";
 
 export const SEARCH_DEBOUNCE_MS = 250;
 export const SEARCH_PAGE_SIZE = 20;
@@ -33,7 +34,26 @@ export async function searchContent(query: string, scope: SearchScope = "all", l
     query, scope, page_limit: limit, page_offset: offset,
   });
   if (error) throw error;
-  const hits = (data || []) as ContentHit[];
+  return hitsToResults((data || []) as ContentHit[], limit);
+}
+
+/**
+ * Voice search: spoken titles and sung lyric lines are long and may contain a misheard word,
+ * so songs are ranked by search_voice (title similarity + word-pair and word coverage)
+ * instead of requiring every word. Articles still use the regular ranking.
+ */
+export async function searchVoiceContent(query: string, limit = SEARCH_PAGE_SIZE) {
+  const [voice, articles] = await Promise.all([
+    (supabase as any).rpc("search_voice", { query, page_limit: limit }),
+    (supabase as any).rpc("search_content", { query, scope: "articles", page_limit: 5, page_offset: 0 }),
+  ]);
+  if (voice.error) throw voice.error;
+  const res = await hitsToResults([...((voice.data || []) as ContentHit[]), ...((articles.data || []) as ContentHit[])], Infinity);
+  res.lyrics = res.lyrics.map((s: any) => ({ ...s, lyrics_text: bestLyricLines(s.lyrics_text || s.lyrics_lrc, query) || s.lyrics_text }));
+  return { ...res, hasMore: false };
+}
+
+async function hitsToResults(hits: ContentHit[], limit: number) {
   const songIds = [...new Set(hits.filter(h => h.kind !== "article").map(h => h.song_id || h.id))];
   let songs: any[] = [];
   let lyrics: any[] = [];

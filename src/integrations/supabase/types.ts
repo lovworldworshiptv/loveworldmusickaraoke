@@ -3096,6 +3096,20 @@ export type Database = {
         }[]
       }
       search_norm: { Args: { t: string }; Returns: string }
+      search_voice: {
+        Args: { page_limit?: number; query: string }
+        Returns: {
+          cover_url: string
+          id: string
+          kind: string
+          score: number
+          snippet: string
+          song_id: string
+          subtitle: string
+          tier: number
+          title: string
+        }[]
+      }
       set_community_moderator: {
         Args: { p_community_id: string; p_enabled: boolean; p_user_id: string }
         Returns: undefined
