@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import { claimStoredInvite, captureInviteFromUrl } from "@/lib/platformReferral";
 import { shouldForgetSession } from "@/lib/rememberMe";
+import { logActivityDay, stopActivityTracking } from "@/lib/activityCountry";
 
 captureInviteFromUrl();
 import type { User, Session } from "@supabase/supabase-js";
@@ -84,8 +85,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
         const metaInvite = (session.user.user_metadata as any)?.invite_code ?? null;
-        setTimeout(() => { fetchProfile(session.user.id); claimStoredInvite(metaInvite); }, 0);
+        setTimeout(() => { fetchProfile(session.user.id); claimStoredInvite(metaInvite); logActivityDay(session.user.id).catch(() => undefined); }, 0);
       } else {
+        stopActivityTracking();
         setUsername("Guest");
         setAvatarUrl(null);
         setKingschatHandle(null);
