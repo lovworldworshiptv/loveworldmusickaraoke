@@ -513,7 +513,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     setQueueIndex(idx);
     const cached = resolvedCacheRef.current.get(base.id);
     internalPlayRef.current(cached || base, karaoke, 0, autoplay);
-    recordPlayFn(base.id);
+    recordPlayFn(base.id, karaoke ? "karaoke" : sessionModeRef.current);
   };
 
   // Resume immediately when the connection comes back.
