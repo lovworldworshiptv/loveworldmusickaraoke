@@ -8,6 +8,21 @@ import { SETTING_KEYS, useSetting } from "@/lib/siteSettings";
 import type { PlayerSong } from "@/contexts/PlayerContext";
 import SongCard from "./SongCard";
 
+const norm = (t: string | null | undefined) => (t || "").toLowerCase().replace(/\[[^\]]*\]/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
+
+/** Shows one card per song when the same song (same title and same lyrics) is stored more than once. */
+function uniqueSongs(rows: SongRow[]): SongRow[] {
+  const seen = new Set<string>();
+  return rows.filter((r) => {
+    const lyrics = norm(r.lyrics_lrc).slice(0, 160);
+    if (!lyrics) return true;
+    const key = `${norm(r.title)}|${lyrics}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 /** Home rail listing every song marked free to download. */
 const FreeDownloads = () => {
   const [songs, setSongs] = useState<PlayerSong[]>([]);
@@ -17,7 +32,7 @@ const FreeDownloads = () => {
 
   useEffect(() => {
     supabase.from("songs").select(SONG_COLUMNS).eq("is_free_download", true).order("title").order("id").limit(100)
-      .then(({ data }) => setSongs(((data as SongRow[] | null) || []).map(toPlayerSong)));
+      .then(({ data }) => setSongs(uniqueSongs((data as SongRow[] | null) || []).map(toPlayerSong)));
   }, []);
 
   if (!songs.length) return null;
