@@ -602,20 +602,20 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   // Plays made without a connection are queued locally and sent once back online,
   // so listening history and statistics stay complete across devices.
   const PENDING_PLAYS_KEY = "lmk-pending-plays";
-  const sendPlay = useCallback(async (userId: string, songId: string, playedAt?: string) => {
+  const sendPlay = useCallback(async (userId: string, songId: string, playedAt?: string, mode: PlayMode = "song") => {
     const { error } = await supabase.from("recently_played").insert({ user_id: userId, song_id: songId, ...(playedAt ? { played_at: playedAt } : {}) });
     if (error) throw error;
-    await supabase.rpc("record_play", { p_song_id: songId, p_mode: "song" });
+    await supabase.rpc("record_play", { p_song_id: songId, p_mode: mode });
   }, []);
 
   const flushPendingPlays = useCallback(async () => {
     if (!navigator.onLine) return;
-    let pending: { songId: string; userId: string; at: string }[] = [];
+    let pending: { songId: string; userId: string; at: string; mode?: PlayMode }[] = [];
     try { pending = JSON.parse(localStorage.getItem(PENDING_PLAYS_KEY) || "[]"); } catch {}
     if (!pending.length) return;
     const left: typeof pending = [];
     for (const p of pending) {
-      try { await sendPlay(p.userId, p.songId, p.at); } catch { left.push(p); }
+      try { await sendPlay(p.userId, p.songId, p.at, p.mode); } catch { left.push(p); }
     }
     localStorage.setItem(PENDING_PLAYS_KEY, JSON.stringify(left));
     window.dispatchEvent(new CustomEvent("recently-played-updated"));
@@ -627,20 +627,22 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     return () => window.removeEventListener("online", flushPendingPlays);
   }, [flushPendingPlays]);
 
-  const recordPlayFn = useCallback(async (songId: string) => {
+  /** Logs a play with the way it was started: listening, singing (karaoke) or watching (video). */
+  const recordPlayFn = useCallback(async (songId: string, mode?: PlayMode) => {
+    const playMode: PlayMode = mode ?? (isKaraokeRef.current ? "karaoke" : sessionModeRef.current);
     let userId: string | undefined;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       userId = session?.user?.id;
       if (!userId) return;
       if (!navigator.onLine) throw new Error("offline");
-      await sendPlay(userId, songId);
+      await sendPlay(userId, songId, undefined, playMode);
       window.dispatchEvent(new CustomEvent("recently-played-updated"));
     } catch {
       if (!userId) return;
       try {
         const pending = JSON.parse(localStorage.getItem(PENDING_PLAYS_KEY) || "[]");
-        pending.push({ songId, userId, at: new Date().toISOString() });
+        pending.push({ songId, userId, at: new Date().toISOString(), mode: playMode });
         localStorage.setItem(PENDING_PLAYS_KEY, JSON.stringify(pending.slice(-200)));
       } catch {}
     }
