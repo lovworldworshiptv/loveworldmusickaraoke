@@ -128,8 +128,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const sendPasswordReset = async (email: string) => {
+    // Always land on the branded production site, never a Lovable preview/hosting address.
+    const host = window.location.hostname;
+    const isLocal = host === "localhost" || host === "127.0.0.1";
+    const origin = isLocal ? window.location.origin : "https://loveworldmusickaraoke.com";
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${origin}/reset-password`,
     });
     return { error };
   };
