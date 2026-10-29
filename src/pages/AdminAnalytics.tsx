@@ -190,7 +190,7 @@ const AdminAnalytics = () => {
                 <StatCard icon={Share2} label="Share taps" value={view.acq.shares} sub={rangeLabel} parts={view.topChannels("shares")} />
                 <StatCard icon={Users} label="Visits from shares" value={view.acq.visits} sub={rangeLabel} parts={view.topChannels("visits")} />
                 <StatCard icon={UserPlus} label="Invited sign-ups" value={view.acq.signups} sub={`joined from an invite link · ${rangeLabel}`} parts={[
-                  { label: "Credited to an inviter", value: s.referrals.credited_in_range }, { label: "People who invited", value: s.referrals.inviters_in_range }, ...view.topChannels("signups"),
+                  { label: "Credited to an inviter", value: s.referrals.credited_in_range }, ...view.topChannels("signups"),
                 ]} />
                 <StatCard icon={Download} label="App download taps" value={view.acq.downloads} sub={rangeLabel} parts={s.download_surfaces.slice(0, 3).map((d) => ({ label: titleCase(d.name), value: d.clicks }))} />
               </div>
