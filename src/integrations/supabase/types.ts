@@ -2867,6 +2867,7 @@ export type Database = {
     }
     Functions: {
       admin_command_centre: { Args: { p_days?: number }; Returns: Json }
+      admin_referral_stats: { Args: { p_days?: number }; Returns: Json }
       can_moderate_community: {
         Args: { p_community_id: string }
         Returns: boolean
