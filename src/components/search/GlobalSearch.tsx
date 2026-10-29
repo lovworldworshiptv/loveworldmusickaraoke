@@ -3,10 +3,13 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Search, Music, Disc3, User, ListMusic, BookOpen, CornerDownLeft, Mic2,
-  X, Clock, Sparkles, ArrowUp, ArrowDown, Loader2, Compass,
+  X, Clock, Sparkles, ArrowUp, ArrowDown, Loader2, Compass, Mic, Square,
 } from "lucide-react";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { startVoiceCapture, transcribeVoice, cleanVoiceQuery, type VoiceCapture } from "@/lib/voiceSearch";
 import { normalize } from "@/lib/fuzzySearch";
-import { searchContent, SEARCH_DEBOUNCE_MS, SEARCH_PAGE_SIZE } from "@/lib/contentSearch";
+import { searchContent, searchVoiceContent, SEARCH_DEBOUNCE_MS, SEARCH_PAGE_SIZE } from "@/lib/contentSearch";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { usePlayer } from "@/contexts/PlayerContext";
@@ -64,6 +67,16 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
   const listRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { playSong } = usePlayer();
+  const { user } = useAuth();
+
+  // Voice search: "listening" while recording, "hearing" while the words come back.
+  const [voiceState, setVoiceState] = useState<"idle" | "listening" | "hearing">("idle");
+  const [voiceLevel, setVoiceLevel] = useState(0);
+  const captureRef = useRef<VoiceCapture | null>(null);
+  const voiceAbort = useRef<AbortController | null>(null);
+  /** The query currently shown came from the microphone (uses the spoken-phrase ranking). */
+  const voiceQuery = useRef(false);
+  const stoppingRef = useRef(false);
 
   const reset = () => {
     setSongs([]); setLyrics([]); setTitleIds(new Set()); setAlbums([]); setPlaylists([]); setArticles([]); setUsers([]); setDiscover([]);
@@ -93,7 +106,7 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
     if (q.length < 2) { reset(); setSongsMore(false); setLoading(false); return; }
     setLoading(true);
     const [contentRes, albumsRes, playlistsRes, usersRes, catsRes, featRes] = await Promise.all([
-      searchContent(q, "all", SEARCH_PAGE_SIZE, 0).catch(() => ({ songs: [], lyrics: [], titleIds: new Set<string>(), articles: [], hasMore: false })),
+      (voiceQuery.current ? searchVoiceContent(q, SEARCH_PAGE_SIZE) : searchContent(q, "all", SEARCH_PAGE_SIZE, 0)).catch(() => ({ songs: [], lyrics: [], titleIds: new Set<string>(), articles: [], hasMore: false })),
       supabase.from("albums").select("id, title, artist, cover_url").or(`title.ilike.%${q}%,artist.ilike.%${q}%`).limit(5),
       supabase
         .from("playlists")
@@ -137,8 +150,61 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
     } finally { setLoadingMore(false); }
   };
 
+  const finishVoice = useCallback(async () => {
+    const cap = captureRef.current;
+    if (!cap || stoppingRef.current) return;
+    stoppingRef.current = true;
+    captureRef.current = null;
+    setVoiceLevel(0);
+    try {
+      const file = await cap.stop();
+      setVoiceState("hearing");
+      const ctrl = new AbortController();
+      voiceAbort.current = ctrl;
+      voiceQuery.current = true;
+      const text = await transcribeVoice(file, (partial) => setQuery(cleanVoiceQuery(partial)), ctrl.signal);
+      const cleaned = cleanVoiceQuery(text);
+      voiceQuery.current = true;
+      setQuery(cleaned);
+      if (cleaned.length < 2) toast.message("We couldn't make out a song. Please try again.");
+    } catch (e: any) {
+      if (e?.name !== "AbortError") toast.error(e?.message || "Voice search failed. Please try again.");
+    } finally {
+      voiceAbort.current = null;
+      stoppingRef.current = false;
+      setVoiceState("idle");
+    }
+  }, []);
+
+  const cancelVoice = useCallback(() => {
+    captureRef.current?.cancel();
+    captureRef.current = null;
+    voiceAbort.current?.abort();
+    voiceAbort.current = null;
+    stoppingRef.current = false;
+    setVoiceLevel(0);
+    setVoiceState("idle");
+  }, []);
+
+  const startVoice = async () => {
+    if (voiceState === "listening") { finishVoice(); return; }
+    if (voiceState === "hearing") return;
+    if (!user) { toast.message("Sign in to search by voice."); return; }
+    if (!navigator.mediaDevices?.getUserMedia) { toast.error("Voice search isn't supported on this device."); return; }
+    try {
+      setVoiceState("listening");
+      captureRef.current = await startVoiceCapture({ onLevel: setVoiceLevel, onAutoStop: () => { finishVoice(); } });
+    } catch (e: any) {
+      setVoiceState("idle");
+      const denied = e?.name === "NotAllowedError" || e?.name === "SecurityError";
+      toast.error(denied ? "Allow microphone access to search by voice." : "Couldn't start the microphone.");
+    }
+  };
+
+  useEffect(() => () => cancelVoice(), [cancelVoice]);
+
   useEffect(() => {
-    if (!open) { setQuery(""); setFilter("all"); reset(); }
+    if (!open) { cancelVoice(); voiceQuery.current = false; setQuery(""); setFilter("all"); reset(); }
     else { setRecents(readRecents()); if (initialFilter) setFilter(initialFilter as FilterId); }
   }, [open]);
 
@@ -237,7 +303,7 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
       .slice(0, 6);
   }, [query, songs, albums, playlists, articles]);
 
-  const applySuggestion = (label: string) => setQuery(label);
+  const applySuggestion = (label: string) => { voiceQuery.current = false; setQuery(label); };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "ArrowDown") { e.preventDefault(); setActiveIndex(i => Math.min(i + 1, Math.max(flat.length - 1, 0))); return; }
@@ -290,21 +356,45 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
             </div>
             <Input
               value={query}
-              onChange={e => setQuery(e.target.value)}
+              onChange={e => { voiceQuery.current = false; setQuery(e.target.value); }}
               onKeyDown={onKeyDown}
-              placeholder="Search songs, lyrics, albums, playlists, articles…"
+              placeholder={voiceState === "listening" ? "Listening…" : voiceState === "hearing" ? "Finding your song…" : "Search songs, lyrics, albums, playlists, articles…"}
               className="border-0 bg-transparent focus-visible:ring-0 px-0 h-auto text-base placeholder:text-muted-foreground/70"
               autoFocus
             />
-            {query && (
+            {query && voiceState === "idle" && (
               <button
-                onClick={() => setQuery("")}
+                onClick={() => { voiceQuery.current = false; setQuery(""); }}
                 aria-label="Clear search"
                 className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
+            <button
+              type="button"
+              onClick={startVoice}
+              disabled={voiceState === "hearing"}
+              aria-label={voiceState === "listening" ? "Stop listening" : "Search by voice"}
+              aria-pressed={voiceState === "listening"}
+              className={cn(
+                "relative w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors",
+                voiceState === "idle" ? "text-gold hover:bg-gold/10" : "gradient-gold text-primary-foreground shadow-[0_0_20px_hsl(var(--gold)/0.45)]",
+              )}
+            >
+              {voiceState === "listening" && (
+                <span
+                  aria-hidden
+                  className="absolute inset-0 rounded-full bg-gold/40 transition-transform duration-100"
+                  style={{ transform: `scale(${1 + voiceLevel * 0.6})` }}
+                />
+              )}
+              <span className="relative">
+                {voiceState === "hearing" ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : voiceState === "listening" ? <Square className="w-3.5 h-3.5 fill-current" />
+                  : <Mic className="w-4 h-4" />}
+              </span>
+            </button>
             <button
               onClick={() => onOpenChange(false)}
               className="hidden sm:inline-flex items-center rounded-lg border border-border/70 bg-muted/40 px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -363,8 +453,28 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
 
         {/* Results */}
         <div ref={listRef} className="max-h-[58vh] overflow-y-auto px-2 pb-2 scrollbar-hide">
+          {voiceState !== "idle" && query.length < 2 && (
+            <div className="flex flex-col items-center gap-3 py-10 text-center" aria-live="polite">
+              <div className="flex items-end gap-1 h-8" aria-hidden>
+                {[0.5, 0.8, 1, 0.8, 0.5].map((f, i) => (
+                  <span
+                    key={i}
+                    className="w-1.5 rounded-full bg-gold transition-[height] duration-100"
+                    style={{ height: `${voiceState === "listening" ? 6 + voiceLevel * 26 * f : 10}px` }}
+                  />
+                ))}
+              </div>
+              <p className="text-sm font-medium text-foreground">
+                {voiceState === "listening" ? "Listening… say a song title or sing a line" : "Finding your song…"}
+              </p>
+              {voiceState === "listening" && (
+                <button type="button" onClick={cancelVoice} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
+              )}
+            </div>
+          )}
+
           {/* Idle state */}
-          {query.length < 2 && (
+          {query.length < 2 && voiceState === "idle" && (
             <div className="py-3">
               {recents.length > 0 && (
                 <>
@@ -375,7 +485,7 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
                   {recents.map(r => (
                     <button
                       key={r}
-                      onClick={() => setQuery(r)}
+                      onClick={() => { voiceQuery.current = false; setQuery(r); }}
                       className="flex items-center gap-3 w-full px-3 py-2 rounded-xl hover:bg-muted/40 transition-colors text-left"
                     >
                       <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
