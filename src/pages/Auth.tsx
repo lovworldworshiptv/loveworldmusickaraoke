@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Eye, EyeOff, Gift, MessageCircle } from "lucide-react";
 import MusicBackground from "@/components/auth/MusicBackground";
+import ResendConfirmation from "@/components/auth/ResendConfirmation";
 import logoFull from "@/assets/logo-mic-heart.png";
 import { signInWithKingsChat } from "@/lib/kingschat";
 import { getStoredInvite, inviteCodeFromSearch, lookupInviter, storeInvite } from "@/lib/platformReferral";
@@ -32,6 +33,10 @@ const Auth = () => {
   const [remember, setRemember] = useState(getRememberMe());
   const [showPassword, setShowPassword] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  // Email we just sent a confirmation link to (shows the "check your email" screen).
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  // Sign-in was refused because the email isn't confirmed yet.
+  const [unconfirmed, setUnconfirmed] = useState(false);
   const { signIn, signUp, sendPasswordReset, user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -69,13 +74,28 @@ const Auth = () => {
       else setResetSent(true);
     } else if (mode === "signup") {
       const code = commitInviteCode();
-      const { error } = await signUp(email, password, username, code);
-      if (error) toast.error(error.message);
-      else toast.success("Check your email to confirm your account!");
+      const { error, data } = await signUp(email, password, username, code);
+      if (error) {
+        if ((error as any).status === 429 || /after \d+ seconds/i.test(error.message)) {
+          // A link was already sent moments ago — signing up again would cancel it.
+          setPendingEmail(email.trim());
+        } else toast.error(error.message);
+      } else if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        toast.error("An account with this email already exists. Please sign in.");
+        setMode("signin");
+      } else if (data?.session) {
+        markRemembered();
+        navigate(nextPath, { replace: true });
+      } else {
+        setPendingEmail(email.trim());
+      }
     } else {
       const { error } = await signIn(email, password);
-      if (error) toast.error(error.message);
-      else {
+      if (error) {
+        const notConfirmed = (error as any).code === "email_not_confirmed" || /not confirmed/i.test(error.message);
+        setUnconfirmed(notConfirmed);
+        toast.error(notConfirmed ? "Please confirm your email first — use the link we sent you." : error.message);
+      } else {
         applyRememberMe(remember, email);
         navigate(nextPath, { replace: true });
       }
@@ -101,7 +121,7 @@ const Auth = () => {
     }
   };
 
-  const switchMode = (m: Mode) => { setMode(m); setResetSent(false); };
+  const switchMode = (m: Mode) => { setMode(m); setResetSent(false); setUnconfirmed(false); setPendingEmail(null); };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
@@ -124,7 +144,20 @@ const Auth = () => {
           </div>
         )}
 
-        {mode === "forgot" ? (
+        {pendingEmail ? (
+          <div className="text-center">
+            <h2 className="text-lg font-semibold text-foreground mb-2">Check your email</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              We sent a confirmation link to <span className="text-foreground font-medium">{pendingEmail}</span>. Open it and tap <span className="text-gold font-medium">Confirm my email</span> to finish creating your account. Check your spam folder too.
+            </p>
+            <ResendConfirmation email={pendingEmail} initialWait={60} />
+            <p className="text-xs text-muted-foreground mt-4">Asking for a new email cancels the earlier link — always use the newest one.</p>
+            <p className="text-sm mt-6 space-x-4">
+              <button onClick={() => { setPendingEmail(null); setMode("signup"); }} className="text-gold hover:underline">Use a different email</button>
+              <button onClick={() => switchMode("signin")} className="text-gold hover:underline">Sign In</button>
+            </p>
+          </div>
+        ) : mode === "forgot" ? (
           <>
             <h2 className="text-lg font-semibold text-foreground text-center mb-2">Forgot your password?</h2>
             {resetSent ? (
@@ -199,6 +232,13 @@ const Auth = () => {
                     Remember me
                   </label>
                   <button type="button" onClick={() => switchMode("forgot")} className="text-gold hover:underline">Forgot password?</button>
+                </div>
+              )}
+
+              {mode === "signin" && unconfirmed && (
+                <div className="rounded-xl border border-gold/30 bg-gold/10 p-4 text-left space-y-3">
+                  <p className="text-sm text-foreground">Your email isn't confirmed yet. Use the link in your newest confirmation email, or get a new one:</p>
+                  <ResendConfirmation email={email} />
                 </div>
               )}
 
