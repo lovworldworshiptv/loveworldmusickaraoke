@@ -2633,6 +2633,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_activity_days: {
+        Row: {
+          country_code: string | null
+          day: string
+          first_seen_at: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          country_code?: string | null
+          day: string
+          first_seen_at?: string
+          source?: string
+          user_id: string
+        }
+        Update: {
+          country_code?: string | null
+          day?: string
+          first_seen_at?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_game_progress: {
         Row: {
           completed: boolean
@@ -2867,6 +2891,7 @@ export type Database = {
     }
     Functions: {
       admin_command_centre: { Args: { p_days?: number }; Returns: Json }
+      admin_country_stats: { Args: { p_days?: number }; Returns: Json }
       admin_referral_stats: { Args: { p_days?: number }; Returns: Json }
       can_moderate_community: {
         Args: { p_community_id: string }
@@ -2990,6 +3015,10 @@ export type Database = {
       is_community_member: {
         Args: { _community_id: string; _user_id: string }
         Returns: boolean
+      }
+      log_activity_day: {
+        Args: { p_country: string; p_source: string }
+        Returns: undefined
       }
       move_to_dlq: {
         Args: {

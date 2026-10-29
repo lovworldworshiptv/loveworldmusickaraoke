@@ -260,6 +260,13 @@
       "when": 1793232533028,
       "tag": "0036_admin_referral_stats",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793233080060,
+      "tag": "0037_user_activity_countries",
+      "breakpoints": true
     }
   ]
 }
