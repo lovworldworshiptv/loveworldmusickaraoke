@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { claimStoredInvite, captureInviteFromUrl } from "@/lib/platformReferral";
 import { markRemembered, shouldForgetSession } from "@/lib/rememberMe";
 import { logActivityDay, stopActivityTracking } from "@/lib/activityCountry";
+import { confirmRedirectUrl } from "@/lib/emailLink";
 
 captureInviteFromUrl();
 import type { User, Session } from "@supabase/supabase-js";
@@ -25,7 +26,7 @@ interface AuthContextType {
   profileCompleted: boolean;
   profileData: ProfileData;
   loading: boolean;
-  signUp: (email: string, password: string, username: string, inviteCode?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, username: string, inviteCode?: string) => Promise<{ error: any; data?: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   sendPasswordReset: (email: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -117,14 +118,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUp = async (email: string, password: string, uname: string, inviteCode?: string) => {
     const code = (inviteCode || "").trim();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email, password,
       options: {
         data: { username: uname, ...(code ? { invite_code: code.slice(0, 80) } : {}) },
-        emailRedirectTo: window.location.origin,
+        // The confirm page finishes sign-up (and the invite claim) on the branded site.
+        emailRedirectTo: confirmRedirectUrl(),
       },
     });
-    return { error };
+    return { error, data };
   };
 
   const signIn = async (email: string, password: string) => {

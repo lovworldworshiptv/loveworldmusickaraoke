@@ -27,12 +27,12 @@ const ConfirmEmail = () => {
     navigate("/", { replace: true });
   };
 
-  // Only call a link expired when no session exists after all.
-  const settle = async (error: unknown) => {
+  // Only call a link expired when no session exists after all
+  // (the sign-in library may already have used the same link by itself).
+  const settle = async () => {
     const { data } = await supabase.auth.getSession();
     if (data.session) return finish(data.session.user.user_metadata?.username);
-    if (error) setStage("expired");
-    else setStage("expired");
+    setStage("expired");
   };
 
   useEffect(() => {
