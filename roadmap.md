@@ -1,6 +1,6 @@
 # Roadmap
-- [ ] Make "King Of Eternity" a free download
-- [ ] Voice search in the search box (titles + lyrics, fast matching)
+- [x] Make "King Of Eternity" a free download (all three identical copies; shown once on the home row)
+- [x] Voice search in the search box (titles + lyrics, fast matching) — signed-in end-to-end tap not yet tried
 - [x] Remove the song count "(1)" beside "Available For Free Download" on the home page
 - [x] Praise Night Discover card: nine matching albums, edition 28 cover, album open/back flow and loaded artwork verified; three selection tests pass.
 - [x] Praise Night 29: 17 missing songs ingested from loveworldlyrics.com (lyrics, audio in app storage, album cover, durations); album now 26 songs, playback and search verified; 16 karaoke tracks queued.
