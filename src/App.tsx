@@ -20,6 +20,7 @@ import SongMatchCategory from "./pages/SongMatchCategory";
 import SongMatchArticles from "./pages/SongMatchArticles";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import ConfirmEmail from "./pages/ConfirmEmail";
 import KingsChatCallback from "./pages/KingsChatCallback";
 import KingsChatLogin from "./pages/KingsChatLogin";
 import Articles from "./pages/Articles";
@@ -108,6 +109,7 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/auth/confirm" element={<ConfirmEmail />} />
                 <Route path="/auth/kingschat/login" element={<KingsChatLogin />} />
                 <Route path="/auth/kingschat/callback" element={<KingsChatCallback />} />
                 <Route path="/privacy" element={<Privacy />} />

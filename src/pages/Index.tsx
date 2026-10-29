@@ -26,6 +26,7 @@ import OnboardingSplash from "@/components/onboarding/OnboardingSplash";
 import { useSetting, resolveHomeLayout, SETTING_KEYS, type HomeSectionSetting } from "@/lib/siteSettings";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { hasAuthCallback } from "@/lib/emailLink";
 
 const Index = () => {
   const { enabled } = useFeatures();
@@ -38,9 +39,14 @@ const Index = () => {
   const layout = resolveHomeLayout(useSetting<HomeSectionSetting[]>(SETTING_KEYS.homeLayout));
 
   useEffect(() => {
+    // Older confirmation emails land here: hand them to the confirm page instead of the welcome slides.
+    if (hasAuthCallback(window.location.search, window.location.hash)) {
+      navigate(`/auth/confirm${window.location.search}${window.location.hash}`, { replace: true });
+      return;
+    }
     const seen = localStorage.getItem("onboarding_completed");
     if (!seen) setShowOnboarding(true);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Offline fallback to Downloads is handled globally by OfflineRedirect.
   void isOnline;
