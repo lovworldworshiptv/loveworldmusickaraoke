@@ -1,11 +1,37 @@
 /** Shapes and helpers for the admin Command Centre, filled by the admin_command_centre database function. */
 
-export type Range = "7d" | "30d" | "all";
+/** Look-back window in days; null means all time. */
+export type RangeDays = number | null;
 
-/** Days to look back for each range; null means all time. */
-export function rangeDays(range: Range): number | null {
-  return range === "7d" ? 7 : range === "30d" ? 30 : null;
+export const RANGE_PRESETS: { days: RangeDays; label: string }[] = [
+  { days: 1, label: "24h" }, { days: 7, label: "7d" }, { days: 30, label: "30d" }, { days: 90, label: "90d" }, { days: null, label: "All" },
+];
+
+export const MAX_RANGE_DAYS = 3650;
+
+/** A typed number of days, as a whole number from 1 to 3,650; anything else is rejected (null). */
+export function parseRangeDays(text: string): number | null {
+  if (!/^\s*\d+\s*$/.test(text)) return null;
+  const n = Number(text);
+  return n >= 1 && n <= MAX_RANGE_DAYS ? n : null;
 }
+
+export function rangeLabel(days: RangeDays): string {
+  if (days === null) return "all time";
+  if (days === 1) return "last 24 hours";
+  return `last ${days.toLocaleString("en-US")} days`;
+}
+
+export type CountryStats = {
+  tracked_since: string | null;
+  active_users: number;
+  located_users: number;
+  unknown_users: number;
+  countries_count: number;
+  by_network: number;
+  by_timezone: number;
+  countries: { code: string; users: number; active_days: number }[];
+};
 
 export type Part = { label: string; value: number };
 

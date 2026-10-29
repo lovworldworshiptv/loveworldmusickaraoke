@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { listenerTierParts, premiumPlanParts, rangeDays, sumParts, type CommandCentreStats } from "./commandCentre";
+import { listenerTierParts, parseRangeDays, premiumPlanParts, rangeLabel, sumParts, type CommandCentreStats } from "./commandCentre";
 
 const subs: CommandCentreStats["subs"] = {
   free: 1050, trial: 7, premium: 18,
@@ -22,9 +22,19 @@ describe("command centre breakdowns", () => {
     expect(sumParts(listenerTierParts(plays))).toBe(40);
   });
 
-  it("maps ranges to days, all time to none", () => {
-    expect(rangeDays("7d")).toBe(7);
-    expect(rangeDays("30d")).toBe(30);
-    expect(rangeDays("all")).toBeNull();
+  it("accepts a typed number of days from 1 to 3,650 only", () => {
+    expect(parseRangeDays("14")).toBe(14);
+    expect(parseRangeDays("1")).toBe(1);
+    expect(parseRangeDays("3650")).toBe(3650);
+    expect(parseRangeDays("0")).toBeNull();
+    expect(parseRangeDays("3651")).toBeNull();
+    expect(parseRangeDays("2.5")).toBeNull();
+    expect(parseRangeDays("-3")).toBeNull();
+  });
+
+  it("labels the window", () => {
+    expect(rangeLabel(14)).toBe("last 14 days");
+    expect(rangeLabel(1)).toBe("last 24 hours");
+    expect(rangeLabel(null)).toBe("all time");
   });
 });
