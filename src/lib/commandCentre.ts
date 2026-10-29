@@ -40,6 +40,8 @@ export type CommandCentreStats = {
   create_menu: Record<string, number>;
   channels: { channel: string; shares: number; visits: number; signups: number; downloads: number }[];
   download_surfaces: { name: string; clicks: number }[];
+  /** Invites actually credited to an inviter (from admin_referral_stats). */
+  referrals: { credited_in_range: number; credited_total: number; inviters_in_range: number };
 };
 
 /** Premium split by plan; the 3-month and "other" rows only appear when someone is on them. */

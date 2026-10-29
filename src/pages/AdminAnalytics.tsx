@@ -39,6 +39,8 @@ const StatCard = ({ icon: Icon, label, value, sub, parts }: { icon: typeof Users
   </div>
 );
 
+const titleCase = (text: string) => text.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()).replace("Ios", "iOS");
+
 const empty = (message: string) => <p className="py-8 text-center text-sm text-muted-foreground">{message}</p>;
 
 const AdminAnalytics = () => {
@@ -51,9 +53,14 @@ const AdminAnalytics = () => {
     enabled: isAdmin,
     placeholderData: (previous) => previous,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("admin_command_centre", { p_days: rangeDays(range) as number });
-      if (error) throw error;
-      return data as unknown as CommandCentreStats;
+      const days = rangeDays(range) as number;
+      const [main, referrals] = await Promise.all([
+        supabase.rpc("admin_command_centre", { p_days: days }),
+        supabase.rpc("admin_referral_stats", { p_days: days }),
+      ]);
+      if (main.error) throw main.error;
+      if (referrals.error) throw referrals.error;
+      return { ...(main.data as unknown as CommandCentreStats), referrals: referrals.data as unknown as CommandCentreStats["referrals"] };
     },
   });
 
@@ -135,7 +142,7 @@ const AdminAnalytics = () => {
                 ]} />
               </div>
               <div className="grid gap-6 lg:grid-cols-2">
-                <div className={panel}><h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground"><Activity className="h-4 w-4 text-gold" /> Listening activity <span className="text-xs font-normal text-muted-foreground">({rangeLabel})</span></h2><div className="h-64">{view.playDays.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={view.playDays}><CartesianGrid stroke="hsl(var(--border))" vertical={false} /><XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} /><YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} /><Tooltip contentStyle={tooltipStyle} /><Legend wrapperStyle={{ fontSize: 11 }} /><Bar dataKey="listen" name="Listened" stackId="p" fill="hsl(var(--primary))" /><Bar dataKey="karaoke" name="Sung" stackId="p" fill="hsl(var(--gold))" /><Bar dataKey="video" name="Watched" stackId="p" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer> : empty("No listening activity in this period")}</div></div>
+                <div className={panel}><h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground"><Activity className="h-4 w-4 text-gold" /> Listening activity <span className="text-xs font-normal text-muted-foreground">({rangeLabel})</span></h2><div className="h-64">{view.playDays.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={view.playDays}><CartesianGrid stroke="hsl(var(--border))" vertical={false} /><XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} /><YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} /><Tooltip contentStyle={tooltipStyle} /><Legend wrapperStyle={{ fontSize: 11 }} /><Bar dataKey="listen" name="Listened" stackId="p" fill="hsl(var(--accent))" /><Bar dataKey="karaoke" name="Sung" stackId="p" fill="hsl(var(--gold))" /><Bar dataKey="video" name="Watched" stackId="p" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer> : empty("No listening activity in this period")}</div></div>
                 <div className={panel}><h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground"><Users className="h-4 w-4 text-gold" /> New users <span className="text-xs font-normal text-muted-foreground">({fmt(s.users.new_in_range)} · {rangeLabel})</span></h2><div className="h-64">{view.userDays.length ? <ResponsiveContainer width="100%" height="100%"><LineChart data={view.userDays}><CartesianGrid stroke="hsl(var(--border))" vertical={false} /><XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} /><YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} /><Tooltip contentStyle={tooltipStyle} /><Line dataKey="users" name="New users" stroke="hsl(var(--gold))" strokeWidth={2} dot={false} /></LineChart></ResponsiveContainer> : empty("No new users in this period")}</div></div>
               </div>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -182,16 +189,18 @@ const AdminAnalytics = () => {
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <StatCard icon={Share2} label="Share taps" value={view.acq.shares} sub={rangeLabel} parts={view.topChannels("shares")} />
                 <StatCard icon={Users} label="Visits from shares" value={view.acq.visits} sub={rangeLabel} parts={view.topChannels("visits")} />
-                <StatCard icon={UserPlus} label="Referral sign-ups" value={view.acq.signups} sub={view.acq.shares ? `${Math.round(view.acq.signups / view.acq.shares * 100)}% of share taps` : rangeLabel} parts={view.topChannels("signups")} />
-                <StatCard icon={Download} label="App download taps" value={view.acq.downloads} sub={rangeLabel} parts={s.download_surfaces.slice(0, 3).map((d) => ({ label: d.name.replace(/_/g, " "), value: d.clicks }))} />
+                <StatCard icon={UserPlus} label="Invited sign-ups" value={view.acq.signups} sub={`joined from an invite link · ${rangeLabel}`} parts={[
+                  { label: "Credited to an inviter", value: s.referrals.credited_in_range }, { label: "People who invited", value: s.referrals.inviters_in_range }, ...view.topChannels("signups"),
+                ]} />
+                <StatCard icon={Download} label="App download taps" value={view.acq.downloads} sub={rangeLabel} parts={s.download_surfaces.slice(0, 3).map((d) => ({ label: titleCase(d.name), value: d.clicks }))} />
               </div>
               <div className={panel}>
                 <h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground"><Share2 className="h-4 w-4 text-gold" /> Channels bringing new users <span className="text-xs font-normal text-muted-foreground">({rangeLabel})</span></h2>
-                <div className="h-64">{view.channels.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={view.channels}><CartesianGrid stroke="hsl(var(--border))" vertical={false} /><XAxis dataKey="channel" stroke="hsl(var(--muted-foreground))" fontSize={11} /><YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} /><Tooltip contentStyle={tooltipStyle} /><Legend wrapperStyle={{ fontSize: 11 }} /><Bar dataKey="shares" name="Share taps" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} /><Bar dataKey="visits" name="Visits" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} /><Bar dataKey="signups" name="Sign-ups" fill="hsl(var(--gold))" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer> : empty("No sharing activity in this period yet")}</div>
+                <div className="h-64">{view.channels.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={view.channels}><CartesianGrid stroke="hsl(var(--border))" vertical={false} /><XAxis dataKey="channel" stroke="hsl(var(--muted-foreground))" fontSize={11} /><YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} /><Tooltip contentStyle={tooltipStyle} /><Legend wrapperStyle={{ fontSize: 11 }} /><Bar dataKey="shares" name="Share taps" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} /><Bar dataKey="visits" name="Visits" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} /><Bar dataKey="signups" name="Sign-ups" fill="hsl(var(--gold))" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer> : empty("No sharing activity in this period yet")}</div>
               </div>
               <div className="grid gap-6 lg:grid-cols-2">
                 <div className={`${panel} overflow-hidden p-0`}><div className="border-b border-border p-4"><h2 className="font-semibold text-foreground">Channel breakdown</h2></div><div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-muted/40 text-left text-xs text-muted-foreground"><tr><th className="px-4 py-3">Channel</th><th className="px-3 py-3 text-right">Shares</th><th className="px-3 py-3 text-right">Visits</th><th className="px-3 py-3 text-right">Sign-ups</th><th className="px-4 py-3 text-right">Downloads</th></tr></thead><tbody>{view.channels.map((c) => <tr key={c.channel} className="border-t border-border/70"><td className="px-4 py-3 text-foreground">{c.channel}</td><td className="px-3 py-3 text-right tabular-nums">{fmt(c.shares)}</td><td className="px-3 py-3 text-right tabular-nums">{fmt(c.visits)}</td><td className="px-3 py-3 text-right tabular-nums">{fmt(c.signups)}</td><td className="px-4 py-3 text-right tabular-nums">{fmt(c.downloads)}</td></tr>)}{view.channels.length > 0 && <tr className="border-t border-border bg-muted/30 font-semibold"><td className="px-4 py-3 text-foreground">Total</td><td className="px-3 py-3 text-right tabular-nums">{fmt(view.acq.shares)}</td><td className="px-3 py-3 text-right tabular-nums">{fmt(view.acq.visits)}</td><td className="px-3 py-3 text-right tabular-nums">{fmt(view.acq.signups)}</td><td className="px-4 py-3 text-right tabular-nums">{fmt(view.acq.downloads)}</td></tr>}</tbody></table>{!view.channels.length && empty("Nothing yet")}</div></div>
-                <div className={panel}><h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground"><Download className="h-4 w-4 text-gold" /> Where app downloads start</h2>{s.download_surfaces.length ? <div className="space-y-2">{s.download_surfaces.map((d) => <div key={d.name} className="flex items-center justify-between rounded-lg bg-muted/40 px-4 py-3 text-sm"><span className="capitalize text-foreground">{d.name.replace(/_/g, " ")}</span><span className="font-bold tabular-nums text-foreground">{fmt(d.clicks)}</span></div>)}</div> : empty("No download taps in this period yet")}</div>
+                <div className={panel}><h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground"><Download className="h-4 w-4 text-gold" /> Where app downloads start</h2>{s.download_surfaces.length ? <div className="space-y-2">{s.download_surfaces.map((d) => <div key={d.name} className="flex items-center justify-between rounded-lg bg-muted/40 px-4 py-3 text-sm"><span className="text-foreground">{titleCase(d.name)}</span><span className="font-bold tabular-nums text-foreground">{fmt(d.clicks)}</span></div>)}</div> : empty("No download taps in this period yet")}</div>
               </div>
             </TabsContent>
 
