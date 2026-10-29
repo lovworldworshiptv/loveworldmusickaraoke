@@ -28,7 +28,7 @@ const FreeDownloads = () => {
       <div className="flex items-end justify-between mb-4">
         <div>
           {text.eyebrow && <p className="text-xs uppercase tracking-widest text-gold">{text.eyebrow}</p>}
-          <h3 className="text-xl font-serif font-bold text-foreground">{text.title} <span className="text-sm text-muted-foreground font-sans">({songs.length})</span></h3>
+          <h3 className="text-xl font-serif font-bold text-foreground">{text.title}</h3>
         </div>
         <div className="flex items-center gap-2">
           <button aria-label="Scroll left" onClick={() => scroll(-1)} className="hidden lg:flex w-8 h-8 rounded-full items-center justify-center bg-muted text-foreground"><ChevronLeft className="w-4 h-4" /></button>

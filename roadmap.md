@@ -1,4 +1,6 @@
 # Roadmap
+- [ ] Voice search in the search box (titles + lyrics, fast matching)
+- [x] Remove the song count "(1)" beside "Available For Free Download" on the home page
 - [x] Praise Night Discover card: nine matching albums, edition 28 cover, album open/back flow and loaded artwork verified; three selection tests pass.
 - [x] Praise Night 29: 17 missing songs ingested from loveworldlyrics.com (lyrics, audio in app storage, album cover, durations); album now 26 songs, playback and search verified; 16 karaoke tracks queued.
 - [x] My Referrals: every stat box opens its breakdown
