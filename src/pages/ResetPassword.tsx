@@ -19,6 +19,9 @@ const ResetPassword = () => {
   const [confirm, setConfirm] = useState("");
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Reset links that carry a token wait for a tap, so email link scanners can't use them up.
+  const [pendingToken, setPendingToken] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     let done = false;
@@ -52,8 +55,8 @@ const ResetPassword = () => {
         return settle(error);
       }
       if (link.kind === "token_hash") {
-        const { error } = await supabase.auth.verifyOtp({ token_hash: link.tokenHash, type: "recovery" });
-        return settle(error);
+        done = true; // waiting for the tap, not for the timeout
+        return setPendingToken(link.tokenHash);
       }
       const { data } = await supabase.auth.getSession();
       if (data.session) markReady();
@@ -64,6 +67,17 @@ const ResetPassword = () => {
     const t = setTimeout(markExpired, 8000);
     return () => { subscription.unsubscribe(); clearTimeout(t); };
   }, []);
+
+  const continueReset = async () => {
+    if (!pendingToken) return;
+    setVerifying(true);
+    const { error } = await supabase.auth.verifyOtp({ token_hash: pendingToken, type: "recovery" });
+    setVerifying(false);
+    if (!error) { setPendingToken(null); setReady(true); return; }
+    const { data } = await supabase.auth.getSession();
+    setPendingToken(null);
+    if (data.session) setReady(true); else setExpired(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +98,14 @@ const ResetPassword = () => {
       <div className="w-full max-w-md glass-card p-8">
         <img src={logoFull} alt="Loveworld Music+ logo" className="mx-auto mb-4 h-20 w-20 rounded-[22px] object-contain shadow-[0_6px_28px_hsl(43_70%_53%/0.4)]" />
         <h1 className="text-2xl font-serif gradient-gold-text font-bold text-center mb-2">Set a new password</h1>
-        {!ready && expired ? (
+        {!ready && pendingToken ? (
+          <>
+            <p className="text-sm text-muted-foreground text-center mb-6">Tap below to continue and choose your new password.</p>
+            <button onClick={continueReset} disabled={verifying} className="w-full py-3 rounded-lg gradient-gold text-primary-foreground font-semibold hover:opacity-90 disabled:opacity-50">
+              {verifying ? "Checking…" : "Continue"}
+            </button>
+          </>
+        ) : !ready && expired ? (
           <>
             <p className="text-sm text-muted-foreground text-center mb-6">This reset link has expired or was already used. Request a new one from the sign-in page.</p>
             <button onClick={() => navigate("/auth")} className="w-full py-3 rounded-lg gradient-gold text-primary-foreground font-semibold hover:opacity-90">Back to Sign In</button>
