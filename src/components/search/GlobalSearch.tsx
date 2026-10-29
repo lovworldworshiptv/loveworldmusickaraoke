@@ -7,7 +7,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { startVoiceCapture, transcribeVoice, cleanVoiceQuery, type VoiceCapture } from "@/lib/voiceSearch";
+import { startVoiceCapture, transcribeVoice, cleanVoiceQuery, startBrowserSpeech, browserSpeechAvailable, type VoiceCapture } from "@/lib/voiceSearch";
+import { isMedianApp } from "@/lib/median";
 import { normalize } from "@/lib/fuzzySearch";
 import { searchContent, searchVoiceContent, SEARCH_DEBOUNCE_MS, SEARCH_PAGE_SIZE } from "@/lib/contentSearch";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,7 +67,7 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
   const [activeIndex, setActiveIndex] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const { playSong } = usePlayer();
+  const { playSong, isPlaying, togglePlay } = usePlayer();
   const { user } = useAuth();
 
   // Voice search: "listening" while recording, "hearing" while the words come back.
@@ -164,6 +165,8 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
     setTimeout(() => { if (!playerRef.current.isPlaying) playerRef.current.togglePlay(); }, 50);
   }, []);
   const browserRecRef = useRef<{ stop: () => void; cancel: () => void } | null>(null);
+  /** Bumped on every start/cancel so a microphone that opens after Cancel is shut straight away. */
+  const voiceSession = useRef(0);
 
   const applyVoiceText = (text: string) => {
     voiceQuery.current = true;
@@ -198,6 +201,7 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
   }, [resumeMusic]);
 
   const cancelVoice = useCallback(() => {
+    voiceSession.current += 1;
     browserRecRef.current?.cancel();
     browserRecRef.current = null;
     captureRef.current?.cancel();
@@ -253,9 +257,11 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
     pauseMusic();
     setVoiceState("listening");
     // Called straight from the tap (no await before it) so phones allow the microphone to start.
+    const session = ++voiceSession.current;
     startVoiceCapture({ onLevel: setVoiceLevel, onAutoStop: () => { finishVoice(); } })
-      .then((cap) => { captureRef.current = cap; })
+      .then((cap) => { if (session !== voiceSession.current) cap.cancel(); else captureRef.current = cap; })
       .catch((e: any) => {
+        if (session !== voiceSession.current) return;
         setVoiceState("idle");
         resumeMusic();
         const denied = e?.name === "NotAllowedError" || e?.name === "SecurityError";
