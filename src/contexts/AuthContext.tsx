@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { claimStoredInvite, captureInviteFromUrl } from "@/lib/platformReferral";
-import { shouldForgetSession } from "@/lib/rememberMe";
+import { markRemembered, shouldForgetSession } from "@/lib/rememberMe";
 import { logActivityDay, stopActivityTracking } from "@/lib/activityCountry";
 
 captureInviteFromUrl();
@@ -95,8 +95,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     const start = async () => {
-      // "Remember me" was off last time and the browser/app has since been closed.
-      if (shouldForgetSession()) await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+      if (window.location.pathname.startsWith("/reset-password")) {
+        // Never drop the recovery session from a reset link; this tab counts as active.
+        markRemembered();
+      } else if (shouldForgetSession()) {
+        // "Remember me" was off last time and the browser/app has since been closed.
+        await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+      }
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
