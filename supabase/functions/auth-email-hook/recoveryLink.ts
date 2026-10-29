@@ -1,12 +1,23 @@
-const RESET_PAGE = 'https://loveworldmusickaraoke.com/reset-password'
+const SITE = 'https://loveworldmusickaraoke.com'
 
-/** Recovery emails link straight to our reset page; other types keep the original URL. */
+/** Emails whose link opens a page on our own site instead of the backend verify address. */
+const DIRECT_PAGES: Record<string, string> = {
+  recovery: `${SITE}/reset-password`,
+  signup: `${SITE}/auth/confirm`,
+}
+
+/**
+ * Recovery and sign-up emails link straight to our pages with the hashed token;
+ * the page verifies it only after the person taps a button, so email link
+ * scanners can't use up the one-time token. Other types keep the original URL.
+ */
 export function emailActionUrl(actionType: string, url: string): string {
-  if (actionType !== 'recovery') return url
+  const page = DIRECT_PAGES[actionType]
+  if (!page) return url
   try {
     const token = new URL(url).searchParams.get('token')
     if (!token) return url
-    return `${RESET_PAGE}?token_hash=${encodeURIComponent(token)}&type=recovery`
+    return `${page}?token_hash=${encodeURIComponent(token)}&type=${actionType}`
   } catch {
     return url
   }
