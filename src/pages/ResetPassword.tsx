@@ -5,6 +5,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import MusicBackground from "@/components/auth/MusicBackground";
 import logoFull from "@/assets/logo-mic-heart.png";
+import { parseResetLink } from "@/lib/resetLink";
+import { markRemembered } from "@/lib/rememberMe";
 
 const inputCls = "w-full px-4 py-3 rounded-lg bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary";
 
@@ -19,15 +21,47 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const hash = window.location.hash;
-    if (/error_code=|error=/.test(hash)) setExpired(true);
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
+    let done = false;
+    const markReady = () => { done = true; setReady(true); setExpired(false); };
+    const markExpired = () => { if (!done) { done = true; setExpired(true); } };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") && session) markReady();
     });
-    supabase.auth.getSession().then(({ data }) => { if (data.session) setReady(true); });
-    // No recovery session after a while → the link was used or has expired.
-    const t = setTimeout(() => setExpired((e) => e || !hasRecovery()), 4000);
-    const hasRecovery = () => /type=recovery|access_token=/.test(hash) || !!new URLSearchParams(window.location.search).get("code");
+
+    // Read the link once, then remove the tokens from the address bar.
+    const link = parseResetLink(window.location.search, window.location.hash);
+    if (link.kind !== "none") window.history.replaceState(null, "", "/reset-password");
+
+    // If the link fails, only call it expired when no session exists after all
+    // (the sign-in library may already have used the same link by itself).
+    const settle = async (error: unknown) => {
+      if (!error) return markReady();
+      const { data } = await supabase.auth.getSession();
+      if (data.session) markReady(); else markExpired();
+    };
+
+    const run = async () => {
+      if (link.kind === "error") return markExpired();
+      if (link.kind === "tokens") {
+        const { error } = await supabase.auth.setSession({ access_token: link.accessToken, refresh_token: link.refreshToken });
+        return settle(error);
+      }
+      if (link.kind === "code") {
+        const { error } = await supabase.auth.exchangeCodeForSession(link.code);
+        return settle(error);
+      }
+      if (link.kind === "token_hash") {
+        const { error } = await supabase.auth.verifyOtp({ token_hash: link.tokenHash, type: "recovery" });
+        return settle(error);
+      }
+      const { data } = await supabase.auth.getSession();
+      if (data.session) markReady();
+    };
+    run().catch(() => settle(true));
+
+    // Never wait forever: no session after 8 seconds → the link has expired or was used.
+    const t = setTimeout(markExpired, 8000);
     return () => { subscription.unsubscribe(); clearTimeout(t); };
   }, []);
 
@@ -39,6 +73,7 @@ const ResetPassword = () => {
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) return toast.error(error.message);
+    markRemembered();
     toast.success("Your password has been updated");
     navigate("/", { replace: true });
   };
