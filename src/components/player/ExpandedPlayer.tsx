@@ -87,7 +87,7 @@ const ExpandedPlayer = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
   const isMobile = useIsMobile();
-  const { handoffPause, resumeAt, requestVideoMode, videoModeRequest, clearVideoModeRequest, karaokeModeRequest, clearKaraokeModeRequest } = usePlayer();
+  const { handoffPause, resumeAt, requestVideoMode, videoModeRequest, clearVideoModeRequest, karaokeModeRequest, clearKaraokeModeRequest, playQueueIndex } = usePlayer();
 
   // --- 3-mode player (Song | Karaoke | Video) with seamless position transfer ---
   const [videos, setVideos] = useState<SongVideo[]>([]);
@@ -461,11 +461,7 @@ const ExpandedPlayer = () => {
             video={videos[0]}
             startAt={videoStart}
             positionRef={videoPosRef}
-            onEnded={() => {
-              // Continuous Video mode: move to the next song and stay in Video mode.
-              // Load the next track paused so its audio never overlaps the video hand-off.
-              if (queueIndex < queue.length - 1 || repeatMode === "all") { requestVideoMode(); skipNext({ autoplay: false }); }
-            }}
+            onEnded={advanceVideo}
           />
         ) : !showLyrics ? (
           <div className="flex-1 flex flex-col items-center justify-center px-8 min-h-0">
@@ -574,7 +570,7 @@ const ExpandedPlayer = () => {
             <button onClick={toggleShuffle} className={`transition-all duration-200 hover:scale-110 ${shuffleOn ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               <Shuffle className="w-5 h-5" />
             </button>
-            <button onClick={skipPrev} className="text-foreground hover:text-gold hover:scale-110 transition-all duration-200 active:scale-95">
+            <button onClick={handlePrev} aria-label="Previous song" className="text-foreground hover:text-gold hover:scale-110 transition-all duration-200 active:scale-95">
               <SkipBack className="w-7 h-7" fill="currentColor" />
             </button>
             <button onClick={togglePlay}
@@ -582,7 +578,7 @@ const ExpandedPlayer = () => {
             >
               {isPlaying ? <Pause className="w-8 h-8 text-white drop-shadow-sm" fill="currentColor" /> : <Play className="w-8 h-8 text-white ml-1 drop-shadow-sm" fill="currentColor" />}
             </button>
-            <button onClick={skipNext} className="text-foreground hover:text-gold hover:scale-110 transition-all duration-200 active:scale-95">
+            <button onClick={handleNext} aria-label="Next song" className="text-foreground hover:text-gold hover:scale-110 transition-all duration-200 active:scale-95">
               <SkipForward className="w-7 h-7" fill="currentColor" />
             </button>
             <button onClick={cycleRepeat} className={`relative transition-all duration-200 hover:scale-110 ${repeatMode !== "off" ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
