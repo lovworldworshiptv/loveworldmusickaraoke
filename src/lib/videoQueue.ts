@@ -39,3 +39,22 @@ export function upNextOrder(
 ): number[] {
   return upcomingIndices(queue.length, from, repeat, queue.length).filter((i) => queue[i] && hasVideo(queue[i].id));
 }
+
+/**
+ * Previous button in Video mode: the closest earlier queued song that has a video, wrapping to
+ * the end only with repeat-all. -1 when there is none.
+ */
+export function prevVideoIndex(
+  queue: { id: string }[],
+  from: number,
+  repeat: "off" | "all" | "one",
+  hasVideo: (songId: string) => boolean,
+): number {
+  for (let step = 1; step < queue.length; step++) {
+    const raw = from - step;
+    if (raw < 0 && repeat !== "all") return -1;
+    const i = (raw + queue.length) % queue.length;
+    if (queue[i] && hasVideo(queue[i].id)) return i;
+  }
+  return -1;
+}
