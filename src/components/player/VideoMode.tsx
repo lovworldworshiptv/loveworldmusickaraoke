@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Play, Pause, RotateCcw, RotateCw, Loader2, AlertTriangle, SkipBack, SkipForward, Shuffle, Repeat, Repeat1 } from "lucide-react";
+import { Play, Pause, RotateCcw, RotateCw, Loader2, AlertTriangle, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Maximize, Minimize } from "lucide-react";
 import PlaybackProgress from "@/components/player/PlaybackProgress";
 import { isKingsSpacePage } from "@/lib/videoLinks";
 import { saveVideoProgress, type VideoStatusStore } from "@/lib/videoProgress";
@@ -217,13 +217,48 @@ const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext, playi
   };
 
   const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
+
+  // --- Full screen: the whole video frame (so the countdown can show on big screens); iPhone uses its own video player ---
+  const frameElRef = useRef<HTMLDivElement | null>(null);
+  const setFrame = (el: HTMLDivElement | null) => { frameElRef.current = el; frameRef?.(el); };
+  const [isFs, setIsFs] = useState(false);
+  useEffect(() => {
+    const on = () => {
+      const fsEl = document.fullscreenElement || (document as any).webkitFullscreenElement;
+      const now = !!fsEl && fsEl === frameElRef.current;
+      setIsFs(now);
+      if (!now) { try { (screen.orientation as any)?.unlock?.(); } catch { /* not supported */ } }
+    };
+    document.addEventListener("fullscreenchange", on);
+    document.addEventListener("webkitfullscreenchange", on);
+    return () => { document.removeEventListener("fullscreenchange", on); document.removeEventListener("webkitfullscreenchange", on); };
+  }, []);
+  const canElementFs = typeof document !== "undefined" && !!(document.fullscreenEnabled || (document as any).webkitFullscreenEnabled);
+  const canNativeFs = !yt && typeof HTMLVideoElement !== "undefined" && "webkitEnterFullscreen" in HTMLVideoElement.prototype;
+  const canFullscreen = !pageLink && (canElementFs || canNativeFs);
+  const toggleFullscreen = async () => {
+    const frame = frameElRef.current as (HTMLDivElement & { webkitRequestFullscreen?: () => void }) | null;
+    if (isFs) {
+      try { await (document.exitFullscreen?.() ?? (document as any).webkitExitFullscreen?.()); } catch { /* already closed */ }
+      return;
+    }
+    try {
+      if (canElementFs && frame) {
+        await (frame.requestFullscreen?.() ?? frame.webkitRequestFullscreen?.());
+        // Phones: turn sideways for a bigger picture where the browser allows it.
+        try { await (screen.orientation as any)?.lock?.("landscape"); } catch { /* not supported */ }
+        return;
+      }
+    } catch { /* fall back below */ }
+    try { (videoRef.current as any)?.webkitEnterFullscreen?.(); } catch { /* not supported */ }
+  };
   return (
     <div className={`flex-1 flex flex-col items-center px-4 min-h-0 ${tightBottom ? "" : "justify-center"}`}>
       {/* Free space is split 65/35 on phones so the gap above Up Next is 30% smaller than centred. */}
       {tightBottom && <div aria-hidden="true" className="min-h-0" style={{ flexGrow: 65 }} />}
       <div className="w-full flex flex-col items-center gap-4">
       <div ref={slotRef} className="relative w-full max-w-3xl aspect-video">
-      <div ref={frameRef} className="absolute inset-0 rounded-2xl overflow-hidden glass-card glow-gold bg-background">
+      <div ref={setFrame} className="absolute inset-0 rounded-2xl overflow-hidden glass-card glow-gold bg-background">
         {failed ? (
           <div role="alert" className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-background/90 px-6 text-center">
             <AlertTriangle className="w-7 h-7 text-gold" />
@@ -256,7 +291,8 @@ const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext, playi
             autoPlay
             preload="auto"
             playsInline
-            onClick={toggle}
+            controls={isFs}
+            onClick={isFs ? undefined : toggle}
             onLoadedMetadata={(e) => { if (e.currentTarget.currentTime < 0.5) e.currentTarget.currentTime = start; setDur(e.currentTarget.duration); }}
             onPlaying={() => { setReady(true); setFailed(null); }}
             onCanPlay={(e) => { setReady(true); e.currentTarget.play().catch(() => setPlaying(false)); }}
@@ -269,6 +305,12 @@ const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext, playi
           />
         )}
         {overlay}
+        {canFullscreen && (
+          <button type="button" onClick={toggleFullscreen} aria-label={isFs ? "Exit full screen" : "Full screen"}
+            className={`absolute z-30 w-10 h-10 rounded-full flex items-center justify-center bg-background/60 backdrop-blur-sm text-foreground hover:text-gold hover:bg-background/80 transition-colors ${isFs ? "top-3 left-3" : yt ? "top-2 left-2" : "bottom-2 right-2"}`}>
+            {isFs ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+          </button>
+        )}
       </div>
       </div>
 

@@ -604,7 +604,7 @@ const ExpandedPlayer = () => {
               overlay={
                 <UpNextCountdown
                   status={videoStatus}
-                  show={autoplay && repeatMode !== "one" && cancelledFor !== currentSong.id && !upNextOpen && !isFullscreen}
+                  show={autoplay && repeatMode !== "one" && cancelledFor !== currentSong.id && !upNextOpen && (!isFullscreen || window.innerWidth >= 640)}
                   song={upNext.length ? queue[upNext[0]] : undefined}
                   thumb={upNext.length ? queueVideos.info(queue[upNext[0]].id)?.thumb : null}
                   onPlayNow={advanceVideo}
