@@ -443,7 +443,7 @@ const UpNextSheet = (props: UpNextSheetProps) => {
   const { enabled } = useFeatures();
   const { isPremium } = useIsPremium();
   const freeIds = useFreeSongIds();
-  const { currentSong, queue, queueIndex, repeatMode, isKaraoke, extendQueue, autoAddedIds, reorderQueue, removeFromQueue, playNextInQueue, insertIntoQueue, toggleExpanded } = usePlayer();
+  const { currentSong, queue, queueIndex, repeatMode, extendQueue, autoAddedIds, reorderQueue, removeFromQueue, playNextInQueue, insertIntoQueue, toggleExpanded } = usePlayer();
   const playing = useSyncExternalStore(status.subscribe, () => status.get().playing, () => status.get().playing);
   const reducedMotion = usePrefersReducedMotion();
 
@@ -1030,7 +1030,7 @@ const UpNextSheet = (props: UpNextSheetProps) => {
     </>
   );
 
-  if (!currentSong || isKaraoke) return null;
+  if (!currentSong) return null;
 
   // ---------------- Desktop: right-side panel ----------------
   if (!isSheet) {

@@ -107,7 +107,7 @@ const ExpandedPlayer = () => {
   // --- Up Next (Video mode only) ---
   const isDesktop = useIsDesktop();
   const isFullscreen = useIsFullscreen();
-  const videoSession = enabled("video") && !isKaraoke && (videoMode || (sessionMode === "video" && !videosLoaded));
+  const videoSession = enabled("video") && (videoMode || (sessionMode === "video" && !isKaraoke && !videosLoaded));
   const queueVideos = useQueueVideos(queue, videoSession);
   const upNext = useMemo(
     () => (videoSession ? upNextOrder(queue, queueIndex, repeatMode, queueVideos.has) : []),
