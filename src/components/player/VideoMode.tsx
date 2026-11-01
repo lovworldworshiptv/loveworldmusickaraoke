@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Play, Pause, RotateCcw, RotateCw, Loader2, AlertTriangle, SkipBack, SkipForward } from "lucide-react";
 import PlaybackProgress from "@/components/player/PlaybackProgress";
 import { isKingsSpacePage } from "@/lib/videoLinks";
+import { saveVideoProgress, type VideoStatusStore } from "@/lib/videoProgress";
 
 export interface SongVideo {
   id: string;
@@ -29,12 +30,23 @@ interface Props {
   onNext?: () => void;
   /** Ref the parent reads to know whether the video was playing (e.g. when the player is minimised). */
   playingRef?: React.MutableRefObject<() => boolean>;
+  /** Up Next: the frame (moved with transforms when the list opens) and its fixed slot. */
+  frameRef?: (el: HTMLDivElement | null) => void;
+  slotRef?: (el: HTMLDivElement | null) => void;
+  /** Shares time / duration / playing with the Up Next sheet. */
+  status?: VideoStatusStore;
+  /** Repeat-one: the video starts again instead of ending. */
+  repeatOne?: boolean;
+  /** Song id used to remember how far this video was watched. */
+  progressKey?: string;
+  /** Drawn over the video's corner (e.g. the Up Next countdown). */
+  overlay?: ReactNode;
 }
 
 const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
 
 /** Plays a song's video from the audio position with its own transport controls. */
-const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext, playingRef }: Props) => {
+const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext, playingRef, frameRef, slotRef, status, repeatOne, progressKey, overlay }: Props) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const offset = (video.offset_ms || 0) / 1000;
@@ -47,7 +59,15 @@ const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext, playi
   const timeRef = useRef(start);
   const endedRef = useRef(onEnded);
   const endedFiredRef = useRef(false);
+  const repeatOneRef = useRef(repeatOne);
+  repeatOneRef.current = repeatOne;
   endedRef.current = () => {
+    if (repeatOneRef.current) {
+      // Repeat-one: play this video again from the start.
+      if (yt) { ytCmd("seekTo", [0, true]); ytCmd("playVideo"); }
+      else if (videoRef.current) { videoRef.current.currentTime = 0; videoRef.current.play().catch(() => {}); }
+      return;
+    }
     // YouTube can report "ended" repeatedly; advance only once per video.
     if (endedFiredRef.current) return;
     endedFiredRef.current = true;
@@ -94,12 +114,28 @@ const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext, playi
     if (playingRef) playingRef.current = () => playingNowRef.current;
   }, [playingRef]);
 
+  // Share live state with Up Next and remember how far this video was watched.
+  const durRef = useRef(0);
+  durRef.current = dur;
+  useEffect(() => { status?.set({ time, dur, playing }); }, [status, time, dur, playing]);
+  const lastSavedRef = useRef(0);
+  useEffect(() => {
+    if (!progressKey || !dur) return;
+    const now = Date.now();
+    if (now - lastSavedRef.current < 5000) return;
+    lastSavedRef.current = now;
+    saveVideoProgress(progressKey, time, dur);
+  }, [progressKey, time, dur]);
+  useEffect(() => () => { if (progressKey) saveVideoProgress(progressKey, timeRef.current, durRef.current); }, [progressKey]);
+
   const toggle = () => {
     if (yt) { ytCmd(playing ? "pauseVideo" : "playVideo"); setPlaying(!playing); return; }
     const v = videoRef.current;
     if (!v) return;
     if (v.paused) v.play().catch(() => {}); else v.pause();
   };
+
+  useEffect(() => { if (status) status.controls.toggle = toggle; });
 
   useEffect(() => { endedFiredRef.current = false; }, [video.video_url]);
 
@@ -175,7 +211,8 @@ const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext, playi
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-4 min-h-0 gap-4">
-      <div className="relative w-full max-w-3xl aspect-video rounded-2xl overflow-hidden glass-card glow-gold bg-background">
+      <div ref={slotRef} className="relative w-full max-w-3xl aspect-video">
+      <div ref={frameRef} className="absolute inset-0 rounded-2xl overflow-hidden glass-card glow-gold bg-background">
         {failed ? (
           <div role="alert" className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-background/90 px-6 text-center">
             <AlertTriangle className="w-7 h-7 text-gold" />
@@ -220,15 +257,19 @@ const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext, playi
             onEnded={() => endedRef.current?.()}
           />
         )}
+        {overlay}
+      </div>
       </div>
 
       <div className="w-full max-w-3xl">
+        <div data-no-sheet-drag>
         <PlaybackProgress
           value={dur ? (time / dur) * 100 : 0}
           onValueChange={(value) => { if (dur) seek((value / 100) * dur); }}
           ariaLabel="Video position"
           className="mb-1.5"
         />
+        </div>
         <div className="flex justify-between text-[11px] text-muted-foreground font-medium">
           <span>{fmt(time)}</span><span>{dur ? `-${fmt(Math.max(0, dur - time))}` : ""}</span>
         </div>
