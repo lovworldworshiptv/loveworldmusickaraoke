@@ -1,6 +1,7 @@
 import { useFeatures } from "@/contexts/FeatureContext";
 import { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchContinuation, type ContinueMode } from "@/lib/autoContinue";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -76,6 +77,11 @@ interface PlayerContextType {
   applyLyrics: (lrc?: string | null, text?: string | null) => void;
   handoffPause: () => number;
   resumeAt: (seconds: number) => void;
+  /** "video" while the listener is watching; stays until they switch to Song or Karaoke. */
+  sessionMode: "song" | "video";
+  setSessionMode: (mode: "song" | "video") => void;
+  /** Adds more songs for the mode once the queue is done; resolves to the first new index or -1. */
+  extendQueue: (mode: ContinueMode) => Promise<number>;
 }
 
 // Keep one context instance across hot reloads so consumers and provider never mismatch.
