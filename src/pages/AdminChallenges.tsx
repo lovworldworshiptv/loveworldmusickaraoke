@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trophy, Plus, CheckCircle, XCircle, Play, Square, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { readMilestones } from "../../supabase/functions/_shared/challengeMilestones.ts";
 
 const AdminChallenges = () => {
   const { isAdmin, loading } = useIsAdmin();
@@ -18,7 +19,7 @@ const AdminChallenges = () => {
     start_date: "", end_date: "", status: "draft",
     max_daily_scoring_games: "", max_referrals_per_user: 10, qualification_min_games: 10,
     allowed_subscriptions: ["free", "trial", "premium"] as string[],
-    referral_gate_score: "" as string, referral_gate_required_invites: 3,
+    milestones: [] as Array<{ score: number; invites: number }>, prize_min_milestones: 2,
     difficulty_gates: [] as Array<{ min_score: number; max_score: number; allowed: string[] }>,
   });
 
@@ -76,7 +77,7 @@ const AdminChallenges = () => {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", description: "", entry_fee: 1, prize_pool: 100, prize_dist: '{"1":70,"2":20,"3":10}', start_date: "", end_date: "", status: "draft", max_daily_scoring_games: "", max_referrals_per_user: 10, qualification_min_games: 10, allowed_subscriptions: ["free","trial","premium"], referral_gate_score: "", referral_gate_required_invites: 3, difficulty_gates: [] });
+    setForm({ name: "", description: "", entry_fee: 1, prize_pool: 100, prize_dist: '{"1":70,"2":20,"3":10}', start_date: "", end_date: "", status: "draft", max_daily_scoring_games: "", max_referrals_per_user: 10, qualification_min_games: 10, allowed_subscriptions: ["free","trial","premium"], milestones: [{ score: 1000, invites: 5 }, { score: 2000, invites: 5 }], prize_min_milestones: 2, difficulty_gates: [] });
     setShowForm(true);
   };
 
@@ -90,14 +91,20 @@ const AdminChallenges = () => {
       max_referrals_per_user: ch.max_referrals_per_user ?? 10,
       qualification_min_games: ch.qualification_min_games,
       allowed_subscriptions: ch.allowed_subscriptions ?? ["free","trial","premium"],
-      referral_gate_score: ch.referral_gate_score != null ? String(ch.referral_gate_score) : "",
-      referral_gate_required_invites: ch.referral_gate_required_invites ?? 3,
+      milestones: readMilestones(ch),
+      prize_min_milestones: ch.prize_min_milestones ?? 2,
       difficulty_gates: Array.isArray(ch.difficulty_gates) ? ch.difficulty_gates : [],
     });
     setShowForm(true);
   };
 
   const save = async () => {
+    const milestones = readMilestones({ milestones: form.milestones });
+    const prizeMin = Math.max(0, Math.floor(Number(form.prize_min_milestones) || 0));
+    if (prizeMin > milestones.length) {
+      toast.error(`Players must reach ${prizeMin} milestone${prizeMin === 1 ? "" : "s"} to win, but only ${milestones.length} ${milestones.length === 1 ? "is" : "are"} set. Add more milestones or lower the number.`);
+      return;
+    }
     try {
       const payload: any = {
         name: form.name, description: form.description || null,
@@ -110,8 +117,11 @@ const AdminChallenges = () => {
         max_referrals_per_user: form.max_referrals_per_user ? Number(form.max_referrals_per_user) : null,
         qualification_min_games: Number(form.qualification_min_games),
         allowed_subscriptions: form.allowed_subscriptions,
-        referral_gate_score: form.referral_gate_score ? Number(form.referral_gate_score) : null,
-        referral_gate_required_invites: Number(form.referral_gate_required_invites) || 0,
+        // Milestones replace the older single-milestone fields, which are cleared.
+        milestones: milestones,
+        prize_min_milestones: prizeMin,
+        referral_gate_score: null,
+        referral_gate_required_invites: 0,
         difficulty_gates: (form.difficulty_gates || []).map(g => ({
           min_score: Number(g.min_score) || 0,
           max_score: Number(g.max_score) || 0,
@@ -187,13 +197,52 @@ const AdminChallenges = () => {
               <p className="text-[10px] text-muted-foreground mt-1">Selected tiers can enter. Leave all off to block entries.</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Input label="Milestone Advancement Score (blank = off)" type="number" value={form.referral_gate_score} onChange={(v) => setForm({ ...form, referral_gate_score: v })} />
-              <Input label="Invites required at milestone" type="number" value={String(form.referral_gate_required_invites)} onChange={(v) => setForm({ ...form, referral_gate_required_invites: Number(v) })} />
+            <div className="pt-2 border-t border-border">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="text-xs font-semibold text-foreground">Milestones</p>
+                  <p className="text-[10px] text-muted-foreground">When a player reaches this score, they must invite this many new players before more games count toward their score. Players see these rules on every game screen and before every game.</p>
+                </div>
+                <button type="button"
+                  onClick={() => setForm({ ...form, milestones: [...form.milestones, { score: (form.milestones[form.milestones.length - 1]?.score || 0) + 1000, invites: 5 }] })}
+                  className="px-2.5 py-1.5 rounded-lg bg-primary/15 text-primary text-xs flex items-center gap-1">
+                  <Plus className="w-3 h-3" /> Add milestone
+                </button>
+              </div>
+              <div className="space-y-2">
+                {form.milestones.map((m, idx) => (
+                  <div key={idx} className="p-3 rounded-lg bg-background/50 border border-border grid grid-cols-[auto_1fr_1fr_auto] gap-2 items-end">
+                    <span className="text-xs font-semibold text-foreground pb-2">#{idx + 1}</span>
+                    <label className="block">
+                      <span className="text-[10px] text-muted-foreground">Score</span>
+                      <input type="number" min={1} value={m.score} onChange={(e) => {
+                        const next = [...form.milestones]; next[idx] = { ...next[idx], score: Number(e.target.value) };
+                        setForm({ ...form, milestones: next });
+                      }} className="w-full mt-0.5 px-2 py-1.5 rounded bg-background border border-border text-xs" />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] text-muted-foreground">New invites required</span>
+                      <input type="number" min={0} value={m.invites} onChange={(e) => {
+                        const next = [...form.milestones]; next[idx] = { ...next[idx], invites: Number(e.target.value) };
+                        setForm({ ...form, milestones: next });
+                      }} className="w-full mt-0.5 px-2 py-1.5 rounded bg-background border border-border text-xs" />
+                    </label>
+                    <button type="button" aria-label={`Remove milestone ${idx + 1}`}
+                      onClick={() => setForm({ ...form, milestones: form.milestones.filter((_, i) => i !== idx) })}
+                      className="p-1.5 mb-0.5 rounded bg-destructive/15 text-destructive">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {form.milestones.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground italic">No milestones — games always count and no invites are needed.</p>
+                )}
+              </div>
+              <div className="mt-3 max-w-xs">
+                <Input label="Milestones needed to win a prize" type="number" value={String(form.prize_min_milestones)} onChange={(v) => setForm({ ...form, prize_min_milestones: Number(v) })} />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">Players must reach at least this many milestones (and the minimum games) to be eligible for a prize.</p>
             </div>
-            <p className="text-[10px] text-muted-foreground -mt-1">When a player reaches this score, they must invite this many new players before more games count toward their score.</p>
-
-            <p className="text-[10px] text-muted-foreground -mt-1">When a player reaches this score, they must invite this many new players before more games count toward their score.</p>
 
             <div className="pt-2 border-t border-border">
               <div className="flex items-center justify-between mb-2">

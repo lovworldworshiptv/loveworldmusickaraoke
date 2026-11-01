@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { milestoneGate, prizeEligibility, readMilestones } from "../_shared/challengeMilestones.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,32 +42,29 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Referral gate: once user total_score >= gate, require N awarded referrals before games count
-    let referralGateBlocked = false;
+    const { data: existingScore } = await svc.from("challenge_scores")
+      .select("total_score").eq("challenge_id", ch.id).eq("user_id", user.id).maybeSingle();
+    const currentTotal = existingScore?.total_score ?? 0;
+
+    // Milestone gate: at each milestone score the player must invite that
+    // milestone's number of new players before more games count.
+    const milestones = readMilestones(ch as any);
     let referralRefCount = 0;
-    const gateScore = (ch as any).referral_gate_score;
-    const gateRequired = (ch as any).referral_gate_required_invites ?? 0;
-    if (gateScore != null && gateRequired > 0) {
-      const { data: existingScore } = await svc.from("challenge_scores")
-        .select("total_score").eq("challenge_id", ch.id).eq("user_id", user.id).maybeSingle();
-      const currentTotal = existingScore?.total_score ?? 0;
-      if (currentTotal >= Number(gateScore)) {
-        const { count: refCount } = await svc.from("challenge_referrals")
-          .select("id", { count: "exact", head: true })
-          .eq("challenge_id", ch.id).eq("referrer_user_id", user.id).eq("awarded", true);
-        referralRefCount = refCount ?? 0;
-        if (referralRefCount < gateRequired) referralGateBlocked = true;
-      }
+    let gate = milestoneGate(milestones, currentTotal, 0);
+    if (gate.blocked) {
+      const { count: refCount } = await svc.from("challenge_referrals")
+        .select("id", { count: "exact", head: true })
+        .eq("challenge_id", ch.id).eq("referrer_user_id", user.id).eq("awarded", true);
+      referralRefCount = refCount ?? 0;
+      gate = milestoneGate(milestones, currentTotal, referralRefCount);
     }
+    const referralGateBlocked = gate.blocked;
 
     // Difficulty gate: admin can restrict which difficulties count at specific score bands.
     let difficultyGateBlocked = false;
     let difficultyAllowed: string[] | null = null;
     const gates = Array.isArray((ch as any).difficulty_gates) ? (ch as any).difficulty_gates : [];
     if (gates.length > 0 && difficulty) {
-      const { data: scoreRow } = await svc.from("challenge_scores")
-        .select("total_score").eq("challenge_id", ch.id).eq("user_id", user.id).maybeSingle();
-      const currentTotal = scoreRow?.total_score ?? 0;
       const matching = gates.filter((g: any) => currentTotal >= Number(g.min_score ?? 0) && currentTotal <= Number(g.max_score ?? Number.MAX_SAFE_INTEGER));
       if (matching.length > 0) {
         const allowed = new Set<string>();
@@ -93,14 +91,15 @@ Deno.serve(async (req) => {
     });
 
     if (referralGateBlocked) {
-      const remaining = Math.max(0, gateRequired - referralRefCount);
+      const remaining = gate.remaining;
       return json({
         skipped: "referral_gate",
-        required: gateRequired,
+        required: gate.required,
         completed: referralRefCount,
         remaining,
-        gate_score: gateScore,
-        message: `You've reached the ${gateScore}-point Milestone Advancement Score. Refer ${remaining} more player${remaining === 1 ? "" : "s"} (${referralRefCount}/${gateRequired}) to advance past this milestone.`,
+        gate_score: gate.milestoneScore,
+        milestone: gate.milestoneNumber,
+        message: `You've reached Milestone ${gate.milestoneNumber} (${gate.milestoneScore} points). Invite ${remaining} more new player${remaining === 1 ? "" : "s"} (${referralRefCount}/${gate.required}) before more games count toward your score.`,
       });
     }
     if (difficultyGateBlocked) {
@@ -183,7 +182,8 @@ Deno.serve(async (req) => {
     const logTotal = (allLogs || []).filter((l: any) => l.counted_toward_score).reduce((s: number, l: any) => s + l.score, 0);
     const bonusTotal = (bonusRows || []).reduce((s: number, b: any) => s + b.points, 0);
     const games_played = (allLogs || []).filter((l: any) => l.counted_toward_score).length;
-    const qualified = games_played >= (ch.qualification_min_games ?? 10);
+    // Prize eligibility: minimum counted games AND the required number of milestones.
+    const qualified = prizeEligibility(ch as any, games_played, logTotal + bonusTotal).eligible;
 
     await svc.from("challenge_scores").upsert({
       challenge_id: ch.id, user_id: user.id,

@@ -1,4 +1,5 @@
 import AppLayout from "@/components/layout/AppLayout";
+import { ChallengeRulesNotice } from "@/components/games/ChallengeRules";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, BookOpen, Music2, FolderOpen, Play, Flame, Trophy, Target, Zap } from "lucide-react";
 import { useGameStats } from "@/hooks/useGameStats";
@@ -62,6 +63,8 @@ const SongMatch = () => {
             </p>
           </div>
         </div>
+
+        <ChallengeRulesNotice className="mb-6" />
 
         {/* Per-mode stats */}
         {stats && stats.totalGamesPlayed > 0 && (

@@ -4,6 +4,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveChallenge, useReferralGateStatus, useMyScore, buildReferralUrl, useDuplicateReferrals } from "@/hooks/useChallenge";
 import { CHALLENGE_RESUME_KEY } from "@/hooks/useReferralGateGuard";
+import { ChallengeRulesNotice } from "@/components/games/ChallengeRules";
 import { ArrowLeft, Copy, Users, CheckCircle2, Share2, Trophy, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,7 +21,8 @@ const ChallengeReferrals = () => {
   const refCount = gate?.refCount ?? 0;
   const remaining = (gate as any)?.remaining ?? Math.max(0, required - refCount);
   const complete = required > 0 && refCount >= required;
-  const gateScore = gate?.gateScore ?? ch?.referral_gate_score ?? 0;
+  const gateScore = gate?.gateScore ?? 0;
+  const milestoneLabel = gate?.milestone ? `Milestone ${gate.milestone}` : "the milestone";
   const currentScore = myScore?.total_score ?? gate?.currentScore ?? 0;
   const pct = required > 0 ? Math.min(100, Math.round((refCount / required) * 100)) : 0;
 
@@ -69,7 +71,7 @@ const ChallengeReferrals = () => {
           <p className="text-sm text-muted-foreground mb-5">
             {complete
               ? "You've completed the required invites. Your games will now count toward your score."
-              : `You've reached the Milestone Advancement Score of ${gateScore} pts (${currentScore} pts). Invite ${remaining} more player${remaining === 1 ? "" : "s"} to advance past this milestone.`}
+              : `You've reached ${milestoneLabel} at ${gateScore} pts (${currentScore} pts). Invite ${remaining} more new player${remaining === 1 ? "" : "s"} before more games count toward your score.`}
           </p>
 
           <div className="mb-4">
@@ -130,14 +132,7 @@ const ChallengeReferrals = () => {
           </div>
         )}
 
-        <div className="glass-card p-4 text-xs text-muted-foreground">
-          <p className="font-semibold text-foreground mb-1">How the Milestone Advancement Score works</p>
-          <ul className="space-y-1 list-disc pl-4">
-            <li>You reach the Milestone Advancement Score at <span className="text-foreground">{gateScore} pts</span>.</li>
-            <li>Games you play afterwards don't count until you refer <span className="text-foreground">{required}</span> new player{required === 1 ? "" : "s"} to advance past the milestone.</li>
-            <li>Once your invites are complete, we send you straight back to the game you were playing.</li>
-          </ul>
-        </div>
+        <ChallengeRulesNotice audience="everyone" />
       </div>
     </AppLayout>
   );
