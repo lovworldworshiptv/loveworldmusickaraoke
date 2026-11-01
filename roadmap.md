@@ -38,6 +38,7 @@
 - [x] Home card colours updated; earlier fuchsia/bright-gradient request superseded by global playlist colour and neon-green Daily Discover
 
 - [x] Graceful hover effects: top icons, mood capsules, bottom nav (hover-only, no other changes)
+- [x] Open Stage Mode: six lyric fonts, Motion/Still background drawer for every song, starter Ocean sunset / Mountain clouds / Sand dunes (30 s, ~100 KB loops + stills), admin Motion & Still managers with upload, links, rename, reorder, remove and set-as-default
 - [x] Stage Mode CMS: colour/image/video backgrounds, audio toggle, manual scroll, and player-options shortcut
 - [x] Divinity Stage Mode: five-second ocean-and-mountains video, exclusive Sync/Manual modes, and click-to-select lyric lines
 - [x] Desktop mini player docked to the screen bottom, collapsible sidebar, and matching volume progress styling
