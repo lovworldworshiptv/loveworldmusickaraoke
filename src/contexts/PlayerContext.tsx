@@ -118,15 +118,18 @@ function sourceFor(song: PlayerSong, karaoke: boolean): string | undefined {
 }
 
 /** Next queue position with a playable source, honouring repeat-all wrap-around; -1 when the queue is done. */
-function findNextIndex(q: PlayerSong[], from: number, repeat: RepeatMode): number {
+function findNextIndex(q: PlayerSong[], from: number, repeat: RepeatMode, accept?: (s: PlayerSong) => boolean): number {
   for (let step = 1; step <= q.length; step++) {
     const raw = from + step;
     if (raw >= q.length && repeat !== "all") return -1;
     const i = raw % q.length;
-    if (q[i] && (q[i].audioUrl || q[i].instrumentalUrl)) return i;
+    if (q[i] && (q[i].audioUrl || q[i].instrumentalUrl) && (!accept || accept(q[i]))) return i;
   }
   return -1;
 }
+
+/** Karaoke sessions move on to songs that have a backing track. */
+const hasBackingTrack = (s: PlayerSong) => !!s.instrumentalUrl;
 
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -188,8 +191,13 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [isKaraoke, setIsKaraoke] = useState(false);
   const isKaraokeRef = useRef(false);
   useEffect(() => { isKaraokeRef.current = isKaraoke; }, [isKaraoke]);
-  /** Whether the current queue was started as videos; karaoke is read from isKaraokeRef. */
+  /** Whether the session is watching videos; karaoke is read from isKaraokeRef. */
   const sessionModeRef = useRef<"song" | "video">("song");
+  const [sessionMode, setSessionModeState] = useState<"song" | "video">("song");
+  const setSessionMode = useCallback((m: "song" | "video") => {
+    sessionModeRef.current = m;
+    setSessionModeState(m);
+  }, []);
   const [isExpanded, setIsExpanded] = useState(false);
   const [videoModeRequest, setVideoModeRequest] = useState(false);
   const [karaokeModeRequest, setKaraokeModeRequest] = useState(false);
