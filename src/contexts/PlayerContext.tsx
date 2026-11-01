@@ -940,6 +940,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       singThis, karaokeModeRequest, clearKaraokeModeRequest,
       toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev, isBuffering,
       cycleRepeat, toggleShuffle, setVolume, applyLyrics, handoffPause, resumeAt,
+      sessionMode, setSessionMode, extendQueue,
     }}>
       {children}
       {/* "Are you still there?" dialog */}
