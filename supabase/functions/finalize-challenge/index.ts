@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { prizeEligibility } from "../_shared/challengeMilestones.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,12 +38,14 @@ Deno.serve(async (req) => {
     for (const ch of (list || [])) {
       if (!challenge_id && new Date(ch.end_date) > new Date()) continue;
       const { data: allScores } = await svc.from("challenge_scores")
-        .select("user_id, total_score, qualified")
-        .eq("challenge_id", ch.id).eq("qualified", true)
+        .select("user_id, total_score, games_played")
+        .eq("challenge_id", ch.id)
         .order("total_score", { ascending: false });
-      // Only active Premium subscribers are ranked or awarded prizes.
+      // Prize eligibility is re-checked now (minimum games AND required milestones),
+      // and only active Premium subscribers are ranked or awarded prizes.
       const scores: any[] = [];
       for (const s of (allScores || [])) {
+        if (!prizeEligibility(ch, Number(s.games_played) || 0, Number(s.total_score) || 0).eligible) continue;
         const { data: ok } = await svc.rpc("has_active_premium", { _user_id: s.user_id });
         if (ok) scores.push(s);
       }
