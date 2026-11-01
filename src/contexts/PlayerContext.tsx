@@ -883,7 +883,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       currentSong, isPlaying, isKaraoke, isExpanded, progress, duration,
       currentTime, lrcLines, staticLyrics, activeLrcIndex, repeatMode, shuffleOn,
       queue, queueIndex, volume, trackEndCount, playSong, playQueue, togglePlay,
-      playVideo, playVideoQueue, requestVideoMode, videoModeRequest, clearVideoModeRequest,
+      playVideo, playVideoQueue, singQueue, playQueueIndex, requestVideoMode, videoModeRequest, clearVideoModeRequest,
       singThis, karaokeModeRequest, clearKaraokeModeRequest,
       toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev, isBuffering,
       cycleRepeat, toggleShuffle, setVolume, applyLyrics, handoffPause, resumeAt,
