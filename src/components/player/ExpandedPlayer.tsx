@@ -219,9 +219,8 @@ const ExpandedPlayer = () => {
       }
       let target = nextVideoIndex(queue, queueIndex, repeatMode, (id) => withVideo.has(id));
       if (target < 0) target = await extendQueue("video");
-      requestVideoMode();
-      if (target >= 0) playQueueIndex(target, { autoplay: false });
-      else if (order.length) skipNext({ autoplay: false });
+      if (target >= 0) { requestVideoMode(); playQueueIndex(target, { autoplay: false }); }
+      else if (order.length) { requestVideoMode(); skipNext({ autoplay: false }); }
     } finally {
       advancingRef.current = false;
     }
@@ -523,7 +522,8 @@ const ExpandedPlayer = () => {
             positionRef={videoPosRef}
             onEnded={advanceVideo}
             onPrev={queueIndex > 0 || repeatMode === "all" ? handlePrev : undefined}
-            onNext={upcomingIndices(queue.length, queueIndex, repeatMode).length ? advanceVideo : undefined}
+            onNext={advanceVideo}
+            playingRef={videoPlayingRef}
           />
         ) : !showLyrics ? (
           <div className="flex-1 flex flex-col items-center justify-center px-8 min-h-0">
