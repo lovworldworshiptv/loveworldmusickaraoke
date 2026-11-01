@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { milestoneGate, prizeEligibility, readMilestones } from "../_shared/challengeMilestones.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -90,14 +91,15 @@ Deno.serve(async (req) => {
     });
 
     if (referralGateBlocked) {
-      const remaining = Math.max(0, gateRequired - referralRefCount);
+      const remaining = gate.remaining;
       return json({
         skipped: "referral_gate",
-        required: gateRequired,
+        required: gate.required,
         completed: referralRefCount,
         remaining,
-        gate_score: gateScore,
-        message: `You've reached the ${gateScore}-point Milestone Advancement Score. Refer ${remaining} more player${remaining === 1 ? "" : "s"} (${referralRefCount}/${gateRequired}) to advance past this milestone.`,
+        gate_score: gate.milestoneScore,
+        milestone: gate.milestoneNumber,
+        message: `You've reached Milestone ${gate.milestoneNumber} (${gate.milestoneScore} points). Invite ${remaining} more new player${remaining === 1 ? "" : "s"} (${referralRefCount}/${gate.required}) before more games count toward your score.`,
       });
     }
     if (difficultyGateBlocked) {
@@ -180,7 +182,8 @@ Deno.serve(async (req) => {
     const logTotal = (allLogs || []).filter((l: any) => l.counted_toward_score).reduce((s: number, l: any) => s + l.score, 0);
     const bonusTotal = (bonusRows || []).reduce((s: number, b: any) => s + b.points, 0);
     const games_played = (allLogs || []).filter((l: any) => l.counted_toward_score).length;
-    const qualified = games_played >= (ch.qualification_min_games ?? 10);
+    // Prize eligibility: minimum counted games AND the required number of milestones.
+    const qualified = prizeEligibility(ch as any, games_played, logTotal + bonusTotal).eligible;
 
     await svc.from("challenge_scores").upsert({
       challenge_id: ch.id, user_id: user.id,
