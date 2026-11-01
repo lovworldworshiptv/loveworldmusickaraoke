@@ -181,10 +181,20 @@ const StageMode = () => {
       onPointerDown={pokeControls}
     >
       {activeStage.mediaType === "image" && activeStage.mediaUrl && (
-        <img src={resolveStageMediaUrl(activeStage.mediaUrl)} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover" />
+        <img key={activeStage.mediaUrl} src={resolveStageMediaUrl(activeStage.mediaUrl)} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover animate-in fade-in duration-700" />
       )}
       {activeStage.mediaType === "video" && activeStage.mediaUrl && (
-        <video src={resolveStageMediaUrl(activeStage.mediaUrl)} muted loop autoPlay playsInline className="pointer-events-none absolute inset-0 h-full w-full object-cover" />
+        <video
+          key={activeStage.mediaUrl}
+          src={resolveStageMediaUrl(activeStage.mediaUrl)}
+          poster={(activeStage as { posterUrl?: string }).posterUrl ? resolveStageMediaUrl((activeStage as { posterUrl?: string }).posterUrl as string) : undefined}
+          muted
+          loop
+          autoPlay
+          playsInline
+          preload="auto"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover animate-in fade-in duration-700"
+        />
       )}
       <div className="pointer-events-none absolute inset-0 bg-background/65" />
       {/* Top bar */}
@@ -234,41 +244,123 @@ const StageMode = () => {
         </div>
       </div>
 
-      <div className={`absolute top-28 right-4 z-40 transition-opacity duration-500 ${controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+      <div className={`absolute top-28 right-4 z-40 flex flex-col items-end gap-2 transition-opacity duration-500 ${controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
         <Button
           type="button"
           size="icon"
           variant="outline"
           aria-label="Choose stage background"
           aria-expanded={backgroundMenuOpen}
-          onClick={() => setBackgroundMenuOpen((open) => !open)}
-          className="rounded-full border-gold/25 bg-background/45 backdrop-blur-xl"
+          onClick={() => { setBackgroundMenuOpen((open) => !open); setFontMenuOpen(false); }}
+          className={`rounded-full border-gold/25 bg-background/45 backdrop-blur-xl ${backgroundMenuOpen ? "border-gold/70 text-gold" : ""}`}
         >
           <Images className="h-4 w-4" />
         </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          aria-label="Choose lyrics font"
+          aria-expanded={fontMenuOpen}
+          onClick={() => { setFontMenuOpen((open) => !open); setBackgroundMenuOpen(false); }}
+          className={`rounded-full border-gold/25 bg-background/45 backdrop-blur-xl ${fontMenuOpen ? "border-gold/70 text-gold" : ""}`}
+        >
+          <Type className="h-4 w-4" />
+        </Button>
+
         {backgroundMenuOpen && (
-          <div className="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl border border-gold/20 bg-background/75 p-1.5 shadow-xl backdrop-blur-xl" role="menu" aria-label="Stage backgrounds">
-            {backgroundChoices.map((choice) => (
-              <Button
-                key={choice.id}
-                type="button"
-                variant="ghost"
-                role="menuitemradio"
-                aria-checked={selectedBackgroundId === choice.id}
-                onClick={() => {
-                  setSelectedBackgroundId(choice.id);
-                  setBackgroundMenuOpen(false);
-                  pokeControls();
-                }}
-                className={`h-10 w-full justify-start gap-2 px-2 text-sm ${selectedBackgroundId === choice.id ? "bg-gold/15 text-gold" : "text-foreground"}`}
-              >
-                <span className="h-7 w-9 shrink-0 overflow-hidden rounded border border-foreground/15" style={{ backgroundColor: choice.backgroundColor }}>
-                  {choice.mediaType === "image" && choice.mediaUrl && <img src={resolveStageMediaUrl(choice.mediaUrl)} alt="" className="h-full w-full object-cover" />}
-                  {choice.mediaType === "video" && <Video className="m-auto h-full w-3.5" />}
-                </span>
-                <span className="truncate">{choice.name}</span>
-              </Button>
-            ))}
+          <div
+            className="absolute right-12 top-0 w-[min(20rem,calc(100vw-5rem))] overflow-hidden rounded-2xl border border-gold/25 bg-background/80 p-2 shadow-[0_18px_50px_-12px_hsl(var(--gold)/0.35)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200"
+            role="dialog"
+            aria-label="Stage backgrounds"
+          >
+            <div className="mb-2 grid grid-cols-4 gap-1 rounded-full bg-foreground/5 p-1" role="tablist" aria-label="Background type">
+              {BACKGROUND_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={backgroundTab === tab.id}
+                  onClick={() => setBackgroundTab(tab.id)}
+                  className={`h-7 rounded-full text-[11px] font-semibold transition-colors ${backgroundTab === tab.id ? "bg-gold text-primary-foreground" : "text-foreground/80 hover:text-foreground"}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <div className="grid max-h-[55dvh] grid-cols-2 gap-2 overflow-y-auto pr-0.5" role="radiogroup" aria-label="Backgrounds">
+              {visibleChoices.length === 0 && (
+                <p className="col-span-2 py-6 text-center text-xs text-muted-foreground">No backgrounds here yet.</p>
+              )}
+              {visibleChoices.map((choice) => {
+                const active = activeStage.id === choice.id;
+                const poster = (choice as { posterUrl?: string }).posterUrl;
+                return (
+                  <button
+                    key={choice.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    aria-label={`${choice.name}${choice.mediaType === "video" ? " (motion)" : choice.mediaType === "image" ? " (still)" : ""}`}
+                    onClick={() => chooseBackground(choice.id)}
+                    className={`group relative aspect-video overflow-hidden rounded-xl border text-left transition-all ${active ? "border-gold ring-2 ring-gold/50" : "border-foreground/15 hover:border-gold/50"}`}
+                    style={{ backgroundColor: choice.backgroundColor }}
+                  >
+                    {choice.mediaType === "image" && choice.mediaUrl && (
+                      <img src={resolveStageMediaUrl(choice.mediaUrl)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                    )}
+                    {choice.mediaType === "video" && (poster ? (
+                      <img src={resolveStageMediaUrl(poster)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                    ) : choice.mediaUrl ? (
+                      <video src={`${resolveStageMediaUrl(choice.mediaUrl)}#t=0.5`} muted playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover" />
+                    ) : null)}
+                    <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/90 to-transparent px-1.5 pb-1 pt-4 text-[11px] font-semibold leading-tight text-foreground">
+                      <span className="line-clamp-1">{choice.name}</span>
+                    </span>
+                    {choice.mediaType !== "none" && (
+                      <span className="absolute left-1 top-1 flex items-center gap-0.5 rounded-full bg-background/70 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-foreground">
+                        {choice.mediaType === "video" ? <Video className="h-2.5 w-2.5" /> : <ImageIcon className="h-2.5 w-2.5" />}
+                        {choice.mediaType === "video" ? "Motion" : "Still"}
+                      </span>
+                    )}
+                    {active && (
+                      <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-gold text-primary-foreground">
+                        <Check className="h-3 w-3" />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {fontMenuOpen && (
+          <div
+            className="absolute right-12 top-12 w-[min(17rem,calc(100vw-5rem))] overflow-hidden rounded-2xl border border-gold/25 bg-background/80 p-1.5 shadow-[0_18px_50px_-12px_hsl(var(--gold)/0.35)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200"
+            role="radiogroup"
+            aria-label="Lyrics fonts"
+          >
+            {STAGE_FONTS.map((font) => {
+              const active = font.id === stageFont.id;
+              return (
+                <button
+                  key={font.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => chooseFont(font.id)}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors ${active ? "bg-gold/15 text-gold" : "text-foreground hover:bg-foreground/5"}`}
+                >
+                  <span className="w-8 shrink-0 text-2xl font-bold leading-none" style={{ fontFamily: font.family }}>Aa</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-base font-semibold leading-tight" style={{ fontFamily: font.family }}>Holy, Holy, Holy</span>
+                    <span className="block truncate text-[11px] text-muted-foreground">{font.name} · {font.note}</span>
+                  </span>
+                  {active && <Check className="h-4 w-4 shrink-0" />}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
