@@ -27,7 +27,9 @@ import ShareTrackButton from "@/components/share/ShareTrackButton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Video } from "lucide-react";
 import VideoMode, { SongVideo } from "@/components/player/VideoMode";
-import { nextVideoIndex, upcomingIndices } from "@/lib/videoQueue";
+import { nextVideoIndex, upcomingIndices, upNextOrder } from "@/lib/videoQueue";
+import UpNextSheet, { PEEK_HEIGHT, UpNextCountdown, useIsDesktop, useIsFullscreen, useQueueVideos, useVideoAutoplay } from "@/components/player/UpNextSheet";
+import { createVideoStatus } from "@/lib/videoProgress";
 import LyricsLanguageSheet from "@/components/player/LyricsLanguageSheet";
 import PlaybackProgress from "@/components/player/PlaybackProgress";
 
@@ -99,8 +101,39 @@ const ExpandedPlayer = () => {
   const videoPosRef = useRef<() => number>(() => 0);
   const mode: PlayerMode = videoMode ? "video" : isKaraoke ? "karaoke" : "song";
 
+  // --- Up Next (Video mode only) ---
+  const isDesktop = useIsDesktop();
+  const isFullscreen = useIsFullscreen();
+  const videoSession = enabled("video") && !isKaraoke && (videoMode || (sessionMode === "video" && !videosLoaded));
+  const queueVideos = useQueueVideos(queue, videoSession);
+  const upNext = useMemo(
+    () => (videoSession ? upNextOrder(queue, queueIndex, repeatMode, queueVideos.has) : []),
+    [videoSession, queue, queueIndex, repeatMode, queueVideos],
+  );
+  const [autoplay, setAutoplay] = useVideoAutoplay();
+  const [cancelledFor, setCancelledFor] = useState<string | null>(null);
+  const videoStatus = useMemo(() => createVideoStatus(), []);
+  const [frameEl, setFrameEl] = useState<HTMLDivElement | null>(null);
+  const [slotEl, setSlotEl] = useState<HTMLDivElement | null>(null);
+  const [regionEl, setRegionEl] = useState<HTMLDivElement | null>(null);
+  const [upNextOpen, setUpNextOpen] = useState(false);
+  const showUpNext = videoSession && !isFullscreen;
+  useEffect(() => { if (!showUpNext || isDesktop) setUpNextOpen(false); }, [showUpNext, isDesktop]);
+  // Back closes the open list first instead of leaving the player.
+  useEffect(() => {
+    if (!upNextOpen || isDesktop) return;
+    window.history.pushState({ ...((window.history.state as object | null) || {}), lwUpNext: true }, "");
+    const onPop = () => setUpNextOpen(false);
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      if ((window.history.state as { lwUpNext?: boolean } | null)?.lwUpNext) window.history.back();
+    };
+  }, [upNextOpen, isDesktop]);
+
   useEffect(() => {
     setVideoMode(false);
+    setCancelledFor(null);
     setVideos([]);
     setMotionArtworkUrl(null);
     setMotionArtworkReady(false);
@@ -208,23 +241,40 @@ const ExpandedPlayer = () => {
       const order = upcomingIndices(queue.length, queueIndex, repeatMode);
       const ids = order.map((i) => queue[i].id);
       const withVideo = new Set<string>();
-      if (ids.length && navigator.onLine) {
+      // Up Next already knows which songs have videos: follow exactly what it lists.
+      const known = ids.length > 0 && ids.every((id) => queueVideos.known(id));
+      if (known) ids.forEach((id) => { if (queueVideos.has(id)) withVideo.add(id); });
+      else if (ids.length && navigator.onLine) {
         const { data, error } = await supabase.from("song_videos").select("song_id").in("song_id", ids).eq("is_active", true);
         if (!error) (data || []).forEach((r) => withVideo.add(r.song_id));
       }
-      if (ids.length && !withVideo.size) {
+      if (!known && ids.length && !withVideo.size) {
         // Offline: saved downloads that include their video.
         const saved = await Promise.all(ids.slice(0, 20).map((id) => getDownloadedTrack(id).then((t) => (t?.video ? id : null)).catch(() => null)));
         saved.forEach((id) => id && withVideo.add(id));
       }
-      let target = nextVideoIndex(queue, queueIndex, repeatMode, (id) => withVideo.has(id));
+      let target = known
+        ? upNextOrder(queue, queueIndex, repeatMode, queueVideos.has)[0] ?? -1
+        : nextVideoIndex(queue, queueIndex, repeatMode, (id) => withVideo.has(id));
       if (target < 0) target = await extendQueue("video");
       if (target >= 0) { requestVideoMode(); playQueueIndex(target, { autoplay: false }); }
       else if (order.length) { requestVideoMode(); skipNext({ autoplay: false }); }
     } finally {
       advancingRef.current = false;
     }
-  }, [queue, queueIndex, repeatMode, requestVideoMode, playQueueIndex, skipNext, extendQueue]);
+  }, [queue, queueIndex, repeatMode, requestVideoMode, playQueueIndex, skipNext, extendQueue, queueVideos]);
+
+  // A video finished: Autoplay decides whether to carry on (repeat-one loops inside the video).
+  const handleVideoEnded = useCallback(() => {
+    if (repeatMode === "one") return;
+    if (!autoplay || (currentSong && cancelledFor === currentSong.id)) return;
+    advanceVideo();
+  }, [repeatMode, autoplay, cancelledFor, currentSong, advanceVideo]);
+
+  const playUpNextIndex = useCallback((index: number) => {
+    requestVideoMode();
+    playQueueIndex(index, { autoplay: false });
+  }, [requestVideoMode, playQueueIndex]);
 
   // Manual skips while watching stay in Video mode.
   const handleNext = useCallback(() => {
@@ -514,17 +564,39 @@ const ExpandedPlayer = () => {
           </div>
         )}
 
-        {/* Main view: video, artwork or synced lyrics */}
+        {/* Main view: video, artwork or synced lyrics (desktop Video mode adds the Up Next panel beside it) */}
+        <div className={showUpNext && isDesktop ? "flex-1 min-h-0 flex gap-4 px-4 pb-4" : "contents"}>
+        <div className={showUpNext && isDesktop ? "flex-1 min-w-0 min-h-0 flex flex-col" : "contents"}>
         {mode === "video" && videos[0] ? (
-          <VideoMode
-            video={videos[0]}
-            startAt={videoStart}
-            positionRef={videoPosRef}
-            onEnded={advanceVideo}
-            onPrev={queueIndex > 0 || repeatMode === "all" ? handlePrev : undefined}
-            onNext={advanceVideo}
-            playingRef={videoPlayingRef}
-          />
+          <div ref={setRegionEl} className="flex-1 min-h-0 flex flex-col" style={showUpNext && !isDesktop ? { touchAction: "pan-x pinch-zoom" } : undefined}>
+            <VideoMode
+              video={videos[0]}
+              startAt={videoStart}
+              positionRef={videoPosRef}
+              onEnded={handleVideoEnded}
+              onPrev={queueIndex > 0 || repeatMode === "all" ? handlePrev : undefined}
+              onNext={advanceVideo}
+              playingRef={videoPlayingRef}
+              frameRef={setFrameEl}
+              slotRef={setSlotEl}
+              status={videoStatus}
+              repeatOne={repeatMode === "one"}
+              progressKey={currentSong.id}
+              overlay={
+                <UpNextCountdown
+                  status={videoStatus}
+                  show={autoplay && repeatMode !== "one" && cancelledFor !== currentSong.id && !upNextOpen && !isFullscreen}
+                  song={upNext.length ? queue[upNext[0]] : undefined}
+                  thumb={upNext.length ? queueVideos.info(queue[upNext[0]].id)?.thumb : null}
+                  onPlayNow={advanceVideo}
+                  onCancel={() => setCancelledFor(currentSong.id)}
+                />
+              }
+            />
+            {showUpNext && !isDesktop && (
+              <div aria-hidden="true" className="flex-shrink-0" style={{ height: `calc(${PEEK_HEIGHT}px + env(safe-area-inset-bottom, 0px))` }} />
+            )}
+          </div>
         ) : !showLyrics ? (
           <div className="flex-1 flex flex-col items-center justify-center px-8 min-h-0">
             <div className="relative w-full max-w-[280px] aspect-square">
@@ -590,6 +662,14 @@ const ExpandedPlayer = () => {
             )}
           </div>
         )}
+        </div>
+        {showUpNext && isDesktop && (
+          <UpNextSheet
+            variant="panel" open onOpenChange={() => {}} upNext={upNext} videos={queueVideos} status={videoStatus}
+            autoplay={autoplay} setAutoplay={setAutoplay} onPlayIndex={playUpNextIndex} onNext={advanceVideo} onUpgrade={() => setShowUpgrade(true)}
+          />
+        )}
+        </div>
 
         {/* Floating minimized recorder bar - shows stop button over lyrics */}
         {showRecorder && recorderMinimized && isRecordingActive && (
@@ -651,6 +731,14 @@ const ExpandedPlayer = () => {
             </button>
           </div>
         </div>
+        )}
+
+        {showUpNext && !isDesktop && (
+          <UpNextSheet
+            variant="sheet" open={upNextOpen} onOpenChange={setUpNextOpen} upNext={upNext} videos={queueVideos} status={videoStatus}
+            autoplay={autoplay} setAutoplay={setAutoplay} onPlayIndex={playUpNextIndex} onNext={advanceVideo} onUpgrade={() => setShowUpgrade(true)}
+            frameEl={frameEl} slotEl={slotEl} regionEl={regionEl}
+          />
         )}
       </div>
     </div>
