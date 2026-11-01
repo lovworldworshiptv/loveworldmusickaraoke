@@ -441,8 +441,10 @@ export type Database = {
           id: string
           max_daily_scoring_games: number | null
           max_referrals_per_user: number | null
+          milestones: Json
           name: string
           prize_distribution: Json
+          prize_min_milestones: number
           prize_pool: number
           qualification_min_games: number
           referral_gate_required_invites: number
@@ -462,8 +464,10 @@ export type Database = {
           id?: string
           max_daily_scoring_games?: number | null
           max_referrals_per_user?: number | null
+          milestones?: Json
           name: string
           prize_distribution?: Json
+          prize_min_milestones?: number
           prize_pool?: number
           qualification_min_games?: number
           referral_gate_required_invites?: number
@@ -483,8 +487,10 @@ export type Database = {
           id?: string
           max_daily_scoring_games?: number | null
           max_referrals_per_user?: number | null
+          milestones?: Json
           name?: string
           prize_distribution?: Json
+          prize_min_milestones?: number
           prize_pool?: number
           qualification_min_games?: number
           referral_gate_required_invites?: number
