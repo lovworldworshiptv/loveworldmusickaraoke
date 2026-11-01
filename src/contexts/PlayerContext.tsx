@@ -754,6 +754,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
   const startSong = useCallback((song: PlayerSong, mode: PlayMode) => {
     resolvedCacheRef.current.clear();
+    setAutoAddedIds(new Set());
     setSessionMode(mode === "video" ? "video" : "song");
     queueRef.current = [song];
     queueIndexRef.current = 0;
@@ -802,6 +803,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     const q = shuffled ? [chosen, ...shuffleArray(songs.filter((_, i) => i !== startIndex))] : songs;
     const idx = shuffled ? 0 : startIndex;
     resolvedCacheRef.current.clear();
+    setAutoAddedIds(new Set());
     setSessionMode(video ? "video" : "song");
     queueRef.current = q;
     queueIndexRef.current = idx;
@@ -965,6 +967,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev, isBuffering,
       cycleRepeat, toggleShuffle, setVolume, applyLyrics, handoffPause, resumeAt,
       sessionMode, setSessionMode, extendQueue,
+      autoAddedIds, reorderQueue, removeFromQueue, playNextInQueue, insertIntoQueue,
     }}>
       {children}
       {/* "Are you still there?" dialog */}
