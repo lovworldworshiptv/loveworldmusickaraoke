@@ -20,7 +20,8 @@ const ChallengeReferrals = () => {
   const refCount = gate?.refCount ?? 0;
   const remaining = (gate as any)?.remaining ?? Math.max(0, required - refCount);
   const complete = required > 0 && refCount >= required;
-  const gateScore = gate?.gateScore ?? ch?.referral_gate_score ?? 0;
+  const gateScore = gate?.gateScore ?? 0;
+  const milestoneLabel = gate?.milestone ? `Milestone ${gate.milestone}` : "the milestone";
   const currentScore = myScore?.total_score ?? gate?.currentScore ?? 0;
   const pct = required > 0 ? Math.min(100, Math.round((refCount / required) * 100)) : 0;
 
@@ -69,7 +70,7 @@ const ChallengeReferrals = () => {
           <p className="text-sm text-muted-foreground mb-5">
             {complete
               ? "You've completed the required invites. Your games will now count toward your score."
-              : `You've reached the Milestone Advancement Score of ${gateScore} pts (${currentScore} pts). Invite ${remaining} more player${remaining === 1 ? "" : "s"} to advance past this milestone.`}
+              : `You've reached ${milestoneLabel} at ${gateScore} pts (${currentScore} pts). Invite ${remaining} more new player${remaining === 1 ? "" : "s"} before more games count toward your score.`}
           </p>
 
           <div className="mb-4">

@@ -188,7 +188,7 @@ export const useReferralGateStatus = (challengeId?: string) => {
       return {
         blocked: gate.blocked,
         gateScore: gate.blocked ? gate.milestoneScore : next.score,
-        required: gate.blocked ? gate.required : gate.required + (currentScore < next.score ? next.invites : 0),
+        required: gate.required > 0 ? gate.required : next.invites,
         refCount,
         currentScore,
         remaining: gate.remaining,
