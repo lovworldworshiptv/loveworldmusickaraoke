@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronUp, Download, GripVertical, ListEnd, ListPlus, Lock, MoreHorizontal, Music, Pause, Play, Plus, RotateCcw, Save, SkipForward, Trash2, ArrowUp, ArrowDown, Video } from "lucide-react";
 import { toast } from "sonner";
@@ -177,12 +177,14 @@ const fmtTotal = (s: number) => {
 // ---------------------------------------------------------------------------
 
 function Thumb({ src, fallback, className = "", children }: { src?: string | null; fallback?: string; className?: string; children?: ReactNode }) {
-  const [failed, setFailed] = useState(false);
-  const url = !failed ? src || fallback : fallback && src ? fallback : undefined;
+  const candidates = useMemo(() => [src, fallback].filter(Boolean) as string[], [src, fallback]);
+  const [stage, setStage] = useState(0);
+  useEffect(() => setStage(0), [candidates]);
+  const url = candidates[stage];
   return (
     <div className={`relative aspect-video overflow-hidden rounded-lg bg-gradient-to-br from-secondary via-muted to-gold/30 flex-shrink-0 ${className}`}>
       {url ? (
-        <img src={url} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} className="absolute inset-0 w-full h-full object-cover" />
+        <img src={url} alt="" loading="lazy" decoding="async" onError={() => setStage((n) => n + 1)} className="absolute inset-0 w-full h-full object-cover" />
       ) : (
         <Video className="absolute inset-0 m-auto w-5 h-5 text-gold/50" aria-hidden="true" />
       )}
@@ -339,7 +341,7 @@ function QueueRow(p: RowProps) {
   };
 
   return (
-    <div className="absolute left-0 right-0 px-2" style={{ height: ROW_H }} role="listitem">
+    <div className="relative h-full px-2" role="listitem">
       {/* Revealed behind a left swipe */}
       <div className="absolute inset-y-1 right-2 left-2 rounded-xl bg-destructive/90 flex items-center justify-end pr-5 text-destructive-foreground" aria-hidden="true"
         style={{ opacity: swipeX < -4 ? 1 : 0 }}>
@@ -442,7 +444,7 @@ const UpNextSheet = (props: UpNextSheetProps) => {
   const { isPremium } = useIsPremium();
   const freeIds = useFreeSongIds();
   const { currentSong, queue, queueIndex, repeatMode, isKaraoke, extendQueue, autoAddedIds, reorderQueue, removeFromQueue, playNextInQueue, insertIntoQueue, toggleExpanded } = usePlayer();
-  const playing = useVideoStatus(status).playing;
+  const playing = useSyncExternalStore(status.subscribe, () => status.get().playing, () => status.get().playing);
   const reducedMotion = usePrefersReducedMotion();
 
   // --- Filter chips (view only; never changes the queue order) ---
@@ -512,8 +514,8 @@ const UpNextSheet = (props: UpNextSheetProps) => {
     const sc = scrollerRef.current;
     if (!sc) return;
     setScroll({ top: sc.scrollTop, height: sc.clientHeight, offset: rowsRef.current?.offsetTop ?? 0 });
-    if (sc.scrollHeight - sc.scrollTop - sc.clientHeight < ROW_H * 3) loadMore();
-  }, [loadMore]);
+    if (listVisible && sc.scrollHeight - sc.scrollTop - sc.clientHeight < ROW_H * 3) loadMore();
+  }, [loadMore, listVisible]);
   useEffect(() => { measureScroll(); }, [measureScroll, items.length, open]);
 
   // --- Drag to reorder (handle) ---
@@ -626,9 +628,9 @@ const UpNextSheet = (props: UpNextSheetProps) => {
   };
 
   const browseVideos = () => {
-    onOpenChange(false);
-    toggleExpanded();
+    // Replace the Up Next history entry (if any) so Back from Videos doesn't reopen the list.
     navigate("/videos", { replace: !!(window.history.state as { lwUpNext?: boolean } | null)?.lwUpNext });
+    toggleExpanded();
   };
 
   // -------------------------------------------------------------------------
@@ -638,10 +640,10 @@ const UpNextSheet = (props: UpNextSheetProps) => {
   const peekRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const miniSlotRef = useRef<HTMLDivElement>(null);
+  const miniRowRef = useRef<HTMLDivElement>(null);
   const safeProbeRef = useRef<HTMLDivElement>(null);
   const pRef = useRef(open ? 1 : 0);
   const travelRef = useRef(0);
-  const [atRest, setAtRest] = useState(open);
   const spring = reducedMotion ? "none" : "transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 300ms ease";
 
   const apply = useCallback((p: number, animate: boolean) => {
@@ -656,10 +658,11 @@ const UpNextSheet = (props: UpNextSheetProps) => {
       peekRef.current.style.opacity = String(Math.max(0, 1 - p * 2.5));
       peekRef.current.style.pointerEvents = p > 0.5 ? "none" : "auto";
     }
-    if (bodyRef.current) {
-      bodyRef.current.style.transition = transition;
-      bodyRef.current.style.opacity = String(Math.min(1, p * 1.6));
-    }
+    [bodyRef.current, miniRowRef.current].forEach((el) => {
+      if (!el) return;
+      el.style.transition = transition;
+      el.style.opacity = String(Math.min(1, p * 1.6));
+    });
     // Move the very same video element into the pinned mini slot.
     if (frameEl && slotEl && miniSlotRef.current && sheet.offsetParent) {
       const parentRect = (sheet.offsetParent as HTMLElement).getBoundingClientRect();
@@ -708,7 +711,6 @@ const UpNextSheet = (props: UpNextSheetProps) => {
     if (!isSheet) return;
     const target = open ? 1 : 0;
     if (pRef.current !== target) apply(target, true);
-    setAtRest(open);
   }, [open, isSheet, apply]);
 
   // Leaving Video mode or fullscreen: give the frame back its normal place.
@@ -720,7 +722,6 @@ const UpNextSheet = (props: UpNextSheetProps) => {
     const p = pRef.current;
     const next = velocity < -0.45 ? true : velocity > 0.45 ? false : p > 0.5;
     apply(next ? 1 : 0, true);
-    setAtRest(next);
     if (next !== open) onOpenChange(next);
   }, [apply, open, onOpenChange]);
 
@@ -1044,7 +1045,7 @@ const UpNextSheet = (props: UpNextSheetProps) => {
         ref={sheetRef}
         aria-label="Up Next"
         className="absolute inset-x-0 bottom-0 z-30 flex flex-col rounded-t-3xl bg-card/95 backdrop-blur-xl border-t border-gold/20 shadow-[0_-12px_40px_hsl(var(--background)/0.6)] overflow-hidden will-change-transform"
-        style={{ top: "calc(env(safe-area-inset-top, 0px) + 60px)", transform: `translate3d(0, ${(1 - pRef.current) * travelRef.current}px, 0)` }}
+        style={{ top: "calc(env(safe-area-inset-top, 0px) + 60px)" }}
       >
         {/* Handle */}
         <button
@@ -1061,7 +1062,7 @@ const UpNextSheet = (props: UpNextSheetProps) => {
 
         <div className="relative flex-shrink-0" onPointerDown={onDragDown("header")} style={{ touchAction: "none" }}>
           {/* Expanded: pinned mini video + controls */}
-          <div className="relative flex items-center gap-2 px-3 pb-2 pt-1" aria-hidden={!open}>
+          <div ref={miniRowRef} className="relative flex items-center gap-2 px-3 pb-2 pt-1" aria-hidden={!open}>
             <div ref={miniSlotRef} className="w-[40%] max-w-[240px] aspect-video rounded-lg flex-shrink-0 bg-muted/40">
               {/* The real video is moved here; this button sits beneath it and restores the full view. */}
               <button type="button" onClick={() => onOpenChange(false)} tabIndex={open ? 0 : -1} aria-label="Show full video" className="w-full h-full rounded-lg" />
@@ -1092,7 +1093,7 @@ const UpNextSheet = (props: UpNextSheetProps) => {
           </div>
         </div>
 
-        <div ref={bodyRef} className="flex-1 min-h-0 flex flex-col" style={{ opacity: open ? 1 : 0, visibility: atRest || open ? "visible" : "visible" }} aria-hidden={!open}>
+        <div ref={bodyRef} className="flex-1 min-h-0 flex flex-col" aria-hidden={!open}>
           {header}
           {list}
         </div>
