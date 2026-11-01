@@ -316,6 +316,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     preloadRef.current = null;
   }, []);
 
+  const [autoAddedIds, setAutoAddedIds] = useState<ReadonlySet<string>>(() => new Set());
+
   /** Appends more songs for the same mode when the queue runs out; returns the first new index or -1. */
   const extendQueue = useCallback(async (mode: ContinueMode): Promise<number> => {
     if (typeof navigator !== "undefined" && !navigator.onLine) return -1;
@@ -327,8 +329,22 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     const next = [...before, ...more];
     queueRef.current = next;
     setQueue(next);
+    setAutoAddedIds((prev) => new Set([...prev, ...more.map((s) => s.id)]));
     return before.length;
   }, []);
+
+  /** Applies an Up Next edit without touching the audio, keeping the playing song current. */
+  const applyQueueEdit = useCallback((edit: QueueEdit<PlayerSong> | null) => {
+    if (!edit) return;
+    queueRef.current = edit.queue;
+    queueIndexRef.current = edit.index;
+    setQueue(edit.queue);
+    setQueueIndex(edit.index);
+  }, []);
+  const reorderQueue = useCallback((from: number, to: number) => applyQueueEdit(moveItem(queueRef.current, queueIndexRef.current, from, to)), [applyQueueEdit]);
+  const removeFromQueue = useCallback((index: number) => applyQueueEdit(removeItem(queueRef.current, queueIndexRef.current, index)), [applyQueueEdit]);
+  const playNextInQueue = useCallback((index: number) => applyQueueEdit(playNextItem(queueRef.current, queueIndexRef.current, index)), [applyQueueEdit]);
+  const insertIntoQueue = useCallback((song: PlayerSong, at: number) => applyQueueEdit(insertItem(queueRef.current, queueIndexRef.current, song, at)), [applyQueueEdit]);
 
   /** Next position for the current mode, extending the queue in that same mode when it is done. */
   const resolveNext = useCallback(async (karaokeMode: boolean): Promise<number> => {
