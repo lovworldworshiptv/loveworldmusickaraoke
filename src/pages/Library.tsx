@@ -2,7 +2,7 @@ import { useState, useEffect, memo, useCallback, useRef } from "react";
 import ShareTrackButton from "@/components/share/ShareTrackButton";
 import AppLayout from "@/components/layout/AppLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Play, Heart, Plus, Music, ListMusic, Trash2, Shuffle, Download, Lock, Crown, WifiOff, ListPlus, Disc3, MoreVertical, Share2, CloudDownload } from "lucide-react";
+import { Search, Play, Heart, Plus, Music, ListMusic, Trash2, Shuffle, Download, Lock, Crown, WifiOff, ListPlus, ListMinus, Disc3, MoreVertical, Share2, CloudDownload } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -153,7 +153,7 @@ const Library = () => {
     queryKey: ["library-playlists", user?.id],
     enabled: !!user && isOnline,
     queryFn: async () => {
-      const { data, error } = await supabase.from("playlists").select("id, name, cover_url, created_at, playlist_songs(id, song_id, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, duration_seconds, album))").eq("user_id", user!.id).order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("playlists").select("id, name, cover_url, created_at, playlist_songs(id, song_id, sort_order, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, duration_seconds, album))").eq("user_id", user!.id).order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
     },
@@ -232,6 +232,37 @@ const Library = () => {
       toast.success("Playlist deleted");
     },
   });
+
+  // Remove one song from one of the listener's own playlists (optimistic, with Undo)
+  const playlistsKey = ["library-playlists", user?.id];
+  const removeFromPlaylist = async (playlistId: string, entry: { id: string; song_id: string; sort_order?: number; songs?: { title?: string } }) => {
+    const previous = queryClient.getQueryData<any[]>(playlistsKey);
+    const setEntries = (fn: (rows: any[]) => any[]) =>
+      queryClient.setQueryData<any[]>(playlistsKey, (old = []) =>
+        old.map((pl) => (pl.id === playlistId ? { ...pl, playlist_songs: fn(pl.playlist_songs || []) } : pl)));
+    setEntries((rows) => rows.filter((r) => r.id !== entry.id));
+    const { data, error } = await supabase.from("playlist_songs").delete().eq("id", entry.id).eq("playlist_id", playlistId).select("id");
+    if (error || !data?.length) {
+      if (previous) queryClient.setQueryData(playlistsKey, previous);
+      toast.error("Couldn't remove the song from this playlist");
+      return;
+    }
+    toast(`Removed "${entry.songs?.title ?? "song"}" from playlist`, {
+      action: {
+        label: "Undo",
+        onClick: async () => {
+          const { error: undoError } = await supabase.from("playlist_songs").insert({
+            playlist_id: playlistId, song_id: entry.song_id, sort_order: entry.sort_order ?? 0,
+          });
+          if (undoError) toast.error("Couldn't put the song back");
+          queryClient.invalidateQueries({ queryKey: playlistsKey });
+        },
+      },
+    });
+    queryClient.invalidateQueries({ queryKey: playlistsKey });
+  };
+
+
 
   const formatDuration = (sec: number) => {
     const m = Math.floor(sec / 60);
