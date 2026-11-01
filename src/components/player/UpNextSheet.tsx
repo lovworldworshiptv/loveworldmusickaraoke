@@ -353,7 +353,7 @@ function QueueRow(p: RowProps) {
         onPointerUp={end}
         onPointerCancel={end}
         onClickCapture={(e) => { if (suppressClick.current) { e.stopPropagation(); e.preventDefault(); suppressClick.current = false; } }}
-        className={`relative h-full flex items-center gap-2 rounded-xl px-1.5 bg-card ${p.dragging ? "z-20 shadow-[0_12px_32px_hsl(var(--gold)/0.35)] ring-1 ring-gold/50" : "hover:bg-muted/40"}`}
+        className={`relative h-full flex items-center gap-2 rounded-xl px-1.5 ${p.dragging ? "z-20 bg-card shadow-[0_12px_32px_hsl(var(--gold)/0.35)] ring-1 ring-gold/50" : swipeX !== 0 ? "bg-card" : "hover:bg-muted/40"}`}
         style={{
           transform: p.dragging ? `translate3d(0, ${p.dragOffset}px, 0) scale(1.03)` : `translate3d(${swipeX}px, 0, 0)`,
           transition: p.dragging || (gesture.current?.horizontal) ? "none" : "transform 200ms ease-out",
