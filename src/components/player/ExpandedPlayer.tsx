@@ -107,7 +107,7 @@ const ExpandedPlayer = () => {
   // --- Up Next (Video mode only) ---
   const isDesktop = useIsDesktop();
   const isFullscreen = useIsFullscreen();
-  const videoSession = enabled("video") && !isKaraoke && (videoMode || (sessionMode === "video" && !videosLoaded));
+  const videoSession = enabled("video") && (videoMode || (sessionMode === "video" && !isKaraoke && !videosLoaded));
   const queueVideos = useQueueVideos(queue, videoSession);
   const upNext = useMemo(
     () => (videoSession ? upNextOrder(queue, queueIndex, repeatMode, queueVideos.has) : []),
@@ -194,6 +194,15 @@ const ExpandedPlayer = () => {
     localStorage.setItem("player-artwork-style", motion ? "motion" : "image");
   };
 
+  // Karaoke → Video: the backing track is switched off once the song has paused, so the
+  // session becomes a proper Video session (Up Next and video continuity depend on it).
+  const [dropKaraoke, setDropKaraoke] = useState(false);
+  useEffect(() => {
+    if (!dropKaraoke) return;
+    setDropKaraoke(false);
+    if (videoMode && isKaraoke) toggleKaraoke();
+  }, [dropKaraoke, videoMode, isKaraoke, toggleKaraoke]);
+
   const switchMode = useCallback((next: PlayerMode) => {
     if (next === "video" && !enabled("video")) return;
     if (next === "karaoke" && !enabled("karaoke")) return;
@@ -203,6 +212,7 @@ const ExpandedPlayer = () => {
     if (next === "video") {
       setVideoStart(handoffPause());
       setVideoMode(true);
+      if (isKaraoke) setDropKaraoke(true);
       return;
     }
 
