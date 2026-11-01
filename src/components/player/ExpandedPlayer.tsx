@@ -163,11 +163,13 @@ const ExpandedPlayer = () => {
   leaveRef.current = () => {
     if (videoMode && videoPlayingRef.current()) resumeAt(videoPosRef.current());
   };
+  const restoreVideoRef = useRef(sessionMode === "video" && !isKaraoke && isPlaying);
+  useEffect(() => () => leaveRef.current(), []);
   useEffect(() => {
-    if (sessionMode === "video" && !isKaraoke && enabled("video")) requestVideoMode();
-    return () => leaveRef.current();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!restoreVideoRef.current || !videosLoaded) return;
+    restoreVideoRef.current = false;
+    if (videos.length > 0 && !videoMode) switchMode("video");
+  }, [videosLoaded, videos, videoMode, switchMode]);
 
   useEffect(() => {
     if (videoMode && !enabled("video")) {
