@@ -196,3 +196,68 @@ describe("continuous play in each mode", () => {
     expect(continuation.modes).toEqual([]);
   });
 });
+
+describe("Up Next queue editing", () => {
+  const mk = (id: string) => ({ id, title: id.toUpperCase(), artist: "Loveworld Singers", audioUrl: `https://x/${id}.mp3` });
+  const five = ["a", "b", "c", "d", "e"].map(mk);
+  const ids = () => api.queue.map((s) => s.id);
+  beforeEach(() => {
+    continuation.songs = []; continuation.modes.length = 0;
+    created.length = 0; localStorage.clear(); vi.stubGlobal("Audio", FakeAudio as any);
+    featureState.karaoke = true; featureState.video = true; featureState.translations = true;
+  });
+
+  it("reorderQueue, removeFromQueue and playNextInQueue keep the playing video current without restarting it", async () => {
+    render(<PlayerProvider><Grab /></PlayerProvider>);
+    act(() => api.playVideoQueue(five, 2));
+    await waitFor(() => expect(playing()[0]?.src).toContain("c.mp3"));
+    const sounding = playing()[0];
+    const audiosBefore = created.length;
+
+    act(() => api.reorderQueue(0, 4));
+    expect(ids()).toEqual(["b", "c", "d", "e", "a"]);
+    expect(api.queueIndex).toBe(1);
+
+    act(() => api.removeFromQueue(0));
+    expect(ids()).toEqual(["c", "d", "e", "a"]);
+    expect(api.queueIndex).toBe(0);
+
+    act(() => api.playNextInQueue(3));
+    expect(ids()).toEqual(["c", "a", "d", "e"]);
+    expect(api.queueIndex).toBe(0);
+
+    act(() => api.removeFromQueue(0)); // the playing song can't be removed
+    expect(ids()).toEqual(["c", "a", "d", "e"]);
+
+    expect(api.currentSong?.id).toBe("c");
+    expect(created.length).toBe(audiosBefore);
+    expect(sounding.paused).toBe(false);
+  });
+
+  it("after playNextInQueue the chosen song is the one that actually plays next", async () => {
+    render(<PlayerProvider><Grab /></PlayerProvider>);
+    act(() => api.playVideoQueue(five, 0));
+    await waitFor(() => expect(api.currentSong?.id).toBe("a"));
+    act(() => api.playNextInQueue(4));
+    act(() => api.skipNext());
+    await waitFor(() => expect(api.currentSong?.id).toBe("e"));
+  });
+
+  it("with shuffle on, the Up Next order is exactly the order the player follows", async () => {
+    const { upNextOrder } = await import("@/lib/videoQueue");
+    render(<PlayerProvider><Grab /></PlayerProvider>);
+    act(() => api.toggleShuffle());
+    await flush();
+    act(() => api.playVideoQueue(five, 2));
+    await waitFor(() => expect(api.currentSong?.id).toBe("c"));
+    const listed = upNextOrder(api.queue, api.queueIndex, api.repeatMode, () => true).map((i) => api.queue[i].id);
+    expect(listed).toHaveLength(4);
+    const played: string[] = [];
+    for (let n = 0; n < 4; n++) {
+      act(() => api.skipNext());
+      await flush();
+      played.push(api.currentSong!.id);
+    }
+    expect(played).toEqual(listed);
+  });
+});

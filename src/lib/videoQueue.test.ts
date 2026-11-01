@@ -25,3 +25,34 @@ describe("continuous video queue", () => {
     expect(nextVideoIndex(q, 3, "all", (id) => withVideo.has(id))).toBe(1);
   });
 });
+
+describe("Up Next order", () => {
+  const five = ["a", "b", "c", "d", "e"].map((id) => ({ id }));
+  const has = (set: string[]) => (id: string) => set.includes(id);
+
+  it("lists only songs that can play in Video mode, in queue order after the current one", async () => {
+    const { upNextOrder } = await import("./videoQueue");
+    expect(upNextOrder(five, 1, "off", has(["a", "c", "e"]))).toEqual([2, 4]);
+  });
+
+  it("repeat off stops at the end of the queue", async () => {
+    const { upNextOrder } = await import("./videoQueue");
+    expect(upNextOrder(five, 3, "off", () => true)).toEqual([4]);
+  });
+
+  it("repeat all wraps around to the start, never listing the playing song", async () => {
+    const { upNextOrder } = await import("./videoQueue");
+    expect(upNextOrder(five, 3, "all", () => true)).toEqual([4, 0, 1, 2]);
+  });
+
+  it("repeat one lists what plays when you press next (same as repeat off)", async () => {
+    const { upNextOrder } = await import("./videoQueue");
+    expect(upNextOrder(five, 3, "one", () => true)).toEqual([4]);
+  });
+
+  it("matches nextVideoIndex for the first entry", async () => {
+    const { upNextOrder } = await import("./videoQueue");
+    const withVideo = has(["b", "e"]);
+    expect(upNextOrder(five, 2, "all", withVideo)[0]).toBe(nextVideoIndex(five, 2, "all", withVideo));
+  });
+});
