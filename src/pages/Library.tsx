@@ -393,7 +393,7 @@ const Library = () => {
 
 
 
-  const SongRowItem = memo(({ song, index, songList, showDownload = true, compactActions = false }: { song: SongRow; index: number; songList: PlayerSong[]; showDownload?: boolean; compactActions?: boolean }) => {
+  const SongRowItem = memo(({ song, index, songList, showDownload = true, compactActions = false, onRemove, removeLabel }: { song: SongRow; index: number; songList: PlayerSong[]; showDownload?: boolean; compactActions?: boolean; onRemove?: () => void; removeLabel?: string }) => {
     const favorited = isFavorited(song.id);
     const downloaded = isDownloadedTrack(song.id);
     const showCompact = isMobile && compactActions;
@@ -427,6 +427,17 @@ const Library = () => {
             className="p-2 touch-target"
           >
             <Heart className={`w-4 h-4 transition-colors ${favorited ? "fill-red-500 text-red-500" : "text-muted-foreground"}`} />
+          </button>
+        )}
+        {onRemove && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            aria-label={removeLabel || "Remove from playlist"}
+            title="Remove from playlist"
+            className="p-2 touch-target text-muted-foreground hover:text-destructive transition-colors"
+          >
+            <ListMinus className="w-4 h-4" />
           </button>
         )}
       </>
@@ -520,6 +531,11 @@ const Library = () => {
                   <DropdownMenuItem onSelect={() => toggleFav.mutate(song.id)} className="gap-2">
                     <Heart className={`w-4 h-4 ${favorited ? "fill-red-500 text-red-500" : "text-muted-foreground"}`} aria-hidden="true" />
                     {favorited ? "Remove from Favorites" : "Add to Favorites"}
+                  </DropdownMenuItem>
+                )}
+                {onRemove && (
+                  <DropdownMenuItem onSelect={onRemove} className="gap-2 text-destructive focus:text-destructive">
+                    <ListMinus className="w-4 h-4" aria-hidden="true" /> Remove from Playlist
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
@@ -709,7 +725,7 @@ const Library = () => {
                         </div>
                         {visibleSongs.length > 0 ? (
                           <div className="space-y-1">
-                            {(() => { const plSongs = visibleSongs.map((ps: any) => toPlayerSong(ps.songs)); return visibleSongs.map((ps: any, i: number) => <SongRowItem key={ps.id} song={ps.songs} index={i} songList={plSongs} />); })()}
+                            {(() => { const plSongs = visibleSongs.map((ps: any) => toPlayerSong(ps.songs)); return visibleSongs.map((ps: any, i: number) => <SongRowItem key={ps.id} song={ps.songs} index={i} songList={plSongs} compactActions onRemove={() => removeFromPlaylist(pl.id, ps)} removeLabel={`Remove ${ps.songs.title} from ${pl.name}`} />); })()}
                           </div>
                         ) : (
                           <p className="text-xs text-muted-foreground">{q ? "No matching songs in this playlist" : "No songs in this playlist"}</p>
