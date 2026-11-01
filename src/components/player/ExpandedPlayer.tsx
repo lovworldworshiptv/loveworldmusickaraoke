@@ -88,7 +88,7 @@ const ExpandedPlayer = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
   const isMobile = useIsMobile();
-  const { handoffPause, resumeAt, requestVideoMode, videoModeRequest, clearVideoModeRequest, karaokeModeRequest, clearKaraokeModeRequest, playQueueIndex } = usePlayer();
+  const { handoffPause, resumeAt, requestVideoMode, videoModeRequest, clearVideoModeRequest, karaokeModeRequest, clearKaraokeModeRequest, playQueueIndex, sessionMode, setSessionMode, extendQueue } = usePlayer();
 
   // --- 3-mode player (Song | Karaoke | Video) with seamless position transfer ---
   const [videos, setVideos] = useState<SongVideo[]>([]);
@@ -137,6 +137,8 @@ const ExpandedPlayer = () => {
     if (next === "video" && !enabled("video")) return;
     if (next === "karaoke" && !enabled("karaoke")) return;
     if (next === mode) return;
+    // The chosen mode carries on through the rest of the session until the listener changes it.
+    setSessionMode(next === "video" ? "video" : "song");
     if (next === "video") {
       setVideoStart(handoffPause());
       setVideoMode(true);
@@ -152,7 +154,20 @@ const ExpandedPlayer = () => {
       return;
     }
     toggleKaraoke();
-  }, [mode, videoMode, isKaraoke, toggleKaraoke, handoffPause, resumeAt, enabled]);
+  }, [mode, videoMode, isKaraoke, toggleKaraoke, handoffPause, resumeAt, enabled, setSessionMode]);
+
+  // Minimising during a video keeps the song going as sound in the mini player;
+  // reopening the player returns to the video.
+  const videoPlayingRef = useRef<() => boolean>(() => false);
+  const leaveRef = useRef<() => void>(() => {});
+  leaveRef.current = () => {
+    if (videoMode && videoPlayingRef.current()) resumeAt(videoPosRef.current());
+  };
+  useEffect(() => {
+    if (sessionMode === "video" && !isKaraoke && enabled("video")) requestVideoMode();
+    return () => leaveRef.current();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (videoMode && !enabled("video")) {
