@@ -487,7 +487,7 @@ const Library = () => {
                   <MoreVertical className="w-4 h-4" aria-hidden="true" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56" aria-label={`Actions for ${song.title}`}>
+              <DropdownMenuContent align="end" className="w-56" aria-label={`Actions for ${song.title}`} onClick={(e) => e.stopPropagation()}>
                 {showDownload && song.audio_url && (
                   downloaded ? (
                     <DropdownMenuItem disabled className="gap-2">
