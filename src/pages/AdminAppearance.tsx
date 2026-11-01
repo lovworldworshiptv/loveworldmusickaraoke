@@ -185,7 +185,7 @@ const AdminAppearance = () => {
     return true;
   };
 
-  const useLibraryForAll = async (choice: NonNullable<StageModeSetting["backgroundLibrary"]>[number]) => {
+  const applyLibraryToAll = async (choice: NonNullable<StageModeSetting["backgroundLibrary"]>[number]) => {
     const next = { ...stage, backgroundColor: choice.backgroundColor, mediaType: choice.mediaType, mediaUrl: choice.mediaUrl };
     setStage(next);
     if (stageSongId === "global") setStageEditor({ ...DEFAULT_STAGE_MODE, ...next });
@@ -281,7 +281,7 @@ const AdminAppearance = () => {
           <StageLibraryEditor
             library={stageLibrary(stage)}
             onSave={saveStageLibrary}
-            onUseForAll={useLibraryForAll}
+            onUseForAll={applyLibraryToAll}
             globalMediaUrl={stage.mediaType === "none" ? undefined : stage.mediaUrl}
           />
         </Card>
