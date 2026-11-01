@@ -5,6 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useActiveChallenge, useMyEntry, useMyScore, useLeaderboard, buildReferralUrl } from "@/hooks/useChallenge";
 import { CHALLENGE_RESUME_KEY } from "@/hooks/useReferralGateGuard";
 import ChallengeCountdown from "@/components/games/ChallengeCountdown";
+import { ChallengeRulesNotice } from "@/components/games/ChallengeRules";
+import { prizeEligibility } from "../../supabase/functions/_shared/challengeMilestones.ts";
 import { Trophy, Copy, ArrowLeft, Crown, Target, CheckCircle, LogOut, AlertCircle, Medal, Award, Play, Gamepad2, Sparkles, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -106,6 +108,7 @@ const Challenge = () => {
             <div className="mb-2 text-xs text-center text-foreground">Ends In</div>
             <ChallengeCountdown endDate={ch.end_date} />
           </div>
+          <ChallengeRulesNotice audience="everyone" className="relative mt-5" />
         </section>
 
         {entry?.status === "approved" && !premiumLoading && !isPremium && (
@@ -137,7 +140,14 @@ const Challenge = () => {
             <div className="mt-4 text-center">
               {myScore?.qualified
                 ? <span className="challenge-qualified inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> Qualified</span>
-                : <span className="text-xs">Participating — {Math.max(0, (ch.qualification_min_games - (myScore?.games_played || 0)))} more games to qualify</span>}
+                : (() => {
+                    const e = prizeEligibility(ch as any, myScore?.games_played || 0, myScore?.total_score || 0);
+                    const parts = [
+                      e.gamesLeft > 0 ? `${e.gamesLeft} more game${e.gamesLeft === 1 ? "" : "s"}` : null,
+                      e.milestonesLeft > 0 ? `${e.milestonesLeft} more milestone${e.milestonesLeft === 1 ? "" : "s"}` : null,
+                    ].filter(Boolean);
+                    return <span className="text-xs">Participating — {parts.length ? `${parts.join(" and ")} to be eligible for a prize` : "keep playing to update your eligibility"} ({e.milestonesReached}/{e.milestonesNeeded} milestones reached)</span>;
+                  })()}
             </div>
           </section>
         )}

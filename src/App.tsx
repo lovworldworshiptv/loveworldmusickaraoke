@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ChallengeRulesPromptHost } from "@/components/games/ChallengeRules";
 import { FeatureProvider, FeatureRouteGate } from "@/contexts/FeatureContext";
 import { PlayerProvider } from "@/contexts/PlayerContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -102,6 +103,7 @@ const App = () => (
             <FeatureProvider>
             <PlayerProvider>
               <OfflineRedirect />
+              <ChallengeRulesPromptHost />
               <SecureDownloadsBoot />
               <FeatureRouteGate>
               <Routes>

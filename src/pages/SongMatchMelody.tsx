@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { saveGameSession, checkAndAwardAchievements, useGameStats } from "@/hooks/useGameStats";
 import { useReferralGateGuard } from "@/hooks/useReferralGateGuard";
+import { ChallengeRulesNotice, useChallengeRulesStart } from "@/components/games/ChallengeRules";
 
 type Difficulty = "easy" | "medium" | "hard";
 
@@ -103,7 +104,10 @@ const SongMatchMelody = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  const startGame = useCallback(
+  const startWithRules = useChallengeRulesStart();
+  // Challenge players see the rules at the beginning of every game.
+  const startGame = (d: Difficulty) => startWithRules(() => beginGame(d));
+  const beginGame = useCallback(
     (diff: Difficulty) => {
       const q = generateMelodyQuestions(songs as any, diff, QUESTIONS_PER_ROUND);
       setQuestions(q);
@@ -219,6 +223,7 @@ const SongMatchMelody = () => {
             </div>
             <h1 className="text-2xl font-serif font-bold text-foreground mb-1">Melody Game</h1>
             <p className="text-muted-foreground text-sm">Listen to song clips and identify the title</p>
+            <ChallengeRulesNotice className="mt-5" />
           </div>
           <p className="text-center text-sm text-muted-foreground mb-4">Select Difficulty</p>
           <div className="space-y-3">

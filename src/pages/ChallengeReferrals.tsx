@@ -4,6 +4,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveChallenge, useReferralGateStatus, useMyScore, buildReferralUrl, useDuplicateReferrals } from "@/hooks/useChallenge";
 import { CHALLENGE_RESUME_KEY } from "@/hooks/useReferralGateGuard";
+import { ChallengeRulesNotice } from "@/components/games/ChallengeRules";
 import { ArrowLeft, Copy, Users, CheckCircle2, Share2, Trophy, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -131,14 +132,7 @@ const ChallengeReferrals = () => {
           </div>
         )}
 
-        <div className="glass-card p-4 text-xs text-muted-foreground">
-          <p className="font-semibold text-foreground mb-1">How the Milestone Advancement Score works</p>
-          <ul className="space-y-1 list-disc pl-4">
-            <li>You reach the Milestone Advancement Score at <span className="text-foreground">{gateScore} pts</span>.</li>
-            <li>Games you play afterwards don't count until you refer <span className="text-foreground">{required}</span> new player{required === 1 ? "" : "s"} to advance past the milestone.</li>
-            <li>Once your invites are complete, we send you straight back to the game you were playing.</li>
-          </ul>
-        </div>
+        <ChallengeRulesNotice audience="everyone" />
       </div>
     </AppLayout>
   );

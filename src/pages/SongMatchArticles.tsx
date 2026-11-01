@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { saveGameSession, checkAndAwardAchievements, useGameStats } from "@/hooks/useGameStats";
 import { useReferralGateGuard } from "@/hooks/useReferralGateGuard";
+import { ChallengeRulesNotice, useChallengeRulesStart } from "@/components/games/ChallengeRules";
 
 type Difficulty = "easy" | "medium" | "hard";
 type ArticlesMode = "excerpt-to-title" | "excerpt-to-author" | "title-to-category";
@@ -161,7 +162,10 @@ const SongMatchArticles = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  const startGame = useCallback((diff: Difficulty) => {
+  const startWithRules = useChallengeRulesStart();
+  // Challenge players see the rules at the beginning of every game.
+  const startGame = (d: Difficulty) => startWithRules(() => beginGame(d));
+  const beginGame = useCallback((diff: Difficulty) => {
     if (!mode) return;
     const q = buildQuestions(articles, mode, diff, QUESTIONS_PER_ROUND);
     setQuestions(q);
@@ -228,6 +232,7 @@ const SongMatchArticles = () => {
             </div>
             <h1 className="text-2xl font-serif font-bold text-foreground mb-1">Articles Game</h1>
             <p className="text-muted-foreground text-sm">Test your knowledge of Loveworld articles</p>
+            <ChallengeRulesNotice className="mt-5" />
           </div>
           <div className="space-y-3">
             {MODES.map((m) => {
@@ -265,6 +270,7 @@ const SongMatchArticles = () => {
             </div>
             <h1 className="text-2xl font-serif font-bold text-foreground mb-1">{modeLabel}</h1>
             <p className="text-muted-foreground text-sm">Select Difficulty</p>
+            <ChallengeRulesNotice className="mt-5" />
           </div>
           <div className="space-y-3">
             {(["easy", "medium", "hard"] as Difficulty[]).map((d) => {
