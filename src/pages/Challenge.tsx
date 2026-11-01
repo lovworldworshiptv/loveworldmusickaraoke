@@ -221,11 +221,13 @@ const Challenge = () => {
 
 function ReferralGateCard({ challengeId, refUrl }: { challengeId: string; refUrl: string }) {
   const { data: gate } = useReferralGateStatus(challengeId);
-  if (!gate || !gate.milestone && !(gate.required > 0 && gate.refCount >= gate.required && gate.currentScore >= gate.gateScore)) return null;
-  const met = !gate.blocked;
   const resumePath = (() => {
     try { return localStorage.getItem(CHALLENGE_RESUME_KEY); } catch { return null; }
   })();
+  if (!gate) return null;
+  const met = !gate.blocked;
+  // Show while invites are needed, or right after they're done for a game waiting to resume.
+  if (met && !(resumePath && gate.required > 0 && gate.refCount >= gate.required)) return null;
   return (
     <section aria-label="Referral notification" className={`challenge-arcade challenge-referral p-5 mb-5 rounded-2xl ${met ? "game-tone-green" : "game-tone-amber"}`}>
       <div className="flex items-start gap-2 mb-3">
