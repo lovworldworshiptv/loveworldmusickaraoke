@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { milestoneGate, readMilestones } from "../../supabase/functions/_shared/challengeMilestones.ts";
 
 export interface Challenge {
   id: string;
@@ -20,6 +21,8 @@ export interface Challenge {
   referral_gate_score?: number | null;
   referral_gate_required_invites?: number | null;
   difficulty_gates?: Array<{ min_score: number; max_score: number; allowed: string[] }>;
+  milestones?: Array<{ score: number; invites: number }>;
+  prize_min_milestones?: number | null;
 }
 
 export const useActiveChallenge = () => {
@@ -161,28 +164,36 @@ export const useReferralGateStatus = (challengeId?: string) => {
   return useQuery({
     queryKey: ["challenge-referral-gate", challengeId, user?.id],
     queryFn: async () => {
-      if (!user?.id || !challengeId) return { blocked: false, gateScore: 0, required: 0, refCount: 0, currentScore: 0 };
+      const empty = { blocked: false, gateScore: 0, required: 0, refCount: 0, currentScore: 0, remaining: 0, milestone: 0 };
+      if (!user?.id || !challengeId) return empty;
       const { data: ch } = await supabase
         .from("challenges" as any)
-        .select("referral_gate_score, referral_gate_required_invites")
+        .select("milestones, referral_gate_score, referral_gate_required_invites")
         .eq("id", challengeId)
         .maybeSingle();
-      const gateScore = (ch as any)?.referral_gate_score;
-      const required = Number((ch as any)?.referral_gate_required_invites ?? 0);
-      if (gateScore == null || required <= 0) return { blocked: false, gateScore: 0, required: 0, refCount: 0, currentScore: 0 };
+      const milestones = readMilestones(ch as any);
+      if (milestones.length === 0) return empty;
       const { data: score } = await supabase
         .from("challenge_scores" as any)
         .select("total_score")
         .eq("challenge_id", challengeId).eq("user_id", user.id).maybeSingle();
       const currentScore = (score as any)?.total_score ?? 0;
-      if (currentScore < Number(gateScore)) return { blocked: false, gateScore: Number(gateScore), required, refCount: 0, currentScore, remaining: required };
       const { count } = await supabase
         .from("challenge_referrals" as any)
         .select("id", { count: "exact", head: true })
         .eq("challenge_id", challengeId).eq("referrer_user_id", user.id).eq("awarded", true);
       const refCount = count || 0;
-      const remaining = Math.max(0, required - refCount);
-      return { blocked: refCount < required, gateScore: Number(gateScore), required, refCount, currentScore, remaining };
+      const gate = milestoneGate(milestones, currentScore, refCount);
+      const next = milestones.find((m) => currentScore < m.score) ?? milestones[milestones.length - 1];
+      return {
+        blocked: gate.blocked,
+        gateScore: gate.blocked ? gate.milestoneScore : next.score,
+        required: gate.blocked ? gate.required : gate.required + (currentScore < next.score ? next.invites : 0),
+        refCount,
+        currentScore,
+        remaining: gate.remaining,
+        milestone: gate.milestoneNumber,
+      };
     },
     enabled: !!user?.id && !!challengeId,
     staleTime: 5_000,
