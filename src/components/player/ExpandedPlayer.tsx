@@ -178,6 +178,46 @@ const ExpandedPlayer = () => {
     }
   }, [videoModeRequest, videosLoaded, videos, videoMode, clearVideoModeRequest, resumeAt]);
 
+  // Continuous Video mode: when a video ends, jump to the next queued song that has a video
+  // (skipping songs without one) and stay in Video mode. The next track loads paused so its
+  // audio never overlaps the video hand-off. With no video ahead, play the next song's audio.
+  const advancingRef = useRef(false);
+  const advanceVideo = useCallback(async () => {
+    if (advancingRef.current) return;
+    const order = upcomingIndices(queue.length, queueIndex, repeatMode);
+    if (!order.length) return;
+    advancingRef.current = true;
+    try {
+      const ids = order.map((i) => queue[i].id);
+      const withVideo = new Set<string>();
+      if (navigator.onLine) {
+        const { data, error } = await supabase.from("song_videos").select("song_id").in("song_id", ids).eq("is_active", true);
+        if (!error) (data || []).forEach((r) => withVideo.add(r.song_id));
+      }
+      if (!withVideo.size) {
+        const saved = await Promise.all(ids.slice(0, 20).map((id) => getDownloadedVideoUrl(id).then((u) => (u ? id : null)).catch(() => null)));
+        saved.forEach((id) => id && withVideo.add(id));
+      }
+      const target = nextVideoIndex(queue, queueIndex, repeatMode, (id) => withVideo.has(id));
+      requestVideoMode();
+      if (target >= 0) playQueueIndex(target, { autoplay: false });
+      else skipNext({ autoplay: false });
+    } finally {
+      advancingRef.current = false;
+    }
+  }, [queue, queueIndex, repeatMode, requestVideoMode, playQueueIndex, skipNext]);
+
+  // Manual skips while watching stay in Video mode.
+  const handleNext = useCallback(() => {
+    if (videoMode) { requestVideoMode(); skipNext({ autoplay: false }); }
+    else skipNext();
+  }, [videoMode, requestVideoMode, skipNext]);
+  const handlePrev = useCallback(() => {
+    if (videoMode) {
+      if (queueIndex > 0 || repeatMode === "all") { requestVideoMode(); skipPrev({ autoplay: false, force: true }); }
+    } else skipPrev();
+  }, [videoMode, queueIndex, repeatMode, requestVideoMode, skipPrev]);
+
   // Honor a "sing this" request from the Moments feed: switch to Karaoke mode.
   useEffect(() => {
     if (!karaokeModeRequest) return;
