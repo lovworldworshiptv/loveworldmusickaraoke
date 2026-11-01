@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import SettingSongPicker from "@/components/admin/SettingSongPicker";
+import AppUpdateEditor from "@/components/admin/AppUpdateEditor";
 import { ArrowDown, ArrowUp, GripVertical, Image, Loader2, Trash2, Upload, Video } from "lucide-react";
 import { toast } from "sonner";
 import AppLayout from "@/components/layout/AppLayout";
@@ -349,6 +350,10 @@ const AdminAppearance = () => {
               </li>
             ))}
           </ul>
+        </Card>
+
+        <Card title="App update popup">
+          <AppUpdateEditor />
         </Card>
 
         <Card title="Daily Discover">

@@ -75,6 +75,7 @@ import OfflineSelfTest from "./pages/OfflineSelfTest";
 import OfflineRedirect from "@/components/offline/OfflineRedirect";
 import SecureDownloadsBoot from "@/components/offline/SecureDownloadsBoot";
 import AppDownloadPrompt from "@/components/share/AppDownloadPrompt";
+import AppUpdatePrompt from "@/components/share/AppUpdatePrompt";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -98,6 +99,7 @@ const App = () => (
         <Sonner />
         <OfflineBanner />
         <AppDownloadPrompt />
+        <AppUpdatePrompt />
         <BrowserRouter>
           <AuthProvider>
             <FeatureProvider>
