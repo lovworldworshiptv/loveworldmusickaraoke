@@ -27,12 +27,14 @@ interface Props {
   /** Previous / next song in the queue, staying in Video mode (hidden when absent). */
   onPrev?: () => void;
   onNext?: () => void;
+  /** Ref the parent reads to know whether the video was playing (e.g. when the player is minimised). */
+  playingRef?: React.MutableRefObject<() => boolean>;
 }
 
 const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
 
 /** Plays a song's video from the audio position with its own transport controls. */
-const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext }: Props) => {
+const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext, playingRef }: Props) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const offset = (video.offset_ms || 0) / 1000;
@@ -85,6 +87,12 @@ const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext }: Pro
   useEffect(() => {
     positionRef.current = () => Math.max(0, (videoRef.current?.currentTime ?? timeRef.current) - offset);
   }, [offset, positionRef]);
+
+  const playingNowRef = useRef(playing);
+  playingNowRef.current = playing;
+  useEffect(() => {
+    if (playingRef) playingRef.current = () => playingNowRef.current;
+  }, [playingRef]);
 
   const toggle = () => {
     if (yt) { ytCmd(playing ? "pauseVideo" : "playVideo"); setPlaying(!playing); return; }
