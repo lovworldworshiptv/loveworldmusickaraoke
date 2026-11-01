@@ -544,7 +544,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       navigator.mediaSession.setActionHandler("previoustrack", () => skipPrevRef.current());
       navigator.mediaSession.setActionHandler("nexttrack", () => skipNextRef.current());
     }
-  }, [startInterval, stopInterval, resetAutoPauseTimer, clearAutoPauseTimer, discardPreload, prefetchNext]);
+  }, [startInterval, stopInterval, resetAutoPauseTimer, clearAutoPauseTimer, discardPreload, prefetchNext, resolveNext]);
 
   internalPlayRef.current = internalPlay;
 
