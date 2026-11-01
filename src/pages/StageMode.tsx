@@ -78,7 +78,8 @@ const StageMode = () => {
     ) === index);
   }, [currentSong?.coverUrl, setting, stage]);
   const visibleChoices = filterStageChoices(backgroundChoices, backgroundTab);
-  const activeStage = backgroundChoices.find((choice) => choice.id === selectedBackgroundId) || backgroundChoices[0] || stage;
+  const activeStage = backgroundChoices.find((choice) => choice.id === selectedBackgroundId)
+    ?? backgroundChoices[0] ?? { id: "song", name: "Song background", ...stage };
   const staticLines = useMemo(
     () => (hasSync ? [] : staticLyrics.split("\n").map((l) => l.trim()).filter(Boolean)),
     [hasSync, staticLyrics]
@@ -409,7 +410,8 @@ const StageMode = () => {
                   lineRefs.current[i] = el;
                 }}
                 onClick={() => selectManualLine(i)}
-                className={`font-serif font-bold leading-snug transition-all duration-500 ${FONT_STEPS[fontStep]} ${manualScroll ? "cursor-pointer rounded-lg px-3 py-1" : ""} ${
+                style={{ fontFamily: stageFont.family }}
+                className={`font-bold leading-snug transition-all duration-500 ${FONT_STEPS[fontStep]} ${manualScroll ? "cursor-pointer rounded-lg px-3 py-1" : ""} ${
                   i === (manualScroll ? selectedLineIndex : activeLrcIndex)
                     ? "text-amber-400 scale-105 drop-shadow-[0_0_25px_rgba(251,191,36,0.4)]"
                     : Math.abs(i - (manualScroll ? (selectedLineIndex ?? 0) : activeLrcIndex)) === 1
@@ -428,7 +430,8 @@ const StageMode = () => {
                 key={i}
                 ref={(el) => { lineRefs.current[i] = el; }}
                 onClick={() => selectManualLine(i)}
-                className={`font-serif font-bold leading-snug transition-all duration-500 ${FONT_STEPS[fontStep]} ${manualScroll ? "cursor-pointer rounded-lg px-3 py-1" : ""} ${manualScroll && i === selectedLineIndex ? "text-amber-400 scale-105 drop-shadow-[0_0_25px_rgba(251,191,36,0.4)]" : manualScroll && selectedLineIndex !== null && Math.abs(i - selectedLineIndex) === 1 ? "text-foreground opacity-100" : manualScroll ? "text-foreground opacity-25" : "text-foreground"}`}
+                style={{ fontFamily: stageFont.family }}
+                className={`font-bold leading-snug transition-all duration-500 ${FONT_STEPS[fontStep]} ${manualScroll ? "cursor-pointer rounded-lg px-3 py-1" : ""} ${manualScroll && i === selectedLineIndex ? "text-amber-400 scale-105 drop-shadow-[0_0_25px_rgba(251,191,36,0.4)]" : manualScroll && selectedLineIndex !== null && Math.abs(i - selectedLineIndex) === 1 ? "text-foreground opacity-100" : manualScroll ? "text-foreground opacity-25" : "text-foreground"}`}
               >
                 {line}
               </p>
