@@ -302,10 +302,35 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     preloadRef.current = null;
   }, []);
 
+  /** Appends more songs for the same mode when the queue runs out; returns the first new index or -1. */
+  const extendQueue = useCallback(async (mode: ContinueMode): Promise<number> => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) return -1;
+    const before = queueRef.current;
+    if (!before.length) return -1;
+    let more: PlayerSong[] = [];
+    try { more = await fetchContinuation(mode, before.map((s) => s.id)); } catch { return -1; }
+    if (!more.length || queueRef.current !== before) return -1;
+    const next = [...before, ...more];
+    queueRef.current = next;
+    setQueue(next);
+    return before.length;
+  }, []);
+
+  /** Next position for the current mode, extending the queue in that same mode when it is done. */
+  const resolveNext = useCallback(async (karaokeMode: boolean): Promise<number> => {
+    const q = queueRef.current;
+    const idx = findNextIndex(q, queueIndexRef.current, repeatModeRef.current, karaokeMode ? hasBackingTrack : undefined);
+    if (idx >= 0) return idx;
+    const added = await extendQueue(karaokeMode ? "karaoke" : sessionModeRef.current);
+    if (added >= 0) return added;
+    // No more karaoke tracks anywhere: keep going with the next song as it is.
+    return karaokeMode ? findNextIndex(queueRef.current, queueIndexRef.current, repeatModeRef.current) : -1;
+  }, [extendQueue]);
+
   /** Warm the next queued track (resolved language + audio bytes) so the hand-off is instant. */
   const prefetchNext = useCallback((karaokeMode: boolean) => {
     const q = queueRef.current;
-    const idx = findNextIndex(q, queueIndexRef.current, repeatModeRef.current);
+    const idx = findNextIndex(q, queueIndexRef.current, repeatModeRef.current, karaokeMode ? hasBackingTrack : undefined);
     if (idx < 0 || idx === queueIndexRef.current) return;
     const base = q[idx];
     const cached = resolvedCacheRef.current.get(base.id);
