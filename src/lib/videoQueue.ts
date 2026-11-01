@@ -25,3 +25,17 @@ export function nextVideoIndex(
   }
   return -1;
 }
+
+/**
+ * The Up Next list: every upcoming queue position that can play in Video mode, in the exact
+ * order Video mode will play them (the same walk nextVideoIndex uses, without a limit).
+ * Shuffle is applied to the queue itself when it starts, so the queue order is the play order.
+ */
+export function upNextOrder(
+  queue: { id: string }[],
+  from: number,
+  repeat: "off" | "all" | "one",
+  hasVideo: (songId: string) => boolean,
+): number[] {
+  return upcomingIndices(queue.length, from, repeat, queue.length).filter((i) => queue[i] && hasVideo(queue[i].id));
+}

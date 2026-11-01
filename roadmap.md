@@ -89,3 +89,5 @@
 - [x] Scheduled notifications hidden until their send time
 - [x] Song lists past 1,000 songs load in full (Library, Manage Songs, playlist pickers, analytics, Stem Studio, Discover karaoke)
 - [ ] Real 10,000-user load test — needs a load-testing service and the user's go-ahead (costs and traffic)
+
+- [x] Video-mode "Up Next" list in the full player (phone bottom sheet + desktop side panel): real play order, filters, drag/swipe/menu queue edits with Undo, Save as playlist, Autoplay switch, 8-second countdown, more videos when it runs low. Signed-in checks at 360px and 1280px pass; real video playing to its end and the countdown not yet seen (test browser can't play the video files).

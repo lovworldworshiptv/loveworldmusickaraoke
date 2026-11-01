@@ -2,6 +2,7 @@ import { useFeatures } from "@/contexts/FeatureContext";
 import { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchContinuation, type ContinueMode } from "@/lib/autoContinue";
+import { moveItem, removeItem, playNextItem, insertItem, type QueueEdit } from "@/lib/queueOps";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -82,6 +83,13 @@ interface PlayerContextType {
   setSessionMode: (mode: "song" | "video") => void;
   /** Adds more songs for the mode once the queue is done; resolves to the first new index or -1. */
   extendQueue: (mode: ContinueMode) => Promise<number>;
+  /** Songs added automatically after the listener's own list ran out. */
+  autoAddedIds: ReadonlySet<string>;
+  /** Queue edits for Up Next; the song playing now keeps playing and stays current. */
+  reorderQueue: (from: number, to: number) => void;
+  removeFromQueue: (index: number) => void;
+  playNextInQueue: (index: number) => void;
+  insertIntoQueue: (song: PlayerSong, at: number) => void;
 }
 
 // Keep one context instance across hot reloads so consumers and provider never mismatch.
@@ -308,6 +316,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     preloadRef.current = null;
   }, []);
 
+  const [autoAddedIds, setAutoAddedIds] = useState<ReadonlySet<string>>(() => new Set());
+
   /** Appends more songs for the same mode when the queue runs out; returns the first new index or -1. */
   const extendQueue = useCallback(async (mode: ContinueMode): Promise<number> => {
     if (typeof navigator !== "undefined" && !navigator.onLine) return -1;
@@ -319,8 +329,22 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     const next = [...before, ...more];
     queueRef.current = next;
     setQueue(next);
+    setAutoAddedIds((prev) => new Set([...prev, ...more.map((s) => s.id)]));
     return before.length;
   }, []);
+
+  /** Applies an Up Next edit without touching the audio, keeping the playing song current. */
+  const applyQueueEdit = useCallback((edit: QueueEdit<PlayerSong> | null) => {
+    if (!edit) return;
+    queueRef.current = edit.queue;
+    queueIndexRef.current = edit.index;
+    setQueue(edit.queue);
+    setQueueIndex(edit.index);
+  }, []);
+  const reorderQueue = useCallback((from: number, to: number) => applyQueueEdit(moveItem(queueRef.current, queueIndexRef.current, from, to)), [applyQueueEdit]);
+  const removeFromQueue = useCallback((index: number) => applyQueueEdit(removeItem(queueRef.current, queueIndexRef.current, index)), [applyQueueEdit]);
+  const playNextInQueue = useCallback((index: number) => applyQueueEdit(playNextItem(queueRef.current, queueIndexRef.current, index)), [applyQueueEdit]);
+  const insertIntoQueue = useCallback((song: PlayerSong, at: number) => applyQueueEdit(insertItem(queueRef.current, queueIndexRef.current, song, at)), [applyQueueEdit]);
 
   /** Next position for the current mode, extending the queue in that same mode when it is done. */
   const resolveNext = useCallback(async (karaokeMode: boolean): Promise<number> => {
@@ -730,6 +754,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
   const startSong = useCallback((song: PlayerSong, mode: PlayMode) => {
     resolvedCacheRef.current.clear();
+    setAutoAddedIds(new Set());
     setSessionMode(mode === "video" ? "video" : "song");
     queueRef.current = [song];
     queueIndexRef.current = 0;
@@ -778,6 +803,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     const q = shuffled ? [chosen, ...shuffleArray(songs.filter((_, i) => i !== startIndex))] : songs;
     const idx = shuffled ? 0 : startIndex;
     resolvedCacheRef.current.clear();
+    setAutoAddedIds(new Set());
     setSessionMode(video ? "video" : "song");
     queueRef.current = q;
     queueIndexRef.current = idx;
@@ -941,6 +967,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev, isBuffering,
       cycleRepeat, toggleShuffle, setVolume, applyLyrics, handoffPause, resumeAt,
       sessionMode, setSessionMode, extendQueue,
+      autoAddedIds, reorderQueue, removeFromQueue, playNextInQueue, insertIntoQueue,
     }}>
       {children}
       {/* "Are you still there?" dialog */}

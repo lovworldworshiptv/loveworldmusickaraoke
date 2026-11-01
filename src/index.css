@@ -603,3 +603,16 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Up Next: animated equalizer on the playing video */
+@keyframes lw-eq {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+.lw-eq-bar {
+  transform-origin: bottom;
+  animation: lw-eq 0.9s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lw-eq-bar { animation: none; transform: scaleY(0.6); }
+}
