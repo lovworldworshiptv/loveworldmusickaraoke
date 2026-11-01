@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, RotateCcw, RotateCw, Loader2, AlertTriangle } from "lucide-react";
+import { Play, Pause, RotateCcw, RotateCw, Loader2, AlertTriangle, SkipBack, SkipForward } from "lucide-react";
 import PlaybackProgress from "@/components/player/PlaybackProgress";
 import { isKingsSpacePage } from "@/lib/videoLinks";
 
@@ -24,12 +24,15 @@ interface Props {
   positionRef: React.MutableRefObject<() => number>;
   /** Called when the video finishes playing. */
   onEnded?: () => void;
+  /** Previous / next song in the queue, staying in Video mode (hidden when absent). */
+  onPrev?: () => void;
+  onNext?: () => void;
 }
 
 const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
 
 /** Plays a song's video from the audio position with its own transport controls. */
-const VideoMode = ({ video, startAt, positionRef, onEnded }: Props) => {
+const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext }: Props) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const offset = (video.offset_ms || 0) / 1000;
@@ -221,13 +224,15 @@ const VideoMode = ({ video, startAt, positionRef, onEnded }: Props) => {
         <div className="flex justify-between text-[11px] text-muted-foreground font-medium">
           <span>{fmt(time)}</span><span>{dur ? `-${fmt(Math.max(0, dur - time))}` : ""}</span>
         </div>
-        <div className="flex items-center justify-center gap-8 mt-2">
+        <div className="flex items-center justify-center gap-6 sm:gap-8 mt-2">
+          {onPrev && <button onClick={onPrev} className="text-foreground hover:text-gold" aria-label="Previous video"><SkipBack className="w-6 h-6" fill="currentColor" /></button>}
           <button onClick={() => seek(time - 10)} className="text-foreground hover:text-gold" aria-label="Back 10 seconds"><RotateCcw className="w-6 h-6" /></button>
           <button onClick={toggle} aria-label={playing ? "Pause video" : "Play video"}
             className="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_6px_30px_hsl(43_70%_53%/0.6)] hover:scale-105 active:scale-95 transition-all">
             {playing ? <Pause className="w-8 h-8 text-primary-foreground" fill="currentColor" /> : <Play className="w-8 h-8 text-primary-foreground ml-1" fill="currentColor" />}
           </button>
           <button onClick={() => seek(time + 10)} className="text-foreground hover:text-gold" aria-label="Forward 10 seconds"><RotateCw className="w-6 h-6" /></button>
+          {onNext && <button onClick={onNext} className="text-foreground hover:text-gold" aria-label="Next video"><SkipForward className="w-6 h-6" fill="currentColor" /></button>}
         </div>
       </div>
     </div>

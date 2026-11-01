@@ -211,9 +211,9 @@ const ExpandedPlayer = () => {
 
   // Manual skips while watching stay in Video mode.
   const handleNext = useCallback(() => {
-    if (videoMode) { requestVideoMode(); skipNext({ autoplay: false }); }
+    if (videoMode) advanceVideo();
     else skipNext();
-  }, [videoMode, requestVideoMode, skipNext]);
+  }, [videoMode, advanceVideo, skipNext]);
   const handlePrev = useCallback(() => {
     if (videoMode) {
       if (queueIndex > 0 || repeatMode === "all") { requestVideoMode(); skipPrev({ autoplay: false, force: true }); }
@@ -504,6 +504,8 @@ const ExpandedPlayer = () => {
             startAt={videoStart}
             positionRef={videoPosRef}
             onEnded={advanceVideo}
+            onPrev={queueIndex > 0 || repeatMode === "all" ? handlePrev : undefined}
+            onNext={upcomingIndices(queue.length, queueIndex, repeatMode).length ? advanceVideo : undefined}
           />
         ) : !showLyrics ? (
           <div className="flex-1 flex flex-col items-center justify-center px-8 min-h-0">
