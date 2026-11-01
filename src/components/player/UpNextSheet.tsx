@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronUp, Download, GripVertical, ListEnd, ListPlus, Lock, MoreHorizontal, Music, Pause, Play, Plus, RotateCcw, Save, SkipForward, Trash2, ArrowUp, ArrowDown, Video } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, GripVertical, ListEnd, ListPlus, Lock, MoreHorizontal, Music, Pause, Play, Plus, RotateCcw, Save, SkipForward, Trash2, ArrowUp, ArrowDown, Video } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
