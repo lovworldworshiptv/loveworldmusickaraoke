@@ -335,6 +335,39 @@ export type Database = {
           },
         ]
       }
+      challenge_leaderboard_archives: {
+        Row: {
+          challenge_id: string
+          challenge_name: string
+          cleared_at: string
+          cleared_by: string | null
+          id: string
+          season_end: string | null
+          season_start: string | null
+          standings: Json
+        }
+        Insert: {
+          challenge_id: string
+          challenge_name: string
+          cleared_at?: string
+          cleared_by?: string | null
+          id?: string
+          season_end?: string | null
+          season_start?: string | null
+          standings?: Json
+        }
+        Update: {
+          challenge_id?: string
+          challenge_name?: string
+          cleared_at?: string
+          cleared_by?: string | null
+          id?: string
+          season_end?: string | null
+          season_start?: string | null
+          standings?: Json
+        }
+        Relationships: []
+      }
       challenge_referrals: {
         Row: {
           awarded: boolean
@@ -3067,6 +3100,10 @@ export type Database = {
           p_proof_url: string
         }
         Returns: Json
+      }
+      reset_challenge_leaderboard: {
+        Args: { p_challenge_id: string }
+        Returns: number
       }
       resolve_invite_code: { Args: { p_code: string }; Returns: string }
       review_referral_payout: {

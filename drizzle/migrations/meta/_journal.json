@@ -288,6 +288,13 @@
       "when": 1793512262318,
       "tag": "0040_challenge_milestones",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1793514638732,
+      "tag": "0041_challenge_leaderboard_reset",
+      "breakpoints": true
     }
   ]
 }
