@@ -44,13 +44,12 @@ const HeroBanner = () => {
   };
 
   return (
-    <section className="relative w-full h-64 md:h-80 lg:h-96 overflow-hidden rounded-2xl mx-4 mt-4 lg:mx-6 lg:mt-6 animate-scale-fade group" style={{ maxWidth: 'calc(100vw - 2rem)' }}>
-      {/* The whole picture always shows; a blurred copy fills any empty edges at every screen size */}
-      <img src={imageUrl} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-70" />
+    <section className="relative w-full overflow-hidden rounded-2xl mx-4 mt-4 lg:mx-6 lg:mt-6 animate-scale-fade group" style={{ maxWidth: 'calc(100vw - 2rem)' }}>
+      {/* The banner takes the exact shape of its picture: nothing cropped, nothing added */}
       <img
         src={imageUrl}
         alt={banner?.title || "Banner"}
-        className="relative w-full h-full object-contain object-center"
+        className="relative block w-full h-auto"
         loading="lazy"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
