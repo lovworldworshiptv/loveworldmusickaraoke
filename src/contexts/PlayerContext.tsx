@@ -50,6 +50,10 @@ interface PlayerContextType {
   playVideo: (song: PlayerSong) => void;
   /** Play a queue that stays in Video mode, advancing when each video ends. */
   playVideoQueue: (songs: PlayerSong[], startIndex?: number) => void;
+  /** Play a queue that stays in Karaoke mode, advancing to each next instrumental. */
+  singQueue: (songs: PlayerSong[], startIndex?: number) => void;
+  /** Jump to a queue position, keeping the current mode. */
+  playQueueIndex: (index: number, opts?: { autoplay?: boolean }) => void;
   requestVideoMode: () => void;
   videoModeRequest: boolean;
   clearVideoModeRequest: () => void;
@@ -64,7 +68,8 @@ interface PlayerContextType {
   skipNext: (opts?: { autoplay?: boolean } | unknown) => void;
   /** True while the current track is waiting on the network. */
   isBuffering: boolean;
-  skipPrev: () => void;
+  /** Pass { force: true } to always go back a song instead of restarting the current one. */
+  skipPrev: (opts?: { autoplay?: boolean; force?: boolean } | unknown) => void;
   cycleRepeat: () => void;
   toggleShuffle: () => void;
   setVolume: (v: number) => void;
