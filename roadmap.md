@@ -93,3 +93,4 @@
 - [x] Video-mode "Up Next" list in the full player (phone bottom sheet + desktop side panel): real play order, filters, drag/swipe/menu queue edits with Undo, Save as playlist, Autoplay switch, 8-second countdown, more videos when it runs low. Signed-in checks at 360px and 1280px pass; real video playing to its end and the countdown not yet seen (test browser can't play the video files).
 - [x] Video player: Shuffle and Repeat buttons; 30% less space between the video controls and Up Next
 - [x] Video player: full-screen button (whole video; iPhone uses its own player; phones turn sideways where allowed)
+- [x] Video controls check: 30-second skips with on-video hint; Previous goes to the last song with a video; next video keeps the same player (full screen stays on); repeat-all with one video replays it; lock-screen/headphone buttons control the video. All verified with real playback except lock-screen buttons.
