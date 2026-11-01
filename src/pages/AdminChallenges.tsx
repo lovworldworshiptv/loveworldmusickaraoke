@@ -4,7 +4,7 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trophy, Plus, CheckCircle, XCircle, Play, Square, Trash2 } from "lucide-react";
+import { Trophy, Plus, CheckCircle, XCircle, Play, Square, Trash2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { readMilestones } from "../../supabase/functions/_shared/challengeMilestones.ts";
 
@@ -149,6 +149,15 @@ const AdminChallenges = () => {
     const { data, error } = await supabase.functions.invoke("finalize-challenge", { body: { challenge_id: id } });
     if (error || (data as any)?.error) { toast.error((data as any)?.error || error?.message); return; }
     toast.success("Finalized");
+    qc.invalidateQueries({ queryKey: ["admin-challenges"] });
+  };
+
+  const resetLeaderboard = async (c: any) => {
+    if (!confirm(`Clear the leaderboard for "${c.name}"?\n\nEveryone's points, games played, bonuses and challenge invites go back to zero. Enrolled players stay enrolled, and a copy of the current standings is saved.`)) return;
+    const { data, error } = await supabase.rpc("reset_challenge_leaderboard" as any, { p_challenge_id: c.id });
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Leaderboard cleared (${data ?? 0} players reset)`);
+    qc.invalidateQueries({ queryKey: ["challenge-leaderboard", c.id] });
     qc.invalidateQueries({ queryKey: ["admin-challenges"] });
   };
 
@@ -365,7 +374,7 @@ const AdminChallenges = () => {
 
         <div className="space-y-3">
           {challenges.map((c: any) => (
-            <ChallengeRow key={c.id} c={c} onEdit={openEdit} onStatus={setStatus} onFinalize={finalize} onOpenProof={openProof} onRemove={removeEntry} />
+            <ChallengeRow key={c.id} c={c} onEdit={openEdit} onStatus={setStatus} onFinalize={finalize} onReset={resetLeaderboard} onOpenProof={openProof} onRemove={removeEntry} />
           ))}
           {challenges.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No challenges yet.</p>}
         </div>
@@ -381,7 +390,7 @@ const Input = ({ label, value, onChange, type = "text" }: any) => (
   </label>
 );
 
-const ChallengeRow = ({ c, onEdit, onStatus, onFinalize, onOpenProof, onRemove }: any) => {
+const ChallengeRow = ({ c, onEdit, onStatus, onFinalize, onReset, onOpenProof, onRemove }: any) => {
   const qc = useQueryClient();
   const [showEntries, setShowEntries] = useState(false);
   const { data: entries = [] } = useQuery({
@@ -419,10 +428,11 @@ const ChallengeRow = ({ c, onEdit, onStatus, onFinalize, onOpenProof, onRemove }
             {new Date(c.start_date).toLocaleDateString()} → {new Date(c.end_date).toLocaleDateString()} · Fee {Number(c.entry_fee) <= 0 ? "Free" : `${c.entry_fee} ESP`} · Pool {c.prize_pool} ESP
           </p>
         </div>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap justify-end gap-1">
           <button onClick={() => onEdit(c)} className="px-3 py-1.5 rounded-lg border border-border text-xs">Edit</button>
           {c.status === "draft" && <button onClick={() => onStatus(c.id, "active")} className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 text-xs flex items-center gap-1"><Play className="w-3 h-3" /> Activate</button>}
           {c.status === "active" && <button onClick={() => onFinalize(c.id)} className="px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 text-xs flex items-center gap-1"><Square className="w-3 h-3" /> Finalize</button>}
+          <button onClick={() => onReset(c)} className="px-3 py-1.5 rounded-lg bg-destructive/15 text-destructive text-xs flex items-center gap-1"><RotateCcw className="w-3 h-3" /> Clear leaderboard</button>
         </div>
       </div>
       <button onClick={() => setShowEntries(!showEntries)} className="text-xs text-primary">{showEntries ? "Hide" : "Show"} entries</button>
