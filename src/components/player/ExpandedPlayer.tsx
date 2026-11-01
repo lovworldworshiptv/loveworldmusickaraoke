@@ -88,7 +88,7 @@ const ExpandedPlayer = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
   const isMobile = useIsMobile();
-  const { handoffPause, resumeAt, requestVideoMode, videoModeRequest, clearVideoModeRequest, karaokeModeRequest, clearKaraokeModeRequest, playQueueIndex } = usePlayer();
+  const { handoffPause, resumeAt, requestVideoMode, videoModeRequest, clearVideoModeRequest, karaokeModeRequest, clearKaraokeModeRequest, playQueueIndex, sessionMode, setSessionMode, extendQueue } = usePlayer();
 
   // --- 3-mode player (Song | Karaoke | Video) with seamless position transfer ---
   const [videos, setVideos] = useState<SongVideo[]>([]);
@@ -137,6 +137,8 @@ const ExpandedPlayer = () => {
     if (next === "video" && !enabled("video")) return;
     if (next === "karaoke" && !enabled("karaoke")) return;
     if (next === mode) return;
+    // The chosen mode carries on through the rest of the session until the listener changes it.
+    setSessionMode(next === "video" ? "video" : "song");
     if (next === "video") {
       setVideoStart(handoffPause());
       setVideoMode(true);
@@ -152,7 +154,22 @@ const ExpandedPlayer = () => {
       return;
     }
     toggleKaraoke();
-  }, [mode, videoMode, isKaraoke, toggleKaraoke, handoffPause, resumeAt, enabled]);
+  }, [mode, videoMode, isKaraoke, toggleKaraoke, handoffPause, resumeAt, enabled, setSessionMode]);
+
+  // Minimising during a video keeps the song going as sound in the mini player;
+  // reopening the player returns to the video.
+  const videoPlayingRef = useRef<() => boolean>(() => false);
+  const leaveRef = useRef<() => void>(() => {});
+  leaveRef.current = () => {
+    if (videoMode && videoPlayingRef.current()) resumeAt(videoPosRef.current());
+  };
+  const restoreVideoRef = useRef(sessionMode === "video" && !isKaraoke && isPlaying);
+  useEffect(() => () => leaveRef.current(), []);
+  useEffect(() => {
+    if (!restoreVideoRef.current || !videosLoaded) return;
+    restoreVideoRef.current = false;
+    if (videos.length > 0 && !videoMode) switchMode("video");
+  }, [videosLoaded, videos, videoMode, switchMode]);
 
   useEffect(() => {
     if (videoMode && !enabled("video")) {
@@ -181,33 +198,33 @@ const ExpandedPlayer = () => {
 
   // Continuous Video mode: when a video ends, jump to the next queued song that has a video
   // (skipping songs without one) and stay in Video mode. The next track loads paused so its
-  // audio never overlaps the video hand-off. With no video ahead, play the next song's audio.
+  // audio never overlaps the video hand-off. When the list is done, more songs with videos are
+  // added; only with no video anywhere does it fall back to the next song's audio.
   const advancingRef = useRef(false);
   const advanceVideo = useCallback(async () => {
     if (advancingRef.current) return;
-    const order = upcomingIndices(queue.length, queueIndex, repeatMode);
-    if (!order.length) return;
     advancingRef.current = true;
     try {
+      const order = upcomingIndices(queue.length, queueIndex, repeatMode);
       const ids = order.map((i) => queue[i].id);
       const withVideo = new Set<string>();
-      if (navigator.onLine) {
+      if (ids.length && navigator.onLine) {
         const { data, error } = await supabase.from("song_videos").select("song_id").in("song_id", ids).eq("is_active", true);
         if (!error) (data || []).forEach((r) => withVideo.add(r.song_id));
       }
-      if (!withVideo.size) {
+      if (ids.length && !withVideo.size) {
         // Offline: saved downloads that include their video.
         const saved = await Promise.all(ids.slice(0, 20).map((id) => getDownloadedTrack(id).then((t) => (t?.video ? id : null)).catch(() => null)));
         saved.forEach((id) => id && withVideo.add(id));
       }
-      const target = nextVideoIndex(queue, queueIndex, repeatMode, (id) => withVideo.has(id));
-      requestVideoMode();
-      if (target >= 0) playQueueIndex(target, { autoplay: false });
-      else skipNext({ autoplay: false });
+      let target = nextVideoIndex(queue, queueIndex, repeatMode, (id) => withVideo.has(id));
+      if (target < 0) target = await extendQueue("video");
+      if (target >= 0) { requestVideoMode(); playQueueIndex(target, { autoplay: false }); }
+      else if (order.length) { requestVideoMode(); skipNext({ autoplay: false }); }
     } finally {
       advancingRef.current = false;
     }
-  }, [queue, queueIndex, repeatMode, requestVideoMode, playQueueIndex, skipNext]);
+  }, [queue, queueIndex, repeatMode, requestVideoMode, playQueueIndex, skipNext, extendQueue]);
 
   // Manual skips while watching stay in Video mode.
   const handleNext = useCallback(() => {
@@ -505,7 +522,8 @@ const ExpandedPlayer = () => {
             positionRef={videoPosRef}
             onEnded={advanceVideo}
             onPrev={queueIndex > 0 || repeatMode === "all" ? handlePrev : undefined}
-            onNext={upcomingIndices(queue.length, queueIndex, repeatMode).length ? advanceVideo : undefined}
+            onNext={advanceVideo}
+            playingRef={videoPlayingRef}
           />
         ) : !showLyrics ? (
           <div className="flex-1 flex flex-col items-center justify-center px-8 min-h-0">

@@ -1,6 +1,7 @@
 import { useFeatures } from "@/contexts/FeatureContext";
 import { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchContinuation, type ContinueMode } from "@/lib/autoContinue";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -76,6 +77,11 @@ interface PlayerContextType {
   applyLyrics: (lrc?: string | null, text?: string | null) => void;
   handoffPause: () => number;
   resumeAt: (seconds: number) => void;
+  /** "video" while the listener is watching; stays until they switch to Song or Karaoke. */
+  sessionMode: "song" | "video";
+  setSessionMode: (mode: "song" | "video") => void;
+  /** Adds more songs for the mode once the queue is done; resolves to the first new index or -1. */
+  extendQueue: (mode: ContinueMode) => Promise<number>;
 }
 
 // Keep one context instance across hot reloads so consumers and provider never mismatch.
@@ -118,15 +124,18 @@ function sourceFor(song: PlayerSong, karaoke: boolean): string | undefined {
 }
 
 /** Next queue position with a playable source, honouring repeat-all wrap-around; -1 when the queue is done. */
-function findNextIndex(q: PlayerSong[], from: number, repeat: RepeatMode): number {
+function findNextIndex(q: PlayerSong[], from: number, repeat: RepeatMode, accept?: (s: PlayerSong) => boolean): number {
   for (let step = 1; step <= q.length; step++) {
     const raw = from + step;
     if (raw >= q.length && repeat !== "all") return -1;
     const i = raw % q.length;
-    if (q[i] && (q[i].audioUrl || q[i].instrumentalUrl)) return i;
+    if (q[i] && (q[i].audioUrl || q[i].instrumentalUrl) && (!accept || accept(q[i]))) return i;
   }
   return -1;
 }
+
+/** Karaoke sessions move on to songs that have a backing track. */
+const hasBackingTrack = (s: PlayerSong) => !!s.instrumentalUrl;
 
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -188,8 +197,13 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const [isKaraoke, setIsKaraoke] = useState(false);
   const isKaraokeRef = useRef(false);
   useEffect(() => { isKaraokeRef.current = isKaraoke; }, [isKaraoke]);
-  /** Whether the current queue was started as videos; karaoke is read from isKaraokeRef. */
+  /** Whether the session is watching videos; karaoke is read from isKaraokeRef. */
   const sessionModeRef = useRef<"song" | "video">("song");
+  const [sessionMode, setSessionModeState] = useState<"song" | "video">("song");
+  const setSessionMode = useCallback((m: "song" | "video") => {
+    sessionModeRef.current = m;
+    setSessionModeState(m);
+  }, []);
   const [isExpanded, setIsExpanded] = useState(false);
   const [videoModeRequest, setVideoModeRequest] = useState(false);
   const [karaokeModeRequest, setKaraokeModeRequest] = useState(false);
@@ -294,10 +308,35 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     preloadRef.current = null;
   }, []);
 
+  /** Appends more songs for the same mode when the queue runs out; returns the first new index or -1. */
+  const extendQueue = useCallback(async (mode: ContinueMode): Promise<number> => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) return -1;
+    const before = queueRef.current;
+    if (!before.length) return -1;
+    let more: PlayerSong[] = [];
+    try { more = await fetchContinuation(mode, before.map((s) => s.id)); } catch { return -1; }
+    if (!more.length || queueRef.current !== before) return -1;
+    const next = [...before, ...more];
+    queueRef.current = next;
+    setQueue(next);
+    return before.length;
+  }, []);
+
+  /** Next position for the current mode, extending the queue in that same mode when it is done. */
+  const resolveNext = useCallback(async (karaokeMode: boolean): Promise<number> => {
+    const q = queueRef.current;
+    const idx = findNextIndex(q, queueIndexRef.current, repeatModeRef.current, karaokeMode ? hasBackingTrack : undefined);
+    if (idx >= 0) return idx;
+    const added = await extendQueue(karaokeMode ? "karaoke" : sessionModeRef.current);
+    if (added >= 0) return added;
+    // No more karaoke tracks anywhere: keep going with the next song as it is.
+    return karaokeMode ? findNextIndex(queueRef.current, queueIndexRef.current, repeatModeRef.current) : -1;
+  }, [extendQueue]);
+
   /** Warm the next queued track (resolved language + audio bytes) so the hand-off is instant. */
   const prefetchNext = useCallback((karaokeMode: boolean) => {
     const q = queueRef.current;
-    const idx = findNextIndex(q, queueIndexRef.current, repeatModeRef.current);
+    const idx = findNextIndex(q, queueIndexRef.current, repeatModeRef.current, karaokeMode ? hasBackingTrack : undefined);
     if (idx < 0 || idx === queueIndexRef.current) return;
     const base = q[idx];
     const cached = resolvedCacheRef.current.get(base.id);
@@ -385,9 +424,11 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       const clearStall = () => { if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; } };
 
       const goNext = () => {
-        const idx = findNextIndex(queueRef.current, queueIndexRef.current, repeatModeRef.current);
-        if (idx >= 0 && idx !== queueIndexRef.current) advanceToRef.current(idx, karaokeMode, true);
-        else { setIsPlaying(false); stopInterval(); clearAutoPauseTimer(); }
+        resolveNext(karaokeMode).then((idx) => {
+          if (!isCurrent()) return;
+          if (idx >= 0 && idx !== queueIndexRef.current) advanceToRef.current(idx, karaokeMode, true);
+          else { setIsPlaying(false); stopInterval(); clearAutoPauseTimer(); }
+        });
       };
 
       // Re-request the stream from where it stopped (network drop / long stall).
@@ -407,15 +448,18 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
           audio.play().catch(() => {});
           return;
         }
-        const idx = findNextIndex(queueRef.current, queueIndexRef.current, repeatModeRef.current);
-        if (idx < 0) {
-          wantPlayingRef.current = false;
-          setIsPlaying(false);
-          stopInterval();
-          clearAutoPauseTimer();
-          return;
-        }
-        advanceToRef.current(idx, karaokeMode, true);
+        // Continuous play: stay in the same mode, adding more songs for it when the list is done.
+        resolveNext(karaokeMode).then((idx) => {
+          if (!isCurrent()) return;
+          if (idx < 0) {
+            wantPlayingRef.current = false;
+            setIsPlaying(false);
+            stopInterval();
+            clearAutoPauseTimer();
+            return;
+          }
+          advanceToRef.current(idx, karaokeMode, true);
+        });
       };
 
       audio.onerror = () => {
@@ -506,7 +550,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       navigator.mediaSession.setActionHandler("previoustrack", () => skipPrevRef.current());
       navigator.mediaSession.setActionHandler("nexttrack", () => skipNextRef.current());
     }
-  }, [startInterval, stopInterval, resetAutoPauseTimer, clearAutoPauseTimer, discardPreload, prefetchNext]);
+  }, [startInterval, stopInterval, resetAutoPauseTimer, clearAutoPauseTimer, discardPreload, prefetchNext, resolveNext]);
 
   internalPlayRef.current = internalPlay;
 
@@ -686,14 +730,17 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
   const startSong = useCallback((song: PlayerSong, mode: PlayMode) => {
     resolvedCacheRef.current.clear();
-    sessionModeRef.current = mode === "video" ? "video" : "song";
+    setSessionMode(mode === "video" ? "video" : "song");
+    queueRef.current = [song];
+    queueIndexRef.current = 0;
     setQueue([song]);
     setQueueIndex(0);
     resolvePreferred(song).then((s) => {
-      internalPlay(s, false);
+      // Sing starts straight on the backing track, so the whole session stays karaoke.
+      internalPlay(s, mode === "karaoke");
       recordPlayFn(s.id, mode);
     });
-  }, [internalPlay, recordPlayFn, resolvePreferred]);
+  }, [internalPlay, recordPlayFn, resolvePreferred, setSessionMode]);
 
   const playSong = useCallback((song: PlayerSong) => startSong(song, "song"), [startSong]);
 
@@ -702,7 +749,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     // Tapping a song that is already in the queue keeps the queue, so videos keep flowing after it.
     const existing = queueRef.current.findIndex((s) => s.id === song.id);
     if (queueRef.current.length > 1 && existing >= 0) {
-      sessionModeRef.current = "video";
+      setSessionMode("video");
       isKaraokeRef.current = false;
       advanceToRef.current(existing, false, true);
     } else {
@@ -710,7 +757,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }
     setIsExpanded(true);
     setVideoModeRequest(true);
-  }, [startSong]);
+  }, [startSong, setSessionMode]);
 
   const clearVideoModeRequest = useCallback(() => setVideoModeRequest(false), []);
   const requestVideoMode = useCallback(() => setVideoModeRequest(true), []);
@@ -731,7 +778,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     const q = shuffled ? [chosen, ...shuffleArray(songs.filter((_, i) => i !== startIndex))] : songs;
     const idx = shuffled ? 0 : startIndex;
     resolvedCacheRef.current.clear();
-    sessionModeRef.current = video ? "video" : "song";
+    setSessionMode(video ? "video" : "song");
     queueRef.current = q;
     queueIndexRef.current = idx;
     setQueue(q);
@@ -742,7 +789,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         recordPlayFn(s.id, karaoke ? "karaoke" : video ? "video" : "song");
       });
     }
-  }, [internalPlay, recordPlayFn, resolvePreferred]);
+  }, [internalPlay, recordPlayFn, resolvePreferred, setSessionMode]);
 
   const playQueue = useCallback((songs: PlayerSong[], startIndex = 0, opts?: { karaoke?: boolean }) => {
     startQueue(songs, startIndex, !!opts?.karaoke, false);
@@ -770,10 +817,16 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const skipNext = useCallback((opts?: { autoplay?: boolean } | unknown) => {
     const flag = (opts as { autoplay?: unknown } | undefined)?.autoplay;
     const autoplay = typeof flag === "boolean" ? flag : true;
-    const nextIdx = findNextIndex(queueRef.current, queueIndexRef.current, repeatModeRef.current);
-    if (nextIdx < 0) return;
-    advanceToRef.current(nextIdx, isKaraokeRef.current, autoplay);
-  }, []);
+    const karaoke = isKaraokeRef.current;
+    const nextIdx = findNextIndex(queueRef.current, queueIndexRef.current, repeatModeRef.current, karaoke ? hasBackingTrack : undefined);
+    if (nextIdx >= 0) { advanceToRef.current(nextIdx, karaoke, autoplay); return; }
+    // End of the list: keep going with more songs in the same mode.
+    const from = audioRef.current;
+    resolveNext(karaoke).then((idx) => {
+      if (idx < 0 || audioRef.current !== from || idx === queueIndexRef.current) return;
+      advanceToRef.current(idx, isKaraokeRef.current, autoplay);
+    });
+  }, [resolveNext]);
 
   const skipPrev = useCallback((opts?: { autoplay?: boolean; force?: boolean } | unknown) => {
     const o = (opts ?? {}) as { autoplay?: unknown; force?: unknown };
@@ -887,6 +940,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       singThis, karaokeModeRequest, clearKaraokeModeRequest,
       toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev, isBuffering,
       cycleRepeat, toggleShuffle, setVolume, applyLyrics, handoffPause, resumeAt,
+      sessionMode, setSessionMode, extendQueue,
     }}>
       {children}
       {/* "Are you still there?" dialog */}

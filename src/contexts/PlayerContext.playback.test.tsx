@@ -39,6 +39,11 @@ class FakeAudio extends EventTarget {
 }
 const playing = () => created.filter((a) => !a.paused);
 
+const continuation = vi.hoisted(() => ({ songs: [] as any[], modes: [] as string[] }));
+vi.mock("@/lib/autoContinue", () => ({
+  fetchContinuation: async (mode: string) => { continuation.modes.push(mode); return continuation.songs; },
+}));
+
 import { PlayerProvider, usePlayer } from "./PlayerContext";
 
 let api: ReturnType<typeof usePlayer>;
@@ -92,6 +97,7 @@ describe("playback exclusivity", () => {
 
 describe("continuous play in each mode", () => {
   beforeEach(() => {
+    continuation.songs = []; continuation.modes.length = 0;
     created.length = 0; localStorage.clear(); vi.stubGlobal("Audio", FakeAudio as any);
     featureState.karaoke = true; featureState.video = true; featureState.translations = true;
   });
@@ -130,5 +136,63 @@ describe("continuous play in each mode", () => {
     playing()[0].currentTime = 50;
     act(() => api.skipPrev({ autoplay: false, force: true }));
     await waitFor(() => expect(api.currentSong?.id).toBe("a"));
+  });
+
+  it("a single sung song starts on its backing track and continues with more karaoke", async () => {
+    const songC = { id: "c", title: "C", artist: "Loveworld Singers", audioUrl: "https://x/c.mp3", instrumentalUrl: "https://x/c-inst.mp3" };
+    continuation.songs = [songC];
+    render(<PlayerProvider><Grab /></PlayerProvider>);
+    act(() => api.singThis(songA));
+    await waitFor(() => expect(playing()[0]?.src).toContain("a-inst.mp3"));
+    act(() => { playing()[0].onended?.(); });
+    await waitFor(() => expect(playing()[0]?.src).toContain("c-inst.mp3"));
+    expect(continuation.modes).toEqual(["karaoke"]);
+    expect(api.isKaraoke).toBe(true);
+  });
+
+  it("karaoke skips queued songs without a backing track", async () => {
+    const noInst = { id: "n", title: "N", artist: "Loveworld Singers", audioUrl: "https://x/n.mp3" };
+    render(<PlayerProvider><Grab /></PlayerProvider>);
+    act(() => api.singQueue([songA, noInst, songB], 0));
+    await waitFor(() => expect(playing()[0]?.src).toContain("a-inst.mp3"));
+    act(() => { playing()[0].onended?.(); });
+    await waitFor(() => expect(playing()[0]?.src).toContain("b-inst.mp3"));
+    expect(api.queueIndex).toBe(2);
+  });
+
+  it("a single song keeps playing songs after it ends", async () => {
+    continuation.songs = [songB];
+    render(<PlayerProvider><Grab /></PlayerProvider>);
+    act(() => api.playSong(songA));
+    await waitFor(() => expect(playing()[0]?.src).toMatch(/a\.mp3$/));
+    act(() => { playing()[0].onended?.(); });
+    await waitFor(() => expect(playing()[0]?.src).toMatch(/b\.mp3$/));
+    expect(continuation.modes).toEqual(["song"]);
+    expect(api.isKaraoke).toBe(false);
+  });
+
+  it("video sessions ask for more videos when the list is done", async () => {
+    continuation.songs = [songB];
+    render(<PlayerProvider><Grab /></PlayerProvider>);
+    act(() => api.playVideo(songA));
+    await waitFor(() => expect(api.currentSong?.id).toBe("a"));
+    expect(api.sessionMode).toBe("video");
+    let idx = -1;
+    await act(async () => { idx = await api.extendQueue("video"); });
+    expect(idx).toBe(1);
+    expect(continuation.modes).toEqual(["video"]);
+    expect(api.queue.map((s) => s.id)).toEqual(["a", "b"]);
+  });
+
+  it("repeat-all loops the list instead of adding new songs", async () => {
+    continuation.songs = [{ id: "z", title: "Z", artist: "x", audioUrl: "https://x/z.mp3" }];
+    render(<PlayerProvider><Grab /></PlayerProvider>);
+    act(() => api.playQueue([songA, songB], 1));
+    await waitFor(() => expect(api.currentSong?.id).toBe("b"));
+    act(() => api.cycleRepeat());
+    await flush();
+    act(() => { playing()[0].onended?.(); });
+    await waitFor(() => expect(api.currentSong?.id).toBe("a"));
+    expect(continuation.modes).toEqual([]);
   });
 });
