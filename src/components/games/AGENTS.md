@@ -1,0 +1,1 @@
+- Game hub and challenge tilted photos load eagerly with bundled fallback images, and games-interactive / challenge-arcade effects have reduced-motion overrides — why: cards must never show blank photos, and motion-sensitive players get static cards.
