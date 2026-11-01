@@ -2,7 +2,7 @@ import { useFeatures } from "@/contexts/FeatureContext";
 import { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchContinuation, type ContinueMode } from "@/lib/autoContinue";
-import { moveItem, removeItem, playNextItem, insertItem, type QueueEdit } from "@/lib/queueOps";
+import { moveItem, removeItem, playNextItem, insertItem, shuffleAfter, restoreAfter, type QueueEdit } from "@/lib/queueOps";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -90,6 +90,9 @@ interface PlayerContextType {
   removeFromQueue: (index: number) => void;
   playNextInQueue: (index: number) => void;
   insertIntoQueue: (song: PlayerSong, at: number) => void;
+  /** Video-mode shuffle: reorders only the songs after the playing one. */
+  shuffleUpcoming: () => void;
+  restoreUpcoming: (originalOrder: string[]) => void;
 }
 
 // Keep one context instance across hot reloads so consumers and provider never mismatch.
@@ -345,6 +348,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const removeFromQueue = useCallback((index: number) => applyQueueEdit(removeItem(queueRef.current, queueIndexRef.current, index)), [applyQueueEdit]);
   const playNextInQueue = useCallback((index: number) => applyQueueEdit(playNextItem(queueRef.current, queueIndexRef.current, index)), [applyQueueEdit]);
   const insertIntoQueue = useCallback((song: PlayerSong, at: number) => applyQueueEdit(insertItem(queueRef.current, queueIndexRef.current, song, at)), [applyQueueEdit]);
+  const shuffleUpcoming = useCallback(() => applyQueueEdit(shuffleAfter(queueRef.current, queueIndexRef.current)), [applyQueueEdit]);
+  const restoreUpcoming = useCallback((order: string[]) => applyQueueEdit(restoreAfter(queueRef.current, queueIndexRef.current, order, (s) => s.id)), [applyQueueEdit]);
 
   /** Next position for the current mode, extending the queue in that same mode when it is done. */
   const resolveNext = useCallback(async (karaokeMode: boolean): Promise<number> => {
@@ -967,7 +972,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev, isBuffering,
       cycleRepeat, toggleShuffle, setVolume, applyLyrics, handoffPause, resumeAt,
       sessionMode, setSessionMode, extendQueue,
-      autoAddedIds, reorderQueue, removeFromQueue, playNextInQueue, insertIntoQueue,
+      autoAddedIds, reorderQueue, removeFromQueue, playNextInQueue, insertIntoQueue, shuffleUpcoming, restoreUpcoming,
     }}>
       {children}
       {/* "Are you still there?" dialog */}

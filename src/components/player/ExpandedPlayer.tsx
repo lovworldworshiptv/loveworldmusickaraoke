@@ -271,6 +271,20 @@ const ExpandedPlayer = () => {
     advanceVideo();
   }, [repeatMode, autoplay, cancelledFor, currentSong, advanceVideo]);
 
+  // Video-mode shuffle reorders what's left of the queue (and puts it back when turned off).
+  const { shuffleUpcoming, restoreUpcoming } = usePlayer();
+  const preShuffleRef = useRef<string[] | null>(null);
+  const toggleVideoShuffle = useCallback(() => {
+    if (!shuffleOn) {
+      preShuffleRef.current = queue.map((s) => s.id);
+      shuffleUpcoming();
+    } else if (preShuffleRef.current) {
+      restoreUpcoming(preShuffleRef.current);
+      preShuffleRef.current = null;
+    }
+    toggleShuffle();
+  }, [shuffleOn, queue, shuffleUpcoming, restoreUpcoming, toggleShuffle]);
+
   const playUpNextIndex = useCallback((index: number) => {
     requestVideoMode();
     playQueueIndex(index, { autoplay: false });
@@ -565,7 +579,7 @@ const ExpandedPlayer = () => {
         )}
 
         {/* Main view: video, artwork or synced lyrics (desktop Video mode adds the Up Next panel beside it) */}
-        <div className={showUpNext && isDesktop ? "flex-1 min-h-0 flex gap-4 px-4 pb-4" : "contents"}>
+        <div className={showUpNext && isDesktop ? "flex-1 min-h-0 flex gap-[11px] px-4 pb-4" : "contents"}>
         <div className={showUpNext && isDesktop ? "flex-1 min-w-0 min-h-0 flex flex-col" : "contents"}>
         {mode === "video" && videos[0] ? (
           <div ref={setRegionEl} className="flex-1 min-h-0 flex flex-col" style={showUpNext && !isDesktop ? { touchAction: "pan-x pinch-zoom" } : undefined}>
@@ -582,6 +596,11 @@ const ExpandedPlayer = () => {
               status={videoStatus}
               repeatOne={repeatMode === "one"}
               progressKey={currentSong.id}
+              shuffleOn={shuffleOn}
+              onShuffle={toggleVideoShuffle}
+              repeatMode={repeatMode}
+              onRepeat={cycleRepeat}
+              tightBottom={showUpNext && !isDesktop}
               overlay={
                 <UpNextCountdown
                   status={videoStatus}
