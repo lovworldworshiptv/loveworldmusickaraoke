@@ -2,7 +2,7 @@ import { useEffect, type CSSProperties } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useActiveChallenge, useMyEntry, useMyScore, useLeaderboard, buildReferralUrl } from "@/hooks/useChallenge";
+import { useActiveChallenge, useMyEntry, useMyScore, useLeaderboard, buildReferralUrl, useReferralGateStatus } from "@/hooks/useChallenge";
 import { CHALLENGE_RESUME_KEY } from "@/hooks/useReferralGateGuard";
 import ChallengeCountdown from "@/components/games/ChallengeCountdown";
 import { ChallengeRulesNotice } from "@/components/games/ChallengeRules";
@@ -152,15 +152,8 @@ const Challenge = () => {
           </section>
         )}
 
-        {user && entry?.status === "approved" && ch.referral_gate_score != null && (ch.referral_gate_required_invites ?? 0) > 0 && (
-          <ReferralGateCard
-            challengeId={ch.id}
-            userId={user.id}
-            currentScore={myScore?.total_score ?? 0}
-            gateScore={Number(ch.referral_gate_score)}
-            required={Number(ch.referral_gate_required_invites)}
-            refUrl={refUrl}
-          />
+        {user && entry?.status === "approved" && (
+          <ReferralGateCard challengeId={ch.id} refUrl={refUrl} />
         )}
 
         {/* Referral link card removed per product request; +50pts per referral logic still active. */}
@@ -226,33 +219,10 @@ const Challenge = () => {
   );
 };
 
-function ReferralGateCard({ challengeId, userId, currentScore, gateScore, required, refUrl }: {
-  challengeId: string; userId: string; currentScore: number; gateScore: number; required: number; refUrl: string;
-}) {
-  const { data: refCount = 0 } = useQuery({
-    queryKey: ["challenge-my-referrals", challengeId, userId],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from("challenge_referrals" as any)
-        .select("id", { count: "exact", head: true })
-        .eq("challenge_id", challengeId)
-        .eq("referrer_user_id", userId)
-        .eq("awarded", true);
-      return count || 0;
-    },
-  });
-  const gateReached = currentScore >= gateScore;
-  const met = refCount >= required;
-  if (!gateReached) {
-    return (
-      <section aria-label="Referral notification" className="challenge-arcade challenge-referral game-tone-amber p-5 mb-5 rounded-2xl">
-        <p className="text-sm leading-relaxed">
-          <AlertCircle aria-hidden="true" className="inline-block align-middle w-5 h-5 mr-2 game-achievement-icon game-icon-pulse" />
-          Milestone Advancement Score at <span className="font-semibold text-foreground">{gateScore} pts</span> — you'll need <span className="font-semibold text-foreground">{required}</span> referrals to advance past this milestone and keep playing.
-        </p>
-      </section>
-    );
-  }
+function ReferralGateCard({ challengeId, refUrl }: { challengeId: string; refUrl: string }) {
+  const { data: gate } = useReferralGateStatus(challengeId);
+  if (!gate || !gate.milestone && !(gate.required > 0 && gate.refCount >= gate.required && gate.currentScore >= gate.gateScore)) return null;
+  const met = !gate.blocked;
   const resumePath = (() => {
     try { return localStorage.getItem(CHALLENGE_RESUME_KEY); } catch { return null; }
   })();
@@ -260,12 +230,12 @@ function ReferralGateCard({ challengeId, userId, currentScore, gateScore, requir
     <section aria-label="Referral notification" className={`challenge-arcade challenge-referral p-5 mb-5 rounded-2xl ${met ? "game-tone-green" : "game-tone-amber"}`}>
       <div className="flex items-start gap-2 mb-3">
         <AlertCircle className="w-5 h-5 shrink-0 game-achievement-icon game-icon-pulse" />
-        <h3 className="font-bold text-sm">{met ? "Milestone Advancement Cleared" : "Refer to Advance Past Milestone"}</h3>
+        <h3 className="font-bold text-sm">{met ? "Milestone Cleared" : `Invite Players to Pass Milestone ${gate.milestone}`}</h3>
       </div>
       <p className="text-sm leading-relaxed mb-4">
         {met
-          ? `You've cleared the ${gateScore}-point Milestone Advancement Score with ${refCount}/${required} referrals. Your future games count normally.`
-          : `You've reached the Milestone Advancement Score of ${currentScore} points. Games won't count until you refer ${required - refCount} more player${required - refCount === 1 ? "" : "s"} (${refCount}/${required}).`}
+          ? `You've completed ${gate.refCount}/${gate.required} invites. Your games count toward your score again.`
+          : `You've reached Milestone ${gate.milestone} (${gate.gateScore} points). Games won't count until you invite ${gate.remaining} more new player${gate.remaining === 1 ? "" : "s"} (${gate.refCount}/${gate.required}).`}
       </p>
       {met ? (
         <ContinuePlayingButton resumePath={resumePath} />
