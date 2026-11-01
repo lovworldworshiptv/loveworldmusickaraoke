@@ -418,9 +418,11 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       const clearStall = () => { if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; } };
 
       const goNext = () => {
-        const idx = findNextIndex(queueRef.current, queueIndexRef.current, repeatModeRef.current);
-        if (idx >= 0 && idx !== queueIndexRef.current) advanceToRef.current(idx, karaokeMode, true);
-        else { setIsPlaying(false); stopInterval(); clearAutoPauseTimer(); }
+        resolveNext(karaokeMode).then((idx) => {
+          if (!isCurrent()) return;
+          if (idx >= 0 && idx !== queueIndexRef.current) advanceToRef.current(idx, karaokeMode, true);
+          else { setIsPlaying(false); stopInterval(); clearAutoPauseTimer(); }
+        });
       };
 
       // Re-request the stream from where it stopped (network drop / long stall).
@@ -440,15 +442,18 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
           audio.play().catch(() => {});
           return;
         }
-        const idx = findNextIndex(queueRef.current, queueIndexRef.current, repeatModeRef.current);
-        if (idx < 0) {
-          wantPlayingRef.current = false;
-          setIsPlaying(false);
-          stopInterval();
-          clearAutoPauseTimer();
-          return;
-        }
-        advanceToRef.current(idx, karaokeMode, true);
+        // Continuous play: stay in the same mode, adding more songs for it when the list is done.
+        resolveNext(karaokeMode).then((idx) => {
+          if (!isCurrent()) return;
+          if (idx < 0) {
+            wantPlayingRef.current = false;
+            setIsPlaying(false);
+            stopInterval();
+            clearAutoPauseTimer();
+            return;
+          }
+          advanceToRef.current(idx, karaokeMode, true);
+        });
       };
 
       audio.onerror = () => {
