@@ -925,6 +925,12 @@ const UpNextSheet = (props: UpNextSheetProps) => {
         Autoplay
         <Switch checked={autoplay} onCheckedChange={setAutoplay} aria-label="Autoplay next videos" />
       </label>
+      {isSheet && (
+        <button type="button" onClick={() => onOpenChange(false)} aria-label="Collapse Up Next"
+          className="h-11 w-11 flex items-center justify-center rounded-full text-foreground hover:text-gold hover:bg-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold flex-shrink-0">
+          <ChevronDown className="w-5 h-5" />
+        </button>
+      )}
     </div>
   );
 
