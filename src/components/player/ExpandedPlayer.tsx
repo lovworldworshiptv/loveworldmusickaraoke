@@ -198,33 +198,34 @@ const ExpandedPlayer = () => {
 
   // Continuous Video mode: when a video ends, jump to the next queued song that has a video
   // (skipping songs without one) and stay in Video mode. The next track loads paused so its
-  // audio never overlaps the video hand-off. With no video ahead, play the next song's audio.
+  // audio never overlaps the video hand-off. When the list is done, more songs with videos are
+  // added; only with no video anywhere does it fall back to the next song's audio.
   const advancingRef = useRef(false);
   const advanceVideo = useCallback(async () => {
     if (advancingRef.current) return;
-    const order = upcomingIndices(queue.length, queueIndex, repeatMode);
-    if (!order.length) return;
     advancingRef.current = true;
     try {
+      const order = upcomingIndices(queue.length, queueIndex, repeatMode);
       const ids = order.map((i) => queue[i].id);
       const withVideo = new Set<string>();
-      if (navigator.onLine) {
+      if (ids.length && navigator.onLine) {
         const { data, error } = await supabase.from("song_videos").select("song_id").in("song_id", ids).eq("is_active", true);
         if (!error) (data || []).forEach((r) => withVideo.add(r.song_id));
       }
-      if (!withVideo.size) {
+      if (ids.length && !withVideo.size) {
         // Offline: saved downloads that include their video.
         const saved = await Promise.all(ids.slice(0, 20).map((id) => getDownloadedTrack(id).then((t) => (t?.video ? id : null)).catch(() => null)));
         saved.forEach((id) => id && withVideo.add(id));
       }
-      const target = nextVideoIndex(queue, queueIndex, repeatMode, (id) => withVideo.has(id));
+      let target = nextVideoIndex(queue, queueIndex, repeatMode, (id) => withVideo.has(id));
+      if (target < 0) target = await extendQueue("video");
       requestVideoMode();
       if (target >= 0) playQueueIndex(target, { autoplay: false });
-      else skipNext({ autoplay: false });
+      else if (order.length) skipNext({ autoplay: false });
     } finally {
       advancingRef.current = false;
     }
-  }, [queue, queueIndex, repeatMode, requestVideoMode, playQueueIndex, skipNext]);
+  }, [queue, queueIndex, repeatMode, requestVideoMode, playQueueIndex, skipNext, extendQueue]);
 
   // Manual skips while watching stay in Video mode.
   const handleNext = useCallback(() => {
