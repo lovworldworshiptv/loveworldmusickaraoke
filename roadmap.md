@@ -94,3 +94,5 @@
 - [x] Video player: Shuffle and Repeat buttons; 30% less space between the video controls and Up Next
 - [x] Video player: full-screen button (whole video; iPhone uses its own player; phones turn sideways where allowed)
 - [x] Video controls check: 30-second skips with on-video hint; Previous goes to the last song with a video; next video keeps the same player (full screen stays on); repeat-all with one video replays it; lock-screen/headphone buttons control the video. All verified with real playback except lock-screen buttons.
+
+- [x] Music Videos For You: tapping a video while a song is playing must open Video mode and keep playing videos
