@@ -27,6 +27,7 @@ import ShareTrackButton from "@/components/share/ShareTrackButton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Video } from "lucide-react";
 import VideoMode, { SongVideo } from "@/components/player/VideoMode";
+import { nextVideoIndex, upcomingIndices } from "@/lib/videoQueue";
 import LyricsLanguageSheet from "@/components/player/LyricsLanguageSheet";
 import PlaybackProgress from "@/components/player/PlaybackProgress";
 
@@ -195,7 +196,8 @@ const ExpandedPlayer = () => {
         if (!error) (data || []).forEach((r) => withVideo.add(r.song_id));
       }
       if (!withVideo.size) {
-        const saved = await Promise.all(ids.slice(0, 20).map((id) => getDownloadedVideoUrl(id).then((u) => (u ? id : null)).catch(() => null)));
+        // Offline: saved downloads that include their video.
+        const saved = await Promise.all(ids.slice(0, 20).map((id) => getDownloadedTrack(id).then((t) => (t?.video ? id : null)).catch(() => null)));
         saved.forEach((id) => id && withVideo.add(id));
       }
       const target = nextVideoIndex(queue, queueIndex, repeatMode, (id) => withVideo.has(id));
