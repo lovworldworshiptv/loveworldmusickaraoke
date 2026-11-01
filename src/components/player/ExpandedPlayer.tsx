@@ -96,7 +96,10 @@ const ExpandedPlayer = () => {
   const [videos, setVideos] = useState<SongVideo[]>([]);
   const [videoMode, setVideoMode] = useState(false);
   const [videosLoadedFor, setVideosLoadedFor] = useState<string | null>(null);
-  const videosLoaded = !!currentSong && videosLoadedFor === currentSong.id;
+  // A newly tapped song is queued before it starts: until it does, the previous song's videos
+  // don't count, so a "watch video" request isn't spent (or dropped) on the old song.
+  const queuedId = queue[queueIndex]?.id;
+  const videosLoaded = !!currentSong && videosLoadedFor === currentSong.id && (!queuedId || queuedId === currentSong.id);
   const [videoStart, setVideoStart] = useState(0);
   const videoPosRef = useRef<() => number>(() => 0);
   const mode: PlayerMode = videoMode ? "video" : isKaraoke ? "karaoke" : "song";
