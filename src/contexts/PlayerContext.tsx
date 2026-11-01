@@ -50,6 +50,10 @@ interface PlayerContextType {
   playVideo: (song: PlayerSong) => void;
   /** Play a queue that stays in Video mode, advancing when each video ends. */
   playVideoQueue: (songs: PlayerSong[], startIndex?: number) => void;
+  /** Play a queue that stays in Karaoke mode, advancing to each next instrumental. */
+  singQueue: (songs: PlayerSong[], startIndex?: number) => void;
+  /** Jump to a queue position, keeping the current mode. */
+  playQueueIndex: (index: number, opts?: { autoplay?: boolean }) => void;
   requestVideoMode: () => void;
   videoModeRequest: boolean;
   clearVideoModeRequest: () => void;
@@ -64,7 +68,8 @@ interface PlayerContextType {
   skipNext: (opts?: { autoplay?: boolean } | unknown) => void;
   /** True while the current track is waiting on the network. */
   isBuffering: boolean;
-  skipPrev: () => void;
+  /** Pass { force: true } to always go back a song instead of restarting the current one. */
+  skipPrev: (opts?: { autoplay?: boolean; force?: boolean } | unknown) => void;
   cycleRepeat: () => void;
   toggleShuffle: () => void;
   setVolume: (v: number) => void;
@@ -694,7 +699,15 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
   const playVideo = useCallback((song: PlayerSong) => {
     if (!featuresRef.current("video")) return;
-    startSong(song, "video");
+    // Tapping a song that is already in the queue keeps the queue, so videos keep flowing after it.
+    const existing = queueRef.current.findIndex((s) => s.id === song.id);
+    if (queueRef.current.length > 1 && existing >= 0) {
+      sessionModeRef.current = "video";
+      isKaraokeRef.current = false;
+      advanceToRef.current(existing, false, true);
+    } else {
+      startSong(song, "video");
+    }
     setIsExpanded(true);
     setVideoModeRequest(true);
   }, [startSong]);
@@ -712,15 +725,19 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const clearKaraokeModeRequest = useCallback(() => setKaraokeModeRequest(false), []);
 
   const startQueue = useCallback((songs: PlayerSong[], startIndex: number, karaoke: boolean, video: boolean) => {
-    const q = shuffleOnRef.current ? shuffleArray(songs) : songs;
+    // With shuffle on, the tapped song still plays first; the rest follow in shuffled order.
+    const chosen = songs[startIndex];
+    const shuffled = shuffleOnRef.current && chosen;
+    const q = shuffled ? [chosen, ...shuffleArray(songs.filter((_, i) => i !== startIndex))] : songs;
+    const idx = shuffled ? 0 : startIndex;
     resolvedCacheRef.current.clear();
     sessionModeRef.current = video ? "video" : "song";
     queueRef.current = q;
-    queueIndexRef.current = startIndex;
+    queueIndexRef.current = idx;
     setQueue(q);
-    setQueueIndex(startIndex);
-    if (q[startIndex]) {
-      resolvePreferred(q[startIndex]).then((s) => {
+    setQueueIndex(idx);
+    if (q[idx]) {
+      resolvePreferred(q[idx]).then((s) => {
         internalPlay(s, karaoke);
         recordPlayFn(s.id, karaoke ? "karaoke" : video ? "video" : "song");
       });
@@ -731,12 +748,24 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     startQueue(songs, startIndex, !!opts?.karaoke, false);
   }, [startQueue]);
 
+  const singQueue = useCallback((songs: PlayerSong[], startIndex = 0) => {
+    if (!featuresRef.current("karaoke")) return;
+    startQueue(songs, startIndex, true, false);
+    setIsExpanded(true);
+    setKaraokeModeRequest(true);
+  }, [startQueue]);
+
   const playVideoQueue = useCallback((songs: PlayerSong[], startIndex = 0) => {
     if (!featuresRef.current("video")) return;
     startQueue(songs, startIndex, false, true);
     setIsExpanded(true);
     setVideoModeRequest(true);
   }, [startQueue]);
+
+  const playQueueIndex = useCallback((index: number, opts?: { autoplay?: boolean }) => {
+    if (!queueRef.current[index]) return;
+    advanceToRef.current(index, isKaraokeRef.current, opts?.autoplay ?? true);
+  }, []);
 
   const skipNext = useCallback((opts?: { autoplay?: boolean } | unknown) => {
     const flag = (opts as { autoplay?: unknown } | undefined)?.autoplay;
@@ -746,21 +775,23 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     advanceToRef.current(nextIdx, isKaraokeRef.current, autoplay);
   }, []);
 
-  const skipPrev = useCallback(() => {
-    if (queue.length === 0) return;
-    if (audioRef.current && audioRef.current.currentTime > 3) {
+  const skipPrev = useCallback((opts?: { autoplay?: boolean; force?: boolean } | unknown) => {
+    const o = (opts ?? {}) as { autoplay?: unknown; force?: unknown };
+    const autoplay = typeof o.autoplay === "boolean" ? o.autoplay : true;
+    const force = o.force === true; // Video mode: always go to the previous song
+    const q = queueRef.current;
+    if (q.length === 0) return;
+    if (!force && audioRef.current && audioRef.current.currentTime > 3) {
       audioRef.current.currentTime = 0;
       return;
     }
-    let prevIdx = queueIndex - 1;
+    let prevIdx = queueIndexRef.current - 1;
     if (prevIdx < 0) {
-      if (repeatMode === "all") prevIdx = queue.length - 1;
-      else { if (audioRef.current) audioRef.current.currentTime = 0; return; }
+      if (repeatModeRef.current === "all") prevIdx = q.length - 1;
+      else { if (!force && audioRef.current) audioRef.current.currentTime = 0; return; }
     }
-    setQueueIndex(prevIdx);
-    internalPlay(queue[prevIdx], isKaraoke);
-    recordPlayFn(queue[prevIdx].id);
-  }, [queue, queueIndex, repeatMode, isKaraoke, internalPlay, recordPlayFn]);
+    advanceToRef.current(prevIdx, isKaraokeRef.current, autoplay);
+  }, []);
 
   skipNextRef.current = skipNext;
   skipPrevRef.current = skipPrev;
@@ -852,7 +883,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       currentSong, isPlaying, isKaraoke, isExpanded, progress, duration,
       currentTime, lrcLines, staticLyrics, activeLrcIndex, repeatMode, shuffleOn,
       queue, queueIndex, volume, trackEndCount, playSong, playQueue, togglePlay,
-      playVideo, playVideoQueue, requestVideoMode, videoModeRequest, clearVideoModeRequest,
+      playVideo, playVideoQueue, singQueue, playQueueIndex, requestVideoMode, videoModeRequest, clearVideoModeRequest,
       singThis, karaokeModeRequest, clearKaraokeModeRequest,
       toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev, isBuffering,
       cycleRepeat, toggleShuffle, setVolume, applyLyrics, handoffPause, resumeAt,

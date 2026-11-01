@@ -27,6 +27,7 @@ import ShareTrackButton from "@/components/share/ShareTrackButton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Video } from "lucide-react";
 import VideoMode, { SongVideo } from "@/components/player/VideoMode";
+import { nextVideoIndex, upcomingIndices } from "@/lib/videoQueue";
 import LyricsLanguageSheet from "@/components/player/LyricsLanguageSheet";
 import PlaybackProgress from "@/components/player/PlaybackProgress";
 
@@ -87,7 +88,7 @@ const ExpandedPlayer = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
   const isMobile = useIsMobile();
-  const { handoffPause, resumeAt, requestVideoMode, videoModeRequest, clearVideoModeRequest, karaokeModeRequest, clearKaraokeModeRequest } = usePlayer();
+  const { handoffPause, resumeAt, requestVideoMode, videoModeRequest, clearVideoModeRequest, karaokeModeRequest, clearKaraokeModeRequest, playQueueIndex } = usePlayer();
 
   // --- 3-mode player (Song | Karaoke | Video) with seamless position transfer ---
   const [videos, setVideos] = useState<SongVideo[]>([]);
@@ -177,6 +178,47 @@ const ExpandedPlayer = () => {
       resumeAt(0);
     }
   }, [videoModeRequest, videosLoaded, videos, videoMode, clearVideoModeRequest, resumeAt]);
+
+  // Continuous Video mode: when a video ends, jump to the next queued song that has a video
+  // (skipping songs without one) and stay in Video mode. The next track loads paused so its
+  // audio never overlaps the video hand-off. With no video ahead, play the next song's audio.
+  const advancingRef = useRef(false);
+  const advanceVideo = useCallback(async () => {
+    if (advancingRef.current) return;
+    const order = upcomingIndices(queue.length, queueIndex, repeatMode);
+    if (!order.length) return;
+    advancingRef.current = true;
+    try {
+      const ids = order.map((i) => queue[i].id);
+      const withVideo = new Set<string>();
+      if (navigator.onLine) {
+        const { data, error } = await supabase.from("song_videos").select("song_id").in("song_id", ids).eq("is_active", true);
+        if (!error) (data || []).forEach((r) => withVideo.add(r.song_id));
+      }
+      if (!withVideo.size) {
+        // Offline: saved downloads that include their video.
+        const saved = await Promise.all(ids.slice(0, 20).map((id) => getDownloadedTrack(id).then((t) => (t?.video ? id : null)).catch(() => null)));
+        saved.forEach((id) => id && withVideo.add(id));
+      }
+      const target = nextVideoIndex(queue, queueIndex, repeatMode, (id) => withVideo.has(id));
+      requestVideoMode();
+      if (target >= 0) playQueueIndex(target, { autoplay: false });
+      else skipNext({ autoplay: false });
+    } finally {
+      advancingRef.current = false;
+    }
+  }, [queue, queueIndex, repeatMode, requestVideoMode, playQueueIndex, skipNext]);
+
+  // Manual skips while watching stay in Video mode.
+  const handleNext = useCallback(() => {
+    if (videoMode) advanceVideo();
+    else skipNext();
+  }, [videoMode, advanceVideo, skipNext]);
+  const handlePrev = useCallback(() => {
+    if (videoMode) {
+      if (queueIndex > 0 || repeatMode === "all") { requestVideoMode(); skipPrev({ autoplay: false, force: true }); }
+    } else skipPrev();
+  }, [videoMode, queueIndex, repeatMode, requestVideoMode, skipPrev]);
 
   // Honor a "sing this" request from the Moments feed: switch to Karaoke mode.
   useEffect(() => {
@@ -461,11 +503,9 @@ const ExpandedPlayer = () => {
             video={videos[0]}
             startAt={videoStart}
             positionRef={videoPosRef}
-            onEnded={() => {
-              // Continuous Video mode: move to the next song and stay in Video mode.
-              // Load the next track paused so its audio never overlaps the video hand-off.
-              if (queueIndex < queue.length - 1 || repeatMode === "all") { requestVideoMode(); skipNext({ autoplay: false }); }
-            }}
+            onEnded={advanceVideo}
+            onPrev={queueIndex > 0 || repeatMode === "all" ? handlePrev : undefined}
+            onNext={upcomingIndices(queue.length, queueIndex, repeatMode).length ? advanceVideo : undefined}
           />
         ) : !showLyrics ? (
           <div className="flex-1 flex flex-col items-center justify-center px-8 min-h-0">
@@ -574,7 +614,7 @@ const ExpandedPlayer = () => {
             <button onClick={toggleShuffle} className={`transition-all duration-200 hover:scale-110 ${shuffleOn ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>
               <Shuffle className="w-5 h-5" />
             </button>
-            <button onClick={skipPrev} className="text-foreground hover:text-gold hover:scale-110 transition-all duration-200 active:scale-95">
+            <button onClick={handlePrev} aria-label="Previous song" className="text-foreground hover:text-gold hover:scale-110 transition-all duration-200 active:scale-95">
               <SkipBack className="w-7 h-7" fill="currentColor" />
             </button>
             <button onClick={togglePlay}
@@ -582,7 +622,7 @@ const ExpandedPlayer = () => {
             >
               {isPlaying ? <Pause className="w-8 h-8 text-white drop-shadow-sm" fill="currentColor" /> : <Play className="w-8 h-8 text-white ml-1 drop-shadow-sm" fill="currentColor" />}
             </button>
-            <button onClick={skipNext} className="text-foreground hover:text-gold hover:scale-110 transition-all duration-200 active:scale-95">
+            <button onClick={handleNext} aria-label="Next song" className="text-foreground hover:text-gold hover:scale-110 transition-all duration-200 active:scale-95">
               <SkipForward className="w-7 h-7" fill="currentColor" />
             </button>
             <button onClick={cycleRepeat} className={`relative transition-all duration-200 hover:scale-110 ${repeatMode !== "off" ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>

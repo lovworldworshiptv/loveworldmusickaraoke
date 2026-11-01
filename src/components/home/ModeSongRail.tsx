@@ -14,7 +14,7 @@ interface Props { mode: "video" | "karaoke"; eyebrow: string; title: string }
 const ModeSongRail = ({ mode, eyebrow, title }: Props) => {
   const [songs, setSongs] = useState<SongRow[]>([]);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
-  const { playVideo, singThis } = usePlayer();
+  const { playVideoQueue, singQueue } = usePlayer();
   const content = useSetting<HomeSectionContent>(SETTING_KEYS.homeSectionContent);
   const text = mode === "karaoke" ? sectionText(content, "karaoke") : { eyebrow, title };
 
@@ -58,7 +58,11 @@ const ModeSongRail = ({ mode, eyebrow, title }: Props) => {
       <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 touch-pan-x overscroll-x-contain">
         {songs.map((s, i) => (
           <button key={s.id}
-            onClick={() => (mode === "video" ? playVideo(toPlayerSong(s)) : singThis(toPlayerSong(s)))}
+            onClick={() => {
+              // Queue the whole rail so play continues through every video / karaoke track.
+              const queue = songs.map(toPlayerSong);
+              if (mode === "video") playVideoQueue(queue, i); else singQueue(queue, i);
+            }}
             aria-label={`${mode === "video" ? "Watch" : "Sing"} ${s.title}`}
             className={`snap-start flex-shrink-0 text-left group active:scale-[0.97] transition-transform touch-manipulation ${mode === "video" ? "w-[calc(80%-0.6rem)] md:w-[calc(44.4%_-_0.4rem)] lg:w-[29.6%]" : "w-36"}`}>
             <div className={`relative rounded-2xl overflow-hidden bg-muted ${mode === "video" ? "aspect-[16/10.8]" : "aspect-square"}`}>

@@ -23,7 +23,7 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 const Videos = () => {
-  const { playVideo, currentSong } = usePlayer();
+  const { playVideoQueue, currentSong } = usePlayer();
   const { save, canSave } = useSaveSong();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
@@ -125,14 +125,14 @@ const Videos = () => {
           />
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filtered.map((song) => {
+            {filtered.map((song, index) => {
               const thumb = song.song_videos.find((v) => v.thumbnail_url)?.thumbnail_url || song.cover_url;
               const typeLabel = TYPE_LABEL[song.song_videos[0]?.video_type] || "Video";
               const isCurrent = currentSong?.id === song.id;
               return (
                 <div key={song.id} className="relative">
                 <button
-                  onClick={() => playVideo(toPlayerSong(song))}
+                  onClick={() => playVideoQueue(filtered.map(toPlayerSong), index)}
                   className="w-full group text-left rounded-2xl active:scale-[0.98] touch-manipulation overflow-hidden bg-card/60 backdrop-blur-xl border border-border/50 hover:border-amber-400/40 transition-all hover:shadow-[0_0_24px_rgba(251,191,36,0.15)]"
                 >
                   <div className="relative aspect-video bg-muted overflow-hidden">
