@@ -1,9 +1,27 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePlayer } from "@/contexts/PlayerContext";
-import { X, Play, Pause, SkipBack, SkipForward, Minus, Plus, Music, Volume2, VolumeX, Hand, WandSparkles, Images, Video } from "lucide-react";
+import { X, Play, Pause, SkipBack, SkipForward, Minus, Plus, Music, Volume2, VolumeX, Hand, WandSparkles, Images, Video, Type, Check, Image as ImageIcon } from "lucide-react";
 import { DEFAULT_STAGE_MODE, resolveStageMediaUrl, SETTING_KEYS, type StageModeSetting, useSetting } from "@/lib/siteSettings";
+import {
+  filterStageChoices, loadStageFonts, resolveStageFont, STAGE_BACKGROUND_STORAGE_KEY, STAGE_FONT_STORAGE_KEY, STAGE_FONTS,
+  stageLibrary, type StageBackgroundTab,
+} from "@/lib/stageBackgrounds";
 import { Button } from "@/components/ui/button";
+
+const BACKGROUND_TABS: { id: StageBackgroundTab; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "motion", label: "Motion" },
+  { id: "still", label: "Still" },
+  { id: "song", label: "This song" },
+];
+
+const readStored = (key: string) => {
+  try { return localStorage.getItem(key); } catch { return null; }
+};
+const writeStored = (key: string, value: string) => {
+  try { localStorage.setItem(key, value); } catch { /* private mode */ }
+};
 
 const FONT_STEPS = ["text-2xl", "text-3xl", "text-4xl", "text-5xl", "text-6xl"];
 
@@ -30,7 +48,11 @@ const StageMode = () => {
   const [lyricsMode, setLyricsMode] = useState<"sync" | "manual">("sync");
   const [selectedLineIndex, setSelectedLineIndex] = useState<number | null>(null);
   const [backgroundMenuOpen, setBackgroundMenuOpen] = useState(false);
-  const [selectedBackgroundId, setSelectedBackgroundId] = useState("song");
+  const [selectedBackgroundId, setSelectedBackgroundId] = useState(() => readStored(STAGE_BACKGROUND_STORAGE_KEY) || "song");
+  const [backgroundTab, setBackgroundTab] = useState<StageBackgroundTab>("all");
+  const [fontMenuOpen, setFontMenuOpen] = useState(false);
+  const [fontId, setFontId] = useState(() => resolveStageFont(readStored(STAGE_FONT_STORAGE_KEY)).id);
+  const stageFont = resolveStageFont(fontId);
   const previousVolume = useRef(volume > 0 ? volume : 0.7);
   const setting = useSetting<StageModeSetting>(SETTING_KEYS.stageMode);
   const globalStage = { ...DEFAULT_STAGE_MODE, ...(setting || {}) };
@@ -46,15 +68,16 @@ const StageMode = () => {
   const backgroundChoices = useMemo(() => {
     const choices = [
       { id: "song", name: "Song background", ...stage },
-      ...(currentSong.coverUrl
+      ...(currentSong?.coverUrl
         ? [{ id: "artwork", name: "Song artwork", backgroundColor: stage.backgroundColor, mediaType: "image" as const, mediaUrl: currentSong.coverUrl }]
         : []),
-      ...(setting?.backgroundLibrary || []),
+      ...stageLibrary(setting),
     ];
     return choices.filter((choice, index) => choices.findIndex((candidate) =>
       candidate.mediaType === choice.mediaType && candidate.mediaUrl === choice.mediaUrl && candidate.backgroundColor === choice.backgroundColor
     ) === index);
-  }, [currentSong.coverUrl, setting?.backgroundLibrary, stage]);
+  }, [currentSong?.coverUrl, setting, stage]);
+  const visibleChoices = filterStageChoices(backgroundChoices, backgroundTab);
   const activeStage = backgroundChoices.find((choice) => choice.id === selectedBackgroundId) || backgroundChoices[0] || stage;
   const staticLines = useMemo(
     () => (hasSync ? [] : staticLyrics.split("\n").map((l) => l.trim()).filter(Boolean)),
@@ -75,10 +98,27 @@ const StageMode = () => {
     };
   }, [pokeControls]);
 
+  // The listener's background choice carries across songs; menus close on song change.
   useEffect(() => {
-    setSelectedBackgroundId("song");
     setBackgroundMenuOpen(false);
-  }, [currentSong.id]);
+    setFontMenuOpen(false);
+  }, [currentSong?.id]);
+
+  useEffect(() => { loadStageFonts(); }, []);
+
+  const chooseBackground = (id: string) => {
+    setSelectedBackgroundId(id);
+    writeStored(STAGE_BACKGROUND_STORAGE_KEY, id);
+    setBackgroundMenuOpen(false);
+    pokeControls();
+  };
+
+  const chooseFont = (id: string) => {
+    setFontId(id);
+    writeStored(STAGE_FONT_STORAGE_KEY, id);
+    setFontMenuOpen(false);
+    pokeControls();
+  };
 
   // Keep the screen awake while on stage.
   useEffect(() => {
