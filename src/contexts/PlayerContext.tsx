@@ -2,6 +2,7 @@ import { useFeatures } from "@/contexts/FeatureContext";
 import { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchContinuation, type ContinueMode } from "@/lib/autoContinue";
+import { moveItem, removeItem, playNextItem, insertItem, type QueueEdit } from "@/lib/queueOps";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -82,6 +83,13 @@ interface PlayerContextType {
   setSessionMode: (mode: "song" | "video") => void;
   /** Adds more songs for the mode once the queue is done; resolves to the first new index or -1. */
   extendQueue: (mode: ContinueMode) => Promise<number>;
+  /** Songs added automatically after the listener's own list ran out. */
+  autoAddedIds: ReadonlySet<string>;
+  /** Queue edits for Up Next; the song playing now keeps playing and stays current. */
+  reorderQueue: (from: number, to: number) => void;
+  removeFromQueue: (index: number) => void;
+  playNextInQueue: (index: number) => void;
+  insertIntoQueue: (song: PlayerSong, at: number) => void;
 }
 
 // Keep one context instance across hot reloads so consumers and provider never mismatch.
