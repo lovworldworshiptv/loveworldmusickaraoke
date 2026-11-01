@@ -38,3 +38,27 @@ export function insertItem<T>(q: T[], current: number, item: T, at: number): Que
   const queue = [...q.slice(0, pos), item, ...q.slice(pos)];
   return { queue, index: current >= 0 && current >= pos ? current + 1 : current };
 }
+
+/** Shuffles only the songs after the one playing now (it keeps playing, nothing before it moves). */
+export function shuffleAfter<T>(q: T[], current: number, random: () => number = Math.random): QueueEdit<T> | null {
+  const start = Math.max(0, current + 1);
+  if (q.length - start < 2) return null;
+  const rest = q.slice(start);
+  for (let i = rest.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [rest[i], rest[j]] = [rest[j], rest[i]];
+  }
+  return { queue: [...q.slice(0, start), ...rest], index: current };
+}
+
+/** Shuffle off: puts the songs after the playing one back in their earlier order (new songs stay at the end). */
+export function restoreAfter<T>(q: T[], current: number, originalOrder: string[], key: (item: T) => string): QueueEdit<T> | null {
+  const start = Math.max(0, current + 1);
+  if (q.length - start < 2) return null;
+  const rank = new Map(originalOrder.map((id, i) => [id, i]));
+  const rest = q.slice(start)
+    .map((item, i) => ({ item, i, r: rank.get(key(item)) ?? Number.MAX_SAFE_INTEGER }))
+    .sort((a, b) => a.r - b.r || a.i - b.i)
+    .map((x) => x.item);
+  return { queue: [...q.slice(0, start), ...rest], index: current };
+}

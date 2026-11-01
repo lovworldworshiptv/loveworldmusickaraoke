@@ -60,3 +60,20 @@ describe("insertItem (Undo)", () => {
     expect(insertItem(removed.queue, removed.index, "d", 3)).toEqual({ queue: q, index: 1 });
   });
 });
+
+describe("video shuffle", () => {
+  it("shuffles only the songs after the playing one and keeps it current", async () => {
+    const { shuffleAfter } = await import("./queueOps");
+    const seq = [0.1, 0.9, 0.5, 0.3];
+    let n = 0;
+    const r = shuffleAfter(q, 1, () => seq[n++ % seq.length])!;
+    expect(r.index).toBe(1);
+    expect(r.queue.slice(0, 2)).toEqual(["a", "b"]);
+    expect([...r.queue.slice(2)].sort()).toEqual(["c", "d", "e"]);
+  });
+  it("turning shuffle off restores the earlier order, keeping newly added songs at the end", async () => {
+    const { restoreAfter } = await import("./queueOps");
+    const r = restoreAfter(["a", "b", "e", "x", "c", "d"], 1, q, (s) => s)!;
+    expect(r).toEqual({ queue: ["a", "b", "c", "d", "e", "x"], index: 1 });
+  });
+});
