@@ -89,3 +89,46 @@ describe("playback exclusivity", () => {
     expect(playing()[0].src).toMatch(/a\.mp3$/);
   });
 });
+
+describe("continuous play in each mode", () => {
+  beforeEach(() => {
+    created.length = 0; localStorage.clear(); vi.stubGlobal("Audio", FakeAudio as any);
+    featureState.karaoke = true; featureState.video = true; featureState.translations = true;
+  });
+
+  it("a karaoke rail keeps singing: the next song plays its instrumental when one ends", async () => {
+    render(<PlayerProvider><Grab /></PlayerProvider>);
+    act(() => api.singQueue([songA, songB], 0));
+    await waitFor(() => expect(playing()[0]?.src).toContain("a-inst.mp3"));
+    act(() => { playing()[0].onended?.(); });
+    await waitFor(() => expect(playing()[0]?.src).toContain("b-inst.mp3"));
+    expect(api.isKaraoke).toBe(true);
+    expect(api.queueIndex).toBe(1);
+  });
+
+  it("a video rail queues every song so the next video can follow", async () => {
+    render(<PlayerProvider><Grab /></PlayerProvider>);
+    act(() => api.playVideoQueue([songA, songB], 1));
+    await waitFor(() => expect(api.currentSong?.id).toBe("b"));
+    expect(api.queue.map((s) => s.id)).toEqual(["a", "b"]);
+    expect(api.videoModeRequest).toBe(true);
+  });
+
+  it("watching a song already in the queue keeps the rest of the queue", async () => {
+    render(<PlayerProvider><Grab /></PlayerProvider>);
+    act(() => api.playQueue([songA, songB], 0));
+    await waitFor(() => expect(api.currentSong?.id).toBe("a"));
+    act(() => api.playVideo(songB));
+    await waitFor(() => expect(api.currentSong?.id).toBe("b"));
+    expect(api.queue).toHaveLength(2);
+  });
+
+  it("skipping back in Video mode goes to the previous song, even mid-track", async () => {
+    render(<PlayerProvider><Grab /></PlayerProvider>);
+    act(() => api.playVideoQueue([songA, songB], 1));
+    await waitFor(() => expect(api.currentSong?.id).toBe("b"));
+    playing()[0].currentTime = 50;
+    act(() => api.skipPrev({ autoplay: false, force: true }));
+    await waitFor(() => expect(api.currentSong?.id).toBe("a"));
+  });
+});
