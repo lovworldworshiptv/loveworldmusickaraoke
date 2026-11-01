@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import SettingSongPicker from "@/components/admin/SettingSongPicker";
 import AppUpdateEditor from "@/components/admin/AppUpdateEditor";
-import { ArrowDown, ArrowUp, GripVertical, Image, Loader2, Trash2, Upload, Video } from "lucide-react";
+import StageLibraryEditor from "@/components/admin/StageLibraryEditor";
+import { stageLibrary } from "@/lib/stageBackgrounds";
+import { ArrowDown, ArrowUp, Image, Loader2, Upload, Video } from "lucide-react";
 import { toast } from "sonner";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,9 +72,6 @@ const AdminAppearance = () => {
   const [stageSongId, setStageSongId] = useState("global");
   const [stageSongs, setStageSongs] = useState<SongLite[]>([]);
   const [stageUploading, setStageUploading] = useState(false);
-  const [stageChoiceName, setStageChoiceName] = useState("");
-  const [stageDragId, setStageDragId] = useState<string | null>(null);
-  const [stageDragOverId, setStageDragOverId] = useState<string | null>(null);
 
   useEffect(() => { if (!loading && !isAdmin) navigate("/"); }, [isAdmin, loading, navigate]);
 
@@ -177,41 +176,21 @@ const AdminAppearance = () => {
     setStageUploading(false);
   };
 
-  const addStageChoice = async () => {
-    const name = stageChoiceName.trim();
-    if (!name) return toast.error("Add a name for this background");
-    const choice = {
-      id: crypto.randomUUID(),
-      name,
-      backgroundColor: stageEditor.backgroundColor,
-      mediaType: stageEditor.mediaType,
-      mediaUrl: stageEditor.mediaUrl,
-    };
-    const next = { ...stage, backgroundLibrary: [...(stage.backgroundLibrary || []), choice] };
+  const saveStageLibrary = async (library: StageModeSetting["backgroundLibrary"], message: string) => {
+    const next = { ...stage, backgroundLibrary: library };
     setStage(next);
-    setStageChoiceName("");
     const { error } = await saveSetting(SETTING_KEYS.stageMode, next);
-    error ? toast.error("Could not add background") : toast.success("Background added to Stage choices");
+    if (error) { toast.error("Could not save backgrounds"); return false; }
+    toast.success(message);
+    return true;
   };
 
-  const removeStageChoice = async (id: string) => {
-    const next = { ...stage, backgroundLibrary: (stage.backgroundLibrary || []).filter((choice) => choice.id !== id) };
+  const useLibraryForAll = async (choice: NonNullable<StageModeSetting["backgroundLibrary"]>[number]) => {
+    const next = { ...stage, backgroundColor: choice.backgroundColor, mediaType: choice.mediaType, mediaUrl: choice.mediaUrl };
     setStage(next);
+    if (stageSongId === "global") setStageEditor({ ...DEFAULT_STAGE_MODE, ...next });
     const { error } = await saveSetting(SETTING_KEYS.stageMode, next);
-    error ? toast.error("Could not remove background") : toast.success("Background removed");
-  };
-
-  const reorderStageChoices = async (fromId: string, toId: string) => {
-    const list = [...(stage.backgroundLibrary || [])];
-    const from = list.findIndex((c) => c.id === fromId);
-    const to = list.findIndex((c) => c.id === toId);
-    if (from < 0 || to < 0 || from === to) return;
-    const [moved] = list.splice(from, 1);
-    list.splice(to, 0, moved);
-    const next = { ...stage, backgroundLibrary: list };
-    setStage(next);
-    const { error } = await saveSetting(SETTING_KEYS.stageMode, next);
-    error ? toast.error("Could not save order") : toast.success("Background order saved");
+    error ? toast.error("Could not set default background") : toast.success(`${choice.name} is now the default for all songs`);
   };
 
   if (loading) return null;
@@ -288,36 +267,6 @@ const AdminAppearance = () => {
                 <Button onClick={() => saveStage()}>Save Stage Mode</Button>
                 <Button variant="outline" onClick={resetStageTarget}>{stageSongId === "global" ? "Reset" : "Use global"}</Button>
               </div>
-              <div className="space-y-2 border-t border-border pt-3">
-                <p className="text-xs font-semibold text-foreground">Stage background choices</p>
-                <div className="flex gap-2">
-                  <Input value={stageChoiceName} onChange={(e) => setStageChoiceName(e.target.value)} placeholder="Background name" />
-                  <Button type="button" variant="outline" onClick={addStageChoice}>Add</Button>
-                </div>
-                {(stage.backgroundLibrary || []).map((choice) => (
-                  <div
-                    key={choice.id}
-                    draggable
-                    onDragStart={(e) => { setStageDragId(choice.id); e.dataTransfer.effectAllowed = "move"; }}
-                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (stageDragOverId !== choice.id) setStageDragOverId(choice.id); }}
-                    onDragLeave={() => { if (stageDragOverId === choice.id) setStageDragOverId(null); }}
-                    onDrop={(e) => { e.preventDefault(); if (stageDragId) reorderStageChoices(stageDragId, choice.id); setStageDragId(null); setStageDragOverId(null); }}
-                    onDragEnd={() => { setStageDragId(null); setStageDragOverId(null); }}
-                    className={`flex items-center gap-2 rounded-lg bg-muted/50 px-2 py-1.5 text-sm text-foreground transition-all ${
-                      stageDragId === choice.id ? "opacity-40" : ""
-                    } ${stageDragOverId === choice.id && stageDragId !== choice.id ? "ring-1 ring-gold/60 translate-y-0.5" : ""}`}
-                  >
-                    <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing" aria-label={`Drag to reorder ${choice.name}`} />
-                    <span className="flex-1 truncate">{choice.name}</span>
-                    <Button type="button" size="icon" variant="ghost" aria-label={`Remove ${choice.name}`} onClick={() => removeStageChoice(choice.id)} className="h-8 w-8">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                ))}
-                {(stage.backgroundLibrary || []).length > 1 && (
-                  <p className="text-[11px] text-muted-foreground">Drag the handles to set the order listeners see in Stage Mode.</p>
-                )}
-              </div>
             </div>
             <div className="relative aspect-video overflow-hidden rounded-xl border border-border" style={{ backgroundColor: stageEditor.backgroundColor }}>
               {stageEditor.mediaType === "image" && stageEditor.mediaUrl && <img src={resolveStageMediaUrl(stageEditor.mediaUrl)} alt="Stage background preview" className="absolute inset-0 w-full h-full object-cover" />}
@@ -326,6 +275,15 @@ const AdminAppearance = () => {
               <p className="absolute inset-0 flex items-center justify-center px-5 text-center font-serif font-bold text-foreground">Your lyrics will appear here</p>
             </div>
           </div>
+        </Card>
+
+        <Card title="Stage Mode backgrounds for all songs">
+          <StageLibraryEditor
+            library={stageLibrary(stage)}
+            onSave={saveStageLibrary}
+            onUseForAll={useLibraryForAll}
+            globalMediaUrl={stage.mediaType === "none" ? undefined : stage.mediaUrl}
+          />
         </Card>
 
         <Card title="Playlist card colours">
