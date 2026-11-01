@@ -724,14 +724,17 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
   const startSong = useCallback((song: PlayerSong, mode: PlayMode) => {
     resolvedCacheRef.current.clear();
-    sessionModeRef.current = mode === "video" ? "video" : "song";
+    setSessionMode(mode === "video" ? "video" : "song");
+    queueRef.current = [song];
+    queueIndexRef.current = 0;
     setQueue([song]);
     setQueueIndex(0);
     resolvePreferred(song).then((s) => {
-      internalPlay(s, false);
+      // Sing starts straight on the backing track, so the whole session stays karaoke.
+      internalPlay(s, mode === "karaoke");
       recordPlayFn(s.id, mode);
     });
-  }, [internalPlay, recordPlayFn, resolvePreferred]);
+  }, [internalPlay, recordPlayFn, resolvePreferred, setSessionMode]);
 
   const playSong = useCallback((song: PlayerSong) => startSong(song, "song"), [startSong]);
 
@@ -740,7 +743,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     // Tapping a song that is already in the queue keeps the queue, so videos keep flowing after it.
     const existing = queueRef.current.findIndex((s) => s.id === song.id);
     if (queueRef.current.length > 1 && existing >= 0) {
-      sessionModeRef.current = "video";
+      setSessionMode("video");
       isKaraokeRef.current = false;
       advanceToRef.current(existing, false, true);
     } else {
@@ -748,7 +751,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }
     setIsExpanded(true);
     setVideoModeRequest(true);
-  }, [startSong]);
+  }, [startSong, setSessionMode]);
 
   const clearVideoModeRequest = useCallback(() => setVideoModeRequest(false), []);
   const requestVideoMode = useCallback(() => setVideoModeRequest(true), []);
@@ -769,7 +772,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     const q = shuffled ? [chosen, ...shuffleArray(songs.filter((_, i) => i !== startIndex))] : songs;
     const idx = shuffled ? 0 : startIndex;
     resolvedCacheRef.current.clear();
-    sessionModeRef.current = video ? "video" : "song";
+    setSessionMode(video ? "video" : "song");
     queueRef.current = q;
     queueIndexRef.current = idx;
     setQueue(q);
@@ -780,7 +783,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         recordPlayFn(s.id, karaoke ? "karaoke" : video ? "video" : "song");
       });
     }
-  }, [internalPlay, recordPlayFn, resolvePreferred]);
+  }, [internalPlay, recordPlayFn, resolvePreferred, setSessionMode]);
 
   const playQueue = useCallback((songs: PlayerSong[], startIndex = 0, opts?: { karaoke?: boolean }) => {
     startQueue(songs, startIndex, !!opts?.karaoke, false);
@@ -808,10 +811,16 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const skipNext = useCallback((opts?: { autoplay?: boolean } | unknown) => {
     const flag = (opts as { autoplay?: unknown } | undefined)?.autoplay;
     const autoplay = typeof flag === "boolean" ? flag : true;
-    const nextIdx = findNextIndex(queueRef.current, queueIndexRef.current, repeatModeRef.current);
-    if (nextIdx < 0) return;
-    advanceToRef.current(nextIdx, isKaraokeRef.current, autoplay);
-  }, []);
+    const karaoke = isKaraokeRef.current;
+    const nextIdx = findNextIndex(queueRef.current, queueIndexRef.current, repeatModeRef.current, karaoke ? hasBackingTrack : undefined);
+    if (nextIdx >= 0) { advanceToRef.current(nextIdx, karaoke, autoplay); return; }
+    // End of the list: keep going with more songs in the same mode.
+    const from = audioRef.current;
+    resolveNext(karaoke).then((idx) => {
+      if (idx < 0 || audioRef.current !== from || idx === queueIndexRef.current) return;
+      advanceToRef.current(idx, isKaraokeRef.current, autoplay);
+    });
+  }, [resolveNext]);
 
   const skipPrev = useCallback((opts?: { autoplay?: boolean; force?: boolean } | unknown) => {
     const o = (opts ?? {}) as { autoplay?: unknown; force?: unknown };
