@@ -48,12 +48,14 @@ interface Props {
   onRepeat?: () => void;
   /** Phone Up Next layout: 30% less space between the controls and the Up Next strip. */
   tightBottom?: boolean;
+  /** The next video is loading: hold this one paused behind a spinner (the frame stays, so full screen stays). */
+  pending?: boolean;
 }
 
 const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
 
 /** Plays a song's video from the audio position with its own transport controls. */
-const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext, playingRef, frameRef, slotRef, status, repeatOne, progressKey, overlay, shuffleOn, onShuffle, repeatMode = "off", onRepeat, tightBottom }: Props) => {
+const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext, playingRef, frameRef, slotRef, status, repeatOne, progressKey, overlay, shuffleOn, onShuffle, repeatMode = "off", onRepeat, tightBottom, pending }: Props) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const offset = (video.offset_ms || 0) / 1000;
@@ -142,7 +144,24 @@ const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext, playi
     if (v.paused) v.play().catch(() => {}); else v.pause();
   };
 
-  useEffect(() => { if (status) status.controls.toggle = toggle; });
+  useEffect(() => {
+    if (!status) return;
+    status.controls.toggle = toggle;
+    status.controls.seekBy = (s: number) => skipBy(s);
+    status.controls.restart = () => {
+      endedFiredRef.current = false;
+      if (yt) { ytCmd("seekTo", [0, true]); ytCmd("playVideo"); }
+      else if (videoRef.current) { videoRef.current.currentTime = 0; videoRef.current.play().catch(() => {}); }
+      setTime(0);
+    };
+  });
+
+  // Hold the finished video still while the next one is fetched.
+  useEffect(() => {
+    if (!pending) return;
+    if (yt) ytCmd("pauseVideo");
+    else videoRef.current?.pause();
+  }, [pending, yt]);
 
   useEffect(() => { endedFiredRef.current = false; }, [video.video_url]);
 
@@ -156,6 +175,11 @@ const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext, playi
   useEffect(() => {
     setFailed(pageLink ? "This video link points to a web page, not a video file. Ask an admin to update it." : null);
     setSlow(false);
+    // A new video in the same player: start its clock fresh (no stale time, length or countdown).
+    setReady(false);
+    setDur(0);
+    setTime(start);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [video.video_url, pageLink]);
 
   // Show a gentle "slow connection" hint, then a retry prompt if nothing arrives.
@@ -215,6 +239,20 @@ const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext, playi
     else if (videoRef.current) videoRef.current.currentTime = target;
     setTime(target);
   };
+
+  // ±30 seconds with a short on-video hint; reads the live position so quick repeated taps add up.
+  const [flash, setFlash] = useState<{ dir: 1 | -1; total: number; n: number } | null>(null);
+  const flashTimer = useRef<number | null>(null);
+  const skipBy = (seconds: number) => {
+    const now = videoRef.current && !yt ? videoRef.current.currentTime : timeRef.current;
+    const limit = dur ? Math.max(0, dur - 0.25) : Infinity;
+    seek(Math.min(limit, Math.max(0, now + seconds)));
+    const dir = seconds > 0 ? 1 : -1;
+    setFlash((f) => ({ dir, total: f && f.dir === dir ? f.total + Math.abs(seconds) : Math.abs(seconds), n: (f?.n ?? 0) + 1 }));
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = window.setTimeout(() => setFlash(null), 700);
+  };
+  useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
 
   const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
 
@@ -304,6 +342,18 @@ const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext, playi
             onEnded={() => endedRef.current?.()}
           />
         )}
+        {pending && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/70" aria-label="Loading next video">
+            <Loader2 className="w-7 h-7 animate-spin text-gold" />
+          </div>
+        )}
+        {flash && (
+          <div key={flash.n} aria-hidden="true"
+            className={`absolute top-1/2 -translate-y-1/2 z-20 pointer-events-none flex items-center gap-1 px-3 py-1.5 rounded-full bg-background/70 backdrop-blur-sm text-sm font-semibold text-foreground animate-fade-in ${flash.dir > 0 ? "right-[12%]" : "left-[12%]"}`}>
+            {flash.dir > 0 ? <RotateCw className="w-4 h-4 text-gold" /> : <RotateCcw className="w-4 h-4 text-gold" />}
+            {flash.dir > 0 ? "+" : "−"}{flash.total}s
+          </div>
+        )}
         {overlay}
         {canFullscreen && (
           <button type="button" onClick={toggleFullscreen} aria-label={isFs ? "Exit full screen" : "Full screen"}
@@ -334,12 +384,12 @@ const VideoMode = ({ video, startAt, positionRef, onEnded, onPrev, onNext, playi
             </button>
           )}
           {onPrev && <button onClick={onPrev} className="w-10 h-10 flex items-center justify-center text-foreground hover:text-gold" aria-label="Previous video"><SkipBack className="w-6 h-6" fill="currentColor" /></button>}
-          <button onClick={() => seek(time - 10)} className="w-10 h-10 flex items-center justify-center text-foreground hover:text-gold" aria-label="Back 10 seconds"><RotateCcw className="w-6 h-6" /></button>
+          <button onClick={() => skipBy(-30)} className="relative w-10 h-10 flex items-center justify-center text-foreground hover:text-gold active:scale-90 transition-transform" aria-label="Back 30 seconds"><RotateCcw className="w-7 h-7" /><span className="absolute inset-0 flex items-center justify-center pt-0.5 text-[9px] font-bold" aria-hidden="true">30</span></button>
           <button onClick={toggle} aria-label={playing ? "Pause video" : "Play video"}
             className="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_6px_30px_hsl(43_70%_53%/0.6)] hover:scale-105 active:scale-95 transition-all">
             {playing ? <Pause className="w-8 h-8 text-primary-foreground" fill="currentColor" /> : <Play className="w-8 h-8 text-primary-foreground ml-1" fill="currentColor" />}
           </button>
-          <button onClick={() => seek(time + 10)} className="w-10 h-10 flex items-center justify-center text-foreground hover:text-gold" aria-label="Forward 10 seconds"><RotateCw className="w-6 h-6" /></button>
+          <button onClick={() => skipBy(30)} className="relative w-10 h-10 flex items-center justify-center text-foreground hover:text-gold active:scale-90 transition-transform" aria-label="Forward 30 seconds"><RotateCw className="w-7 h-7" /><span className="absolute inset-0 flex items-center justify-center pt-0.5 text-[9px] font-bold" aria-hidden="true">30</span></button>
           {onNext && <button onClick={onNext} className="w-10 h-10 flex items-center justify-center text-foreground hover:text-gold" aria-label="Next video"><SkipForward className="w-6 h-6" fill="currentColor" /></button>}
           {onRepeat && (
             <button onClick={onRepeat} aria-label={repeatMode === "one" ? "Repeat this video" : repeatMode === "all" ? "Repeat all" : "Repeat off"}

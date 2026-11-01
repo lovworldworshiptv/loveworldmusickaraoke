@@ -8,7 +8,7 @@ export interface VideoStatusStore {
   set(patch: Partial<VideoStatus>): void;
   subscribe(listener: () => void): () => void;
   /** Filled in by the video on screen. */
-  controls: { toggle: () => void };
+  controls: { toggle: () => void; seekBy: (seconds: number) => void; restart: () => void };
 }
 
 export function createVideoStatus(): VideoStatusStore {
@@ -26,7 +26,7 @@ export function createVideoStatus(): VideoStatusStore {
       listeners.add(listener);
       return () => { listeners.delete(listener); };
     },
-    controls: { toggle: () => {} },
+    controls: { toggle: () => {}, seekBy: () => {}, restart: () => {} },
   };
 }
 

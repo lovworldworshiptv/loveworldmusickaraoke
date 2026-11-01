@@ -56,3 +56,16 @@ describe("Up Next order", () => {
     expect(upNextOrder(five, 2, "all", withVideo)[0]).toBe(nextVideoIndex(five, 2, "all", withVideo));
   });
 });
+
+describe("previous video", () => {
+  const five = ["a", "b", "c", "d", "e"].map((id) => ({ id }));
+  it("goes back to the closest earlier song that has a video, skipping ones without", async () => {
+    const { prevVideoIndex } = await import("./videoQueue");
+    expect(prevVideoIndex(five, 3, "off", (id) => id !== "c")).toBe(1);
+  });
+  it("stops at the start unless repeat-all is on", async () => {
+    const { prevVideoIndex } = await import("./videoQueue");
+    expect(prevVideoIndex(five, 0, "off", () => true)).toBe(-1);
+    expect(prevVideoIndex(five, 0, "all", () => true)).toBe(4);
+  });
+});

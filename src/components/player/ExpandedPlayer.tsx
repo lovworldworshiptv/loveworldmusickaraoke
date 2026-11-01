@@ -27,7 +27,7 @@ import ShareTrackButton from "@/components/share/ShareTrackButton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Video } from "lucide-react";
 import VideoMode, { SongVideo } from "@/components/player/VideoMode";
-import { nextVideoIndex, upcomingIndices, upNextOrder } from "@/lib/videoQueue";
+import { nextVideoIndex, prevVideoIndex, upcomingIndices, upNextOrder } from "@/lib/videoQueue";
 import UpNextSheet, { PEEK_HEIGHT, UpNextCountdown, useIsDesktop, useIsFullscreen, useQueueVideos, useVideoAutoplay } from "@/components/player/UpNextSheet";
 import { createVideoStatus } from "@/lib/videoProgress";
 import LyricsLanguageSheet from "@/components/player/LyricsLanguageSheet";
@@ -131,20 +131,44 @@ const ExpandedPlayer = () => {
     };
   }, [upNextOpen, isDesktop]);
 
+  // Moving to the next video keeps the same video player on screen (so full screen and the
+  // pinned Up Next video stay put); only a song change outside Video mode resets it.
+  const videoModeNowRef = useRef(videoMode);
+  videoModeNowRef.current = videoMode;
+  const videoRequestNowRef = useRef(videoModeRequest);
+  videoRequestNowRef.current = videoModeRequest;
+  const [swappingVideo, setSwappingVideo] = useState(false);
   useEffect(() => {
-    setVideoMode(false);
+    const continuing = videoModeNowRef.current && videoRequestNowRef.current && enabled("video") && !!currentSong;
+    let stale = false;
+    if (!continuing) { setVideoMode(false); setVideos([]); }
+    setSwappingVideo(continuing);
     setCancelledFor(null);
-    setVideos([]);
     setMotionArtworkUrl(null);
     setMotionArtworkReady(false);
     setMotionArtworkFailed(false);
     if (!currentSong) return;
     const songId = currentSong.id;
+    const useList = (list: SongVideo[]) => {
+      if (stale) return;
+      if (continuing) {
+        if (list.length) {
+          setVideoStart(handoffPause());
+          setVideos(list);
+          clearVideoModeRequest();
+        } else {
+          // No video for this song: leave Video mode so its audio carries the session.
+          setVideoMode(false);
+          setVideos([]);
+        }
+        setSwappingVideo(false);
+      } else setVideos(list);
+      setVideosLoadedFor(songId);
+    };
     // Downloaded video plays from the device when there is no connection.
     const loadOfflineVideo = async () => {
       const [track, url] = await Promise.all([getDownloadedTrack(songId).catch(() => null), getDownloadedVideoUrl(songId).catch(() => null)]);
-      if (track?.video && url) setVideos([{ ...track.video, video_url: url }]);
-      setVideosLoadedFor(songId);
+      useList(track?.video && url ? [{ ...track.video, video_url: url }] : []);
     };
     if (!navigator.onLine) { loadOfflineVideo(); }
     else supabase.from("song_videos").select("id, video_url, video_type, language_code, offset_ms, thumbnail_url")
@@ -154,11 +178,12 @@ const ExpandedPlayer = () => {
         const list = (data as SongVideo[]) || [];
         const order = ["official", "lyric", "live", "karaoke"];
         list.sort((a, b) => order.indexOf(a.video_type) - order.indexOf(b.video_type));
-        setVideos(list);
-        setVideosLoadedFor(songId);
+        useList(list);
       }, () => loadOfflineVideo());
     supabase.from("song_motion_artwork").select("video_url").eq("song_id", currentSong.id).eq("is_active", true).maybeSingle()
-      .then(({ data }) => setMotionArtworkUrl(data?.video_url || null));
+      .then(({ data }) => { if (!stale) setMotionArtworkUrl(data?.video_url || null); });
+    return () => { stale = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSong?.id]);
 
   const selectArtworkStyle = (motion: boolean) => {
@@ -256,13 +281,15 @@ const ExpandedPlayer = () => {
       let target = known
         ? upNextOrder(queue, queueIndex, repeatMode, queueVideos.has)[0] ?? -1
         : nextVideoIndex(queue, queueIndex, repeatMode, (id) => withVideo.has(id));
+      // Repeat-all with no other video to go to: play this one again.
+      if (target < 0 && repeatMode === "all" && videos.length) { videoStatus.controls.restart(); return; }
       if (target < 0) target = await extendQueue("video");
       if (target >= 0) { requestVideoMode(); playQueueIndex(target, { autoplay: false }); }
       else if (order.length) { requestVideoMode(); skipNext({ autoplay: false }); }
     } finally {
       advancingRef.current = false;
     }
-  }, [queue, queueIndex, repeatMode, requestVideoMode, playQueueIndex, skipNext, extendQueue, queueVideos]);
+  }, [queue, queueIndex, repeatMode, requestVideoMode, playQueueIndex, skipNext, extendQueue, queueVideos, videos.length, videoStatus]);
 
   // A video finished: Autoplay decides whether to carry on (repeat-one loops inside the video).
   const handleVideoEnded = useCallback(() => {
@@ -295,11 +322,42 @@ const ExpandedPlayer = () => {
     if (videoMode) advanceVideo();
     else skipNext();
   }, [videoMode, advanceVideo, skipNext]);
+  // Previous in Video mode goes to the closest earlier song that has a video (unknown ones count).
+  const prevVideoTarget = useMemo(
+    () => (videoMode ? prevVideoIndex(queue, queueIndex, repeatMode, (id) => !queueVideos.known(id) || queueVideos.has(id)) : -1),
+    [videoMode, queue, queueIndex, repeatMode, queueVideos],
+  );
   const handlePrev = useCallback(() => {
     if (videoMode) {
-      if (queueIndex > 0 || repeatMode === "all") { requestVideoMode(); skipPrev({ autoplay: false, force: true }); }
+      if (prevVideoTarget >= 0) { requestVideoMode(); playQueueIndex(prevVideoTarget, { autoplay: false }); }
     } else skipPrev();
-  }, [videoMode, queueIndex, repeatMode, requestVideoMode, skipPrev]);
+  }, [videoMode, prevVideoTarget, requestVideoMode, playQueueIndex, skipPrev]);
+
+  // Lock screen, headphones and car buttons control the video while it's on screen.
+  const advanceVideoRef = useRef(advanceVideo);
+  advanceVideoRef.current = advanceVideo;
+  const handlePrevRef = useRef(handlePrev);
+  handlePrevRef.current = handlePrev;
+  useEffect(() => {
+    if (!videoMode || !("mediaSession" in navigator)) return;
+    const set = (action: MediaSessionAction, handler: MediaSessionActionHandler | null) => {
+      try { navigator.mediaSession.setActionHandler(action, handler); } catch { /* unsupported action */ }
+    };
+    set("nexttrack", () => advanceVideoRef.current());
+    set("previoustrack", () => handlePrevRef.current());
+    set("play", () => { if (!videoStatus.get().playing) videoStatus.controls.toggle(); });
+    set("pause", () => { if (videoStatus.get().playing) videoStatus.controls.toggle(); });
+    set("seekforward", () => videoStatus.controls.seekBy(30));
+    set("seekbackward", () => videoStatus.controls.seekBy(-30));
+    return () => {
+      set("nexttrack", () => skipNext());
+      set("previoustrack", () => skipPrev());
+      set("play", null);
+      set("pause", null);
+      set("seekforward", null);
+      set("seekbackward", null);
+    };
+  }, [videoMode, currentSong?.id, videoStatus, skipNext, skipPrev]);
 
   // Honor a "sing this" request from the Moments feed: switch to Karaoke mode.
   useEffect(() => {
@@ -588,7 +646,7 @@ const ExpandedPlayer = () => {
               startAt={videoStart}
               positionRef={videoPosRef}
               onEnded={handleVideoEnded}
-              onPrev={queueIndex > 0 || repeatMode === "all" ? handlePrev : undefined}
+              onPrev={prevVideoTarget >= 0 ? handlePrev : undefined}
               onNext={advanceVideo}
               playingRef={videoPlayingRef}
               frameRef={setFrameEl}
@@ -601,10 +659,11 @@ const ExpandedPlayer = () => {
               repeatMode={repeatMode}
               onRepeat={cycleRepeat}
               tightBottom={showUpNext && !isDesktop}
+              pending={swappingVideo}
               overlay={
                 <UpNextCountdown
                   status={videoStatus}
-                  show={autoplay && repeatMode !== "one" && cancelledFor !== currentSong.id && !upNextOpen && (!isFullscreen || window.innerWidth >= 640)}
+                  show={autoplay && !swappingVideo && repeatMode !== "one" && cancelledFor !== currentSong.id && !upNextOpen && (!isFullscreen || window.innerWidth >= 640)}
                   song={upNext.length ? queue[upNext[0]] : undefined}
                   thumb={upNext.length ? queueVideos.info(queue[upNext[0]].id)?.thumb : null}
                   onPlayNow={advanceVideo}
