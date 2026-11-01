@@ -44,6 +44,8 @@ export type StageModePresentation = {
 export type StageBackgroundChoice = StageModePresentation & {
   id: string;
   name: string;
+  /** Still frame shown while a motion background loads. */
+  posterUrl?: string;
 };
 
 export type StageModeSetting = StageModePresentation & {
