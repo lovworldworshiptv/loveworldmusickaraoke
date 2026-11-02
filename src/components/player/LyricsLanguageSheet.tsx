@@ -3,6 +3,7 @@ import { Check, Languages } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { PREFERRED_LANGUAGE_EVENT } from "@/lib/preferredLanguage";
 
 interface LyricRow { language_code: string; lyrics_lrc: string | null; lyrics_text: string | null; is_machine_translated: boolean }
 interface Lang { code: string; name: string; native_name: string | null }
