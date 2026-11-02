@@ -1,3 +1,4 @@
+import { useHomeState } from "@/lib/homeMemory";
 import SeeAll from "./SeeAll";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -13,7 +14,7 @@ const REC_COLUMNS = "id,name,description,cover_url,card_color,playlist_songs(son
 /** Spotify-style recommendation cards; each opens the playlist's collection page. */
 
 const PlatformRecommendations = () => {
-  const [items, setItems] = useState<Rec[]>([]);
+  const [items, setItems] = useHomeState<Rec[]>("recommendations", []);
   const navigate = useNavigate();
   const globalColor = useGlobalCardColor();
   const text = sectionText(useSetting<HomeSectionContent>(SETTING_KEYS.homeSectionContent), "recommendations");
@@ -26,7 +27,7 @@ const PlatformRecommendations = () => {
   if (!items.length) return null;
 
   return (
-    <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" aria-labelledby="recs-h">
+    <section className="px-4 lg:px-6 mt-8" aria-labelledby="recs-h">
       <div className="flex items-end justify-between gap-3 mb-4"><div>
       {text.eyebrow && <p className="text-[11px] uppercase tracking-[0.2em] text-gold/80">{text.eyebrow}</p>}
       <h3 id="recs-h" className="text-xl font-serif font-bold text-foreground">{text.title}</h3>

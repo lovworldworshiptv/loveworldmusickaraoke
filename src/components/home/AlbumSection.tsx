@@ -1,3 +1,4 @@
+import { useHomeState } from "@/lib/homeMemory";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
@@ -13,7 +14,7 @@ interface Album {
 }
 
 const AlbumSection = () => {
-  const [albums, setAlbums] = useState<Album[]>([]);
+  const [albums, setAlbums] = useHomeState<Album[]>("albums", []);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -49,7 +50,7 @@ const AlbumSection = () => {
   if (albums.length === 0) return null;
 
   return (
-    <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+    <section className="px-4 lg:px-6 mt-8">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-serif font-bold text-foreground">Top Albums</h3>
         <button onClick={() => navigate("/albums")} className="text-xs text-gold hover:text-gold-light font-medium transition-colors duration-200">See All</button>
@@ -59,7 +60,7 @@ const AlbumSection = () => {
           <button
             key={album.id}
             onClick={() => navigate(`/albums?id=${album.id}`)}
-            className="group flex-shrink-0 w-40 md:w-44 text-left animate-fade-in-up"
+            className="group flex-shrink-0 w-40 md:w-44 text-left"
             style={{ animationDelay: `${i * 0.07}s` }}
           >
             <div className="relative aspect-square rounded-xl overflow-hidden mb-3 glass-card transition-all duration-300 group-hover:shadow-[0_8px_32px_hsl(43_70%_53%/0.12)]">

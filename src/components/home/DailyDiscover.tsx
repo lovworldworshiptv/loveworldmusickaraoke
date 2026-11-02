@@ -1,3 +1,4 @@
+import { useHomeState } from "@/lib/homeMemory";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer } from "@/contexts/PlayerContext";
@@ -31,9 +32,9 @@ export async function loadDailyDiscover() {
 /** Once-a-day personal pick with ambient artwork background. */
 const DailyDiscover = () => {
   const { enabled } = useFeatures();
-  const [songs, setSongs] = useState<SongRow[]>([]);
-  const [cfg, setCfg] = useState<DailyDiscoverConfig>({});
-  const [reason, setReason] = useState("");
+  const [songs, setSongs] = useHomeState<SongRow[]>("daily_discover", []);
+  const [cfg, setCfg] = useHomeState<DailyDiscoverConfig>("daily_discover_cfg", {});
+  const [reason, setReason] = useHomeState("daily_discover_reason", "");
   const { playSong, playQueue, toggleKaraoke, isKaraoke } = usePlayer();
   const navigate = useNavigate();
   const song = songs[0] || null;
@@ -58,7 +59,7 @@ const DailyDiscover = () => {
   };
 
   return (
-    <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" aria-label="Daily Discover">
+    <section className="px-4 lg:px-6 mt-8" aria-label="Daily Discover">
       <div
         role="button"
         tabIndex={0}

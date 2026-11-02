@@ -1,3 +1,4 @@
+import { useHomeState } from "@/lib/homeMemory";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ListMusic, Play } from "lucide-react";
@@ -43,7 +44,7 @@ const toPlayerSong = (song: NonNullable<PlaylistSongRow["songs"]>): PlayerSong =
 
 /** Global playlist cards styled like the Recommended Playlists cards, with a deep purple gradient. */
 const GlobalPlaylistsSection = () => {
-  const [playlists, setPlaylists] = useState<GlobalPlaylist[]>([]);
+  const [playlists, setPlaylists] = useHomeState<GlobalPlaylist[]>("global_playlists", []);
   const navigate = useNavigate();
   const { playQueue } = usePlayer();
   const content = useSetting<HomeSectionContent>(SETTING_KEYS.homeSectionContent);
@@ -62,7 +63,7 @@ const GlobalPlaylistsSection = () => {
   if (playlists.length === 0) return null;
 
   return (
-    <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+    <section className="px-4 lg:px-6 mt-8">
       <div className="flex items-end justify-between gap-3 mb-4">
         <div>
           {text.eyebrow && <p className="text-[11px] uppercase tracking-[0.2em] text-gold/80">{text.eyebrow}</p>}

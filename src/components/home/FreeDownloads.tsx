@@ -1,3 +1,4 @@
+import { useHomeState } from "@/lib/homeMemory";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -25,7 +26,7 @@ function uniqueSongs(rows: SongRow[]): SongRow[] {
 
 /** Home rail listing every song marked free to download. */
 const FreeDownloads = () => {
-  const [songs, setSongs] = useState<PlayerSong[]>([]);
+  const [songs, setSongs] = useHomeState<PlayerSong[]>("free_downloads", []);
   const text = sectionText(useSetting<HomeSectionContent>(SETTING_KEYS.homeSectionContent), "free_downloads");
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -39,7 +40,7 @@ const FreeDownloads = () => {
   const scroll = (dir: number) => scrollRef.current?.scrollBy({ left: dir * scrollRef.current.clientWidth * 0.6, behavior: "smooth" });
 
   return (
-    <section className="px-4 lg:px-6 mt-8 animate-fade-in-up">
+    <section className="px-4 lg:px-6 mt-8">
       <div className="flex items-end justify-between mb-4">
         <div>
           {text.eyebrow && <p className="text-xs uppercase tracking-widest text-gold">{text.eyebrow}</p>}

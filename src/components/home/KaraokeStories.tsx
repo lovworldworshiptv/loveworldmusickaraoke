@@ -1,3 +1,4 @@
+import { useHomeState } from "@/lib/homeMemory";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -18,8 +19,8 @@ interface KaraokeStory {
 }
 
 const KaraokeStories = () => {
-  const [stories, setStories] = useState<KaraokeStory[]>([]);
-  const [visible, setVisible] = useState(true);
+  const [stories, setStories] = useHomeState<KaraokeStory[]>("stories", []);
+  const [visible, setVisible] = useHomeState("stories_visible", true);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
