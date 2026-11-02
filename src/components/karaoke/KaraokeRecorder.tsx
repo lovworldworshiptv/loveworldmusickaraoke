@@ -185,6 +185,8 @@ const KaraokeRecorder = ({ songId, allowed, songTitle, instrumentalUrl, isKaraok
   const navigate = useNavigate();
   const { isPlaying, togglePlay } = usePlayer();
   const [recording, setRecording] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const startingRef = useRef(false);
   const [recorded, setRecorded] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
@@ -234,6 +236,10 @@ const KaraokeRecorder = ({ songId, allowed, songTitle, instrumentalUrl, isKaraok
   }, [recording]);
 
   const startRecording = useCallback(async () => {
+    // Ignore repeat taps while the microphone and backing track are getting ready.
+    if (startingRef.current) return;
+    startingRef.current = true;
+    setStarting(true);
     let stream: MediaStream | null = null;
     let audioContext: AudioContext | null = null;
 
@@ -356,6 +362,9 @@ const KaraokeRecorder = ({ songId, allowed, songTitle, instrumentalUrl, isKaraok
       setCountdown(null);
       setAnalyserNode(null);
       toast.error(err.message || "Failed to start recording.");
+    } finally {
+      startingRef.current = false;
+      setStarting(false);
     }
   }, [instrumentalUrl, isPlaying, togglePlay, onRecordingStateChange, instrumentalVolume, canRecord, navigate]);
 
@@ -591,8 +600,11 @@ const KaraokeRecorder = ({ songId, allowed, songTitle, instrumentalUrl, isKaraok
 
                 <Button
                   onClick={startRecording}
+                  disabled={starting}
+                  aria-busy={starting}
+                  aria-label={starting ? "Getting ready to record" : "Start recording"}
                   size="lg"
-                  className="bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-16 h-16 p-0 shadow-lg shadow-destructive/25 transition-transform hover:scale-105"
+                  className={`bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-16 h-16 p-0 shadow-lg shadow-destructive/25 transition-transform hover:scale-105 disabled:opacity-100 ${starting ? "motion-safe:animate-pulse" : ""}`}
                 >
                   <Mic2 className="w-6 h-6" />
                 </Button>

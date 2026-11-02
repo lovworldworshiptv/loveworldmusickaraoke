@@ -133,4 +133,7 @@ export default {
     },
   },
   plugins: [require("tailwindcss-animate")],
+  // Hover styles only on devices with a real mouse, so phone taps never get
+  // stuck on a hover state or need a second tap to act.
+  future: { hoverOnlyWhenSupported: true },
 } satisfies Config;

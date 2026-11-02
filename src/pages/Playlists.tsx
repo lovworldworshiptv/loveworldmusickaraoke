@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import DownloadButton from "@/components/offline/DownloadButton";
 import { useSaveSong } from "@/hooks/useSaveSong";
 import DownloadAllButton from "@/components/offline/DownloadAllButton";
@@ -76,6 +76,7 @@ const Playlists = () => {
       const { error } = await supabase.from("playlists").insert({ name, user_id: user!.id });
       if (error) throw error;
     },
+    onError: () => toast.error("Couldn't create the playlist — please try again"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["playlists-page"] });
       setNewPlaylistName("");
@@ -104,8 +105,12 @@ const Playlists = () => {
     toast.success("Playlist renamed");
   };
 
+  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
   const removeSongFromPlaylist = async (playlistSongId: string) => {
+    if (removingIds.has(playlistSongId)) return;
+    setRemovingIds((s) => new Set(s).add(playlistSongId));
     const { error } = await supabase.from("playlist_songs").delete().eq("id", playlistSongId);
+    setRemovingIds((s) => { const n = new Set(s); n.delete(playlistSongId); return n; });
     if (error) { toast.error("Failed to remove song"); return; }
     queryClient.invalidateQueries({ queryKey: ["playlists-page"] });
     queryClient.invalidateQueries({ queryKey: ["library-playlists"] });
@@ -123,17 +128,22 @@ const Playlists = () => {
     setPlaylistSongIds(new Set((existing || []).map((e) => e.song_id)));
   };
 
+  // The tick shows on the first tap; repeat taps wait for the save, and a failed save is undone.
+  const togglingIds = useRef<Set<string>>(new Set());
+  const markSong = (songId: string, inList: boolean) =>
+    setPlaylistSongIds((prev) => { const next = new Set(prev); if (inList) next.add(songId); else next.delete(songId); return next; });
   const toggleSongInPlaylist = async (songId: string) => {
-    if (!managingSongsPlaylistId) return;
-    if (playlistSongIds.has(songId)) {
-      await supabase.from("playlist_songs").delete().eq("playlist_id", managingSongsPlaylistId).eq("song_id", songId);
-      setPlaylistSongIds(prev => { const next = new Set(prev); next.delete(songId); return next; });
-    } else {
-      const { error } = await supabase.from("playlist_songs").insert({
-        playlist_id: managingSongsPlaylistId, song_id: songId, sort_order: playlistSongIds.size,
-      });
-      if (error) { toast.error(error.message); return; }
-      setPlaylistSongIds(prev => new Set(prev).add(songId));
+    if (!managingSongsPlaylistId || togglingIds.current.has(songId)) return;
+    togglingIds.current.add(songId);
+    const adding = !playlistSongIds.has(songId);
+    markSong(songId, adding);
+    const { error } = adding
+      ? await supabase.from("playlist_songs").insert({ playlist_id: managingSongsPlaylistId, song_id: songId, sort_order: playlistSongIds.size })
+      : await supabase.from("playlist_songs").delete().eq("playlist_id", managingSongsPlaylistId).eq("song_id", songId);
+    togglingIds.current.delete(songId);
+    if (error) {
+      markSong(songId, !adding);
+      toast.error(adding ? "Couldn't add the song — please try again" : "Couldn't remove the song — please try again");
     }
   };
 
@@ -203,7 +213,7 @@ const Playlists = () => {
                 <button onClick={() => { setEditingId(pl.id); setEditName(pl.name); }} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
                   <Pencil className="w-4 h-4" />
                 </button>
-                <button onClick={() => deletePlaylist.mutate(pl.id)} className="p-2 text-muted-foreground hover:text-destructive transition-colors">
+                <button onClick={() => deletePlaylist.mutate(pl.id)} disabled={deletePlaylist.isPending && deletePlaylist.variables === pl.id} aria-label="Delete playlist" className="p-2 disabled:opacity-50 text-muted-foreground hover:text-destructive transition-colors">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </>
@@ -241,7 +251,7 @@ const Playlists = () => {
                       </button>
                       {song.audioUrl && <DownloadButton songId={song.id} title={song.title} onDownload={() => save(song)} needsPremium={!canSave(song)} />}
                       {isOwn && (
-                        <button onClick={() => removeSongFromPlaylist(ps.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors shrink-0">
+                        <button onClick={() => removeSongFromPlaylist(ps.id)} disabled={removingIds.has(ps.id)} aria-label="Remove from playlist" className="p-1.5 disabled:opacity-50 text-muted-foreground hover:text-destructive transition-colors shrink-0">
                           <Minus className="w-4 h-4" />
                         </button>
                       )}
@@ -272,9 +282,9 @@ const Playlists = () => {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>Create Playlist</DialogTitle></DialogHeader>
-                <form onSubmit={(e) => { e.preventDefault(); if (newPlaylistName.trim()) createPlaylist.mutate(newPlaylistName.trim()); }} className="flex gap-2">
+                <form onSubmit={(e) => { e.preventDefault(); if (newPlaylistName.trim() && !createPlaylist.isPending) createPlaylist.mutate(newPlaylistName.trim()); }} className="flex gap-2">
                   <Input placeholder="Playlist name" value={newPlaylistName} onChange={(e) => setNewPlaylistName(e.target.value)} />
-                  <Button type="submit" disabled={!newPlaylistName.trim()}>Create</Button>
+                  <Button type="submit" disabled={!newPlaylistName.trim() || createPlaylist.isPending}>{createPlaylist.isPending ? "Creating…" : "Create"}</Button>
                 </form>
               </DialogContent>
             </Dialog>

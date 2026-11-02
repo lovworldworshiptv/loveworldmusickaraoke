@@ -438,14 +438,21 @@ const ExpandedPlayer = () => {
       .then(({ data }) => setIsFav(!!data));
   }, [user, currentSong?.id]);
 
+  // The heart fills on the first tap; the save happens in the background and undoes itself if it fails.
+  const favBusy = useRef(false);
   const toggleFavorite = async () => {
     if (!user || !currentSong) { toast.error("Sign in to add favorites"); return; }
-    if (isFav) {
-      await supabase.from("favorites").delete().eq("user_id", user.id).eq("song_id", currentSong.id);
-      setIsFav(false);
-    } else {
-      await supabase.from("favorites").insert({ user_id: user.id, song_id: currentSong.id });
-      setIsFav(true);
+    if (favBusy.current) return;
+    favBusy.current = true;
+    const next = !isFav;
+    setIsFav(next);
+    const { error } = next
+      ? await supabase.from("favorites").insert({ user_id: user.id, song_id: currentSong.id })
+      : await supabase.from("favorites").delete().eq("user_id", user.id).eq("song_id", currentSong.id);
+    favBusy.current = false;
+    if (error && !(next && (error as { code?: string }).code === "23505")) {
+      setIsFav(!next);
+      toast.error("Couldn't update your favourites — please try again");
     }
   };
 

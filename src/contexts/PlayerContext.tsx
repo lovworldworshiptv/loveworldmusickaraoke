@@ -2,6 +2,8 @@ import { useFeatures } from "@/contexts/FeatureContext";
 import { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchContinuation, type ContinueMode } from "@/lib/autoContinue";
+import { fetchAllRows } from "@/lib/fetchAll";
+import { PREFERRED_LANGUAGE_EVENT, preferredAudioFor, type PreferredLanguage } from "@/lib/preferredLanguage";
 import { moveItem, removeItem, playNextItem, insertItem, shuffleAfter, restoreAfter, type QueueEdit } from "@/lib/queueOps";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -204,6 +206,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const featuresRef = useRef(enabled);
   featuresRef.current = enabled;
   const [currentSong, setCurrentSong] = useState<PlayerSong | null>(null);
+  const currentSongIdRef = useRef<string | null>(null);
+  useEffect(() => { currentSongIdRef.current = currentSong?.id ?? null; }, [currentSong?.id]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isKaraoke, setIsKaraoke] = useState(false);
   const isKaraokeRef = useRef(false);
@@ -306,6 +310,9 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const preloadRef = useRef<{ url: string; audio: HTMLAudioElement } | null>(null);
   const resolvedCacheRef = useRef<Map<string, PlayerSong>>(new Map());
   const resolvePreferredRef = useRef<(song: PlayerSong) => Promise<PlayerSong>>(async (s) => s);
+  /** Instant (no network) language swap and the follow-up lyrics swap, used when moving through the queue. */
+  const preferredAudioRef = useRef<(song: PlayerSong) => PlayerSong>((s) => s);
+  const swapInLyricsRef = useRef<(song: PlayerSong) => void>(() => {});
   const advanceToRef = useRef<(idx: number, karaoke: boolean, autoplay?: boolean) => void>(() => {});
   const wantPlayingRef = useRef(false);
   const [isBuffering, setIsBuffering] = useState(false);
@@ -590,7 +597,9 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     queueIndexRef.current = idx;
     setQueueIndex(idx);
     const cached = resolvedCacheRef.current.get(base.id);
-    internalPlayRef.current(cached || base, karaoke, 0, autoplay);
+    const song = cached || preferredAudioRef.current(base);
+    internalPlayRef.current(song, karaoke, 0, autoplay);
+    if (!cached) swapInLyricsRef.current(song);
     recordPlayFn(base.id, karaoke ? "karaoke" : sessionModeRef.current);
   };
 
@@ -730,32 +739,90 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [sendPlay]);
 
-  /** Phase 10: resolve the listener's preferred lyrics language before playback —
-   *  swap in a ready audio version recorded in that language and its lyrics. */
-  const resolvePreferred = useCallback(async (song: PlayerSong): Promise<PlayerSong> => {
-    if (!featuresRef.current("translations")) return song;
+  /** Phase 10: the listener's preferred lyrics language and the ready recordings in it are
+   *  loaded ahead of time, so tapping Play starts sound straight away — inside the tap itself,
+   *  which phones (iPhone especially) require — instead of waiting on network lookups. */
+  const prefRef = useRef<PreferredLanguage>({ lang: null, audio: new Map() });
+  const prefUserRef = useRef<string | null | undefined>(undefined);
+  const loadPreferredLanguage = useCallback(async (force = false) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return song;
-      const { data: prefs } = await supabase.from("user_preferences").select("preferred_languages").eq("user_id", user.id).maybeSingle();
-      const pref = (prefs as { preferred_languages?: string[] } | null)?.preferred_languages?.[0];
-      if (!pref || pref === "en") return song;
-      const [ver, lyr] = await Promise.all([
-        supabase.from("song_audio_versions").select("audio_url").eq("song_id", song.id).eq("kind", "full").eq("status", "ready").eq("language_code", pref).maybeSingle(),
-        supabase.from("song_lyrics").select("lyrics_lrc, lyrics_text").eq("song_id", song.id).eq("language_code", pref).maybeSingle(),
-      ]);
-      return {
-        ...song,
-        audioUrl: (ver.data as { audio_url: string } | null)?.audio_url || song.audioUrl,
-        lyricsLrc: (lyr.data as { lyrics_lrc: string | null } | null)?.lyrics_lrc ?? song.lyricsLrc,
-        lyricsText: (lyr.data as { lyrics_text: string | null } | null)?.lyrics_text ?? song.lyricsText,
-      };
+      const { data: { session } } = await supabase.auth.getSession();
+      const uid = session?.user?.id ?? null;
+      if (!force && uid === prefUserRef.current) return;
+      prefUserRef.current = uid;
+      if (!uid) { prefRef.current = { lang: null, audio: new Map() }; return; }
+      const { data: prefs } = await supabase.from("user_preferences").select("preferred_languages").eq("user_id", uid).maybeSingle();
+      const lang = (prefs as { preferred_languages?: string[] } | null)?.preferred_languages?.[0] || null;
+      if (!lang || lang === "en") { prefRef.current = { lang, audio: new Map() }; return; }
+      const rows = await fetchAllRows<{ id: string; song_id: string; audio_url: string | null }>((from, to) =>
+        supabase.from("song_audio_versions").select("id, song_id, audio_url")
+          .eq("kind", "full").eq("status", "ready").eq("language_code", lang)
+          .order("id").range(from, to));
+      const audio = new Map<string, string>();
+      rows.forEach((r) => { if (r.audio_url) audio.set(r.song_id, r.audio_url); });
+      prefRef.current = { lang, audio };
     } catch {
-      return song;
+      prefUserRef.current = undefined; // try again next time
     }
   }, []);
 
+  useEffect(() => {
+    loadPreferredLanguage();
+    // Deferred so backend calls never run inside the sign-in callback itself.
+    const { data: sub } = supabase.auth.onAuthStateChange(() => { window.setTimeout(() => loadPreferredLanguage(), 0); });
+    const onChange = () => loadPreferredLanguage(true);
+    window.addEventListener(PREFERRED_LANGUAGE_EVENT, onChange);
+    return () => { sub.subscription.unsubscribe(); window.removeEventListener(PREFERRED_LANGUAGE_EVENT, onChange); };
+  }, [loadPreferredLanguage]);
+
+  const preferredAudio = useCallback((song: PlayerSong): PlayerSong => {
+    if (!featuresRef.current("translations")) return song;
+    return preferredAudioFor(song, prefRef.current, typeof navigator === "undefined" || navigator.onLine);
+  }, []);
+  preferredAudioRef.current = preferredAudio;
+
+  const preferredLyrics = useCallback(async (song: PlayerSong) => {
+    const lang = prefRef.current.lang;
+    if (!featuresRef.current("translations") || !lang || lang === "en") return null;
+    const { data } = await supabase.from("song_lyrics").select("lyrics_lrc, lyrics_text").eq("song_id", song.id).eq("language_code", lang).maybeSingle();
+    return (data as { lyrics_lrc: string | null; lyrics_text: string | null } | null) ?? null;
+  }, []);
+
+  /** Language-resolved song for warming up the next track in the background. */
+  const resolvePreferred = useCallback(async (song: PlayerSong): Promise<PlayerSong> => {
+    const s = preferredAudio(song);
+    try {
+      const l = await preferredLyrics(s);
+      if (!l) return s;
+      return { ...s, lyricsLrc: l.lyrics_lrc ?? s.lyricsLrc, lyricsText: l.lyrics_text ?? s.lyricsText };
+    } catch {
+      return s;
+    }
+  }, [preferredAudio, preferredLyrics]);
+
   resolvePreferredRef.current = resolvePreferred;
+
+  // Translated lyrics arrive a moment after the song starts; swap them in if it's still playing.
+  swapInLyricsRef.current = (song: PlayerSong) => {
+    preferredLyrics(song).then((l) => {
+      if (!l || (!l.lyrics_lrc && !l.lyrics_text)) return;
+      const next = { ...song, lyricsLrc: l.lyrics_lrc ?? song.lyricsLrc, lyricsText: l.lyrics_text ?? song.lyricsText };
+      resolvedCacheRef.current.set(song.id, next);
+      if (currentSongIdRef.current !== song.id) return;
+      setCurrentSong((cur) => (cur?.id === song.id ? { ...cur, lyricsLrc: next.lyricsLrc, lyricsText: next.lyricsText } : cur));
+      const parsed = next.lyricsLrc ? parseLrc(next.lyricsLrc) : [];
+      setLrcLines(parsed);
+      setStaticLyrics(next.lyricsText || (parsed.length ? "" : next.lyricsLrc || ""));
+    }).catch(() => undefined);
+  };
+
+  /** Starts a song right away (same tap), then logs the play and fetches translated lyrics. */
+  const startNow = useCallback((base: PlayerSong, karaoke: boolean, mode: PlayMode) => {
+    const s = preferredAudio(base);
+    internalPlay(s, karaoke);
+    recordPlayFn(s.id, mode);
+    swapInLyricsRef.current(s);
+  }, [internalPlay, preferredAudio, recordPlayFn]);
 
   const startSong = useCallback((song: PlayerSong, mode: PlayMode) => {
     resolvedCacheRef.current.clear();
@@ -765,12 +832,9 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     queueIndexRef.current = 0;
     setQueue([song]);
     setQueueIndex(0);
-    resolvePreferred(song).then((s) => {
-      // Sing starts straight on the backing track, so the whole session stays karaoke.
-      internalPlay(s, mode === "karaoke");
-      recordPlayFn(s.id, mode);
-    });
-  }, [internalPlay, recordPlayFn, resolvePreferred, setSessionMode]);
+    // Sing starts straight on the backing track, so the whole session stays karaoke.
+    startNow(song, mode === "karaoke", mode);
+  }, [startNow, setSessionMode]);
 
   const playSong = useCallback((song: PlayerSong) => startSong(song, "song"), [startSong]);
 
@@ -814,13 +878,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     queueIndexRef.current = idx;
     setQueue(q);
     setQueueIndex(idx);
-    if (q[idx]) {
-      resolvePreferred(q[idx]).then((s) => {
-        internalPlay(s, karaoke);
-        recordPlayFn(s.id, karaoke ? "karaoke" : video ? "video" : "song");
-      });
-    }
-  }, [internalPlay, recordPlayFn, resolvePreferred, setSessionMode]);
+    if (q[idx]) startNow(q[idx], karaoke, karaoke ? "karaoke" : video ? "video" : "song");
+  }, [startNow, setSessionMode]);
 
   const playQueue = useCallback((songs: PlayerSong[], startIndex = 0, opts?: { karaoke?: boolean }) => {
     startQueue(songs, startIndex, !!opts?.karaoke, false);

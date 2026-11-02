@@ -9,6 +9,7 @@ const readUpdated = () => { try { return localStorage.getItem(UPDATED_STORAGE_KE
 const AppUpdatePrompt = () => {
   const [notice, setNotice] = useState<AppUpdateNotice | null>(null);
   const [later, setLater] = useState(false);
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     if (window.location.pathname.startsWith("/admin")) return;
@@ -26,6 +27,7 @@ const AppUpdatePrompt = () => {
   if (later || !shouldShowUpdate(notice, readUpdated()) || !notice) return null;
 
   const update = async () => {
+    if (updating) return;
     try { localStorage.setItem(UPDATED_STORAGE_KEY, notice.version!.trim()); } catch { /* ignore */ }
     const url = notice.url?.trim();
     if (url && /^https?:\/\//i.test(url)) {
@@ -33,6 +35,7 @@ const AppUpdatePrompt = () => {
       setLater(true);
       return;
     }
+    setUpdating(true);
     try {
       const regs = await navigator.serviceWorker?.getRegistrations?.();
       await Promise.all((regs || []).map((r) => r.update().catch(() => undefined)));
@@ -53,9 +56,9 @@ const AppUpdatePrompt = () => {
         <p id="update-msg" className="mt-2 text-sm text-muted-foreground whitespace-pre-line">
           {notice.message || "Update Loveworld Music+ to get the latest features and fixes."}
         </p>
-        <button onClick={update} autoFocus
-          className="mt-5 w-full rounded-full gradient-gold py-3 text-sm font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          {notice.buttonLabel || "Update now"}
+        <button onClick={update} autoFocus disabled={updating} aria-busy={updating}
+          className="mt-5 w-full rounded-full gradient-gold py-3 text-sm font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-80">
+          {updating ? "Updating…" : notice.buttonLabel || "Update now"}
         </button>
         <button onClick={() => setLater(true)} className="mt-2 w-full py-2 text-xs text-muted-foreground hover:text-foreground">
           Later

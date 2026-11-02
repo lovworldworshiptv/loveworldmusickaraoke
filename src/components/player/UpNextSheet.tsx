@@ -301,6 +301,8 @@ function QueueRow(p: RowProps) {
   const suppressClick = useRef(false);
 
   const onPointerDown = (e: React.PointerEvent) => {
+    // A new press is always a fresh tap; never let an earlier swipe swallow it.
+    suppressClick.current = false;
     if ((e.target as HTMLElement).closest("[data-row-control]")) return;
     const longPress = window.setTimeout(() => {
       if (!gesture.current) return;

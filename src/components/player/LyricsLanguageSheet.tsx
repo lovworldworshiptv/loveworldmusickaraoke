@@ -3,6 +3,7 @@ import { Check, Languages } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { PREFERRED_LANGUAGE_EVENT } from "@/lib/preferredLanguage";
 
 interface LyricRow { language_code: string; lyrics_lrc: string | null; lyrics_text: string | null; is_machine_translated: boolean }
 interface Lang { code: string; name: string; native_name: string | null }
@@ -55,6 +56,7 @@ const LyricsLanguageSheet = () => {
     } else {
       await supabase.from("user_preferences").insert({ user_id: user.id, preferred_languages: [code] });
     }
+    window.dispatchEvent(new CustomEvent(PREFERRED_LANGUAGE_EVENT));
   };
 
   const choose = (r: LyricRow) => {
