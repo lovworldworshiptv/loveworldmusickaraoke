@@ -185,6 +185,8 @@ const KaraokeRecorder = ({ songId, allowed, songTitle, instrumentalUrl, isKaraok
   const navigate = useNavigate();
   const { isPlaying, togglePlay } = usePlayer();
   const [recording, setRecording] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const startingRef = useRef(false);
   const [recorded, setRecorded] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
@@ -360,6 +362,9 @@ const KaraokeRecorder = ({ songId, allowed, songTitle, instrumentalUrl, isKaraok
       setCountdown(null);
       setAnalyserNode(null);
       toast.error(err.message || "Failed to start recording.");
+    } finally {
+      startingRef.current = false;
+      setStarting(false);
     }
   }, [instrumentalUrl, isPlaying, togglePlay, onRecordingStateChange, instrumentalVolume, canRecord, navigate]);
 
