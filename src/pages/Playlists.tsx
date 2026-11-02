@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import DownloadButton from "@/components/offline/DownloadButton";
 import { useSaveSong } from "@/hooks/useSaveSong";
 import DownloadAllButton from "@/components/offline/DownloadAllButton";
