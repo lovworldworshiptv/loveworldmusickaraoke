@@ -18,7 +18,7 @@ import ImageUploadPicker from "@/components/admin/ImageUploadPicker";
 import CommunityModeratorsDialog from "@/components/community/CommunityModeratorsDialog";
 import CommunityManageDialog from "@/components/community/CommunityManageDialog";
 import ShareMenu from "@/components/share/ShareMenu";
-import { Settings2 } from "lucide-react";
+import { Settings2, Loader2 } from "lucide-react";
 import { useSetting, getSetting, saveSetting, SETTING_KEYS, hexToHsl } from "@/lib/siteSettings";
 
 const rateMsg = (e: { message?: string } | null) =>
@@ -416,8 +416,9 @@ const Community = () => {
                   )}
                   {user && (
                     <Button size="sm" variant={joined ? "secondary" : "default"} onClick={(e) => { e.stopPropagation(); toggleMembership(c.id); }}
+                      disabled={joiningId === c.id} aria-busy={joiningId === c.id}
                       className={`${joined ? "rounded-full text-foreground" : goldBtn} h-7 px-3 text-xs`}>
-                      {joined ? "Joined" : "Join"}
+                      {joiningId === c.id ? (joined ? "Leaving…" : "Joining…") : joined ? "Joined" : "Join"}
                     </Button>
                   )}
                 </div>
@@ -532,8 +533,9 @@ const Community = () => {
                     <Input value={commentDraft[post.id] || ""} onChange={(e) => setCommentDraft((c) => ({ ...c, [post.id]: e.target.value }))}
                       onKeyDown={(e) => e.key === "Enter" && addComment(post.id)} placeholder="Write a comment..."
                       className="bg-secondary/50 border-border text-foreground text-xs" />
-                    <Button size="sm" onClick={() => addComment(post.id)} disabled={!commentDraft[post.id]?.trim()}
-                      className={`${goldBtn} px-3`}><Send className="w-3.5 h-3.5" /></Button>
+                    <Button size="sm" onClick={() => addComment(post.id)} disabled={!commentDraft[post.id]?.trim() || commentingId === post.id}
+                      aria-label="Send comment" aria-busy={commentingId === post.id}
+                      className={`${goldBtn} px-3`}>{commentingId === post.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}</Button>
                   </div>
                 </div>
               )}
