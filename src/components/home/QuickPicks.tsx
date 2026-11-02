@@ -1,3 +1,4 @@
+import { useHomeState } from "@/lib/homeMemory";
 import SeeAll from "./SeeAll";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +13,7 @@ interface Props { moodId: string | null; moodName?: string }
 
 /** 4-row snap carousel: admin-picked songs, else recent + trending + featured; a mood shows that mood's songs. */
 const QuickPicks = ({ moodId, moodName }: Props) => {
-  const [songs, setSongs] = useState<SongRow[]>([]);
+  const [songs, setSongs] = useHomeState<SongRow[]>("quick_picks", []);
   const { playQueue, currentSong, isPlaying, togglePlay } = usePlayer();
   const text = sectionText(useSetting<HomeSectionContent>(SETTING_KEYS.homeSectionContent), "quick_picks");
 
@@ -49,7 +50,7 @@ const QuickPicks = ({ moodId, moodName }: Props) => {
   const eyebrow = moodName || text.eyebrow;
 
   return (
-    <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" aria-labelledby="quick-picks-h">
+    <section className="px-4 lg:px-6 mt-8" aria-labelledby="quick-picks-h">
       <div className="mb-4 flex items-end justify-between gap-3"><div>
         {eyebrow && <p className="text-[11px] uppercase tracking-[0.2em] text-gold/80">{eyebrow}</p>}
         <h3 id="quick-picks-h" className="text-xl font-serif font-bold text-foreground">{text.title}</h3>

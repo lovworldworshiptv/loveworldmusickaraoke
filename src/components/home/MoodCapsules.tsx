@@ -1,3 +1,4 @@
+import { useHomeState } from "@/lib/homeMemory";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -8,7 +9,7 @@ interface Props { value: string | null; onChange: (mood: Mood) => void }
 
 /** Sticky mood filter pills driven by visible categories. */
 const MoodCapsules = ({ value, onChange }: Props) => {
-  const [moods, setMoods] = useState<Mood[]>([]);
+  const [moods, setMoods] = useHomeState<Mood[]>("moods", []);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);

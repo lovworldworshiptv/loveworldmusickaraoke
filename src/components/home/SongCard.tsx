@@ -68,8 +68,7 @@ const SongCard = memo(({ song, index, allSongs }: SongCardProps) => {
   return (
     <>
       <div
-        className="group flex-shrink-0 w-40 md:w-44 animate-fade-in-up gpu"
-        style={{ animationDelay: `${index * 0.07}s` }}
+        className="group flex-shrink-0 w-40 md:w-44 gpu"
       >
         <div className={`relative aspect-square rounded-xl overflow-hidden mb-3 glass-card transition-all duration-300 group-hover:shadow-[0_8px_32px_hsl(43_70%_53%/0.12)] active:scale-95 ${isActive ? "ring-2 ring-primary glow-gold" : ""}`}>
           {song.coverUrl ? (

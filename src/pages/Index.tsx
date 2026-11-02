@@ -1,6 +1,6 @@
 import { useFeatures } from "@/contexts/FeatureContext";
 import { HOME_FEATURES } from "@/lib/featureFlags";
-import { useState, useEffect, Fragment } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import HeroBanner from "@/components/home/HeroBanner";
@@ -21,7 +21,7 @@ import QuickPicks from "@/components/home/QuickPicks";
 import DailyDiscover from "@/components/home/DailyDiscover";
 import PlatformRecommendations from "@/components/home/PlatformRecommendations";
 import ModeSongRail from "@/components/home/ModeSongRail";
-import LazySection from "@/components/home/LazySection";
+import HomeSlot from "@/components/home/HomeSlot";
 import OnboardingSplash from "@/components/onboarding/OnboardingSplash";
 import { useSetting, resolveHomeLayout, SETTING_KEYS, type HomeSectionSetting } from "@/lib/siteSettings";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,14 +29,17 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { hasAuthCallback } from "@/lib/emailLink";
 
 const Index = () => {
-  const { enabled } = useFeatures();
+  const { enabled, loading: featuresLoading } = useFeatures();
   const { username } = useAuth();
   const navigate = useNavigate();
   const isOnline = useOnlineStatus();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [mood, setMood] = useState<Mood>({ id: null, name: "For You" });
 
-  const layout = resolveHomeLayout(useSetting<HomeSectionSetting[]>(SETTING_KEYS.homeLayout));
+  const savedLayout = useSetting<HomeSectionSetting[]>(SETTING_KEYS.homeLayout);
+  const layout = resolveHomeLayout(savedLayout);
+  // Wait for the admin's order and feature switches so sections never reshuffle or vanish after showing.
+  const layoutReady = savedLayout !== undefined && !featuresLoading;
 
   useEffect(() => {
     // Older confirmation emails land here: hand them to the confirm page instead of the welcome slides.
@@ -64,7 +67,13 @@ const Index = () => {
     <AppLayout>
       <HomepagePopup />
       <RenewalBanner />
-      {layout.filter((x) => x.visible && (!HOME_FEATURES[x.id] || enabled(HOME_FEATURES[x.id]))).map((x) => {
+      {!layoutReady && (
+        <div aria-hidden className="px-4 lg:px-6 pt-4 lg:pt-6 space-y-8">
+          <div className="w-full aspect-video rounded-2xl bg-muted/30 animate-pulse" />
+          {[0, 1, 2].map((i) => <div key={i} className="h-52 rounded-2xl bg-muted/30 animate-pulse" />)}
+        </div>
+      )}
+      {layoutReady && layout.filter((x) => x.visible && (!HOME_FEATURES[x.id] || enabled(HOME_FEATURES[x.id]))).map((x) => {
         const node = ({
           moods: <MoodCapsules value={mood.id} onChange={setMood} />,
           hero: <HeroBanner />,
@@ -78,12 +87,12 @@ const Index = () => {
           videos: <ModeSongRail mode="video" eyebrow="Watch & worship" title="Music Videos For You" />,
           secondary_banner: <SecondaryBanner />,
           karaoke: <ModeSongRail mode="karaoke" eyebrow="Sing along" title="Soundtrack For Your Day" />,
-          categories: <LazySection><CategorySection /></LazySection>,
-          global_playlists: <LazySection><GlobalPlaylistsSection /></LazySection>,
-          recent: <LazySection><RecentlyPlayed /></LazySection>,
-          articles: <LazySection><ArticleSection /></LazySection>,
+          categories: <CategorySection />,
+          global_playlists: <GlobalPlaylistsSection />,
+          recent: <RecentlyPlayed />,
+          articles: <ArticleSection />,
         } as Record<string, JSX.Element>)[x.id];
-        return node ? <Fragment key={x.id}>{node}</Fragment> : null;
+        return node ? <HomeSlot key={x.id} id={x.id}>{node}</HomeSlot> : null;
       })}
 
       <div className="h-8" />

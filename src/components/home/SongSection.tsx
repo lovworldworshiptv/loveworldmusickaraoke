@@ -1,3 +1,4 @@
+import { useHomeState } from "@/lib/homeMemory";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SONG_ROW_COLUMNS } from "@/lib/fetchAll";
@@ -11,7 +12,7 @@ interface SongSectionProps {
 }
 
 const SongSection = ({ title }: SongSectionProps) => {
-  const [songs, setSongs] = useState<PlayerSong[]>([]);
+  const [songs, setSongs] = useHomeState<PlayerSong[]>(`featured:${title}`, []);
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -38,7 +39,7 @@ const SongSection = ({ title }: SongSectionProps) => {
   if (songs.length === 0) return null;
 
   return (
-    <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+    <section className="px-4 lg:px-6 mt-8">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-serif font-bold text-foreground">{title}</h3>
         <div className="flex items-center gap-2">

@@ -1,3 +1,4 @@
+import { useHomeState } from "@/lib/homeMemory";
 import SeeAll from "./SeeAll";
 import { getSetting, SETTING_KEYS, useSetting } from "@/lib/siteSettings";
 import { curatedOrder, sectionText, type HomeSectionContent } from "@/lib/homeSections";
@@ -12,8 +13,8 @@ interface Props { mode: "video" | "karaoke"; eyebrow: string; title: string }
 
 /** Swipeable rail that opens each song straight into Video or Karaoke mode. */
 const ModeSongRail = ({ mode, eyebrow, title }: Props) => {
-  const [songs, setSongs] = useState<SongRow[]>([]);
-  const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  const [songs, setSongs] = useHomeState<SongRow[]>(`rail:${mode}`, []);
+  const [thumbs, setThumbs] = useHomeState<Record<string, string>>(`rail_thumbs:${mode}`, {});
   const { playVideoQueue, singQueue } = usePlayer();
   const content = useSetting<HomeSectionContent>(SETTING_KEYS.homeSectionContent);
   const text = mode === "karaoke" ? sectionText(content, "karaoke") : { eyebrow, title };
@@ -50,7 +51,7 @@ const ModeSongRail = ({ mode, eyebrow, title }: Props) => {
   const Icon = mode === "video" ? Video : Mic2;
 
   return (
-    <section className="px-4 lg:px-6 mt-8 animate-fade-in-up">
+    <section className="px-4 lg:px-6 mt-8">
       <div className="flex items-end justify-between gap-3 mb-4"><div>
       {text.eyebrow && <p className="text-[11px] uppercase tracking-[0.2em] text-gold/80">{text.eyebrow}</p>}
       <h3 className="text-xl font-serif font-bold text-foreground">{text.title}</h3>

@@ -1,3 +1,4 @@
+import { useHomeState } from "@/lib/homeMemory";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -11,7 +12,7 @@ interface Category {
 }
 
 const CategorySection = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useHomeState<Category[]>("categories", []);
   const navigate = useNavigate();
   const text = sectionText(useSetting<HomeSectionContent>(SETTING_KEYS.homeSectionContent), "categories");
 
@@ -29,7 +30,7 @@ const CategorySection = () => {
   if (categories.length === 0) return null;
 
   return (
-    <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
+    <section className="px-4 lg:px-6 mt-8">
       <div className="flex items-end justify-between gap-3 mb-4">
         <div>
           {text.eyebrow && <p className="text-[11px] uppercase tracking-[0.2em] text-gold/80">{text.eyebrow}</p>}
@@ -42,8 +43,7 @@ const CategorySection = () => {
           <button
             key={cat.id}
             onClick={() => navigate(`/category/${cat.id}`)}
-            className="flex-shrink-0 flex flex-col items-center gap-2 w-20 group cursor-pointer animate-fade-in-up"
-            style={{ animationDelay: `${i * 0.08}s` }}
+            className="flex-shrink-0 flex flex-col items-center gap-2 w-20 group cursor-pointer"
           >
             <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-border group-hover:border-gold transition-all duration-300 group-hover:shadow-[0_0_20px_hsl(43_70%_53%/0.2)] group-hover:scale-105">
               {cat.image_url ? (

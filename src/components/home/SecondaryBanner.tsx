@@ -1,3 +1,4 @@
+import { useHomeState } from "@/lib/homeMemory";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Music, Crown } from "lucide-react";
@@ -16,8 +17,8 @@ interface PremiumAd {
 }
 
 const SecondaryBanner = () => {
-  const [ad, setAd] = useState<PremiumAd | null>(null);
-  const { isPremium, isTrial } = useIsPremium();
+  const [ad, setAd] = useHomeState<PremiumAd | null>("secondary_banner", null);
+  const { isPremium, isTrial, loading: planLoading } = useIsPremium();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,7 +35,8 @@ const SecondaryBanner = () => {
   }, []);
 
   // Hide only for full premium users (show for free and trial)
-  if (isPremium && !isTrial) return null;
+  // Wait for the plan check so Premium listeners never see this flash in and out.
+  if (planLoading || (isPremium && !isTrial)) return null;
 
   const title = ad?.title || "Upgrade to Music+";
   const subtitle = ad?.subtitle || "Unlimited songs, karaoke mode, games & offline downloads.";
@@ -51,7 +53,7 @@ const SecondaryBanner = () => {
   };
 
   return (
-    <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+    <section className="px-4 lg:px-6 mt-8">
       <div
         className="relative w-full h-40 md:h-48 rounded-2xl overflow-hidden group cursor-pointer border border-gold/20 shadow-[0_0_24px_hsl(43_70%_53%/0.12)] hover:shadow-[0_0_32px_hsl(43_70%_53%/0.22)] transition-all duration-300"
         onClick={handleClick}

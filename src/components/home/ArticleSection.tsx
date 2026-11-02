@@ -1,3 +1,4 @@
+import { useHomeState } from "@/lib/homeMemory";
 import SeeAll from "./SeeAll";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +15,7 @@ interface Article {
 }
 
 const ArticleSection = () => {
-  const [articles, setArticles] = useState<Article[]>([]);
+  const [articles, setArticles] = useHomeState<Article[]>("articles", []);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,7 +29,7 @@ const ArticleSection = () => {
   if (articles.length === 0) return null;
 
   return (
-    <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
+    <section className="px-4 lg:px-6 mt-8">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-serif font-bold text-foreground">Featured Articles</h3>
         <button onClick={() => navigate("/articles")} className="text-xs text-gold hover:text-gold-light font-medium transition-colors duration-200">See All</button>
@@ -38,8 +39,7 @@ const ArticleSection = () => {
           <article
             key={article.id}
             onClick={() => navigate(`/articles?id=${article.id}`)}
-            className="snap-start flex-shrink-0 w-[85%] md:w-auto glass-card p-5 hover:glow-gold transition-all duration-300 cursor-pointer group hover:-translate-y-1 animate-fade-in-up"
-            style={{ animationDelay: `${i * 0.1}s` }}
+            className="snap-start flex-shrink-0 w-[85%] md:w-auto glass-card p-5 hover:glow-gold transition-all duration-300 cursor-pointer group hover:-translate-y-1"
           >
             <div className="flex items-center gap-2 mb-3">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-gold bg-gold/10 px-2 py-0.5 rounded-full">

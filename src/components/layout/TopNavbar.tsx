@@ -17,9 +17,9 @@ const TopNavbar = ({ desktopSidebarCollapsed = false }: TopNavbarProps) => {
   const location = useLocation();
   const isHome = location.pathname === "/";
   const { username, user } = useAuth();
-  const { isPremium, isTrial } = useIsPremium();
+  const { isPremium, isTrial, loading: planLoading } = useIsPremium();
   const [searchOpen, setSearchOpen] = useState(false);
-  const isFreeUser = user && !isPremium && !isTrial;
+  const isFreeUser = user && !planLoading && !isPremium && !isTrial;
 
   return (
     <>
