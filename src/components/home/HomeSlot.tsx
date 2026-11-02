@@ -31,7 +31,7 @@ const HomeSlot = ({ id, children }: { id: string; children: ReactNode }) => {
   }, [id]);
 
   return (
-    <div className="relative" style={waiting ? { minHeight: reserved } : undefined}>
+    <div className="relative" data-home-slot={id} style={waiting ? { minHeight: reserved } : undefined}>
       <div ref={inner} className="flow-root">{children}</div>
       {waiting && (
         <div aria-hidden className="absolute inset-x-4 lg:inset-x-6 top-8 bottom-2 rounded-2xl bg-muted/30 animate-pulse" />
