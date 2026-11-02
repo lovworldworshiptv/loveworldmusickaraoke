@@ -27,6 +27,15 @@ export const useIsPremium = () => {
       return;
     }
 
+    const prior = known.get(user.id);
+    if (prior) {
+      setIsPremium(prior.isPremium); setIsTrial(prior.isTrial);
+      setSubscriptionExpiry(prior.expiry); setTrialAvailable(prior.trialAvailable);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     supabase.from("user_subscriptions")
       .select("subscription, subscription_expiry_date, trial_used_at")
       .eq("user_id", user.id)
