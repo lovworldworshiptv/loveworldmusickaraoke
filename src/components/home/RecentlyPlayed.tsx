@@ -10,7 +10,7 @@ const RecentlyPlayed = () => {
   const { currentSong, isPlaying, playQueue } = usePlayer();
   const { user } = useAuth();
 
-  const { data: recentSongs = [], refetch } = useQuery({
+  const { data: recentSongs = [], refetch, isLoading } = useQuery({
     queryKey: ["home-recently-played", user?.id],
     enabled: !!user,
     queryFn: async () => {
@@ -43,6 +43,9 @@ const RecentlyPlayed = () => {
     instrumentalUrl: s.instrumental_url || undefined, lyricsLrc: s.lyrics_lrc || undefined,
     durationSeconds: s.duration_seconds,
   });
+
+  // Show nothing until the list is known, so the empty message never flashes before real songs.
+  if (user && isLoading && !currentSong) return null;
 
   if (recentSongs.length === 0 && !currentSong) {
     return (
