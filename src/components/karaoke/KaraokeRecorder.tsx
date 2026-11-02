@@ -234,6 +234,10 @@ const KaraokeRecorder = ({ songId, allowed, songTitle, instrumentalUrl, isKaraok
   }, [recording]);
 
   const startRecording = useCallback(async () => {
+    // Ignore repeat taps while the microphone and backing track are getting ready.
+    if (startingRef.current) return;
+    startingRef.current = true;
+    setStarting(true);
     let stream: MediaStream | null = null;
     let audioContext: AudioContext | null = null;
 
