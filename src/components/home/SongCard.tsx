@@ -81,9 +81,6 @@ const SongCard = memo(({ song, index, allSongs }: SongCardProps) => {
           )}
           {/* The whole artwork plays on the first tap; the round button is just the visual cue. */}
           <div
-            role="button"
-            tabIndex={-1}
-            aria-hidden="true"
             onClick={handlePlay}
             className="absolute inset-0 cursor-pointer bg-background/0 group-hover:bg-background/20 transition-all duration-300 flex items-center justify-center touch-manipulation"
           >
