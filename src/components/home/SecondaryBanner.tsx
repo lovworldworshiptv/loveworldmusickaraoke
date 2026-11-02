@@ -18,7 +18,7 @@ interface PremiumAd {
 
 const SecondaryBanner = () => {
   const [ad, setAd] = useHomeState<PremiumAd | null>("secondary_banner", null);
-  const { isPremium, isTrial } = useIsPremium();
+  const { isPremium, isTrial, loading: planLoading } = useIsPremium();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -35,7 +35,8 @@ const SecondaryBanner = () => {
   }, []);
 
   // Hide only for full premium users (show for free and trial)
-  if (isPremium && !isTrial) return null;
+  // Wait for the plan check so Premium listeners never see this flash in and out.
+  if (planLoading || (isPremium && !isTrial)) return null;
 
   const title = ad?.title || "Upgrade to Music+";
   const subtitle = ad?.subtitle || "Unlimited songs, karaoke mode, games & offline downloads.";

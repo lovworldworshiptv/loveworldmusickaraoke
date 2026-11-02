@@ -3,13 +3,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { canStartTrial } from "@/lib/trial";
 
+// Last known plan per account, so screens opened later start with the right answer
+// instead of briefly showing (then hiding) upgrade prompts while it is re-checked.
+const known = new Map<string, { isPremium: boolean; isTrial: boolean; expiry: string | null; trialAvailable: boolean }>();
+
 export const useIsPremium = () => {
   const { user } = useAuth();
-  const [isPremium, setIsPremium] = useState(false);
-  const [isTrial, setIsTrial] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [subscriptionExpiry, setSubscriptionExpiry] = useState<string | null>(null);
-  const [trialAvailable, setTrialAvailable] = useState(false);
+  const cached = user ? known.get(user.id) : undefined;
+  const [isPremium, setIsPremium] = useState(cached?.isPremium ?? false);
+  const [isTrial, setIsTrial] = useState(cached?.isTrial ?? false);
+  const [loading, setLoading] = useState(!cached);
+  const [subscriptionExpiry, setSubscriptionExpiry] = useState<string | null>(cached?.expiry ?? null);
+  const [trialAvailable, setTrialAvailable] = useState(cached?.trialAvailable ?? false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -31,14 +36,13 @@ export const useIsPremium = () => {
         const expiry = data?.subscription_expiry_date ?? null;
         const expired = expiry && new Date(expiry) < new Date();
 
-        if (expired) {
-          setIsPremium(false);
-          setIsTrial(false);
-        } else {
-          setIsPremium(sub === "premium" || sub === "trial");
-          setIsTrial(sub === "trial");
-        }
-        setTrialAvailable(canStartTrial(data ?? null));
+        const premium = !expired && (sub === "premium" || sub === "trial");
+        const trial = !expired && sub === "trial";
+        const available = canStartTrial(data ?? null);
+        known.set(user.id, { isPremium: premium, isTrial: trial, expiry, trialAvailable: available });
+        setIsPremium(premium);
+        setIsTrial(trial);
+        setTrialAvailable(available);
         setSubscriptionExpiry(expiry);
         setLoading(false);
       });
