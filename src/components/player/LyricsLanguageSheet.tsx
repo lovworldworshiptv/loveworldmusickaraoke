@@ -55,6 +55,7 @@ const LyricsLanguageSheet = () => {
     } else {
       await supabase.from("user_preferences").insert({ user_id: user.id, preferred_languages: [code] });
     }
+    window.dispatchEvent(new CustomEvent(PREFERRED_LANGUAGE_EVENT));
   };
 
   const choose = (r: LyricRow) => {
