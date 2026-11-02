@@ -44,7 +44,6 @@ const CategorySection = () => {
             key={cat.id}
             onClick={() => navigate(`/category/${cat.id}`)}
             className="flex-shrink-0 flex flex-col items-center gap-2 w-20 group cursor-pointer"
-            style={{ animationDelay: `${i * 0.08}s` }}
           >
             <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-border group-hover:border-gold transition-all duration-300 group-hover:shadow-[0_0_20px_hsl(43_70%_53%/0.2)] group-hover:scale-105">
               {cat.image_url ? (

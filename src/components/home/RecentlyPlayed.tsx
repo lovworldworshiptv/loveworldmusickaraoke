@@ -46,7 +46,7 @@ const RecentlyPlayed = () => {
 
   if (recentSongs.length === 0 && !currentSong) {
     return (
-      <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+      <section className="px-4 lg:px-6 mt-8">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-serif font-bold text-foreground">Recently Played</h3>
         </div>
@@ -62,7 +62,7 @@ const RecentlyPlayed = () => {
   const allPlayerSongs = items.map((item: any) => toPlayerSong(item.songs)).filter(Boolean);
 
   return (
-    <section className="px-4 lg:px-6 mt-8 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+    <section className="px-4 lg:px-6 mt-8">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-serif font-bold text-foreground">Recently Played</h3>
         <SeeAll to="/history" />

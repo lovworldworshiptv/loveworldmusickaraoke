@@ -61,7 +61,6 @@ const AlbumSection = () => {
             key={album.id}
             onClick={() => navigate(`/albums?id=${album.id}`)}
             className="group flex-shrink-0 w-40 md:w-44 text-left"
-            style={{ animationDelay: `${i * 0.07}s` }}
           >
             <div className="relative aspect-square rounded-xl overflow-hidden mb-3 glass-card transition-all duration-300 group-hover:shadow-[0_8px_32px_hsl(43_70%_53%/0.12)]">
               {album.cover_url ? (

@@ -40,7 +40,6 @@ const ArticleSection = () => {
             key={article.id}
             onClick={() => navigate(`/articles?id=${article.id}`)}
             className="snap-start flex-shrink-0 w-[85%] md:w-auto glass-card p-5 hover:glow-gold transition-all duration-300 cursor-pointer group hover:-translate-y-1"
-            style={{ animationDelay: `${i * 0.1}s` }}
           >
             <div className="flex items-center gap-2 mb-3">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-gold bg-gold/10 px-2 py-0.5 rounded-full">
