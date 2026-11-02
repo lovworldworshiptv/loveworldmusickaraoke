@@ -600,8 +600,11 @@ const KaraokeRecorder = ({ songId, allowed, songTitle, instrumentalUrl, isKaraok
 
                 <Button
                   onClick={startRecording}
+                  disabled={starting}
+                  aria-busy={starting}
+                  aria-label={starting ? "Getting ready to record" : "Start recording"}
                   size="lg"
-                  className="bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-16 h-16 p-0 shadow-lg shadow-destructive/25 transition-transform hover:scale-105"
+                  className={`bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-16 h-16 p-0 shadow-lg shadow-destructive/25 transition-transform hover:scale-105 disabled:opacity-100 ${starting ? "motion-safe:animate-pulse" : ""}`}
                 >
                   <Mic2 className="w-6 h-6" />
                 </Button>
