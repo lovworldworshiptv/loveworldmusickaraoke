@@ -154,7 +154,17 @@ const Community = () => {
     if (activeId) loadPosts(activeId);
   }, [activeId, loadPosts]);
 
+  const [joiningId, setJoiningId] = useState<string | null>(null);
   const toggleMembership = async (communityId: string) => {
+    if (!user || joiningId) return;
+    setJoiningId(communityId);
+    try {
+      await doToggleMembership(communityId);
+    } finally {
+      setJoiningId(null);
+    }
+  };
+  const doToggleMembership = async (communityId: string) => {
     if (!user) return;
     if (memberIds.has(communityId)) {
       await supabase.from("community_members").delete().eq("community_id", communityId).eq("user_id", user.id);
@@ -205,15 +215,22 @@ const Community = () => {
     toast.success("Shared with the community");
   };
 
+  // Likes show instantly on the first tap; a failed save puts the heart back.
+  const likeBusy = useRef<Set<string>>(new Set());
+  const setLiked = (postId: string, liked: boolean) =>
+    setPosts((p) => p.map((x) => x.id === postId && x.liked !== liked ? { ...x, liked, like_count: Math.max(0, x.like_count + (liked ? 1 : -1)) } : x));
   const toggleLike = async (post: PostRow) => {
-    if (!user) return;
-    if (post.liked) {
-      await supabase.from("community_post_likes").delete().eq("post_id", post.id).eq("user_id", user.id);
-      setPosts((p) => p.map((x) => x.id === post.id ? { ...x, liked: false, like_count: x.like_count - 1 } : x));
-    } else {
-      const { error } = await supabase.from("community_post_likes").insert({ post_id: post.id, user_id: user.id });
-      if (error) { toast.error(rateMsg(error) || "Could not like this post"); return; }
-      setPosts((p) => p.map((x) => x.id === post.id ? { ...x, liked: true, like_count: x.like_count + 1 } : x));
+    if (!user || likeBusy.current.has(post.id)) return;
+    likeBusy.current.add(post.id);
+    const next = !post.liked;
+    setLiked(post.id, next);
+    const { error } = next
+      ? await supabase.from("community_post_likes").insert({ post_id: post.id, user_id: user.id })
+      : await supabase.from("community_post_likes").delete().eq("post_id", post.id).eq("user_id", user.id);
+    likeBusy.current.delete(post.id);
+    if (error && !(next && (error as { code?: string }).code === "23505")) {
+      setLiked(post.id, !next);
+      toast.error(rateMsg(error) || (next ? "Could not like this post" : "Could not remove your like"));
     }
   };
 
@@ -229,10 +246,13 @@ const Community = () => {
     setOpenComments((o) => ({ ...o, [postId]: rows.map((r) => ({ ...r, author_name: profiles[r.user_id]?.username || "User", author_avatar: profiles[r.user_id]?.avatar_url || null })) }));
   };
 
+  const [commentingId, setCommentingId] = useState<string | null>(null);
   const addComment = async (postId: string) => {
     const text = commentDraft[postId]?.trim();
-    if (!user || !text) return;
+    if (!user || !text || commentingId) return;
+    setCommentingId(postId);
     const { error } = await supabase.from("community_post_comments").insert({ post_id: postId, user_id: user.id, content: text });
+    setCommentingId(null);
     if (!error) {
       setCommentDraft((c) => ({ ...c, [postId]: "" }));
       loadComments(postId);
