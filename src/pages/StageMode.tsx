@@ -25,6 +25,71 @@ const writeStored = (key: string, value: string) => {
 
 const FONT_STEPS = ["text-2xl", "text-3xl", "text-4xl", "text-5xl", "text-6xl"];
 
+/**
+ * Muted looping background. Phones only autoplay video that is muted *as an attribute*
+ * before play, and they pause it when the app goes to the background — so we set mute
+ * explicitly, retry play on return / next tap, and keep the still poster until frames flow.
+ */
+const StageBackgroundVideo = ({ src, poster }: { src: string; poster?: string }) => {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    v.muted = true;
+    v.defaultMuted = true;
+    v.setAttribute("muted", "");
+    v.setAttribute("playsinline", "");
+    v.setAttribute("webkit-playsinline", "");
+    const tryPlay = () => {
+      if (document.visibilityState !== "visible" || !v.paused) return;
+      v.play().catch(() => { /* blocked (e.g. Low Power Mode) — poster stays, retry on next tap */ });
+    };
+    const onPlaying = () => setPlaying(true);
+    const onVisible = () => tryPlay();
+    // Some phones stop looping after a stall; restart from the top if it ends anyway.
+    const onEnded = () => { v.currentTime = 0; tryPlay(); };
+    v.addEventListener("playing", onPlaying);
+    v.addEventListener("canplay", tryPlay);
+    v.addEventListener("ended", onEnded);
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", onVisible);
+    window.addEventListener("pointerdown", tryPlay, { passive: true });
+    tryPlay();
+    return () => {
+      v.removeEventListener("playing", onPlaying);
+      v.removeEventListener("canplay", tryPlay);
+      v.removeEventListener("ended", onEnded);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onVisible);
+      window.removeEventListener("pointerdown", tryPlay);
+    };
+  }, [src]);
+
+  return (
+    <>
+      {poster && (
+        <img src={poster} alt="" aria-hidden className="pointer-events-none absolute inset-0 h-full w-full object-cover" />
+      )}
+      <video
+        ref={ref}
+        src={src}
+        poster={poster}
+        muted
+        loop
+        autoPlay
+        playsInline
+        preload="auto"
+        disablePictureInPicture
+        disableRemotePlayback
+        aria-hidden
+        className={`pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-700 motion-reduce:hidden ${playing ? "opacity-100" : "opacity-0"}`}
+      />
+    </>
+  );
+};
+
 const StageMode = () => {
   const navigate = useNavigate();
   const {
