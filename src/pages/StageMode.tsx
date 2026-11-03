@@ -185,16 +185,10 @@ const StageMode = () => {
         <img key={activeStage.mediaUrl} src={resolveStageMediaUrl(activeStage.mediaUrl)} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover animate-in fade-in duration-700" />
       )}
       {activeStage.mediaType === "video" && activeStage.mediaUrl && (
-        <video
+        <StageBackgroundVideo
           key={activeStage.mediaUrl}
           src={resolveStageMediaUrl(activeStage.mediaUrl)}
           poster={(activeStage as { posterUrl?: string }).posterUrl ? resolveStageMediaUrl((activeStage as { posterUrl?: string }).posterUrl as string) : undefined}
-          muted
-          loop
-          autoPlay
-          playsInline
-          preload="auto"
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover animate-in fade-in duration-700"
         />
       )}
       <div className="pointer-events-none absolute inset-0 bg-background/65" />
