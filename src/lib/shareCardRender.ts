@@ -422,12 +422,55 @@ export async function renderShareCard(
   await document.fonts.ready;
   const [cover, logo] = await Promise.all([safeCover(item.coverUrl), loadImage(logoUrl, false).catch(() => null)]);
 
+  const pal = artworkPalette(cover);
+  const drawCard = async (w: number, h: number, portrait: boolean) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const c: Ctx = { ctx: canvas.getContext("2d")!, W: w, H: h, portrait, item, link, cover, logo, pal };
+    if (style === "arch") await drawArch(c);
+    else await drawGlass(c);
+    return canvas;
+  };
+  if (format !== "story") return drawCard(W, H, format === "portrait");
+
+  // Story: the portrait card floats on an artwork-coloured backdrop, clear of the
+  // top and bottom areas that status/story apps cover with their own buttons.
+  const { w: cw, h: ch } = CARD_SIZES.portrait;
+  const card = await drawCard(cw, ch, true);
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d")!;
-  const c: Ctx = { ctx, W, H, portrait: format === "portrait", item, link, cover, logo, pal: artworkPalette(cover) };
-  if (style === "arch") await drawArch(c);
-  else await drawGlass(c);
+  const base = ctx.createLinearGradient(0, 0, 0, H);
+  base.addColorStop(0, rgb(pal.accentDark));
+  base.addColorStop(0.5, rgb(pal.bg));
+  base.addColorStop(1, rgb(pal.bgDeep));
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, W, H);
+  if (cover) {
+    ctx.save();
+    ctx.filter = "blur(80px) brightness(0.6) saturate(1.3)";
+    drawCoverFit(ctx, cover, -160, -160, W + 320, H + 320);
+    ctx.restore();
+    ctx.fillStyle = rgba(pal.bgDeep, 0.35);
+    ctx.fillRect(0, 0, W, H);
+  }
+  const scale = 0.86;
+  const dw = cw * scale, dh = ch * scale;
+  const dx = (W - dw) / 2, dy = (H - dh) / 2;
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = 70;
+  ctx.shadowOffsetY = 24;
+  roundRect(ctx, dx, dy, dw, dh, 44);
+  ctx.fillStyle = rgb(pal.bgDeep);
+  ctx.fill();
+  ctx.restore();
+  ctx.save();
+  roundRect(ctx, dx, dy, dw, dh, 44);
+  ctx.clip();
+  ctx.drawImage(card, dx, dy, dw, dh);
+  ctx.restore();
   return canvas;
 }
