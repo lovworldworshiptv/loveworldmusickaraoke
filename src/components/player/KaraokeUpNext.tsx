@@ -25,12 +25,12 @@ function KaraokeList({ onPicked, scrollerRef, hideCurrent }: { onPicked?: () => 
     <div className="flex flex-col min-h-0 h-full">
       {currentSong && !hideCurrent && (
         <div className="px-4 pb-3">
-          <p className="text-xs text-muted-foreground mb-2">Now singing</p>
+          <p className="text-xs text-foreground mb-2">Now singing</p>
           <div className="flex items-center gap-3 rounded-2xl bg-gold/10 border border-gold/30 p-2">
             <Cover song={currentSong} />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-gold truncate">{currentSong.title}</p>
-              <p className="text-xs text-muted-foreground truncate"><ArtistLinks artist={currentSong.artist} /></p>
+              <p className="text-xs text-foreground truncate"><ArtistLinks artist={currentSong.artist} /></p>
             </div>
             <Mic2 className="w-4 h-4 text-gold flex-shrink-0" aria-hidden="true" />
           </div>
@@ -38,11 +38,11 @@ function KaraokeList({ onPicked, scrollerRef, hideCurrent }: { onPicked?: () => 
       )}
       <div className="px-4 pb-2 flex items-baseline justify-between">
         <h3 className="text-sm font-semibold">Up Next</h3>
-        <span className="text-xs text-muted-foreground">{readyCount} ready to sing</span>
+        <span className="text-xs text-foreground">{readyCount} ready to sing</span>
       </div>
       <div ref={scrollerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
         {upcoming.length === 0 ? (
-          <p className="px-2 py-6 text-sm text-muted-foreground text-center">Nothing queued. When this song ends, more karaoke songs are added automatically.</p>
+          <p className="px-2 py-6 text-sm text-foreground text-center">Nothing queued. When this song ends, more karaoke songs are added automatically.</p>
         ) : (
           <ul className="space-y-1">
             {upcoming.map(({ song, qi }, i) => {
@@ -56,15 +56,15 @@ function KaraokeList({ onPicked, scrollerRef, hideCurrent }: { onPicked?: () => 
                     <Cover song={song} size={44} />
                     <span className="min-w-0">
                       <span className="block text-sm font-medium truncate">{song.title}</span>
-                      <span className="block text-xs text-muted-foreground truncate">{ok ? song.artist : "No backing track — skipped"}</span>
+                      <span className="block text-xs text-foreground truncate">{ok ? song.artist : "No backing track — skipped"}</span>
                     </span>
                   </button>
                   <button type="button" aria-label="Move up" disabled={i === 0} onClick={() => reorderQueue(qi, upcoming[i - 1].qi)}
-                    className="p-2 rounded-lg text-muted-foreground hover:text-gold disabled:opacity-30"><ArrowUp className="w-4 h-4" /></button>
+                    className="p-2 rounded-lg text-foreground hover:text-gold disabled:opacity-30"><ArrowUp className="w-4 h-4" /></button>
                   <button type="button" aria-label="Move down" disabled={i === upcoming.length - 1} onClick={() => reorderQueue(qi, upcoming[i + 1].qi)}
-                    className="p-2 rounded-lg text-muted-foreground hover:text-gold disabled:opacity-30"><ArrowDown className="w-4 h-4" /></button>
+                    className="p-2 rounded-lg text-foreground hover:text-gold disabled:opacity-30"><ArrowDown className="w-4 h-4" /></button>
                   <button type="button" aria-label={`Remove ${song.title}`} onClick={() => removeFromQueue(qi)}
-                    className="p-2 rounded-lg text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+                    className="p-2 rounded-lg text-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
                 </li>
               );
             })}
@@ -272,7 +272,7 @@ export function KaraokeUpNextSheet({ open, onOpenChange, onNext }: { open: boole
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-gold flex items-center gap-1"><Mic2 className="w-3 h-3" aria-hidden="true" /> Now singing</p>
               <p className="text-sm font-semibold text-foreground truncate">{currentSong.title}</p>
-              <p className="text-xs text-muted-foreground truncate"><ArtistLinks artist={currentSong.artist} /></p>
+              <p className="text-xs text-foreground truncate"><ArtistLinks artist={currentSong.artist} /></p>
             </div>
             <button type="button" data-no-sheet-drag tabIndex={open ? 0 : -1} onClick={togglePlay} aria-label={isPlaying ? "Pause" : "Play"}
               className="w-11 h-11 rounded-full gradient-gold flex items-center justify-center text-primary-foreground flex-shrink-0">
@@ -303,9 +303,9 @@ export function KaraokeUpNextSheet({ open, onOpenChange, onNext }: { open: boole
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-gold">Up Next</p>
               <p className="text-sm font-medium text-foreground truncate">{next ? next.title : "Nothing up next"}</p>
-              {readyCount > 0 && <p className="text-[11px] text-muted-foreground truncate">{countLabel}</p>}
+              {readyCount > 0 && <p className="text-[11px] text-foreground truncate">{countLabel}</p>}
             </div>
-            <ChevronUp className="w-5 h-5 text-muted-foreground flex-shrink-0" aria-hidden="true" />
+            <ChevronUp className="w-5 h-5 text-foreground flex-shrink-0" aria-hidden="true" />
           </div>
         </div>
 
