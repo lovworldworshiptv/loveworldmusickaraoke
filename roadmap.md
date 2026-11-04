@@ -97,3 +97,6 @@
 - [x] Video controls check: 30-second skips with on-video hint; Previous goes to the last song with a video; next video keeps the same player (full screen stays on); repeat-all with one video replays it; lock-screen/headphone buttons control the video. All verified with real playback except lock-screen buttons.
 
 - [x] Music Videos For You: tapping a video while a song is playing must open Video mode and keep playing videos
+
+- [x] Share Cards with QR codes (songs, albums, official playlists) + playlist ?id= deep link
+- [x] Admin user details: total streams with Song/Karaoke/Video breakdown

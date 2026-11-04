@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import DownloadButton from "@/components/offline/DownloadButton";
 import { useSaveSong } from "@/hooks/useSaveSong";
 import DownloadAllButton from "@/components/offline/DownloadAllButton";
@@ -70,6 +71,23 @@ const Playlists = () => {
       return (data as any[]).filter(p => p.user_id !== user?.id);
     },
   });
+
+  const [searchParams] = useSearchParams();
+  const linkedId = searchParams.get("id");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const handledLink = useRef<string | null>(null);
+  useEffect(() => {
+    if (!linkedId || handledLink.current === linkedId) return;
+    const all = [...adminPlaylists, ...myPlaylists];
+    if (all.length === 0) return;
+    handledLink.current = linkedId;
+    if (!all.some((p: any) => p.id === linkedId)) { toast.error("Playlist not available"); return; }
+    setExpandedPlaylists(prev => new Set(prev).add(linkedId));
+    setHighlightId(linkedId);
+    requestAnimationFrame(() => document.getElementById(`playlist-${linkedId}`)?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" }));
+    const t = setTimeout(() => setHighlightId(null), 2500);
+    return () => clearTimeout(t);
+  }, [linkedId, adminPlaylists, myPlaylists]);
 
   const createPlaylist = useMutation({
     mutationFn: async (name: string) => {
@@ -169,7 +187,7 @@ const Playlists = () => {
     const isExpanded = expandedPlaylists.has(pl.id);
 
     return (
-      <div key={pl.id} className="rounded-xl border border-border p-4">
+      <div key={pl.id} id={`playlist-${pl.id}`} className={`rounded-xl border p-4 transition-shadow duration-700 ${highlightId === pl.id ? "border-gold shadow-[0_0_24px_hsl(43_70%_53%/0.5)]" : "border-border"}`}>
         <div className="flex items-center justify-between">
           <button onClick={() => toggleExpanded(pl.id)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
             <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-0" : "-rotate-90"}`} />
@@ -194,6 +212,7 @@ const Playlists = () => {
               title={pl.name}
               text={`Check out this playlist: ${pl.name}`}
               imageUrl={pl.cover_url || (songs[0]?.coverUrl ? songs[0].coverUrl : undefined)}
+              card={isOwn ? undefined : { kind: "playlist", id: pl.id, title: pl.name, subtitle: `${songs.length} songs`, coverUrl: pl.cover_url || songs[0]?.coverUrl }}
             />
             {songs.length > 0 && (
               <>
