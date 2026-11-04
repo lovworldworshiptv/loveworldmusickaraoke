@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsPremium } from "@/hooks/useIsPremium";
+import LyricsShareButton from "@/components/player/LyricsShareButton";
 import { canUseSong, isFreeSong, useFreeSongIds } from "@/lib/freeSongs";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { isDownloaded as checkDownloaded, saveDownload, getDownloadedTrack, getDownloadedVideoUrl } from "@/lib/downloadManager";
@@ -388,6 +389,10 @@ const ExpandedPlayer = () => {
   const { user } = useAuth();
   const { isAdmin } = useIsAdmin();
   const { isPremium } = useIsPremium();
+  const lyricsText = useMemo(
+    () => (lrcLines.length ? lrcLines.map((l) => l.text).filter(Boolean).join("\n") : staticLyrics || ""),
+    [lrcLines, staticLyrics],
+  );
   const navigate = useNavigate();
   const [isFav, setIsFav] = useState(false);
   const [legacySaved, setLegacySaved] = useState(false);
@@ -592,6 +597,9 @@ const ExpandedPlayer = () => {
           >
             {showLyrics ? <Disc3 className="w-4 h-4" /> : <Type className="w-4 h-4" />}
           </button>
+          {lyricsText && mode !== "video" && (
+            <LyricsShareButton song={currentSong} lyrics={lyricsText} isPremium={isPremium} onUpgrade={() => setShowUpgrade(true)} />
+          )}
         </div>
 
 
@@ -732,7 +740,12 @@ const ExpandedPlayer = () => {
             </div>
           </div>
         ) : (
-          <div ref={lyricsContainerRef} className="flex-1 overflow-y-auto scrollbar-hide px-6 relative min-h-0">
+          <div
+            ref={lyricsContainerRef}
+            // Copying lyrics is a Premium feature: others can read but not select or copy them.
+            onCopy={isPremium ? undefined : (e) => { e.preventDefault(); setShowUpgrade(true); }}
+            className={`flex-1 overflow-y-auto scrollbar-hide px-6 relative min-h-0 ${isPremium ? "selectable" : "select-none"}`}
+          >
             {lrcLines.length > 0 ? (
               <div className="py-[40vh] space-y-5">
                 {lrcLines.map((line, i) => (
