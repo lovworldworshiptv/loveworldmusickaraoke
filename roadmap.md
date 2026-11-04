@@ -106,4 +106,4 @@
 - [x] Share cards: Spotify-style sharing to all socials and statuses (tall story-size card, phone share sheet with the image for WhatsApp status / Instagram & Facebook stories, link ready to paste)
 - [x] Share: verify every social share link (KingsChat, WhatsApp, Facebook, X, Telegram, email) uses each app's current official share address
 - [x] Lyrics share button: Premium-only copy/share of lyrics
-- [ ] Share cards (QR) Premium-only
+- [x] Share cards (QR) Premium-only
