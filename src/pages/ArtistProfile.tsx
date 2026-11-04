@@ -92,9 +92,9 @@ const ArtistView = ({ artist }: { artist: Artist }) => {
     "--a-accent": rgb(pal.accent), "--a-light": rgb(pal.accentLight), "--a-dark": rgb(pal.accentDark),
     "--a-glow": rgba(pal.accent, 0.45), "--a-tint": rgba(pal.accent, 0.16), "--a-tint-strong": rgba(pal.accent, 0.28),
     backgroundImage: [
-      `radial-gradient(90% 50% at 0% 35%, ${rgba(pal.accent, 0.30)} 0%, transparent 70%)`,
-      `radial-gradient(80% 45% at 100% 70%, ${rgba(pal.accentLight, 0.18)} 0%, transparent 70%)`,
-      `linear-gradient(160deg, ${rgb(pal.bg)} 0%, ${rgba(pal.accentDark, 0.85)} 38%, ${rgb(pal.bgDeep)} 72%, ${rgb(pal.bg)} 100%)`,
+      `radial-gradient(90% 600px at 0% 900px, ${rgba(pal.accent, 0.28)} 0%, transparent 70%)`,
+      `radial-gradient(80% 600px at 100% 1500px, ${rgba(pal.accentLight, 0.16)} 0%, transparent 70%)`,
+      `linear-gradient(to bottom, ${rgb(pal.bg)} 0px, ${rgb(pal.bg)} 380px, ${rgba(pal.accentDark, 0.85)} 1000px, ${rgb(pal.bgDeep)} 1700px, ${rgb(pal.bg)} 100%)`,
     ].join(", "),
     backgroundAttachment: "local",
     transition: "background-image 600ms ease",
