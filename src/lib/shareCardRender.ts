@@ -282,10 +282,10 @@ async function drawArch({ ctx, W, H, portrait, item, link, cover, logo, pal }: C
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, W, H);
 
-  const coverW = portrait ? 480 : 420;
-  const coverH = portrait ? 520 : 560;
+  const coverW = portrait ? 420 : 440;
+  const coverH = portrait ? 560 : 680;
   const coverX = portrait ? (W - coverW) / 2 : 104;
-  const coverY = portrait ? 176 : 196;
+  const coverY = portrait ? 160 : 196;
   const ccx = coverX + coverW / 2;
 
   const glow = ctx.createRadialGradient(ccx, coverY + coverH * 0.4, 0, ccx, coverY + coverH * 0.4, coverW * 1.2);
@@ -381,7 +381,7 @@ async function drawArch({ ctx, W, H, portrait, item, link, cover, logo, pal }: C
   }
 
   // Pearl QR plate, anchored to the bottom of the text column
-  const plate = portrait ? 270 : 300;
+  const plate = portrait ? 240 : 300;
   const px = colX - plate / 2;
   const py = H - 84 - 44 - plate;
   ctx.save();
