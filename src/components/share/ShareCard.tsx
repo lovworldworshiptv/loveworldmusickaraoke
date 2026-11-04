@@ -9,6 +9,7 @@ import { APP_DOWNLOAD_URL } from "@/components/share/AppDownloadPrompt";
 import { CARD_STYLES, cardBaseUrl, cardFilename, cardLink, readCardStyle, saveCardStyle, type ShareCardFormat, type ShareCardItem, type ShareCardStyle } from "@/lib/shareCard";
 import logoUrl from "@/assets/logo.png";
 import kingschatLogo from "@/assets/kingschat_logo.png";
+import { WhatsAppIcon, XIcon, FacebookIcon, TelegramIcon } from "@/components/share/SocialIcons";
 
 interface ShareCardSheetProps {
   item: ShareCardItem;
@@ -19,7 +20,7 @@ interface ShareCardSheetProps {
 const btn = "min-h-11 flex items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-50";
 
 const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
-  const [format, setFormat] = useState<ShareCardFormat>("portrait");
+  const [format, setFormat] = useState<ShareCardFormat>("story");
   const [style, setStyle] = useState<ShareCardStyle>(readCardStyle);
   const pickStyle = (s: ShareCardStyle) => { setStyle(s); saveCardStyle(s); };
   const [blob, setBlob] = useState<Blob | null>(null);
@@ -49,32 +50,43 @@ const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
 
   const log = () => logShareClick("qr_card", cardBaseUrl(item));
 
-  const save = () => {
+  const download = () => {
     if (!preview) return;
-    log();
     const a = document.createElement("a");
     a.href = preview;
     a.download = cardFilename(item.title);
     document.body.appendChild(a);
     a.click();
     a.remove();
-    toast.success("Image saved");
   };
+  const save = () => { if (!preview) return; log(); download(); toast.success("Image saved"); };
 
-  const shareImage = async () => {
-    if (isMedianApp()) { log(); nativeShare(link, text); return; }
+  // Spotify-style status/story share: the card image goes to the phone's share sheet
+  // (WhatsApp Status, Instagram/Facebook Stories, Snapchat…) and the link is copied
+  // at the same moment so it can be pasted as a link sticker or caption.
+  const shareStatus = () => {
+    log();
+    if (isMedianApp()) { nativeShare(link, text); return; }
     if (!blob) return;
     const file = new File([blob], cardFilename(item.title), { type: "image/png" });
+    navigator.clipboard?.writeText(link).catch(() => {});
     if (navigator.canShare?.({ files: [file] })) {
-      log();
-      try { await navigator.share({ files: [file], title: item.title, text: `${text}\n${link}` }); } catch { /* cancelled */ }
-    } else save();
+      navigator.share({ files: [file], title: item.title, text: `${text}\n${link}` })
+        .then(() => toast.success("Shared! The link is copied — paste it as a link sticker on your story."))
+        .catch(() => { /* cancelled */ });
+    } else {
+      download();
+      toast.success("Card saved and link copied. Post the image to your status or story, then paste the link.");
+    }
   };
 
   const go = (target: string) => (isMedianApp() ? openExternal(target) : window.open(target, "_blank", "noopener,noreferrer"));
   const msg = encodeURIComponent(`${text}\n\nGet the app: ${APP_DOWNLOAD_URL}`);
   const kingschat = () => { log(); go(`https://kingschat.online/?share=${encodeURIComponent(link)}&text=${msg}`); };
   const whatsapp = () => { log(); go(`https://wa.me/?text=${msg}%0A${encodeURIComponent(link)}`); };
+  const facebook = () => { log(); go(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`); };
+  const twitter = () => { log(); go(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(link)}`); };
+  const telegram = () => { log(); go(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`); };
   const copy = async () => {
     log();
     await navigator.clipboard.writeText(link);
@@ -105,16 +117,16 @@ const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
           ))}
         </div>
 
-        <div role="radiogroup" aria-label="Card shape" className="grid grid-cols-2 gap-1 rounded-xl bg-muted/50 p-1">
-          {(["portrait", "square"] as const).map((f) => (
+        <div role="radiogroup" aria-label="Card shape" className="grid grid-cols-3 gap-1 rounded-xl bg-muted/50 p-1">
+          {(["story", "portrait", "square"] as const).map((f) => (
             <button key={f} role="radio" aria-checked={format === f} onClick={() => setFormat(f)}
               className={cn(btn, "min-h-10", format === f ? "bg-gold text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
-              {f === "portrait" ? "Portrait" : "Square"}
+              {f === "story" ? "Story" : f === "portrait" ? "Portrait" : "Square"}
             </button>
           ))}
         </div>
 
-        <div className={cn("mx-auto w-full overflow-hidden rounded-2xl bg-muted/40 flex items-center justify-center", format === "portrait" ? "aspect-[4/5] max-w-[300px]" : "aspect-square max-w-[300px]")}>
+        <div className={cn("mx-auto w-full overflow-hidden rounded-2xl bg-muted/40 flex items-center justify-center", format === "story" ? "aspect-[9/16] max-w-[230px]" : format === "portrait" ? "aspect-[4/5] max-w-[300px]" : "aspect-square max-w-[300px]")}>
           {preview ? (
             <img src={preview} alt={`Share card for ${item.title}`} className="w-full h-full object-contain" />
           ) : failed ? (
@@ -124,19 +136,26 @@ const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <button onClick={save} disabled={!ready} className={cn(btn, "bg-gradient-to-br from-gold via-gold-light to-gold text-primary-foreground")}>
-            <Download className="w-4 h-4" aria-hidden="true" /> Save image
+        <div className="space-y-1.5">
+          <button onClick={shareStatus} disabled={!ready && !isMedianApp()} className={cn(btn, "w-full bg-gradient-to-br from-gold via-gold-light to-gold text-primary-foreground")}>
+            <Share2 className="w-4 h-4" aria-hidden="true" /> Share to status or story
           </button>
-          <button onClick={shareImage} disabled={!ready && !isMedianApp()} className={cn(btn, "border border-gold/50 text-foreground hover:bg-gold/10")}>
-            <Share2 className="w-4 h-4" aria-hidden="true" /> Share image
-          </button>
+          <p className="text-xs text-muted-foreground text-center">WhatsApp Status, Instagram, Facebook, Snapchat and more. The link is copied for you to paste as a link sticker.</p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
           <button onClick={kingschat} className={cn(btn, "bg-muted/60 text-foreground hover:bg-muted")}>
             <img src={kingschatLogo} alt="" className="w-4 h-4 rounded-sm" /> KingsChat
           </button>
-          <button onClick={whatsapp} className={cn(btn, "bg-muted/60 text-foreground hover:bg-muted")}>WhatsApp</button>
-          <button onClick={copy} className={cn(btn, "col-span-2 bg-muted/60 text-foreground hover:bg-muted")}>
+          <button onClick={whatsapp} className={cn(btn, "bg-muted/60 text-foreground hover:bg-muted")}><WhatsAppIcon /> WhatsApp</button>
+          <button onClick={facebook} className={cn(btn, "bg-muted/60 text-foreground hover:bg-muted")}><FacebookIcon /> Facebook</button>
+          <button onClick={twitter} className={cn(btn, "bg-muted/60 text-foreground hover:bg-muted")}><XIcon /> X</button>
+          <button onClick={telegram} className={cn(btn, "bg-muted/60 text-foreground hover:bg-muted")}><TelegramIcon /> Telegram</button>
+          <button onClick={copy} className={cn(btn, "bg-muted/60 text-foreground hover:bg-muted")}>
             {copied ? <Check className="w-4 h-4" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />} {copied ? "Copied" : "Copy link"}
+          </button>
+          <button onClick={save} disabled={!ready} className={cn(btn, "col-span-3 border border-gold/50 text-foreground hover:bg-gold/10")}>
+            <Download className="w-4 h-4" aria-hidden="true" /> Save image
           </button>
         </div>
       </DialogContent>
