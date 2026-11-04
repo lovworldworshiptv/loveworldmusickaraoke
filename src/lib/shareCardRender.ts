@@ -1,11 +1,23 @@
 import QRCode from "qrcode";
 import { CARD_SIZES, KIND_LABELS, truncateTitle, wrapLines, type ShareCardFormat, type ShareCardItem } from "@/lib/shareCard";
+import { DEFAULT_PALETTE, paletteFromPixels, rgb, rgba, type CardPalette } from "@/lib/shareCardPalette";
 
-const NAVY = "#0a1530";
-const NAVY_DEEP = "#050b1c";
-const GOLD = "#d4a534";
-const GOLD_LIGHT = "#f3d27a";
 const CREAM = "#fffdf6";
+
+/** Samples the cover on a small canvas and builds the card colours from it. */
+const artworkPalette = (img: HTMLImageElement | null): CardPalette => {
+  if (!img) return DEFAULT_PALETTE;
+  try {
+    const n = 48;
+    const c = document.createElement("canvas");
+    c.width = c.height = n;
+    const x = c.getContext("2d", { willReadFrequently: true })!;
+    x.drawImage(img, 0, 0, n, n);
+    return paletteFromPixels(x.getImageData(0, 0, n, n).data);
+  } catch {
+    return DEFAULT_PALETTE;
+  }
+};
 
 const loadImage = (src: string, cors: boolean) =>
   new Promise<HTMLImageElement>((resolve, reject) => {
@@ -48,11 +60,11 @@ const drawCoverFit = (ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: n
   ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, x, y, w, h);
 };
 
-const goldGradient = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
+const accentGradient = (ctx: CanvasRenderingContext2D, p: CardPalette, x: number, y: number, w: number, h: number) => {
   const g = ctx.createLinearGradient(x, y, x + w, y + h);
-  g.addColorStop(0, "#8a6418");
-  g.addColorStop(0.5, GOLD_LIGHT);
-  g.addColorStop(1, "#a87a1e");
+  g.addColorStop(0, rgb(p.accentDark));
+  g.addColorStop(0.5, rgb(p.accentLight));
+  g.addColorStop(1, rgb(p.accent));
   return g;
 };
 
@@ -70,9 +82,13 @@ export async function renderShareCard(item: ShareCardItem, format: ShareCardForm
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d")!;
+  const pal = artworkPalette(cover);
 
-  // Background: blurred, darkened cover over navy.
-  ctx.fillStyle = NAVY;
+  // Background: artwork-coloured base with the blurred, darkened cover on top.
+  const base = ctx.createLinearGradient(0, 0, W, H);
+  base.addColorStop(0, rgb(pal.bg));
+  base.addColorStop(1, rgb(pal.bgDeep));
+  ctx.fillStyle = base;
   ctx.fillRect(0, 0, W, H);
   if (cover) {
     ctx.save();
@@ -81,15 +97,15 @@ export async function renderShareCard(item: ShareCardItem, format: ShareCardForm
     ctx.restore();
   }
   const shade = ctx.createLinearGradient(0, 0, 0, H);
-  shade.addColorStop(0, "rgba(5,11,28,0.35)");
-  shade.addColorStop(1, "rgba(5,11,28,0.92)");
+  shade.addColorStop(0, rgba(pal.bgDeep, 0.3));
+  shade.addColorStop(1, rgba(pal.bgDeep, 0.92));
   ctx.fillStyle = shade;
   ctx.fillRect(0, 0, W, H);
-  // Gold light beams
+  // Accent light beams
   for (const [cx, cy, r, a] of [[W * 0.15, 0, W * 0.9, 0.22], [W * 0.95, H * 0.35, W * 0.6, 0.12]] as const) {
     const beam = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-    beam.addColorStop(0, `rgba(243,210,122,${a})`);
-    beam.addColorStop(1, "rgba(243,210,122,0)");
+    beam.addColorStop(0, rgba(pal.accentLight, a));
+    beam.addColorStop(1, rgba(pal.accentLight, 0));
     ctx.fillStyle = beam;
     ctx.fillRect(0, 0, W, H);
   }
@@ -104,7 +120,7 @@ export async function renderShareCard(item: ShareCardItem, format: ShareCardForm
     ctx.drawImage(logo, pad, pad, logoSize, logoSize);
     ctx.restore();
   }
-  ctx.fillStyle = GOLD_LIGHT;
+  ctx.fillStyle = rgb(pal.accentLight);
   ctx.font = "700 40px 'Playfair Display', serif";
   ctx.textBaseline = "middle";
   ctx.fillText("Loveworld Music+", pad + logoSize + 22, pad + logoSize / 2);
@@ -114,10 +130,10 @@ export async function renderShareCard(item: ShareCardItem, format: ShareCardForm
   const coverX = portrait ? (W - coverSize) / 2 : pad;
   const coverY = portrait ? 200 : 210;
   ctx.save();
-  ctx.shadowColor = "rgba(243,210,122,0.45)";
+  ctx.shadowColor = rgba(pal.accent, 0.55);
   ctx.shadowBlur = 70;
   roundRect(ctx, coverX, coverY, coverSize, coverSize, 36);
-  ctx.fillStyle = goldGradient(ctx, coverX, coverY, coverSize, coverSize);
+  ctx.fillStyle = accentGradient(ctx, pal, coverX, coverY, coverSize, coverSize);
   ctx.fill();
   ctx.restore();
   ctx.save();
@@ -125,7 +141,7 @@ export async function renderShareCard(item: ShareCardItem, format: ShareCardForm
   ctx.clip();
   if (cover) drawCoverFit(ctx, cover, coverX, coverY, coverSize, coverSize);
   else {
-    ctx.fillStyle = NAVY_DEEP;
+    ctx.fillStyle = rgb(pal.bgDeep);
     ctx.font = `700 ${coverSize * 0.32}px 'Playfair Display', serif`;
     ctx.textAlign = "center";
     ctx.fillText("♪", coverX + coverSize / 2, coverY + coverSize / 2);
@@ -138,7 +154,7 @@ export async function renderShareCard(item: ShareCardItem, format: ShareCardForm
   const textW = portrait ? W - pad * 2 - 300 : W - textX - pad;
   let ty = portrait ? coverY + coverSize + 70 : coverY + 20;
   ctx.textBaseline = "top";
-  ctx.fillStyle = GOLD;
+  ctx.fillStyle = rgb(pal.accentLight);
   ctx.font = "600 28px Inter, sans-serif";
   ctx.fillText(KIND_LABELS[item.kind], textX, ty);
   ty += 48;
@@ -183,7 +199,7 @@ export async function renderShareCard(item: ShareCardItem, format: ShareCardForm
     ctx.drawImage(logo, bx, by, b, b);
     ctx.restore();
   }
-  ctx.fillStyle = GOLD_LIGHT;
+  ctx.fillStyle = rgb(pal.accentLight);
   ctx.font = "600 28px Inter, sans-serif";
   ctx.textAlign = "center";
   ctx.fillText("Scan to listen", tileX + tile / 2, tileY + tile + 18);
