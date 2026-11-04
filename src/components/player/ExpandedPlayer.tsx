@@ -1,3 +1,5 @@
+import VideoComments from "@/components/player/VideoComments";
+import ArtistLinks from "@/components/artist/ArtistLinks";
 import { useFeatures } from "@/contexts/FeatureContext";
 import { useDominantColor as useSharedDominantColor, playerTone } from "@/lib/dominantColor";
 import { usePlayer, RepeatMode } from "@/contexts/PlayerContext";
@@ -585,7 +587,7 @@ const ExpandedPlayer = () => {
             </div>
             <div className="text-left min-w-0">
               <h2 className="text-base font-serif font-bold text-foreground truncate">{currentSong.title}</h2>
-              <p className="text-xs font-semibold text-foreground">{currentSong.artist}</p>
+              <p className="text-xs font-semibold text-foreground"><ArtistLinks artist={currentSong.artist} /></p>
             </div>
           </button>
           {/* Artwork / Lyrics toggle — always visible in every view */}
@@ -701,6 +703,7 @@ const ExpandedPlayer = () => {
                 />
               }
             />
+            {!isFullscreen && <VideoComments videoId={videos[0].id} />}
             {showUpNext && !isDesktop && (
               <div aria-hidden="true" className="flex-shrink-0" style={{ height: `calc(${PEEK_HEIGHT}px + env(safe-area-inset-bottom, 0px))` }} />
             )}
@@ -984,7 +987,7 @@ const ExpandedPlayer = () => {
               <span className="w-5 text-xs text-muted-foreground text-right">{i + 1}</span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm">{song.title}</p>
-                <p className="truncate text-xs text-foreground">{song.artist}</p>
+                <p className="truncate text-xs text-foreground"><ArtistLinks artist={song.artist} /></p>
               </div>
             </div>
           ))}

@@ -33,6 +33,7 @@ const adminItems = [
   { icon: Mic2, label: "Feature Toggles", path: "/admin/karaoke-stories" },
   { icon: Palette, label: "Appearance & Home", path: "/admin/appearance" },
   { icon: Palette, label: "Home Sections", path: "/admin/home-sections" },
+  { icon: Mic2, label: "Artists", path: "/admin/artists" },
   { icon: Sparkles, label: "Discover Page", path: "/admin/discover" },
 ];
 const ProfileMenu = () => {

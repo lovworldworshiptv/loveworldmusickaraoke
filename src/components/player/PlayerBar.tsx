@@ -1,3 +1,4 @@
+import ArtistLinks from "@/components/artist/ArtistLinks";
 import { useDominantColor, playerTone } from "@/lib/dominantColor";
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { TouchEvent as ReactTouchEvent, MouseEvent as ReactMouseEvent } from "react";
@@ -232,7 +233,7 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
             </div>
             <div className="min-w-0 text-left">
               <p className="text-sm font-medium truncate text-foreground">{currentSong?.title || "No song selected"}</p>
-              <p className="text-xs font-bold text-white truncate">{currentSong?.artist || "Tap a song to play"}</p>
+              <p className="text-xs font-bold text-white truncate">{currentSong?.artist ? <ArtistLinks artist={currentSong.artist} /> : "Tap a song to play"}</p>
             </div>
           </button>
 
@@ -324,7 +325,7 @@ const PlayerBar = ({ desktopSidebarCollapsed = false }: PlayerBarProps) => {
                 <span className="w-5 text-xs text-muted-foreground text-right">{i + 1}</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm">{song.title}</p>
-                  <p className="truncate text-xs text-foreground">{song.artist}</p>
+                  <p className="truncate text-xs text-foreground"><ArtistLinks artist={song.artist} /></p>
                 </div>
                 <span className="text-xs text-muted-foreground tabular-nums">{formatTime(song.durationSeconds || 0)}</span>
               </div>

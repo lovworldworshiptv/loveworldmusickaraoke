@@ -1,3 +1,4 @@
+import ArtistLinks from "@/components/artist/ArtistLinks";
 import { Play, Pause, Music } from "lucide-react";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { memo, useState, useEffect, useCallback } from "react";
@@ -108,7 +109,7 @@ const SongCard = memo(({ song, index, allSongs }: SongCardProps) => {
             />
           )}
         </div>
-        <p className="text-xs text-foreground truncate">{song.artist}</p>
+        <p className="text-xs text-foreground truncate"><ArtistLinks artist={song.artist} /></p>
       </div>
 
       <Dialog open={showUpgrade} onOpenChange={setShowUpgrade}>
