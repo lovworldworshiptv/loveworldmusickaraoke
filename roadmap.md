@@ -107,3 +107,6 @@
 - [x] Share: verify every social share link (KingsChat, WhatsApp, Facebook, X, Telegram, email) uses each app's current official share address
 - [x] Lyrics share button: Premium-only copy/share of lyrics
 - [x] Share cards (QR) Premium-only
+
+- [x] Artist Profiles (/artist/:slug, follow, stats, admin /admin/artists) — needs profile/cover photos uploaded by admin
+- [x] Video Comments (per video, replies, likes, live updates, admin moderation tab) — not yet tested with two live accounts
