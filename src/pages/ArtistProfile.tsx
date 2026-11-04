@@ -231,7 +231,7 @@ const ArtistView = ({ artist }: { artist: Artist }) => {
                         </span>
                         <span className="flex-1 min-w-0">
                           <span className={`block text-base truncate ${active ? "text-[var(--a-light)] font-semibold" : "text-foreground"}`}>{song.title}</span>
-                          <span className="block text-sm text-muted-foreground tabular-nums">{song.play_count.toLocaleString()}</span>
+                          <span className="block text-sm text-muted-foreground tabular-nums">{song.play_count.toLocaleString()} {song.play_count === 1 ? "play" : "plays"}</span>
                         </span>
                       </button>
                       <DropdownMenu>
