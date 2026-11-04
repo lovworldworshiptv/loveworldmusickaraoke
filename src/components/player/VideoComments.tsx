@@ -71,13 +71,8 @@ const VideoComments = ({ videoId }: { videoId: string }) => {
           className="h-10 shrink-0 rounded-full bg-muted/70 hover:bg-muted px-4 inline-flex items-center gap-2 text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
           aria-label={`Open comments${count != null ? `, ${count} ${count === 1 ? "comment" : "comments"}` : ""}`}>
           <MessageSquareText className="w-5 h-5" aria-hidden />
-          <span className="tabular-nums">{count != null ? count.toLocaleString() : "Comments"}</span>
+          <span className="tabular-nums min-w-[1ch]">{count != null ? count.toLocaleString() : ""}</span>
         </button>
-        {preview && (
-          <button onClick={() => setOpen(true)} className="h-10 min-w-0 flex-1 rounded-full bg-muted/40 px-4 text-left text-xs text-muted-foreground truncate" aria-hidden tabIndex={-1}>
-            <span className="font-semibold text-foreground">@{authorCache.get(preview.user_id)?.username}</span> {preview.body}
-          </button>
-        )}
       </div>
       <Drawer open={open} onOpenChange={(o) => { setOpen(o); if (!o) refreshSummary(); }}>
         <DrawerContent className="h-[85dvh] max-h-[85dvh] bg-card border-border">
