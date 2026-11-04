@@ -30,4 +30,10 @@ describe("socialShareUrl", () => {
     expect(t.origin + t.pathname).toBe("https://t.me/share/url");
     expect(t.searchParams.get("url")).toBe(link);
   });
+
+  it("Snapchat opens the camera with the song link attached", () => {
+    const u = new URL(socialShareUrl("snapchat", link, text));
+    expect(u.origin + u.pathname).toBe("https://www.snapchat.com/scan");
+    expect(u.searchParams.get("attachmentUrl")).toBe(link);
+  });
 });

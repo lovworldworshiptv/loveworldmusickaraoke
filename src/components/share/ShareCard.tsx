@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Download, Share2, Copy, Check, Loader2 } from "lucide-react";
+import { Download, Share2, Copy, Check, Loader2, Instagram, Ghost } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -63,23 +63,35 @@ const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
   };
   const save = () => { if (!preview) return; log(); download(); toast.success("Image saved"); };
 
-  // Spotify-style status/story share: the card image goes to the phone's share sheet
-  // (WhatsApp Status, Instagram/Facebook Stories, Snapchat…) and the link is copied
-  // at the same moment so it can be pasted as a link sticker or caption.
-  const shareStatus = () => {
+  // Spotify-style status/story share. Websites can't open another app's story editor
+  // directly, so the card image goes to the phone's share list (where WhatsApp shows
+  // "My status", Instagram "Stories", Facebook "Stories") with a hint naming the option
+  // to tap. The link is copied at the same moment for a link sticker or caption.
+  const shareStatus = (hint?: string) => {
     log();
+    navigator.clipboard?.writeText(link).catch(() => {});
+    const file = blob ? new File([blob], cardFilename(item.title), { type: "image/png" }) : null;
+    if (file && navigator.canShare?.({ files: [file] })) {
+      if (hint) toast(hint, { duration: 6000 });
+      navigator.share({ files: [file], title: item.title, text: `${text}\n${link}` })
+        .then(() => toast.success("Shared! The link is copied — paste it as a link sticker."))
+        .catch(() => { /* cancelled */ });
+      return;
+    }
     if (isMedianApp()) { nativeShare(link, text); return; }
     if (!blob) return;
-    const file = new File([blob], cardFilename(item.title), { type: "image/png" });
-    navigator.clipboard?.writeText(link).catch(() => {});
-    if (navigator.canShare?.({ files: [file] })) {
-      navigator.share({ files: [file], title: item.title, text: `${text}\n${link}` })
-        .then(() => toast.success("Shared! The link is copied — paste it as a link sticker on your story."))
-        .catch(() => { /* cancelled */ });
-    } else {
-      download();
-      toast.success("Card saved and link copied. Post the image to your status or story, then paste the link.");
-    }
+    download();
+    toast.success("Card saved and link copied. Open the app's status or story, add the saved image, then paste the link.", { duration: 7000 });
+  };
+  const STORY_TARGETS = [
+    { id: "whatsapp", label: "WhatsApp Status", Icon: WhatsAppIcon, hint: "Tap WhatsApp, then choose “My status”." },
+    { id: "instagram", label: "Instagram Story", Icon: () => <Instagram className="w-4 h-4 text-pink-500" aria-hidden="true" />, hint: "Tap Instagram, then choose “Stories”. Paste the copied link with the link sticker." },
+    { id: "facebook", label: "Facebook Story", Icon: FacebookIcon, hint: "Tap Facebook, then choose “Your story”." },
+  ] as const;
+  const snapchat = () => {
+    const tagged = tagShareUrl(cardBaseUrl(item), "snapchat");
+    logShareClick("snapchat", tagged);
+    go(socialShareUrl("snapchat", tagged, text));
   };
 
   const go = (target: string) => (isMedianApp() ? openExternal(target) : window.open(target, "_blank", "noopener,noreferrer"));
@@ -144,10 +156,21 @@ const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
         </div>
 
         <div className="space-y-1.5">
-          <button onClick={shareStatus} disabled={!ready && !isMedianApp()} className={cn(btn, "w-full bg-gradient-to-br from-gold via-gold-light to-gold text-primary-foreground")}>
-            <Share2 className="w-4 h-4" aria-hidden="true" /> Share to status or story
+          <p className="text-xs font-semibold text-foreground">Post to status or story</p>
+          <div className="grid grid-cols-2 gap-2">
+            {STORY_TARGETS.map(({ id, label, Icon, hint }) => (
+              <button key={id} onClick={() => shareStatus(hint)} disabled={!ready && !isMedianApp()} className={cn(btn, "bg-gradient-to-br from-gold/25 via-gold/10 to-transparent border border-gold/40 text-foreground hover:bg-gold/15")}>
+                <Icon /> {label}
+              </button>
+            ))}
+            <button onClick={snapchat} className={cn(btn, "bg-gradient-to-br from-gold/25 via-gold/10 to-transparent border border-gold/40 text-foreground hover:bg-gold/15")}>
+              <Ghost className="w-4 h-4 text-yellow-400" aria-hidden="true" /> Snapchat
+            </button>
+          </div>
+          <button onClick={() => shareStatus()} disabled={!ready && !isMedianApp()} className={cn(btn, "w-full bg-gradient-to-br from-gold via-gold-light to-gold text-primary-foreground")}>
+            <Share2 className="w-4 h-4" aria-hidden="true" /> More apps
           </button>
-          <p className="text-xs text-muted-foreground text-center">WhatsApp Status, Instagram, Facebook, Snapchat and more. The link is copied for you to paste as a link sticker.</p>
+          <p className="text-xs text-muted-foreground text-center">The song link is copied too, ready to paste as a link sticker.</p>
         </div>
 
         <div className="grid grid-cols-3 gap-2">
