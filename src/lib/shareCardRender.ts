@@ -1,8 +1,9 @@
-import QRCode from "qrcode";
-import { CARD_SIZES, KIND_LABELS, truncateTitle, wrapLines, type ShareCardFormat, type ShareCardItem } from "@/lib/shareCard";
+import { CARD_SIZES, KIND_LABELS, truncateTitle, wrapLines, type ShareCardFormat, type ShareCardItem, type ShareCardStyle } from "@/lib/shareCard";
 import { DEFAULT_PALETTE, paletteFromPixels, rgb, rgba, type CardPalette } from "@/lib/shareCardPalette";
+import { drawWaveQr } from "@/lib/waveQr";
 
 const CREAM = "#fffdf6";
+const PEARL = "#fbf8ef";
 
 /** Samples the cover on a small canvas and builds the card colours from it. */
 const artworkPalette = (img: HTMLImageElement | null): CardPalette => {
@@ -54,6 +55,20 @@ const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath();
 };
 
+/** Arch: semicircular top, softly rounded bottom corners. */
+const archPath = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, rb: number) => {
+  const r = w / 2;
+  ctx.beginPath();
+  ctx.moveTo(x, y + h - rb);
+  ctx.lineTo(x, y + r);
+  ctx.arc(x + r, y + r, r, Math.PI, 0);
+  ctx.lineTo(x + w, y + h - rb);
+  ctx.arcTo(x + w, y + h, x + w - rb, y + h, rb);
+  ctx.lineTo(x + rb, y + h);
+  ctx.arcTo(x, y + h, x, y + h - rb, rb);
+  ctx.closePath();
+};
+
 const drawCoverFit = (ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, w: number, h: number) => {
   const s = Math.max(w / img.width, h / img.height);
   const sw = w / s, sh = h / s;
@@ -68,23 +83,83 @@ const accentGradient = (ctx: CanvasRenderingContext2D, p: CardPalette, x: number
   return g;
 };
 
-export async function renderShareCard(item: ShareCardItem, format: ShareCardFormat, link: string, logoUrl: string): Promise<HTMLCanvasElement> {
-  const { w: W, h: H } = CARD_SIZES[format];
-  const portrait = format === "portrait";
-  await Promise.all([
-    document.fonts.load("700 64px 'Playfair Display'").catch(() => {}),
-    document.fonts.load("500 32px Inter").catch(() => {}),
-  ]);
-  await document.fonts.ready;
-  const [cover, logo] = await Promise.all([safeCover(item.coverUrl), loadImage(logoUrl, false).catch(() => null)]);
+/** Cover (or ♪ fallback) clipped to the current path. */
+const fillCover = (ctx: CanvasRenderingContext2D, cover: HTMLImageElement | null, pal: CardPalette, x: number, y: number, w: number, h: number) => {
+  ctx.save();
+  ctx.clip();
+  if (cover) drawCoverFit(ctx, cover, x, y, w, h);
+  else {
+    ctx.fillStyle = rgb(pal.bgDeep);
+    ctx.font = `700 ${Math.min(w, h) * 0.32}px 'Playfair Display', serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("♪", x + w / 2, y + h / 2);
+  }
+  ctx.restore();
+};
 
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext("2d")!;
-  const pal = artworkPalette(cover);
+/** Row of rounded soundwave bars, echoing the logo's wave. */
+const drawSoundwave = (ctx: CanvasRenderingContext2D, cx: number, cy: number, width: number, height: number, color: string, count = 23) => {
+  const step = width / count;
+  const bw = step * 0.42;
+  ctx.fillStyle = color;
+  for (let i = 0; i < count; i++) {
+    const t = i / (count - 1);
+    const env = Math.sin(t * Math.PI);
+    const h = Math.max(bw, height * env * (0.45 + 0.55 * Math.abs(Math.sin(i * 1.7))));
+    roundRect(ctx, cx - width / 2 + i * step + (step - bw) / 2, cy - h / 2, bw, h, bw / 2);
+    ctx.fill();
+  }
+};
 
-  // Background: artwork-coloured base with the blurred, darkened cover on top.
+/** Wave QR on a light plate with the logo in the centre; returns nothing. */
+const drawQrPlate = async (
+  ctx: CanvasRenderingContext2D, link: string, logo: HTMLImageElement | null, pal: CardPalette,
+  x: number, y: number, size: number, plate: string, radius: number,
+) => {
+  roundRect(ctx, x, y, size, size, radius);
+  ctx.fillStyle = plate;
+  ctx.fill();
+  const inner = size - radius * 0.6;
+  const off = (size - inner) / 2;
+  const badge = await drawWaveQr(ctx, link, x + off, y + off, inner, {
+    dark: rgb(pal.bgDeep),
+    finder: rgb(pal.bgDeep),
+    light: plate,
+  });
+  if (logo) {
+    const s = badge.r * 1.5;
+    ctx.save();
+    roundRect(ctx, badge.cx - s / 2, badge.cy - s / 2, s, s, s * 0.26);
+    ctx.clip();
+    ctx.drawImage(logo, badge.cx - s / 2, badge.cy - s / 2, s, s);
+    ctx.restore();
+  }
+};
+
+const drawLogo = (ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, x: number, y: number, size: number) => {
+  if (!logo) return;
+  ctx.save();
+  roundRect(ctx, x, y, size, size, size * 0.25);
+  ctx.clip();
+  ctx.drawImage(logo, x, y, size, size);
+  ctx.restore();
+};
+
+interface Ctx {
+  ctx: CanvasRenderingContext2D;
+  W: number;
+  H: number;
+  portrait: boolean;
+  item: ShareCardItem;
+  link: string;
+  cover: HTMLImageElement | null;
+  logo: HTMLImageElement | null;
+  pal: CardPalette;
+}
+
+/** Royal Glass Wave: blurred artwork, gold wave ribbons, frosted glass QR pod. */
+async function drawGlass({ ctx, W, H, portrait, item, link, cover, logo, pal }: Ctx) {
   const base = ctx.createLinearGradient(0, 0, W, H);
   base.addColorStop(0, rgb(pal.bg));
   base.addColorStop(1, rgb(pal.bgDeep));
@@ -101,7 +176,6 @@ export async function renderShareCard(item: ShareCardItem, format: ShareCardForm
   shade.addColorStop(1, rgba(pal.bgDeep, 0.92));
   ctx.fillStyle = shade;
   ctx.fillRect(0, 0, W, H);
-  // Accent light beams
   for (const [cx, cy, r, a] of [[W * 0.15, 0, W * 0.9, 0.22], [W * 0.95, H * 0.35, W * 0.6, 0.12]] as const) {
     const beam = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
     beam.addColorStop(0, rgba(pal.accentLight, a));
@@ -111,24 +185,35 @@ export async function renderShareCard(item: ShareCardItem, format: ShareCardForm
   }
 
   const pad = 72;
-  // Header: logo + wordmark
+  const coverSize = portrait ? 560 : 420;
+  const coverX = portrait ? (W - coverSize) / 2 : pad;
+  const coverY = portrait ? 200 : 210;
+
+  // Flowing gold wave ribbons across the lower half.
+  const waveY = portrait ? coverY + coverSize + 230 : H - 190;
+  ctx.save();
+  ctx.lineCap = "round";
+  [[0, 0.32, 3], [18, 0.2, 2], [36, 0.12, 2]].forEach(([shift, alpha, lw], i) => {
+    ctx.beginPath();
+    for (let x = -20; x <= W + 20; x += 8) {
+      const y = waveY + shift + Math.sin(x / 150 + i * 0.8) * 34 + Math.sin(x / 61 + i) * 9;
+      x === -20 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = rgba(pal.accentLight, alpha);
+    ctx.lineWidth = lw;
+    ctx.stroke();
+  });
+  ctx.restore();
+
+  // Header
   const logoSize = 72;
-  if (logo) {
-    ctx.save();
-    roundRect(ctx, pad, pad, logoSize, logoSize, 18);
-    ctx.clip();
-    ctx.drawImage(logo, pad, pad, logoSize, logoSize);
-    ctx.restore();
-  }
+  drawLogo(ctx, logo, pad, pad, logoSize);
   ctx.fillStyle = rgb(pal.accentLight);
   ctx.font = "700 40px 'Playfair Display', serif";
   ctx.textBaseline = "middle";
   ctx.fillText("Loveworld Music+", pad + logoSize + 22, pad + logoSize / 2);
 
-  // Cover art
-  const coverSize = portrait ? 560 : 420;
-  const coverX = portrait ? (W - coverSize) / 2 : pad;
-  const coverY = portrait ? 200 : 210;
+  // Cover
   ctx.save();
   ctx.shadowColor = rgba(pal.accent, 0.55);
   ctx.shadowBlur = 70;
@@ -136,24 +221,15 @@ export async function renderShareCard(item: ShareCardItem, format: ShareCardForm
   ctx.fillStyle = accentGradient(ctx, pal, coverX, coverY, coverSize, coverSize);
   ctx.fill();
   ctx.restore();
-  ctx.save();
   roundRect(ctx, coverX, coverY, coverSize, coverSize, 36);
-  ctx.clip();
-  if (cover) drawCoverFit(ctx, cover, coverX, coverY, coverSize, coverSize);
-  else {
-    ctx.fillStyle = rgb(pal.bgDeep);
-    ctx.font = `700 ${coverSize * 0.32}px 'Playfair Display', serif`;
-    ctx.textAlign = "center";
-    ctx.fillText("♪", coverX + coverSize / 2, coverY + coverSize / 2);
-    ctx.textAlign = "left";
-  }
-  ctx.restore();
+  fillCover(ctx, cover, pal, coverX, coverY, coverSize, coverSize);
 
-  // Text block
+  // Text
   const textX = portrait ? pad : coverX + coverSize + 56;
-  const textW = portrait ? W - pad * 2 - 300 : W - textX - pad;
+  const textW = portrait ? W - pad * 2 - 340 : W - textX - pad;
   let ty = portrait ? coverY + coverSize + 70 : coverY + 20;
   ctx.textBaseline = "top";
+  ctx.textAlign = "left";
   ctx.fillStyle = rgb(pal.accentLight);
   ctx.font = "600 28px Inter, sans-serif";
   ctx.fillText(KIND_LABELS[item.kind], textX, ty);
@@ -161,8 +237,10 @@ export async function renderShareCard(item: ShareCardItem, format: ShareCardForm
   ctx.fillStyle = CREAM;
   const titleSize = portrait ? 58 : 54;
   ctx.font = `700 ${titleSize}px 'Playfair Display', serif`;
-  const lines = wrapLines(truncateTitle(item.title), textW, (s) => ctx.measureText(s).width, 2);
-  for (const l of lines) { ctx.fillText(l, textX, ty); ty += titleSize * 1.18; }
+  for (const l of wrapLines(truncateTitle(item.title), textW, (s) => ctx.measureText(s).width, 2)) {
+    ctx.fillText(l, textX, ty);
+    ty += titleSize * 1.18;
+  }
   if (item.subtitle) {
     ty += 10;
     ctx.fillStyle = "rgba(255,253,246,0.75)";
@@ -170,46 +248,169 @@ export async function renderShareCard(item: ShareCardItem, format: ShareCardForm
     ctx.fillText(wrapLines(item.subtitle, textW, (s) => ctx.measureText(s).width, 1)[0], textX, ty);
   }
 
-  // QR tile: dark modules on cream, level H, 4-module quiet zone.
-  const qrSize = portrait ? 260 : 300;
-  const tile = qrSize + 40;
-  const tileX = W - pad - tile;
-  const tileY = portrait ? coverY + coverSize + 56 : H - pad - tile - 60;
-  const qr = document.createElement("canvas");
-  await QRCode.toCanvas(qr, link, { errorCorrectionLevel: "H", margin: 4, width: qrSize * 2, color: { dark: "#000000", light: "#ffffff" } });
+  // Frosted glass QR pod
+  const pod = portrait ? 320 : 340;
+  const podX = W - pad - pod;
+  const podY = portrait ? coverY + coverSize + 44 : H - pad - pod - 40;
   ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.35)";
-  ctx.shadowBlur = 30;
-  roundRect(ctx, tileX, tileY, tile, tile, 28);
-  ctx.fillStyle = "#ffffff";
+  ctx.shadowColor = "rgba(0,0,0,0.4)";
+  ctx.shadowBlur = 40;
+  roundRect(ctx, podX, podY, pod, pod, 40);
+  ctx.fillStyle = "rgba(255,255,255,0.12)";
   ctx.fill();
   ctx.restore();
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(qr, tileX + 20, tileY + 20, qrSize, qrSize);
-  ctx.imageSmoothingEnabled = true;
-  if (logo) {
-    const b = qrSize * 0.18;
-    const bx = tileX + 20 + (qrSize - b) / 2, by = tileY + 20 + (qrSize - b) / 2;
-    roundRect(ctx, bx - 6, by - 6, b + 12, b + 12, 12);
-    ctx.fillStyle = "#ffffff";
-    ctx.fill();
-    ctx.save();
-    roundRect(ctx, bx, by, b, b, 8);
-    ctx.clip();
-    ctx.drawImage(logo, bx, by, b, b);
-    ctx.restore();
-  }
+  roundRect(ctx, podX, podY, pod, pod, 40);
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = accentGradient(ctx, pal, podX, podY, pod, pod);
+  ctx.stroke();
+  const plateInset = 22;
+  await drawQrPlate(ctx, link, logo, pal, podX + plateInset, podY + plateInset, pod - plateInset * 2, "#ffffff", 26);
+
   ctx.fillStyle = rgb(pal.accentLight);
   ctx.font = "600 28px Inter, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("Scan to listen", tileX + tile / 2, tileY + tile + 18);
+  ctx.textBaseline = "top";
+  ctx.fillText("Scan to listen", podX + pod / 2, podY + pod + 16);
   ctx.textAlign = "left";
+}
 
-  // Footer
-  ctx.fillStyle = "rgba(255,253,246,0.7)";
-  ctx.font = "500 28px Inter, sans-serif";
-  ctx.textBaseline = "alphabetic";
-  ctx.fillText("loveworldmusickaraoke.com", pad, H - pad + 6);
+/** Symphony Arch: calm editorial poster with an arched cover and pearl QR plate. */
+async function drawArch({ ctx, W, H, portrait, item, link, cover, logo, pal }: Ctx) {
+  const base = ctx.createLinearGradient(0, 0, 0, H);
+  base.addColorStop(0, rgb(pal.bg));
+  base.addColorStop(1, rgb(pal.bgDeep));
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, W, H);
 
+  const coverW = portrait ? 480 : 420;
+  const coverH = portrait ? 520 : 560;
+  const coverX = portrait ? (W - coverW) / 2 : 104;
+  const coverY = portrait ? 176 : 196;
+  const ccx = coverX + coverW / 2;
+
+  const glow = ctx.createRadialGradient(ccx, coverY + coverH * 0.4, 0, ccx, coverY + coverH * 0.4, coverW * 1.2);
+  glow.addColorStop(0, rgba(pal.accent, 0.28));
+  glow.addColorStop(1, rgba(pal.accent, 0));
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+
+  // Hairline frame
+  roundRect(ctx, 32, 32, W - 64, H - 64, 30);
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = rgba(pal.accentLight, 0.35);
+  ctx.stroke();
+
+  // Concentric arches echoing the cover
+  ctx.save();
+  roundRect(ctx, 33, 33, W - 66, H - 66, 30);
+  ctx.clip();
+  [[30, 0.3], [62, 0.18], [96, 0.09]].forEach(([o, a]) => {
+    archPath(ctx, coverX - o, coverY - o, coverW + o * 2, coverH + o * 2, 28 + o);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = rgba(pal.accentLight, a);
+    ctx.stroke();
+  });
+  ctx.restore();
+
+  // Header: centred wordmark
+  const logoSize = 56;
+  ctx.font = "700 36px 'Playfair Display', serif";
+  const wordW = ctx.measureText("Loveworld Music+").width;
+  const groupW = (logo ? logoSize + 18 : 0) + wordW;
+  const hx = (portrait ? W / 2 : W / 2) - groupW / 2;
+  const hy = 74;
+  drawLogo(ctx, logo, hx, hy, logoSize);
+  ctx.fillStyle = rgb(pal.accentLight);
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "left";
+  ctx.fillText("Loveworld Music+", hx + (logo ? logoSize + 18 : 0), hy + logoSize / 2);
+
+  // Arched cover
+  ctx.save();
+  ctx.shadowColor = rgba(pal.bgDeep, 0.7);
+  ctx.shadowBlur = 50;
+  ctx.shadowOffsetY = 18;
+  archPath(ctx, coverX, coverY, coverW, coverH, 28);
+  ctx.fillStyle = accentGradient(ctx, pal, coverX, coverY, coverW, coverH);
+  ctx.fill();
+  ctx.restore();
+  archPath(ctx, coverX, coverY, coverW, coverH, 28);
+  fillCover(ctx, cover, pal, coverX, coverY, coverW, coverH);
+
+  // Text column
+  const colX = portrait ? W / 2 : coverX + coverW + (W - 104 - coverX - coverW) / 2;
+  const textW = portrait ? W - 220 : W - 104 - (coverX + coverW) - 60;
+  let ty = portrait ? coverY + coverH + 44 : coverY + 6;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.fillStyle = rgb(pal.accentLight);
+  ctx.font = "italic 500 28px 'Playfair Display', serif";
+  ctx.fillText(KIND_LABELS[item.kind], colX, ty);
+  ty += 46;
+  ctx.fillStyle = CREAM;
+  const titleSize = portrait ? 56 : 50;
+  ctx.font = `700 ${titleSize}px 'Playfair Display', serif`;
+  for (const l of wrapLines(truncateTitle(item.title), textW, (s) => ctx.measureText(s).width, 2)) {
+    ctx.fillText(l, colX, ty);
+    ty += titleSize * 1.16;
+  }
+  if (item.subtitle) {
+    ty += 8;
+    ctx.fillStyle = "rgba(255,253,246,0.75)";
+    ctx.font = "500 30px Inter, sans-serif";
+    ctx.fillText(wrapLines(item.subtitle, textW, (s) => ctx.measureText(s).width, 1)[0], colX, ty);
+  }
+
+  // Pearl QR plate, anchored to the bottom of the text column
+  const plate = portrait ? 270 : 300;
+  const px = colX - plate / 2;
+  const py = H - 84 - 44 - plate;
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.35)";
+  ctx.shadowBlur = 36;
+  roundRect(ctx, px, py, plate, plate, 30);
+  ctx.fillStyle = PEARL;
+  ctx.fill();
+  ctx.restore();
+  await drawQrPlate(ctx, link, logo, pal, px, py, plate, PEARL, 30);
+  roundRect(ctx, px - 8, py - 8, plate + 16, plate + 16, 36);
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = rgba(pal.accentLight, 0.55);
+  ctx.stroke();
+
+  ctx.fillStyle = rgb(pal.accentLight);
+  ctx.font = "italic 500 30px 'Playfair Display', serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.fillText("Scan to listen", colX, py + plate + 20);
+
+  // Soundwave ornament under the cover (square only — portrait has no room)
+  if (!portrait) drawSoundwave(ctx, ccx, coverY + coverH + 120, coverW * 0.8, 90, rgba(pal.accentLight, 0.6));
+  ctx.textAlign = "left";
+}
+
+export async function renderShareCard(
+  item: ShareCardItem,
+  format: ShareCardFormat,
+  style: ShareCardStyle,
+  link: string,
+  logoUrl: string,
+): Promise<HTMLCanvasElement> {
+  const { w: W, h: H } = CARD_SIZES[format];
+  await Promise.all([
+    document.fonts.load("700 64px 'Playfair Display'").catch(() => {}),
+    document.fonts.load("italic 500 30px 'Playfair Display'").catch(() => {}),
+    document.fonts.load("500 32px Inter").catch(() => {}),
+  ]);
+  await document.fonts.ready;
+  const [cover, logo] = await Promise.all([safeCover(item.coverUrl), loadImage(logoUrl, false).catch(() => null)]);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
+  const c: Ctx = { ctx, W, H, portrait: format === "portrait", item, link, cover, logo, pal: artworkPalette(cover) };
+  if (style === "arch") await drawArch(c);
+  else await drawGlass(c);
   return canvas;
 }

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { isMedianApp, nativeShare, openExternal } from "@/lib/median";
 import { logShareClick } from "@/lib/acquisitionAnalytics";
 import { APP_DOWNLOAD_URL } from "@/components/share/AppDownloadPrompt";
-import { cardBaseUrl, cardFilename, cardLink, type ShareCardFormat, type ShareCardItem } from "@/lib/shareCard";
+import { CARD_STYLES, cardBaseUrl, cardFilename, cardLink, readCardStyle, saveCardStyle, type ShareCardFormat, type ShareCardItem, type ShareCardStyle } from "@/lib/shareCard";
 import logoUrl from "@/assets/logo.png";
 import kingschatLogo from "@/assets/kingschat_logo.png";
 
@@ -20,6 +20,8 @@ const btn = "min-h-11 flex items-center justify-center gap-2 rounded-xl px-3 tex
 
 const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
   const [format, setFormat] = useState<ShareCardFormat>("portrait");
+  const [style, setStyle] = useState<ShareCardStyle>(readCardStyle);
+  const pickStyle = (s: ShareCardStyle) => { setStyle(s); saveCardStyle(s); };
   const [blob, setBlob] = useState<Blob | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -33,7 +35,7 @@ const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
     let url: string | null = null;
     setBlob(null); setPreview(null); setFailed(false);
     import("@/lib/shareCardRender")
-      .then(({ renderShareCard }) => renderShareCard(item, format, link, logoUrl))
+      .then(({ renderShareCard }) => renderShareCard(item, format, style, link, logoUrl))
       .then((canvas) => new Promise<Blob | null>((r) => canvas.toBlob(r, "image/png")))
       .then((b) => {
         if (cancelled) return;
@@ -43,7 +45,7 @@ const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
       })
       .catch(() => !cancelled && setFailed(true));
     return () => { cancelled = true; if (url) URL.revokeObjectURL(url); };
-  }, [open, format, item.id, item.kind, item.title, item.subtitle, item.coverUrl, link]);
+  }, [open, format, style, item.id, item.kind, item.title, item.subtitle, item.coverUrl, link]);
 
   const log = () => logShareClick("qr_card", cardBaseUrl(item));
 
@@ -93,6 +95,15 @@ const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
           <DialogTitle className="font-serif">Share card</DialogTitle>
           <DialogDescription>Anyone can scan the code with their phone camera to open “{item.title}”.</DialogDescription>
         </DialogHeader>
+
+        <div role="radiogroup" aria-label="Card style" className="grid grid-cols-2 gap-1 rounded-xl bg-muted/50 p-1">
+          {CARD_STYLES.map((s) => (
+            <button key={s.id} role="radio" aria-checked={style === s.id} onClick={() => pickStyle(s.id)}
+              className={cn(btn, "min-h-10 font-serif", style === s.id ? "bg-gold text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
+              {s.label}
+            </button>
+          ))}
+        </div>
 
         <div role="radiogroup" aria-label="Card shape" className="grid grid-cols-2 gap-1 rounded-xl bg-muted/50 p-1">
           {(["portrait", "square"] as const).map((f) => (
