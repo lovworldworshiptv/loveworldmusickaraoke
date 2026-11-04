@@ -123,7 +123,7 @@ const ExpandedPlayer = () => {
   const [regionEl, setRegionEl] = useState<HTMLDivElement | null>(null);
   const [upNextOpen, setUpNextOpen] = useState(false);
   const showUpNext = videoSession && !isFullscreen;
-  const karaokePanel = mode === "karaoke";
+  const karaokePanel = mode === "karaoke" && !isRecordingActive;
   useEffect(() => { if (!showUpNext || isDesktop) setUpNextOpen(false); }, [showUpNext, isDesktop]);
   // Back closes the open list first instead of leaving the player.
   useEffect(() => {
