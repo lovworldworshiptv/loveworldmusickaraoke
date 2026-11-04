@@ -33,7 +33,7 @@ const LyricsShareButton = ({ song, lyrics, isPremium, onUpgrade }: Props) => {
   const copy = async () => {
     try {
       logShareClick("copy", base);
-      await navigator.clipboard.writeText(lyrics.trim());
+      await navigator.clipboard.writeText(message);
       toast.success("Lyrics copied");
     } catch {
       toast.error("Couldn't copy the lyrics on this device");
