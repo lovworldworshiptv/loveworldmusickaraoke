@@ -3,7 +3,7 @@ import { DEFAULT_PALETTE, paletteFromPixels, rgb, rgba, type CardPalette } from 
 import { drawWaveQr } from "@/lib/waveQr";
 
 const CREAM = "#fffdf6";
-const PEARL = "#ffffff";
+const PEARL = "#fbf8ef";
 
 /** Samples the cover on a small canvas and builds the card colours from it. */
 const artworkPalette = (img: HTMLImageElement | null): CardPalette => {
