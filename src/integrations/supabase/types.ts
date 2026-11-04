@@ -3193,6 +3193,7 @@ export type Database = {
           song_id: string
         }[]
       }
+      get_video_comment_count: { Args: { p_video_id: string }; Returns: number }
       has_active_premium: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
