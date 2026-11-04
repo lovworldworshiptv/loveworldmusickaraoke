@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Download, Share2, Copy, Check, Loader2, Instagram, Ghost } from "lucide-react";
+import { Download, Share2, Copy, Check, Loader2, Instagram } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -65,7 +65,7 @@ const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
 
   // Spotify-style status/story share. Websites can't open another app's story editor
   // directly, so the card image goes to the phone's share list (where WhatsApp shows
-  // "My status", Instagram "Stories", Facebook "Stories") with a hint naming the option
+  // "My status", Instagram "Stories", KingsChat its Timeline) with a hint naming the option
   // to tap. The link is copied at the same moment for a link sticker or caption.
   const shareStatus = (hint?: string) => {
     log();
@@ -86,13 +86,8 @@ const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
   const STORY_TARGETS = [
     { id: "whatsapp", label: "WhatsApp Status", Icon: WhatsAppIcon, hint: "Tap WhatsApp, then choose “My status”." },
     { id: "instagram", label: "Instagram Story", Icon: () => <Instagram className="w-4 h-4 text-pink-500" aria-hidden="true" />, hint: "Tap Instagram, then choose “Stories”. Paste the copied link with the link sticker." },
-    { id: "facebook", label: "Facebook Story", Icon: FacebookIcon, hint: "Tap Facebook, then choose “Your story”." },
+    { id: "kingschat", label: "KingsChat", Icon: () => <img src={kingschatLogo} alt="" className="w-4 h-4 rounded-sm" />, hint: "Tap KingsChat, then post it to your Timeline or a chat." },
   ] as const;
-  const snapchat = () => {
-    const tagged = tagShareUrl(cardBaseUrl(item), "snapchat");
-    logShareClick("snapchat", tagged);
-    go(socialShareUrl("snapchat", tagged, text));
-  };
 
   const go = (target: string) => (isMedianApp() ? openExternal(target) : window.open(target, "_blank", "noopener,noreferrer"));
   // Link buttons tag their own channel; the QR on the image keeps "qr_card".
@@ -157,15 +152,12 @@ const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
 
         <div className="space-y-1.5">
           <p className="text-xs font-semibold text-foreground">Post to status or story</p>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {STORY_TARGETS.map(({ id, label, Icon, hint }) => (
-              <button key={id} onClick={() => shareStatus(hint)} disabled={!ready && !isMedianApp()} className={cn(btn, "bg-gradient-to-br from-gold/25 via-gold/10 to-transparent border border-gold/40 text-foreground hover:bg-gold/15")}>
+              <button key={id} onClick={() => shareStatus(hint)} disabled={!ready && !isMedianApp()} className={cn(btn, "flex-col gap-1 py-2 text-xs leading-tight text-center bg-gradient-to-br from-gold/25 via-gold/10 to-transparent border border-gold/40 text-foreground hover:bg-gold/15")}>
                 <Icon /> {label}
               </button>
             ))}
-            <button onClick={snapchat} className={cn(btn, "bg-gradient-to-br from-gold/25 via-gold/10 to-transparent border border-gold/40 text-foreground hover:bg-gold/15")}>
-              <Ghost className="w-4 h-4 text-yellow-400" aria-hidden="true" /> Snapchat
-            </button>
           </div>
           <button onClick={() => shareStatus()} disabled={!ready && !isMedianApp()} className={cn(btn, "w-full bg-gradient-to-br from-gold via-gold-light to-gold text-primary-foreground")}>
             <Share2 className="w-4 h-4" aria-hidden="true" /> More apps
