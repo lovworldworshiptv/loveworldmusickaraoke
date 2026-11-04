@@ -295,6 +295,13 @@
       "when": 1793514638732,
       "tag": "0041_challenge_leaderboard_reset",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1793812851809,
+      "tag": "0042_artists_and_video_comments",
+      "breakpoints": true
     }
   ]
 }

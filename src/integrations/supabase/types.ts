@@ -167,6 +167,68 @@ export type Database = {
         }
         Relationships: []
       }
+      artist_follows: {
+        Row: {
+          artist_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_follows_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artists: {
+        Row: {
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_verified: boolean
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_verified?: boolean
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_verified?: boolean
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -2850,6 +2912,86 @@ export type Database = {
         }
         Relationships: []
       }
+      video_comment_likes: {
+        Row: {
+          comment_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_comment_likes_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "video_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_comments: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_deleted: boolean
+          like_count: number
+          parent_id: string | null
+          reply_count: number
+          song_video_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_deleted?: boolean
+          like_count?: number
+          parent_id?: string | null
+          reply_count?: number
+          song_video_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_deleted?: boolean
+          like_count?: number
+          parent_id?: string | null
+          reply_count?: number
+          song_video_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "video_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_comments_song_video_id_fkey"
+            columns: ["song_video_id"]
+            isOneToOne: false
+            referencedRelation: "song_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       homepage_popup_public: {
@@ -2953,6 +3095,15 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      get_artist_stats: {
+        Args: { p_artist_id: string }
+        Returns: {
+          followers: number
+          karaoke: number
+          songs: number
+          videos: number
+        }[]
       }
       get_challenge_leaderboard: {
         Args: { p_challenge_id: string; p_limit?: number }
