@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BadgeCheck, Play, Pause, Shuffle, ArrowLeft, MoreVertical, ChevronRight, Mic2, Video } from "lucide-react";
+import { Share2, UserPlus, UserCheck, Radio, Link as LinkIcon, Pencil, BadgeCheck, Play, Pause, Shuffle, ArrowLeft, MoreVertical, ChevronRight, Mic2, Video } from "lucide-react";
+import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import AppLayout from "@/components/layout/AppLayout";
 import ShareMenu, { buildShareUrl } from "@/components/share/ShareMenu";
 import { Button } from "@/components/ui/button";
@@ -86,6 +88,8 @@ const ArtistView = ({ artist }: { artist: Artist }) => {
   const [tab, setTab] = useState<Tab>("songs");
   const [expanded, setExpanded] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { isAdmin } = useIsAdmin();
   const pal = useArtworkPalette(artist.image_url || artist.cover_url);
   const themeVars = {
     "--a-bg": rgb(pal.bg), "--a-bg-soft": rgba(pal.bg, 0.45), "--a-deep": rgb(pal.bgDeep),
@@ -176,8 +180,7 @@ const ArtistView = ({ artist }: { artist: Artist }) => {
       <ArtistHero artist={artist} overlay={
         <div className="absolute top-3 left-3 right-3 flex justify-between">
           <button onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/"))} className={roundBtn} aria-label="Go back"><ArrowLeft className="w-5 h-5" /></button>
-          <ShareMenu url={buildShareUrl(`/artist/${artist.slug}`)} title={artist.name} imageUrl={artist.image_url || undefined}
-            trigger={<button className={roundBtn} aria-label="More options for this artist"><MoreVertical className="w-5 h-5" /></button>} />
+          <button className={roundBtn} aria-label="More options for this artist" onClick={() => setMenuOpen(true)}><MoreVertical className="w-5 h-5" /></button>
         </div>
       } />
 
@@ -284,8 +287,33 @@ const ArtistView = ({ artist }: { artist: Artist }) => {
           </section>
         )}
       </div>
+
+      <Drawer open={menuOpen} onOpenChange={setMenuOpen}>
+        <DrawerContent className="bg-card border-border pb-[env(safe-area-inset-bottom)]">
+          <div className="flex items-center gap-4 px-5 py-4 border-b border-border">
+            {artist.image_url ? <img src={artist.image_url} alt="" className="w-14 h-14 rounded-full object-cover" /> : <span className="w-14 h-14 rounded-full gradient-gold flex items-center justify-center text-xl font-bold text-primary-foreground">{artist.name[0]}</span>}
+            <DrawerTitle className="text-lg font-semibold text-foreground">{artist.name}</DrawerTitle>
+            <DrawerDescription className="sr-only">Options for this artist</DrawerDescription>
+          </div>
+          <ul className="py-2">
+            <li>
+              <ShareMenu url={buildShareUrl(`/artist/${artist.slug}`)} title={artist.name} text={`Listen to ${artist.name} on Loveworld Music+`} imageUrl={artist.image_url || undefined} kingschatFirst
+                trigger={<button className={sheetRow}><Share2 className="w-6 h-6" aria-hidden />Share</button>} />
+            </li>
+            <li><button className={sheetRow} onClick={() => { setMenuOpen(false); toggleFollow(); }}>
+              {following.data ? <UserCheck className="w-6 h-6 text-gold" aria-hidden /> : <UserPlus className="w-6 h-6" aria-hidden />}{following.data ? "Unfollow" : "Follow"}</button></li>
+            <li><button className={sheetRow} onClick={() => { setMenuOpen(false); playAll(true); }}><Radio className="w-6 h-6" aria-hidden />Play artist mix</button></li>
+            <li><button className={sheetRow} disabled={!all.some((x) => x.instrumental_url)} onClick={() => { setMenuOpen(false); singQueue(all.filter((x) => x.instrumental_url).map(toPlayerSong), 0); }}><Mic2 className="w-6 h-6" aria-hidden />Sing karaoke</button></li>
+            <li><button className={sheetRow} disabled={!all.some((x) => x.has_video)} onClick={() => { setMenuOpen(false); playVideoQueue(all.filter((x) => x.has_video).map(toPlayerSong), 0); }}><Video className="w-6 h-6" aria-hidden />Watch videos</button></li>
+            <li><button className={sheetRow} onClick={async () => { await navigator.clipboard?.writeText(buildShareUrl(`/artist/${artist.slug}`)); setMenuOpen(false); toast.success("Link copied"); }}><LinkIcon className="w-6 h-6" aria-hidden />Copy link</button></li>
+            {isAdmin && <li><button className={sheetRow} onClick={() => { setMenuOpen(false); navigate("/admin/artists"); }}><Pencil className="w-6 h-6" aria-hidden />Edit artist</button></li>}
+          </ul>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 };
+
+const sheetRow = "w-full flex items-center gap-5 px-5 min-h-[56px] text-base text-foreground hover:bg-muted/50 disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-none focus-visible:bg-muted/60";
 
 export default ArtistProfile;
