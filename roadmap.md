@@ -104,3 +104,5 @@
 - [ ] Share cards: wave-shaped QR (soundwave bars from the logo), two styles (Royal Glass Wave, Symphony Arch) with a style switch in the Share card window
 - [ ] Share cards: no website address printed on any card design
 - [ ] Share cards: Spotify-style sharing to all socials and statuses (tall story-size card, phone share sheet with the image for WhatsApp status / Instagram & Facebook stories, link ready to paste)
+- [ ] Share: verify every social share link (KingsChat, WhatsApp, Facebook, X, Telegram, email) uses each app's current official share address
+- [ ] Lyrics share button: Premium-only copy/share of lyrics
