@@ -84,7 +84,12 @@ const ArtistView = ({ artist }: { artist: Artist }) => {
     "--a-bg": rgb(pal.bg), "--a-bg-soft": rgba(pal.bg, 0.45), "--a-deep": rgb(pal.bgDeep),
     "--a-accent": rgb(pal.accent), "--a-light": rgb(pal.accentLight), "--a-dark": rgb(pal.accentDark),
     "--a-glow": rgba(pal.accent, 0.45), "--a-tint": rgba(pal.accent, 0.16), "--a-tint-strong": rgba(pal.accent, 0.28),
-    backgroundImage: `radial-gradient(120% 60% at 50% 0%, ${rgba(pal.accent, 0.35)} 0%, transparent 60%), linear-gradient(to bottom, ${rgb(pal.bg)} 0px, ${rgb(pal.bgDeep)} 640px, hsl(var(--background)) 1100px)`,
+    backgroundImage: [
+      `radial-gradient(90% 50% at 0% 35%, ${rgba(pal.accent, 0.30)} 0%, transparent 70%)`,
+      `radial-gradient(80% 45% at 100% 70%, ${rgba(pal.accentLight, 0.18)} 0%, transparent 70%)`,
+      `linear-gradient(160deg, ${rgb(pal.bg)} 0%, ${rgba(pal.accentDark, 0.85)} 38%, ${rgb(pal.bgDeep)} 72%, ${rgb(pal.bg)} 100%)`,
+    ].join(", "),
+    backgroundAttachment: "local",
     transition: "background-image 600ms ease",
   } as React.CSSProperties;
 
