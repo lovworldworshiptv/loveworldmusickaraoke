@@ -56,7 +56,14 @@ export const ArtistHero = ({ artist, overlay }: {
     {artist.cover_url || artist.image_url ? (
       <img src={artist.cover_url || artist.image_url!} alt="" className="absolute inset-0 w-full h-full object-cover object-top" />
     ) : <div className="absolute inset-0 gradient-purple" />}
-    <div className="absolute inset-0" style={{ backgroundImage: "linear-gradient(to top, var(--a-bg, hsl(var(--background))) 0%, var(--a-bg-soft, hsl(var(--background) / 0.35)) 45%, transparent 75%)" }} />
+    {(artist.cover_url || artist.image_url) && (
+      <div aria-hidden className="absolute inset-x-0 bottom-0 h-[55%] overflow-hidden"
+        style={{ maskImage: "linear-gradient(to top, black 35%, transparent 100%)", WebkitMaskImage: "linear-gradient(to top, black 35%, transparent 100%)" }}>
+        <img src={artist.cover_url || artist.image_url!} alt="" className="absolute inset-x-0 bottom-0 w-full h-[182%] object-cover object-top blur-2xl scale-110 saturate-150" />
+      </div>
+    )}
+    <div className="absolute inset-0" style={{ backgroundImage: "linear-gradient(to top, var(--a-bg, hsl(var(--background))) 0%, var(--a-bg-soft, hsl(var(--background) / 0.45)) 22%, transparent 55%)" }} />
+    <div aria-hidden className="absolute inset-x-0 -bottom-px h-10" style={{ background: "linear-gradient(to top, var(--a-bg, hsl(var(--background))), transparent)" }} />
     {overlay}
     <div className="absolute bottom-4 left-4 right-4">
       <h1 className="font-serif text-[2.75rem] sm:text-6xl font-bold text-foreground leading-[1.02] break-words drop-shadow-lg">{artist.name}</h1>
@@ -85,9 +92,9 @@ const ArtistView = ({ artist }: { artist: Artist }) => {
     "--a-accent": rgb(pal.accent), "--a-light": rgb(pal.accentLight), "--a-dark": rgb(pal.accentDark),
     "--a-glow": rgba(pal.accent, 0.45), "--a-tint": rgba(pal.accent, 0.16), "--a-tint-strong": rgba(pal.accent, 0.28),
     backgroundImage: [
-      `radial-gradient(90% 50% at 0% 35%, ${rgba(pal.accent, 0.30)} 0%, transparent 70%)`,
-      `radial-gradient(80% 45% at 100% 70%, ${rgba(pal.accentLight, 0.18)} 0%, transparent 70%)`,
-      `linear-gradient(160deg, ${rgb(pal.bg)} 0%, ${rgba(pal.accentDark, 0.85)} 38%, ${rgb(pal.bgDeep)} 72%, ${rgb(pal.bg)} 100%)`,
+      `radial-gradient(90% 600px at 0% 900px, ${rgba(pal.accent, 0.28)} 0%, transparent 70%)`,
+      `radial-gradient(80% 600px at 100% 1500px, ${rgba(pal.accentLight, 0.16)} 0%, transparent 70%)`,
+      `linear-gradient(to bottom, ${rgb(pal.bg)} 0px, ${rgb(pal.bg)} 380px, ${rgba(pal.accentDark, 0.85)} 1000px, ${rgb(pal.bgDeep)} 1700px, ${rgb(pal.bg)} 100%)`,
     ].join(", "),
     backgroundAttachment: "local",
     transition: "background-image 600ms ease",
