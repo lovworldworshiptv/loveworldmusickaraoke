@@ -20,7 +20,7 @@ const SharedSongTapToPlay = ({ songId, onDone }: { songId: string; onDone: () =>
       type="button"
       onClick={start}
       aria-label={`Play ${currentSong.title}`}
-      className="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-6 bg-background/85 backdrop-blur-md px-6 text-center animate-in fade-in"
+      className="fixed inset-0 z-[130] flex flex-col items-center justify-center gap-6 bg-background/85 backdrop-blur-md px-6 text-center animate-in fade-in"
     >
       {currentSong.coverUrl && (
         <img
