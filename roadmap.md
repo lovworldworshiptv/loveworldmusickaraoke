@@ -110,3 +110,5 @@
 
 - [x] Artist Profiles (/artist/:slug, follow, stats, admin /admin/artists) — needs profile/cover photos uploaded by admin
 - [x] Video Comments (per video, replies, likes, live updates, admin moderation tab) — not yet tested with two live accounts
+- [ ] Artist page takes its colours from the profile photo (colourful, graceful)
+- [ ] Restyle artist page (Spotify-style ref) and video comments (YouTube Music ref)
