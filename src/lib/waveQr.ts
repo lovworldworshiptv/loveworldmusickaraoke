@@ -79,7 +79,7 @@ export async function drawWaveQr(
   quiet = 3,
 ) {
   const QRCode = (await import("qrcode")).default;
-  const qr = QRCode.create(text, { errorCorrectionLevel: "H" });
+  const qr = QRCode.create(text, { errorCorrectionLevel: "Q" });
   const n = qr.modules.size;
   const matrix: QrMatrix = { size: n, get: (r, c) => !!qr.modules.get(r, c) };
   const mod = size / (n + quiet * 2);
@@ -90,8 +90,8 @@ export async function drawWaveQr(
   ctx.fillRect(x, y, size, size);
 
   // Soundwave bars
-  const bw = mod * 0.8;
-  const inset = mod * 0.07;
+  const bw = mod * 0.88;
+  const inset = mod * 0.04;
   ctx.fillStyle = colors.dark;
   ctx.beginPath();
   for (const b of waveBars(matrix)) {
