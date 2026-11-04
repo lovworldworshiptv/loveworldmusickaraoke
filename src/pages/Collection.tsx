@@ -1,3 +1,4 @@
+import ArtistLinks from "@/components/artist/ArtistLinks";
 import { useEffect, useState } from "react";
 import DownloadButton from "@/components/offline/DownloadButton";
 import { useSaveSong } from "@/hooks/useSaveSong";
@@ -91,7 +92,7 @@ const Collection = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className={`text-sm truncate ${currentSong?.id === s.id ? "text-gold" : "text-foreground"}`}>{s.title}</p>
-                  <p className="text-xs text-white truncate">{s.artist}</p>
+                  <p className="text-xs text-white truncate"><ArtistLinks artist={s.artist} /></p>
                 </div>
               </button>
               {queue[i].audioUrl && <DownloadButton songId={s.id} title={s.title} onDownload={() => save(queue[i])} needsPremium={!canSave(queue[i])} />}

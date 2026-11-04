@@ -1,3 +1,4 @@
+import ArtistLinks from "@/components/artist/ArtistLinks";
 import { createPortal } from "react-dom";
 import { Play } from "lucide-react";
 import { usePlayer } from "@/contexts/PlayerContext";
@@ -31,7 +32,7 @@ const SharedSongTapToPlay = ({ songId, onDone }: { songId: string; onDone: () =>
       )}
       <div className="max-w-xs">
         <p className="text-xl font-serif font-bold text-foreground line-clamp-2">{currentSong.title}</p>
-        <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{currentSong.artist}</p>
+        <p className="text-sm text-muted-foreground mt-1 line-clamp-1"><ArtistLinks artist={currentSong.artist} /></p>
       </div>
       <span className="w-20 h-20 rounded-full gradient-gold flex items-center justify-center shadow-[0_4px_32px_hsl(43_70%_53%/0.55)] animate-pulse motion-reduce:animate-none">
         <Play className="w-9 h-9 text-primary-foreground fill-current ml-1" />

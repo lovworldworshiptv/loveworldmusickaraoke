@@ -1,3 +1,4 @@
+import ArtistLinks from "@/components/artist/ArtistLinks";
 import { useEffect, useRef, useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -185,7 +186,7 @@ const MomentCard = ({
           {TYPE_LABEL[moment.video_type] || "Video"}
         </span>
         <p className="text-base font-serif font-bold text-white truncate">{song.title}</p>
-        <p className="text-xs text-white truncate">{song.artist}</p>
+        <p className="text-xs text-white truncate"><ArtistLinks artist={song.artist} /></p>
         {isCurrent && (
           <span className="inline-block mt-1 text-[10px] font-semibold bg-amber-400 text-foreground px-2 py-0.5 rounded-full">
             Playing
