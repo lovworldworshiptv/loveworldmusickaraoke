@@ -190,7 +190,7 @@ async function drawGlass({ ctx, W, H, portrait, item, link, cover, logo, pal }: 
   const coverY = portrait ? 200 : 210;
 
   // Flowing gold wave ribbons across the lower half.
-  const waveY = portrait ? coverY + coverSize + 230 : H - 190;
+  const waveY = portrait ? H - 120 : H - 190;
   ctx.save();
   ctx.lineCap = "round";
   [[0, 0.32, 3], [18, 0.2, 2], [36, 0.12, 2]].forEach(([shift, alpha, lw], i) => {
@@ -325,17 +325,36 @@ async function drawArch({ ctx, W, H, portrait, item, link, cover, logo, pal }: C
   ctx.textAlign = "left";
   ctx.fillText("Loveworld Music+", hx + (logo ? logoSize + 18 : 0), hy + logoSize / 2);
 
-  // Arched cover
+  // Arched niche holding the whole (uncropped) square cover, soundwave in the dome.
   ctx.save();
   ctx.shadowColor = rgba(pal.bgDeep, 0.7);
   ctx.shadowBlur = 50;
   ctx.shadowOffsetY = 18;
   archPath(ctx, coverX, coverY, coverW, coverH, 28);
-  ctx.fillStyle = accentGradient(ctx, pal, coverX, coverY, coverW, coverH);
+  const niche = ctx.createLinearGradient(0, coverY, 0, coverY + coverH);
+  niche.addColorStop(0, rgba(pal.accent, 0.55));
+  niche.addColorStop(0.45, rgba(pal.bg, 0.95));
+  niche.addColorStop(1, rgb(pal.bgDeep));
+  ctx.fillStyle = niche;
   ctx.fill();
   ctx.restore();
   archPath(ctx, coverX, coverY, coverW, coverH, 28);
-  fillCover(ctx, cover, pal, coverX, coverY, coverW, coverH);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = accentGradient(ctx, pal, coverX, coverY, coverW, coverH);
+  ctx.stroke();
+  const inset = 22;
+  const cs = coverW - inset * 2;
+  const cy0 = coverY + coverH - inset - cs;
+  drawSoundwave(ctx, ccx, coverY + (cy0 - coverY) / 2 + 10, coverW * 0.46, (cy0 - coverY) * 0.42, rgba(pal.accentLight, 0.85), 15);
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.45)";
+  ctx.shadowBlur = 24;
+  roundRect(ctx, coverX + inset, cy0, cs, cs, 18);
+  ctx.fillStyle = rgb(pal.bgDeep);
+  ctx.fill();
+  ctx.restore();
+  roundRect(ctx, coverX + inset, cy0, cs, cs, 18);
+  fillCover(ctx, cover, pal, coverX + inset, cy0, cs, cs);
 
   // Text column
   const colX = portrait ? W / 2 : coverX + coverW + (W - 104 - coverX - coverW) / 2;
@@ -384,8 +403,6 @@ async function drawArch({ ctx, W, H, portrait, item, link, cover, logo, pal }: C
   ctx.textBaseline = "top";
   ctx.fillText("Scan to listen", colX, py + plate + 20);
 
-  // Soundwave ornament under the cover (square only — portrait has no room)
-  if (!portrait) drawSoundwave(ctx, ccx, coverY + coverH + 120, coverW * 0.8, 90, rgba(pal.accentLight, 0.6));
   ctx.textAlign = "left";
 }
 
