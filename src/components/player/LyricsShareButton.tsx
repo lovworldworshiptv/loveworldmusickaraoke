@@ -32,7 +32,8 @@ const LyricsShareButton = ({ song, lyrics, isPremium, onUpgrade }: Props) => {
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(`${message}\n\nListen on Loveworld Music+: ${link("copy")}`);
+      logShareClick("copy", base);
+      await navigator.clipboard.writeText(lyrics.trim());
       toast.success("Lyrics copied");
     } catch {
       toast.error("Couldn't copy the lyrics on this device");
