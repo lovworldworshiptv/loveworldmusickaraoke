@@ -38,18 +38,31 @@ const VideoComments = ({ videoId }: { videoId: string }) => {
   const [preview, setPreview] = useState<VComment | null>(null);
 
   const refreshSummary = useCallback(async () => {
-    if (!user) { setCount(null); setPreview(null); return; }
-    const [{ count: c }, { data }] = await Promise.all([
-      supabase.from("video_comments").select("id", { count: "exact", head: true }).eq("song_video_id", videoId).eq("is_deleted", false),
-      supabase.from("video_comments").select(COLS).eq("song_video_id", videoId).is("parent_id", null).eq("is_deleted", false).order("created_at", { ascending: false }).limit(1),
-    ]);
-    setCount(c ?? 0);
+    const { data: c } = await supabase.rpc("get_video_comment_count", { p_video_id: videoId });
+    setCount(typeof c === "number" ? c : 0);
+    if (!user) { setPreview(null); return; }
+    const { data } = await supabase.from("video_comments").select(COLS).eq("song_video_id", videoId).is("parent_id", null).eq("is_deleted", false).order("created_at", { ascending: false }).limit(1);
     const top = (data?.[0] as VComment | undefined) ?? null;
     if (top) await loadAuthors([top.user_id]);
     setPreview(top);
   }, [user, videoId]);
 
-  useEffect(() => { refreshSummary(); }, [refreshSummary]);
+  useEffect(() => { setCount(null); setPreview(null); refreshSummary(); }, [refreshSummary]);
+
+  // Keep the count right while the video is on screen: new, removed and replies from anyone.
+  useEffect(() => {
+    if (!user) return;
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const ch = supabase.channel(`vc-count-${videoId}-${Math.random().toString(36).slice(2)}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "video_comments", filter: `song_video_id=eq.${videoId}` }, () => {
+        clearTimeout(t); t = setTimeout(refreshSummary, 400);
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "video_comments" }, () => {
+        clearTimeout(t); t = setTimeout(refreshSummary, 400);
+      })
+      .subscribe();
+    return () => { clearTimeout(t); supabase.removeChannel(ch); };
+  }, [user, videoId, refreshSummary]);
 
   return (
     <>
