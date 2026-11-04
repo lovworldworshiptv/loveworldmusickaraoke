@@ -73,6 +73,11 @@ const VideoComments = ({ videoId }: { videoId: string }) => {
           <MessageSquareText className="w-5 h-5" aria-hidden />
           <span className="tabular-nums min-w-[1ch]">{count != null ? count.toLocaleString() : ""}</span>
         </button>
+        {preview && (
+          <button onClick={() => setOpen(true)} className="h-10 min-w-0 flex-1 rounded-full bg-muted/40 px-4 text-left text-xs text-foreground truncate" aria-hidden tabIndex={-1}>
+            <span className="font-semibold">@{authorCache.get(preview.user_id)?.username}</span> {preview.body}
+          </button>
+        )}
       </div>
       <Drawer open={open} onOpenChange={(o) => { setOpen(o); if (!o) refreshSummary(); }}>
         <DrawerContent className="h-[85dvh] max-h-[85dvh] bg-card border-border">
