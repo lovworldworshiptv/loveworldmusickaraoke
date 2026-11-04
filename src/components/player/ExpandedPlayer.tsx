@@ -33,7 +33,7 @@ import UpNextSheet, { PEEK_HEIGHT, UpNextCountdown, useIsDesktop, useIsFullscree
 import { createVideoStatus } from "@/lib/videoProgress";
 import LyricsLanguageSheet from "@/components/player/LyricsLanguageSheet";
 import PlaybackProgress from "@/components/player/PlaybackProgress";
-import { KaraokeUpNextBar, KaraokeUpNextPanel } from "@/components/player/KaraokeUpNext";
+import { KaraokeUpNextPanel, KaraokeUpNextSheet } from "@/components/player/KaraokeUpNext";
 
 type PlayerMode = "song" | "karaoke" | "video";
 
@@ -124,7 +124,7 @@ const ExpandedPlayer = () => {
   const [upNextOpen, setUpNextOpen] = useState(false);
   const showUpNext = videoSession && !isFullscreen;
   const karaokePanel = mode === "karaoke" && !isRecordingActive;
-  useEffect(() => { if (!showUpNext || isDesktop) setUpNextOpen(false); }, [showUpNext, isDesktop]);
+  useEffect(() => { if ((!showUpNext && !karaokePanel) || isDesktop) setUpNextOpen(false); }, [showUpNext, karaokePanel, isDesktop]);
   // Back closes the open list first instead of leaving the player.
   useEffect(() => {
     if (!upNextOpen || isDesktop) return;
@@ -813,7 +813,7 @@ const ExpandedPlayer = () => {
 
         {/* Bottom Controls - hidden during active recording */}
         {!isRecordingActive && mode !== "video" && (
-        <div className="flex-shrink-0 px-6 pt-2 safe-bottom" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
+        <div className="flex-shrink-0 px-6 pt-2 safe-bottom" style={{ paddingBottom: karaokePanel && !isDesktop ? '0.75rem' : 'max(1.5rem, env(safe-area-inset-bottom))' }}>
           <div className="mb-4 group/progress">
             <PlaybackProgress value={progress} onValueChange={seekTo} ariaLabel="Song position" className="mb-1.5" />
             <div className="flex justify-between text-[11px] text-muted-foreground font-medium">
@@ -854,7 +854,12 @@ const ExpandedPlayer = () => {
             frameEl={frameEl} slotEl={slotEl} regionEl={regionEl}
           />
         )}
-        {karaokePanel && !isDesktop && <KaraokeUpNextBar />}
+        {karaokePanel && !isDesktop && (
+          <>
+            <div aria-hidden="true" className="flex-shrink-0" style={{ height: `calc(${PEEK_HEIGHT}px + env(safe-area-inset-bottom, 0px))` }} />
+            <KaraokeUpNextSheet open={upNextOpen} onOpenChange={setUpNextOpen} onNext={handleNext} />
+          </>
+        )}
       </div>
     </div>
 
