@@ -69,7 +69,7 @@ const VideoComments = ({ videoId }: { videoId: string }) => {
       <div className="px-4 mt-2 mb-1 flex gap-2 overflow-x-auto flex-shrink-0">
         <button onClick={() => setOpen(true)}
           className="h-10 shrink-0 rounded-full bg-muted/70 hover:bg-muted px-4 inline-flex items-center gap-2 text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
-          aria-label={`Open comments${count != null ? `, ${count} comments` : ""}`}>
+          aria-label={`Open comments${count != null ? `, ${count} ${count === 1 ? "comment" : "comments"}` : ""}`}>
           <MessageSquareText className="w-5 h-5" aria-hidden />
           <span className="tabular-nums">{count != null ? count.toLocaleString() : "Comments"}</span>
         </button>
