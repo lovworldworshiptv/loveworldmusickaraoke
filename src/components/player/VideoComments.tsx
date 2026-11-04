@@ -247,7 +247,7 @@ const CommentsPanel = ({ videoId, onClose }: { videoId: string; onClose: () => v
         <div className="flex gap-2 px-5 pb-3" role="radiogroup" aria-label="Sort comments">
           {(["top", "new"] as const).map((s) => (
             <button key={s} role="radio" aria-checked={sort === s} onClick={() => setSort(s)}
-              className={`min-h-[40px] px-4 rounded-lg text-[15px] font-medium transition-colors ${sort === s ? "bg-foreground text-background" : "bg-muted text-foreground"}`}>
+              className={`min-h-[40px] px-4 rounded-lg text-[15px] font-medium transition-colors ${sort === s ? "gradient-gold text-primary-foreground font-semibold glow-gold" : "bg-muted/70 text-foreground border border-gold/20 hover:border-gold/50"}`}>
               {s === "top" ? "Top" : "Newest"}
             </button>
           ))}
