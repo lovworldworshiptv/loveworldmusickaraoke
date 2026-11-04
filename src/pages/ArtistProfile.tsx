@@ -31,7 +31,7 @@ const ArtistProfile = () => {
       <AppLayout>
         <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-6 gap-3">
           <h1 className="font-serif text-2xl text-foreground">Artist not found</h1>
-          <p className="text-muted-foreground">This artist page doesn't exist or was removed.</p>
+          <p className="text-foreground">This artist page doesn't exist or was removed.</p>
           <Button asChild variant="outline"><Link to="/">Go to Home</Link></Button>
         </div>
       </AppLayout>
@@ -175,7 +175,7 @@ const ArtistView = ({ artist }: { artist: Artist }) => {
       } />
 
       <div className="px-4 max-w-4xl mx-auto">
-        <p className="text-sm text-muted-foreground h-5">
+        <p className="text-sm text-foreground h-5">
           {s ? `${s.followers.toLocaleString()} ${s.followers === 1 ? "follower" : "followers"}` : ""}
         </p>
 
@@ -200,9 +200,9 @@ const ArtistView = ({ artist }: { artist: Artist }) => {
             {newest.cover_url ? <img src={newest.cover_url} alt="" className="w-10 h-10 rounded object-cover" /> : <div className="w-10 h-10 rounded bg-muted" />}
             <span className="flex-1 min-w-0">
               <span className="block text-sm font-semibold text-foreground">Listen to the newest song</span>
-              <span className="block text-xs text-muted-foreground truncate">{newest.title}</span>
+              <span className="block text-xs text-foreground truncate">{newest.title}</span>
             </span>
-            <ChevronRight className="w-5 h-5 text-muted-foreground" aria-hidden />
+            <ChevronRight className="w-5 h-5 text-foreground" aria-hidden />
           </button>
         )}
 
@@ -220,7 +220,7 @@ const ArtistView = ({ artist }: { artist: Artist }) => {
           {songs.isLoading ? (
             <div className="space-y-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}</div>
           ) : !list.length ? (
-            <p className="text-muted-foreground text-sm py-10">Nothing here yet.</p>
+            <p className="text-foreground text-sm py-10">Nothing here yet.</p>
           ) : (
             <>
               <ol>
@@ -229,19 +229,19 @@ const ArtistView = ({ artist }: { artist: Artist }) => {
                   return (
                     <li key={song.id} className="flex items-center gap-1">
                       <button onClick={() => playRow(i)} className="flex-1 min-w-0 flex items-center gap-4 py-2 text-left min-h-[72px]" aria-current={active ? "true" : undefined}>
-                        <span className={`w-5 text-center text-base tabular-nums ${active ? "text-[var(--a-light)]" : "text-muted-foreground"}`}>{i + 1}</span>
+                        <span className={`w-5 text-center text-base tabular-nums ${active ? "text-[var(--a-light)]" : "text-foreground"}`}>{i + 1}</span>
                         <span className="relative shrink-0">
                           {song.cover_url ? <img src={song.cover_url} alt="" loading="lazy" className={`${tab === "videos" ? "w-24 h-14" : "w-14 h-14"} rounded object-cover`} /> : <span className="block w-14 h-14 rounded bg-muted" />}
                           {tab === "videos" && <Play className="absolute inset-0 m-auto w-5 h-5 text-foreground fill-current drop-shadow" aria-hidden />}
                         </span>
                         <span className="flex-1 min-w-0">
                           <span className={`block text-base truncate ${active ? "text-[var(--a-light)] font-semibold" : "text-foreground"}`}>{song.title}</span>
-                          <span className="block text-sm text-muted-foreground tabular-nums">{song.play_count.toLocaleString()} {song.play_count === 1 ? "play" : "plays"}</span>
+                          <span className="block text-sm text-foreground tabular-nums">{song.play_count.toLocaleString()} {song.play_count === 1 ? "play" : "plays"}</span>
                         </span>
                       </button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button className="w-11 h-11 flex items-center justify-center text-muted-foreground" aria-label={`More options for ${song.title}`}><MoreVertical className="w-5 h-5" /></button>
+                          <button className="w-11 h-11 flex items-center justify-center text-foreground" aria-label={`More options for ${song.title}`}><MoreVertical className="w-5 h-5" /></button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => playQueue([toPlayerSong(song)], 0)}><Play className="w-4 h-4 mr-2" />Play</DropdownMenuItem>
