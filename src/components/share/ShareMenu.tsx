@@ -1,9 +1,11 @@
 import { useState, lazy, Suspense } from "react";
-import { Share2, Mail, Copy, Check, QrCode } from "lucide-react";
+import { Share2, Mail, Copy, Check, QrCode, Lock } from "lucide-react";
 import type { ShareCardItem } from "@/lib/shareCard";
 const ShareCardSheet = lazy(() => import("@/components/share/ShareCard"));
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { useIsPremium } from "@/hooks/useIsPremium";
 import { nativeShare, openExternal, isMedianApp } from "@/lib/median";
 import { APP_DOWNLOAD_URL } from "@/components/share/AppDownloadPrompt";
 import kingschatLogo from "@/assets/kingschat_logo.png";
@@ -35,6 +37,16 @@ const ShareMenu = ({ url, title, text, imageUrl, kingschatFirst = false, trigger
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
+  const { isPremium } = useIsPremium();
+  const navigate = useNavigate();
+  const openCard = () => {
+    setMenuOpen(false);
+    if (!isPremium) {
+      toast("Share Cards are a Premium feature.", { action: { label: "See plans", onClick: () => navigate("/subscription") } });
+      return;
+    }
+    setCardOpen(true);
+  };
 
   const shareText = `${text || title}\n\nGet the app: ${APP_DOWNLOAD_URL}`;
   /** Each channel gets its own tagged link so admins can see which channel brings people in. */
@@ -124,14 +136,15 @@ const ShareMenu = ({ url, title, text, imageUrl, kingschatFirst = false, trigger
             {copied ? "Copied!" : "Copy Link"}
           </button>
           {card && (
-            <button onClick={(e) => { e.stopPropagation(); setMenuOpen(false); setCardOpen(true); }} className={btnClass}>
+            <button onClick={(e) => { e.stopPropagation(); openCard(); }} className={btnClass}>
               <QrCode className="w-4 h-4 text-gold" aria-hidden="true" /> Share Card
+              {!isPremium && <Lock className="w-3.5 h-3.5 ml-auto text-gold" aria-label="Premium" />}
             </button>
           )}
         </div>
       </PopoverContent>
     </Popover>
-    {card && cardOpen && (
+    {card && cardOpen && isPremium && (
       <Suspense fallback={null}>
         <ShareCardSheet item={card} open={cardOpen} onOpenChange={setCardOpen} />
       </Suspense>
