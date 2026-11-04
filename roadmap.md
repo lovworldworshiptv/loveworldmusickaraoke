@@ -100,3 +100,6 @@
 
 - [x] Share Cards with QR codes (songs, albums, official playlists) + playlist ?id= deep link
 - [x] Admin user details: total streams with Song/Karaoke/Video breakdown
+
+- [ ] Share cards: wave-shaped QR (soundwave bars from the logo), two styles (Royal Glass Wave, Symphony Arch) with a style switch in the Share card window
+- [ ] Share cards: no website address printed on any card design
