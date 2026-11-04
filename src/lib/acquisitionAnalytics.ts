@@ -1,9 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type ShareChannel = "kingschat" | "whatsapp" | "x" | "facebook" | "email" | "native" | "copy";
+export type ShareChannel = "kingschat" | "whatsapp" | "x" | "facebook" | "email" | "native" | "copy" | "qr_card";
 export const CHANNEL_LABELS: Record<string, string> = {
   kingschat: "KingsChat", whatsapp: "WhatsApp", x: "X", facebook: "Facebook",
-  email: "Email", native: "Phone share", copy: "Copied link", direct: "Direct / unknown",
+  email: "Email", native: "Phone share", copy: "Copied link", qr_card: "QR card", direct: "Direct / unknown",
 };
 
 const SRC_KEY = "lw_share_source";
@@ -28,7 +28,7 @@ const platform = () => {
 
 export const logShareClick = (channel: ShareChannel, url: string) => {
   let path = url; try { path = new URL(url).pathname; } catch { /* keep */ }
-  const content = path.startsWith("/auth") ? "invite" : path.startsWith("/articles") ? "article" : path.startsWith("/library") ? "song" : "page";
+  const content = path.startsWith("/auth") ? "invite" : path.startsWith("/articles") ? "article" : path.startsWith("/library") ? "song" : path.startsWith("/albums") ? "album" : path.startsWith("/playlists") ? "playlist" : "page";
   log("share_click", { channel, content, path });
 };
 
