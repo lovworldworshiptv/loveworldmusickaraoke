@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BadgeCheck, Play, Shuffle, Share2, Mic2, Video, Music } from "lucide-react";
+import { BadgeCheck, Play, Pause, Shuffle, ArrowLeft, MoreVertical, ChevronRight, Mic2, Video } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import ShareMenu, { buildShareUrl } from "@/components/share/ShareMenu";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlayer } from "@/contexts/PlayerContext";
@@ -14,7 +15,7 @@ import { SONG_COLUMNS, toPlayerSong, type SongRow } from "@/lib/homeSongs";
 import { compactNumber, matchArtists, useArtists, type Artist } from "@/lib/artists";
 import { toast } from "sonner";
 
-type Row = SongRow & { play_count: number; has_video: boolean };
+type Row = SongRow & { play_count: number; has_video: boolean; created_at: string };
 type Tab = "songs" | "karaoke" | "videos";
 
 const ArtistProfile = () => {
@@ -27,7 +28,7 @@ const ArtistProfile = () => {
     return (
       <AppLayout>
         <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-6 gap-3">
-          <h1 className="font-display text-2xl text-foreground">Artist not found</h1>
+          <h1 className="font-serif text-2xl text-foreground">Artist not found</h1>
           <p className="text-muted-foreground">This artist page doesn't exist or was removed.</p>
           <Button asChild variant="outline"><Link to="/">Go to Home</Link></Button>
         </div>
@@ -39,27 +40,29 @@ const ArtistProfile = () => {
 
 const ProfileSkeleton = () => (
   <div className="pb-24">
-    <Skeleton className="w-full h-[300px] rounded-none" />
-    <div className="px-4 mt-4 space-y-3"><Skeleton className="h-10 w-2/3" /><Skeleton className="h-12 w-full" /><Skeleton className="h-64 w-full" /></div>
+    <Skeleton className="w-full h-[360px] rounded-none" />
+    <div className="px-4 mt-4 space-y-3"><Skeleton className="h-5 w-1/3" /><Skeleton className="h-14 w-full" /><Skeleton className="h-14 w-full" /><Skeleton className="h-64 w-full" /></div>
   </div>
 );
 
-export const ArtistHero = ({ artist }: { artist: Pick<Artist, "name" | "image_url" | "cover_url" | "is_verified"> }) => (
-  <div className="relative w-full h-[300px] sm:h-[360px] overflow-hidden">
+/** Full-bleed photo with the name set over its lower edge (used by the page and the admin preview). */
+export const ArtistHero = ({ artist, overlay }: {
+  artist: Pick<Artist, "name" | "image_url" | "cover_url" | "is_verified">;
+  overlay?: React.ReactNode;
+}) => (
+  <div className="relative w-full h-[360px] sm:h-[420px] overflow-hidden">
     {artist.cover_url || artist.image_url ? (
-      <img src={artist.cover_url || artist.image_url!} alt="" className="absolute inset-0 w-full h-full object-cover" />
+      <img src={artist.cover_url || artist.image_url!} alt="" className="absolute inset-0 w-full h-full object-cover object-top" />
     ) : <div className="absolute inset-0 gradient-purple" />}
-    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-    <div className="absolute bottom-4 left-4 right-4 flex items-end gap-4">
-      {artist.image_url && (
-        <img src={artist.image_url} alt={artist.name} className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-2 border-gold/60 shadow-xl" />
+    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+    {overlay}
+    <div className="absolute bottom-4 left-4 right-4">
+      <h1 className="font-serif text-[2.75rem] sm:text-6xl font-bold text-foreground leading-[1.02] break-words drop-shadow-lg">{artist.name}</h1>
+      {artist.is_verified && (
+        <p className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">
+          <BadgeCheck className="w-5 h-5 text-gold" aria-hidden /> Verified artist
+        </p>
       )}
-      <div className="min-w-0">
-        {artist.is_verified && (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-gold"><BadgeCheck className="w-4 h-4" aria-hidden /> Verified artist</span>
-        )}
-        <h1 className="font-display text-4xl sm:text-5xl font-bold text-foreground leading-tight break-words">{artist.name}</h1>
-      </div>
     </div>
   </div>
 );
@@ -69,10 +72,11 @@ const ArtistView = ({ artist }: { artist: Artist }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const qc = useQueryClient();
-  const { playQueue, singQueue, playVideoQueue } = usePlayer();
+  const { playQueue, singQueue, playVideoQueue, currentSong, isPlaying, togglePlay } = usePlayer();
   const { data: artists = [] } = useArtists();
   const [tab, setTab] = useState<Tab>("songs");
   const [expanded, setExpanded] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const stats = useQuery({
     queryKey: ["artist-stats", artist.id],
@@ -94,7 +98,7 @@ const ArtistView = ({ artist }: { artist: Artist }) => {
     queryKey: ["artist-songs", artist.id],
     queryFn: async () => {
       const rows = await fetchAllRows<Row>((from, to) =>
-        supabase.from("songs").select(`${SONG_COLUMNS},play_count,has_video`).ilike("artist", `%${artist.name}%`).order("id").range(from, to) as never);
+        supabase.from("songs").select(`${SONG_COLUMNS},play_count,has_video,created_at`).ilike("artist", `%${artist.name}%`).order("id").range(from, to) as never);
       return rows
         .filter((s) => matchArtists(s.artist, artists).some((p) => p.artist?.id === artist.id))
         .sort((a, b) => b.play_count - a.play_count);
@@ -104,6 +108,8 @@ const ArtistView = ({ artist }: { artist: Artist }) => {
 
   const all = songs.data ?? [];
   const list = tab === "karaoke" ? all.filter((s) => s.instrumental_url) : tab === "videos" ? all.filter((s) => s.has_video) : all;
+  const newest = all.reduce<Row | null>((n, s) => (!n || s.created_at > n.created_at ? s : n), null);
+  const artistPlaying = !!currentSong && all.some((s) => s.id === currentSong.id);
 
   const toggleFollow = async () => {
     if (!user) { navigate(`/auth?next=${encodeURIComponent(location.pathname)}`); return; }
@@ -121,6 +127,7 @@ const ArtistView = ({ artist }: { artist: Artist }) => {
   };
 
   const playAll = (shuffle = false) => {
+    if (!shuffle && artistPlaying) { togglePlay(); return; }
     if (!all.length) return;
     const ps = all.map(toPlayerSong);
     if (shuffle) ps.sort(() => Math.random() - 0.5);
@@ -131,92 +138,129 @@ const ArtistView = ({ artist }: { artist: Artist }) => {
     if (tab === "karaoke") singQueue(ps, i); else if (tab === "videos") playVideoQueue(ps, i); else playQueue(ps, i);
   };
 
-  const s = stats.data;
-  const chips = [
-    { label: "Songs", value: s?.songs }, { label: "Karaoke", value: s?.karaoke },
-    { label: "Videos", value: s?.videos }, { label: "Followers", value: s?.followers },
-  ];
-
   useEffect(() => { document.title = `${artist.name} — Loveworld Music+`; }, [artist.name]);
+
+  const s = stats.data;
+  const tabs: { key: Tab; label: string; count?: number; heading: string }[] = [
+    { key: "songs", label: "Songs", count: s?.songs, heading: "Popular" },
+    { key: "karaoke", label: "Karaoke", count: s?.karaoke, heading: "Sing along" },
+    { key: "videos", label: "Videos", count: s?.videos, heading: "Videos" },
+  ];
+  const shown = showAll ? list.slice(0, 200) : list.slice(0, 10);
+  const roundBtn = "w-11 h-11 rounded-full bg-background/50 backdrop-blur-md flex items-center justify-center text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold";
 
   return (
     <div className="pb-28">
-      <ArtistHero artist={artist} />
-      <div className="px-4 max-w-4xl mx-auto">
-        <ul className="grid grid-cols-4 gap-2 mt-4" aria-label="Artist statistics">
-          {chips.map((c) => (
-            <li key={c.label} className="glass-card rounded-2xl py-3 text-center">
-              <p className="text-lg font-bold text-foreground tabular-nums h-7">{c.value === undefined ? "–" : compactNumber(c.value)}</p>
-              <p className="text-[11px] text-muted-foreground">{c.label}</p>
-            </li>
-          ))}
-        </ul>
+      <ArtistHero artist={artist} overlay={
+        <div className="absolute top-3 left-3 right-3 flex justify-between">
+          <button onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/"))} className={roundBtn} aria-label="Go back"><ArrowLeft className="w-5 h-5" /></button>
+          <ShareMenu url={buildShareUrl(`/artist/${artist.slug}`)} title={artist.name} imageUrl={artist.image_url || undefined}
+            trigger={<button className={roundBtn} aria-label="More options for this artist"><MoreVertical className="w-5 h-5" /></button>} />
+        </div>
+      } />
 
-        <div className="flex items-center gap-3 mt-5">
-          <Button onClick={() => playAll()} className="h-14 w-14 rounded-full gradient-gold text-primary-foreground glow-gold" aria-label={`Play ${artist.name}`}>
-            <Play className="w-6 h-6 fill-current" />
-          </Button>
-          <Button variant="outline" onClick={() => playAll(true)} className="h-11 rounded-full" aria-label="Shuffle play"><Shuffle className="w-4 h-4" /></Button>
-          <Button variant={following.data ? "outline" : "default"} onClick={toggleFollow} className="h-11 rounded-full px-5" aria-pressed={!!following.data}>
+      <div className="px-4 max-w-4xl mx-auto">
+        <p className="text-sm text-muted-foreground h-5">
+          {s ? `${s.followers.toLocaleString()} ${s.followers === 1 ? "follower" : "followers"}` : ""}
+        </p>
+
+        <div className="flex items-center gap-3 mt-3">
+          {artist.image_url && <img src={artist.image_url} alt="" className="w-10 h-14 rounded-md object-cover border border-border" />}
+          <Button variant="outline" onClick={toggleFollow} aria-pressed={!!following.data}
+            className={`h-10 rounded-full px-5 bg-transparent ${following.data ? "border-gold text-gold" : "border-muted-foreground/60 text-foreground"}`}>
             {following.data ? "Following" : "Follow"}
           </Button>
-          <ShareMenu url={buildShareUrl(`/artist/${artist.slug}`)} title={artist.name} imageUrl={artist.image_url || undefined}
-            trigger={<Button variant="ghost" className="h-11 w-11 rounded-full" aria-label="Share artist"><Share2 className="w-5 h-5" /></Button>} />
+          <div className="ml-auto flex items-center gap-3">
+            <button onClick={() => playAll(true)} className="w-11 h-11 flex items-center justify-center text-gold" aria-label="Shuffle play"><Shuffle className="w-6 h-6" /></button>
+            <button onClick={() => playAll()} aria-label={artistPlaying && isPlaying ? "Pause" : `Play ${artist.name}`}
+              className="w-14 h-14 rounded-full gradient-gold text-primary-foreground glow-gold flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+              {artistPlaying && isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-0.5" />}
+            </button>
+          </div>
         </div>
 
-        {artist.description && (
-          <section className="mt-6 glass-card rounded-2xl p-4">
-            <h2 className="font-display text-lg text-foreground mb-2">About</h2>
-            <p className={`text-sm text-muted-foreground whitespace-pre-line ${expanded ? "" : "line-clamp-4"}`}>{artist.description}</p>
-            {artist.description.length > 220 && (
-              <button className="text-gold text-sm mt-2 min-h-[44px]" onClick={() => setExpanded((v) => !v)}>{expanded ? "Show less" : "Read more"}</button>
-            )}
-          </section>
+        {newest && (
+          <button onClick={() => playQueue([toPlayerSong(newest)], 0)}
+            className="mt-5 w-full flex items-center gap-3 rounded-lg bg-muted/50 hover:bg-muted/70 p-2 pr-3 text-left min-h-[56px]">
+            {newest.cover_url ? <img src={newest.cover_url} alt="" className="w-10 h-10 rounded object-cover" /> : <div className="w-10 h-10 rounded bg-muted" />}
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-semibold text-foreground">Listen to the newest song</span>
+              <span className="block text-xs text-muted-foreground truncate">{newest.title}</span>
+            </span>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" aria-hidden />
+          </button>
         )}
 
-        <div role="tablist" className="flex gap-2 mt-6" aria-label="Artist content">
-          {([["songs", "Songs", Music], ["karaoke", "Karaoke", Mic2], ["videos", "Videos", Video]] as const).map(([k, l, Icon]) => (
-            <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
-              className={`min-h-[44px] px-4 rounded-full text-sm font-semibold inline-flex items-center gap-2 ${tab === k ? "gradient-gold text-primary-foreground" : "glass-card text-foreground"}`}>
-              <Icon className="w-4 h-4" aria-hidden />{l}
+        <div role="tablist" className="flex gap-2 mt-6 overflow-x-auto" aria-label="Artist content">
+          {tabs.map((t) => (
+            <button key={t.key} role="tab" aria-selected={tab === t.key} onClick={() => { setTab(t.key); setShowAll(false); }}
+              className={`shrink-0 min-h-[36px] px-4 rounded-full text-sm font-medium ${tab === t.key ? "gradient-gold text-primary-foreground" : "bg-muted/60 text-foreground"}`}>
+              {t.label}{t.count !== undefined && <span className="ml-1.5 opacity-75 tabular-nums">{compactNumber(t.count)}</span>}
             </button>
           ))}
         </div>
 
-        <div role="tabpanel" className="mt-4 min-h-[300px]">
+        <section role="tabpanel" className="mt-5 min-h-[420px]">
+          <h2 className="text-2xl font-bold text-foreground mb-3">{tabs.find((t) => t.key === tab)!.heading}</h2>
           {songs.isLoading ? (
-            <div className="space-y-2">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}</div>
+            <div className="space-y-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}</div>
           ) : !list.length ? (
-            <p className="text-muted-foreground text-sm py-10 text-center">Nothing here yet.</p>
-          ) : tab === "videos" ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {list.slice(0, 120).map((song, i) => (
-                <button key={song.id} onClick={() => playRow(i)} className="text-left group">
-                  <div className="aspect-video rounded-xl overflow-hidden bg-muted relative">
-                    {song.cover_url && <img src={song.cover_url} alt="" loading="lazy" className="w-full h-full object-cover" />}
-                    <Play className="absolute inset-0 m-auto w-8 h-8 text-foreground drop-shadow" aria-hidden />
-                  </div>
-                  <p className="text-sm text-foreground truncate mt-1">{song.title}</p>
-                </button>
-              ))}
-            </div>
+            <p className="text-muted-foreground text-sm py-10">Nothing here yet.</p>
           ) : (
-            <ol className="space-y-1">
-              {list.slice(0, 200).map((song, i) => (
-                <li key={song.id}>
-                  <button onClick={() => playRow(i)} className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-muted/40 text-left min-h-[56px]">
-                    <span className="w-6 text-right text-sm text-muted-foreground tabular-nums">{i + 1}</span>
-                    {song.cover_url ? <img src={song.cover_url} alt="" loading="lazy" className="w-12 h-12 rounded-lg object-cover" /> : <div className="w-12 h-12 rounded-lg bg-muted" />}
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-sm font-semibold text-foreground truncate">{song.title}</span>
-                      <span className="block text-xs text-muted-foreground">{compactNumber(song.play_count)} plays</span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ol>
+            <>
+              <ol>
+                {shown.map((song, i) => {
+                  const active = currentSong?.id === song.id;
+                  return (
+                    <li key={song.id} className="flex items-center gap-1">
+                      <button onClick={() => playRow(i)} className="flex-1 min-w-0 flex items-center gap-4 py-2 text-left min-h-[72px]" aria-current={active ? "true" : undefined}>
+                        <span className={`w-5 text-center text-base tabular-nums ${active ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</span>
+                        <span className="relative shrink-0">
+                          {song.cover_url ? <img src={song.cover_url} alt="" loading="lazy" className={`${tab === "videos" ? "w-24 h-14" : "w-14 h-14"} rounded object-cover`} /> : <span className="block w-14 h-14 rounded bg-muted" />}
+                          {tab === "videos" && <Play className="absolute inset-0 m-auto w-5 h-5 text-foreground fill-current drop-shadow" aria-hidden />}
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className={`block text-base truncate ${active ? "text-gold font-semibold" : "text-foreground"}`}>{song.title}</span>
+                          <span className="block text-sm text-muted-foreground tabular-nums">{song.play_count.toLocaleString()}</span>
+                        </span>
+                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="w-11 h-11 flex items-center justify-center text-muted-foreground" aria-label={`More options for ${song.title}`}><MoreVertical className="w-5 h-5" /></button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => playQueue([toPlayerSong(song)], 0)}><Play className="w-4 h-4 mr-2" />Play</DropdownMenuItem>
+                          {song.instrumental_url && <DropdownMenuItem onClick={() => singQueue([toPlayerSong(song)], 0)}><Mic2 className="w-4 h-4 mr-2" />Sing karaoke</DropdownMenuItem>}
+                          {song.has_video && <DropdownMenuItem onClick={() => playVideoQueue([toPlayerSong(song)], 0)}><Video className="w-4 h-4 mr-2" />Watch video</DropdownMenuItem>}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </li>
+                  );
+                })}
+              </ol>
+              {list.length > 10 && (
+                <button onClick={() => setShowAll((v) => !v)} className="mt-2 min-h-[44px] px-4 rounded-full border border-muted-foreground/50 text-sm font-semibold text-foreground">
+                  {showAll ? "Show less" : "See more"}
+                </button>
+              )}
+            </>
           )}
-        </div>
+        </section>
+
+        {artist.description && (
+          <section className="mt-8">
+            <h2 className="text-2xl font-bold text-foreground mb-3">About</h2>
+            <div className="rounded-2xl overflow-hidden bg-muted/40">
+              {artist.image_url && <img src={artist.image_url} alt="" className="w-full aspect-[16/10] object-cover" />}
+              <div className="p-4">
+                <p className={`text-sm text-foreground/90 whitespace-pre-line ${expanded ? "" : "line-clamp-4"}`}>{artist.description}</p>
+                {artist.description.length > 220 && (
+                  <button className="text-gold text-sm font-semibold mt-1 min-h-[44px]" onClick={() => setExpanded((v) => !v)}>{expanded ? "Show less" : "Read more"}</button>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
