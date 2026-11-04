@@ -101,7 +101,7 @@ const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         onClick={(e) => e.stopPropagation()}
-        className="max-w-md w-full max-h-[100dvh] overflow-y-auto overflow-x-hidden p-4 sm:p-6 max-sm:top-auto max-sm:bottom-0 max-sm:translate-y-0 max-sm:rounded-b-none max-sm:rounded-t-3xl motion-reduce:animate-none"
+        className="flex flex-col gap-4 max-w-md w-full max-h-[100dvh] overflow-y-auto overflow-x-hidden p-4 sm:p-6 max-sm:top-auto max-sm:bottom-0 max-sm:translate-y-0 max-sm:rounded-b-none max-sm:rounded-t-3xl motion-reduce:animate-none"
       >
         <DialogHeader>
           <DialogTitle className="font-serif">Share card</DialogTitle>
@@ -126,7 +126,7 @@ const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
           ))}
         </div>
 
-        <div className={cn("mx-auto w-full overflow-hidden rounded-2xl bg-muted/40 flex items-center justify-center", format === "story" ? "aspect-[9/16] max-w-[230px]" : format === "portrait" ? "aspect-[4/5] max-w-[300px]" : "aspect-square max-w-[300px]")}>
+        <div className={cn("mx-auto shrink-0 overflow-hidden rounded-2xl bg-muted/40 flex items-center justify-center", format === "story" ? "aspect-[9/16] h-[min(48dvh,400px)]" : format === "portrait" ? "w-full aspect-[4/5] max-w-[300px]" : "w-full aspect-square max-w-[300px]")}>
           {preview ? (
             <img src={preview} alt={`Share card for ${item.title}`} className="w-full h-full object-contain" />
           ) : failed ? (
