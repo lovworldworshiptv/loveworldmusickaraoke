@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { Share2, Mail, Copy, Check } from "lucide-react";
+import { useState, lazy, Suspense } from "react";
+import { Share2, Mail, Copy, Check, QrCode } from "lucide-react";
+import type { ShareCardItem } from "@/lib/shareCard";
+const ShareCardSheet = lazy(() => import("@/components/share/ShareCard"));
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { nativeShare, openExternal, isMedianApp } from "@/lib/median";
@@ -17,6 +19,8 @@ interface ShareMenuProps {
   kingschatFirst?: boolean;
   /** Custom trigger element; defaults to a Share button */
   trigger?: React.ReactNode;
+  /** When set, offers a "Share Card" image with a QR code. */
+  card?: ShareCardItem;
 }
 
 const DOMAIN = "https://loveworldmusickaraoke.com";
@@ -44,8 +48,10 @@ export function buildShareUrl(path: string) {
   return `${DOMAIN}${path}`;
 }
 
-const ShareMenu = ({ url, title, text, imageUrl, kingschatFirst = false, trigger }: ShareMenuProps) => {
+const ShareMenu = ({ url, title, text, imageUrl, kingschatFirst = false, trigger, card }: ShareMenuProps) => {
   const [copied, setCopied] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
 
   const shareText = `${text || title}\n\nGet the app: ${APP_DOWNLOAD_URL}`;
   const encodedText = encodeURIComponent(shareText);
@@ -112,7 +118,8 @@ const ShareMenu = ({ url, title, text, imageUrl, kingschatFirst = false, trigger
   const orderedBtns = kingschatFirst ? [kcBtn, ...socialBtns] : [...socialBtns.slice(0, 1), kcBtn, ...socialBtns.slice(1)];
 
   return (
-    <Popover>
+    <>
+    <Popover open={menuOpen} onOpenChange={setMenuOpen}>
       <PopoverTrigger asChild>
         {trigger || (
           <button className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent">
@@ -135,9 +142,20 @@ const ShareMenu = ({ url, title, text, imageUrl, kingschatFirst = false, trigger
             {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
             {copied ? "Copied!" : "Copy Link"}
           </button>
+          {card && (
+            <button onClick={(e) => { e.stopPropagation(); setMenuOpen(false); setCardOpen(true); }} className={btnClass}>
+              <QrCode className="w-4 h-4 text-gold" aria-hidden="true" /> Share Card
+            </button>
+          )}
         </div>
       </PopoverContent>
     </Popover>
+    {card && cardOpen && (
+      <Suspense fallback={null}>
+        <ShareCardSheet item={card} open={cardOpen} onOpenChange={setCardOpen} />
+      </Suspense>
+    )}
+    </>
   );
 };
 

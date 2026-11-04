@@ -31,6 +31,7 @@ const ShareTrackButton = ({ track, className, iconClassName, trigger, ariaLabel 
     text={`Listen to "${track.title}"${track.artist ? ` by ${track.artist}` : ""} on Loveworld Music+`}
     imageUrl={track.coverUrl || undefined}
     kingschatFirst
+    card={{ kind: "song", id: track.id, title: track.title, subtitle: track.artist, coverUrl: track.coverUrl }}
     trigger={
       <button
         type="button"

@@ -122,6 +122,7 @@ const Albums = () => {
                   title={selectedAlbum.title}
                   text={`Listen to "${selectedAlbum.title}" by ${selectedAlbum.artist}`}
                   imageUrl={selectedAlbum.cover_url || undefined}
+                  card={{ kind: "album", id: selectedAlbum.id, title: selectedAlbum.title, subtitle: selectedAlbum.artist, coverUrl: selectedAlbum.cover_url }}
                 />
               </div>
             </div>
