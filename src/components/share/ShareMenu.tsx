@@ -7,7 +7,8 @@ import { toast } from "sonner";
 import { nativeShare, openExternal, isMedianApp } from "@/lib/median";
 import { APP_DOWNLOAD_URL } from "@/components/share/AppDownloadPrompt";
 import kingschatLogo from "@/assets/kingschat_logo.png";
-import { WhatsAppIcon, XIcon, FacebookIcon } from "@/components/share/SocialIcons";
+import { WhatsAppIcon, XIcon, FacebookIcon, TelegramIcon } from "@/components/share/SocialIcons";
+import { socialShareUrl } from "@/lib/socialShare";
 import { logShareClick, tagShareUrl, type ShareChannel } from "@/lib/acquisitionAnalytics";
 
 interface ShareMenuProps {
@@ -36,8 +37,6 @@ const ShareMenu = ({ url, title, text, imageUrl, kingschatFirst = false, trigger
   const [cardOpen, setCardOpen] = useState(false);
 
   const shareText = `${text || title}\n\nGet the app: ${APP_DOWNLOAD_URL}`;
-  const encodedText = encodeURIComponent(shareText);
-  const emailSubject = encodeURIComponent(title);
   /** Each channel gets its own tagged link so admins can see which channel brings people in. */
   const link = (channel: ShareChannel) => { logShareClick(channel, url); return tagShareUrl(url, channel); };
 
@@ -56,15 +55,12 @@ const ShareMenu = ({ url, title, text, imageUrl, kingschatFirst = false, trigger
     }
   };
 
-  const handleKingsChat = () => open(`https://kingschat.online/?share=${encodeURIComponent(link("kingschat"))}&text=${encodedText}`);
-  const handleWhatsApp = () => open(`https://wa.me/?text=${encodedText}%0A${encodeURIComponent(link("whatsapp"))}`);
-  const handleTwitter = () => open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodeURIComponent(link("x"))}`);
-  const handleFacebook = () => open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link("facebook"))}`);
-  const handleEmail = () => {
-    const shared = link("email");
-    const body = encodeURIComponent(imageUrl ? `${shareText}\n\n${shared}\n\n${imageUrl}` : `${shareText}\n\n${shared}`);
-    open(`mailto:?subject=${emailSubject}&body=${body}`);
-  };
+  const handleKingsChat = () => open(socialShareUrl("kingschat", link("kingschat"), shareText));
+  const handleWhatsApp = () => open(socialShareUrl("whatsapp", link("whatsapp"), shareText));
+  const handleTwitter = () => open(socialShareUrl("x", link("x"), text || title));
+  const handleFacebook = () => open(socialShareUrl("facebook", link("facebook"), shareText));
+  const handleTelegram = () => open(socialShareUrl("telegram", link("telegram"), shareText));
+  const handleEmail = () => open(socialShareUrl("email", link("email"), imageUrl ? `${shareText}\n\n${imageUrl}` : shareText, title));
 
   const handleNative = () => {
     const shared = link("native");
@@ -91,6 +87,9 @@ const ShareMenu = ({ url, title, text, imageUrl, kingschatFirst = false, trigger
     </button>,
     <button key="fb" onClick={handleFacebook} className={btnClass}>
       <FacebookIcon /> Facebook
+    </button>,
+    <button key="tg" onClick={handleTelegram} className={btnClass}>
+      <TelegramIcon /> Telegram
     </button>,
     <button key="em" onClick={handleEmail} className={btnClass}>
       <Mail className="w-4 h-4 text-gold" /> Email

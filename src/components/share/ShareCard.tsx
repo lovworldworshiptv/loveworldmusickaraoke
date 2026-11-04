@@ -10,6 +10,8 @@ import { CARD_STYLES, cardBaseUrl, cardFilename, cardLink, readCardStyle, saveCa
 import logoUrl from "@/assets/logo.png";
 import kingschatLogo from "@/assets/kingschat_logo.png";
 import { WhatsAppIcon, XIcon, FacebookIcon, TelegramIcon } from "@/components/share/SocialIcons";
+import { socialShareUrl, type SocialTarget } from "@/lib/socialShare";
+import { tagShareUrl } from "@/lib/acquisitionAnalytics";
 
 interface ShareCardSheetProps {
   item: ShareCardItem;
@@ -81,12 +83,17 @@ const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
   };
 
   const go = (target: string) => (isMedianApp() ? openExternal(target) : window.open(target, "_blank", "noopener,noreferrer"));
-  const msg = encodeURIComponent(`${text}\n\nGet the app: ${APP_DOWNLOAD_URL}`);
-  const kingschat = () => { log(); go(`https://kingschat.online/?share=${encodeURIComponent(link)}&text=${msg}`); };
-  const whatsapp = () => { log(); go(`https://wa.me/?text=${msg}%0A${encodeURIComponent(link)}`); };
-  const facebook = () => { log(); go(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`); };
-  const twitter = () => { log(); go(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(link)}`); };
-  const telegram = () => { log(); go(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`); };
+  // Link buttons tag their own channel; the QR on the image keeps "qr_card".
+  const social = (target: SocialTarget) => () => {
+    const tagged = tagShareUrl(cardBaseUrl(item), target);
+    logShareClick(target, tagged);
+    go(socialShareUrl(target, tagged, target === "x" ? text : `${text}\n\nGet the app: ${APP_DOWNLOAD_URL}`, item.title));
+  };
+  const kingschat = social("kingschat");
+  const whatsapp = social("whatsapp");
+  const facebook = social("facebook");
+  const twitter = social("x");
+  const telegram = social("telegram");
   const copy = async () => {
     log();
     await navigator.clipboard.writeText(link);
