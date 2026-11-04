@@ -1,3 +1,4 @@
+import ArtistLinks from "@/components/artist/ArtistLinks";
 import { useParams, useNavigate } from "react-router-dom";
 import DownloadButton from "@/components/offline/DownloadButton";
 import { useSaveSong } from "@/hooks/useSaveSong";
@@ -193,7 +194,7 @@ const CategorySongs = () => {
                     <p className={`text-sm font-medium truncate transition-colors ${isActive ? "text-primary" : "text-foreground"}`}>
                       {song.title}
                     </p>
-                    <p className="text-xs text-foreground truncate">{song.artist}</p>
+                    <p className="text-xs text-foreground truncate"><ArtistLinks artist={song.artist} /></p>
                   </div>
 
                   {/* Duration / equalizer */}

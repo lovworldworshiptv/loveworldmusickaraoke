@@ -1,3 +1,4 @@
+import ArtistLinks from "@/components/artist/ArtistLinks";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp, Download, GripVertical, ListEnd, ListPlus, Lock, MoreHorizontal, Music, Pause, Play, Plus, RotateCcw, Save, SkipForward, Trash2, ArrowUp, ArrowDown, Video } from "lucide-react";
@@ -956,7 +957,7 @@ const UpNextSheet = (props: UpNextSheetProps) => {
               <Thumb src={currentThumb} fallback={currentSong.coverUrl} className="w-[104px]"><Equalizer playing={playing} /></Thumb>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-gold line-clamp-2 leading-snug">{currentSong.title}</p>
-                <p className="text-xs text-muted-foreground truncate">{currentSong.artist}</p>
+                <p className="text-xs text-muted-foreground truncate"><ArtistLinks artist={currentSong.artist} /></p>
               </div>
             </div>
             {repeatMode === "one" && <p className="mt-2 text-[11px] text-muted-foreground">Repeat one is on — this video will play again.</p>}

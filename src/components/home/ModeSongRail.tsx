@@ -1,3 +1,4 @@
+import ArtistLinks from "@/components/artist/ArtistLinks";
 import { useHomeState } from "@/lib/homeMemory";
 import SeeAll from "./SeeAll";
 import { getSetting, SETTING_KEYS, useSetting } from "@/lib/siteSettings";
@@ -78,7 +79,7 @@ const ModeSongRail = ({ mode, eyebrow, title }: Props) => {
               </span>
             </div>
             <p className="text-sm font-medium text-foreground truncate mt-2">{s.title}</p>
-            <p className="text-xs text-foreground truncate">{s.artist}</p>
+            <p className="text-xs text-foreground truncate"><ArtistLinks artist={s.artist} /></p>
           </button>
         ))}
       </div>

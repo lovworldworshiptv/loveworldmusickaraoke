@@ -1,3 +1,4 @@
+import ArtistLinks from "@/components/artist/ArtistLinks";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Mic2, Music, Pause, Play, SkipForward, Trash2 } from "lucide-react";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
@@ -29,7 +30,7 @@ function KaraokeList({ onPicked, scrollerRef, hideCurrent }: { onPicked?: () => 
             <Cover song={currentSong} />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-gold truncate">{currentSong.title}</p>
-              <p className="text-xs text-muted-foreground truncate">{currentSong.artist}</p>
+              <p className="text-xs text-muted-foreground truncate"><ArtistLinks artist={currentSong.artist} /></p>
             </div>
             <Mic2 className="w-4 h-4 text-gold flex-shrink-0" aria-hidden="true" />
           </div>
@@ -271,7 +272,7 @@ export function KaraokeUpNextSheet({ open, onOpenChange, onNext }: { open: boole
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-gold flex items-center gap-1"><Mic2 className="w-3 h-3" aria-hidden="true" /> Now singing</p>
               <p className="text-sm font-semibold text-foreground truncate">{currentSong.title}</p>
-              <p className="text-xs text-muted-foreground truncate">{currentSong.artist}</p>
+              <p className="text-xs text-muted-foreground truncate"><ArtistLinks artist={currentSong.artist} /></p>
             </div>
             <button type="button" data-no-sheet-drag tabIndex={open ? 0 : -1} onClick={togglePlay} aria-label={isPlaying ? "Pause" : "Play"}
               className="w-11 h-11 rounded-full gradient-gold flex items-center justify-center text-primary-foreground flex-shrink-0">

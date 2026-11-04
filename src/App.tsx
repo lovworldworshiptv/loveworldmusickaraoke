@@ -69,6 +69,8 @@ import AdminChallenges from "./pages/AdminChallenges";
 import AdminAppearance from "./pages/AdminAppearance";
 import AdminDiscover from "./pages/AdminDiscover";
 import AdminHomeSections from "./pages/AdminHomeSections";
+import ArtistProfile from "./pages/ArtistProfile";
+import AdminArtists from "./pages/AdminArtists";
 import DiscoverTag from "./pages/DiscoverTag";
 import DiscoverCollection from "./pages/DiscoverCollection";
 import OfflineSelfTest from "./pages/OfflineSelfTest";
@@ -135,6 +137,7 @@ const App = () => (
                 <Route path="/articles" element={<AuthGate><Articles /></AuthGate>} />
                 <Route path="/profile" element={<AuthGate><Profile /></AuthGate>} />
                 <Route path="/user/:userId" element={<PublicProfile />} />
+                <Route path="/artist/:slug" element={<ArtistProfile />} />
                 <Route path="/discover" element={<AuthGate><Discover /></AuthGate>} />
                 <Route path="/discover/tag/:tag" element={<AuthGate><DiscoverTag /></AuthGate>} />
                 <Route path="/discover/music" element={<AuthGate><DiscoverCollection kind="music" /></AuthGate>} />
@@ -176,6 +179,7 @@ const App = () => (
                 <Route path="/admin/appearance" element={<AdminRouteGate><AdminAppearance /></AdminRouteGate>} />
                 <Route path="/admin/discover" element={<AdminRouteGate><AdminDiscover /></AdminRouteGate>} />
                 <Route path="/admin/home-sections" element={<AdminRouteGate><AdminHomeSections /></AdminRouteGate>} />
+                <Route path="/admin/artists" element={<AdminRouteGate><AdminArtists /></AdminRouteGate>} />
                 <Route path="/dev/offline-selftest" element={<AdminRouteGate><OfflineSelfTest /></AdminRouteGate>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

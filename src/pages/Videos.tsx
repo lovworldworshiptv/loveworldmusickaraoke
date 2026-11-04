@@ -1,3 +1,4 @@
+import ArtistLinks from "@/components/artist/ArtistLinks";
 import { useState } from "react";
 import DownloadButton from "@/components/offline/DownloadButton";
 import { useSaveSong } from "@/hooks/useSaveSong";
@@ -165,7 +166,7 @@ const Videos = () => {
                   </div>
                   <div className="p-3 pr-12">
                     <p className="text-sm font-semibold text-foreground truncate">{song.title}</p>
-                    <p className="text-xs text-foreground truncate">{song.artist}</p>
+                    <p className="text-xs text-foreground truncate"><ArtistLinks artist={song.artist} /></p>
                   </div>
                 </button>
                 {song.audio_url && (

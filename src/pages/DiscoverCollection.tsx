@@ -1,3 +1,4 @@
+import ArtistLinks from "@/components/artist/ArtistLinks";
 import { useParams, Link } from "react-router-dom";
 import DownloadButton from "@/components/offline/DownloadButton";
 import { useSaveSong } from "@/hooks/useSaveSong";
@@ -107,7 +108,7 @@ const DiscoverCollection = ({ kind }: { kind: Kind }) => {
               </div>
               <div className="min-w-0 flex-1">
                 <p className={`text-sm truncate ${currentSong?.id === s.id ? "text-gold" : ""}`}>{s.title}</p>
-                <p className="text-xs font-semibold truncate">{s.artist}</p>
+                <p className="text-xs font-semibold truncate"><ArtistLinks artist={s.artist} /></p>
               </div>
               {kind !== "featured" && <Icon className="w-4 h-4 text-gold flex-shrink-0" />}
             </button>

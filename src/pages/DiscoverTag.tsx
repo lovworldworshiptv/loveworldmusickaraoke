@@ -1,3 +1,4 @@
+import ArtistLinks from "@/components/artist/ArtistLinks";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Music, Play } from "lucide-react";
@@ -64,7 +65,7 @@ const DiscoverTag = () => {
               </div>
               <div className="min-w-0">
                 <p className="text-sm text-foreground truncate">{s.title}</p>
-                <p className="text-xs text-foreground font-semibold truncate">{s.artist}</p>
+                <p className="text-xs text-foreground font-semibold truncate"><ArtistLinks artist={s.artist} /></p>
               </div>
             </button>
           ))}

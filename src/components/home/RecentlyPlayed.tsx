@@ -1,3 +1,4 @@
+import ArtistLinks from "@/components/artist/ArtistLinks";
 import SeeAll from "./SeeAll";
 import { Clock, Play, Pause, Music } from "lucide-react";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
@@ -98,7 +99,7 @@ const RecentlyPlayed = () => {
                 </div>
               </div>
               <p className="text-xs font-medium text-foreground truncate group-hover:text-gold transition-colors duration-200">{song.title}</p>
-              <p className="text-[10px] text-foreground truncate">{song.artist}</p>
+              <p className="text-[10px] text-foreground truncate"><ArtistLinks artist={song.artist} /></p>
             </button>
           );
         })}

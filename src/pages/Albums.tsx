@@ -1,3 +1,4 @@
+import ArtistLinks from "@/components/artist/ArtistLinks";
 import { useState, useEffect } from "react";
 import DownloadButton from "@/components/offline/DownloadButton";
 import { useSaveSong } from "@/hooks/useSaveSong";
@@ -157,7 +158,7 @@ const Albums = () => {
                     )}
                     <div className="flex-1 text-left min-w-0">
                       <p className={`text-sm truncate ${isActive ? "text-gold font-medium" : "text-foreground"}`}>{song.title}</p>
-                      <p className="text-xs text-foreground truncate">{song.artist}</p>
+                      <p className="text-xs text-foreground truncate"><ArtistLinks artist={song.artist} /></p>
                     </div>
                     <span className="text-xs text-muted-foreground">{formatDuration(song.duration_seconds)}</span>
                   </button>

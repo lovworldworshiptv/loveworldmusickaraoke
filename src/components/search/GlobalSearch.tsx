@@ -1,3 +1,4 @@
+import ArtistLinks from "@/components/artist/ArtistLinks";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -626,7 +627,7 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground truncate"><Highlight text={s.title} query={query} /></p>
-                    <p className="text-xs text-foreground truncate"><Highlight text={s.artist} query={query} /></p>
+                    <p className="text-xs text-foreground truncate"><ArtistLinks artist={s.artist} /></p>
                   </div>
                   <CornerDownLeft className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 flex-shrink-0" />
                 </button>
@@ -652,7 +653,7 @@ const GlobalSearch = ({ open, onOpenChange, initialFilter }: GlobalSearchProps) 
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground truncate">{s.title}</p>
-                      <p className="text-xs text-foreground truncate">{s.artist}</p>
+                      <p className="text-xs text-foreground truncate"><ArtistLinks artist={s.artist} /></p>
                       {snippet && <p className="text-[11px] text-muted-foreground/80 line-clamp-1 italic"><Highlight text={snippet} query={query} /></p>}
                     </div>
                     <CornerDownLeft className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 flex-shrink-0" />
