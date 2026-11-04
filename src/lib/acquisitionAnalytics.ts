@@ -1,8 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type ShareChannel = "kingschat" | "whatsapp" | "x" | "facebook" | "telegram" | "email" | "native" | "copy" | "qr_card";
+export type ShareChannel = "kingschat" | "whatsapp" | "x" | "facebook" | "telegram" | "snapchat" | "email" | "native" | "copy" | "qr_card";
 export const CHANNEL_LABELS: Record<string, string> = {
-  kingschat: "KingsChat", whatsapp: "WhatsApp", x: "X", facebook: "Facebook", telegram: "Telegram",
+  kingschat: "KingsChat", whatsapp: "WhatsApp", x: "X", facebook: "Facebook", telegram: "Telegram", snapchat: "Snapchat",
   email: "Email", native: "Phone share", copy: "Copied link", qr_card: "QR card", direct: "Direct / unknown",
 };
 

@@ -4,8 +4,9 @@
  * - KingsChat: /share?text= (signs the person in first, then opens the composer)
  * - X: x.com/intent/post with the link inside `text` (separate `url` is dropped on redirect)
  * - Facebook only accepts the link; it builds its own preview from the page.
+ * - Snapchat: Creative Kit web share opens the camera with the link attached (Story-ready).
  */
-export type SocialTarget = "kingschat" | "whatsapp" | "facebook" | "x" | "telegram" | "email";
+export type SocialTarget = "kingschat" | "whatsapp" | "facebook" | "x" | "telegram" | "snapchat" | "email";
 
 const enc = encodeURIComponent;
 
@@ -17,6 +18,7 @@ export const socialShareUrl = (target: SocialTarget, link: string, text: string,
     case "facebook": return `https://www.facebook.com/sharer/sharer.php?u=${enc(link)}`;
     case "x": return `https://x.com/intent/post?text=${enc(withLink)}`;
     case "telegram": return `https://t.me/share/url?url=${enc(link)}&text=${enc(text)}`;
+    case "snapchat": return `https://www.snapchat.com/scan?attachmentUrl=${enc(link)}`;
     case "email": return `mailto:?subject=${enc(subject)}&body=${enc(`${text}\n\n${link}`)}`;
   }
 };
