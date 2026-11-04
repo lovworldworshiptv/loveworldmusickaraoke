@@ -72,6 +72,8 @@ interface PlayerContextType {
   skipNext: (opts?: { autoplay?: boolean } | unknown) => void;
   /** True while the current track is waiting on the network. */
   isBuffering: boolean;
+  /** True when the browser refused to start sound without a tap (e.g. opened from a QR scan). */
+  autoplayBlocked: boolean;
   /** Pass { force: true } to always go back a song instead of restarting the current one. */
   skipPrev: (opts?: { autoplay?: boolean; force?: boolean } | unknown) => void;
   cycleRepeat: () => void;
@@ -316,6 +318,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const advanceToRef = useRef<(idx: number, karaoke: boolean, autoplay?: boolean) => void>(() => {});
   const wantPlayingRef = useRef(false);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
 
   const discardPreload = useCallback((keepUrl?: string) => {
     const p = preloadRef.current;
@@ -405,6 +408,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }
     wantPlayingRef.current = autoplay;
     setIsBuffering(false);
+    setAutoplayBlocked(false);
     setCurrentSong(song);
     setIsKaraoke(karaokeMode);
     setProgress(song.durationSeconds ? (startAt / song.durationSeconds) * 100 : 0);
@@ -520,7 +524,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         if (!isCurrent() || stallTimer) return;
         stallTimer = window.setTimeout(reconnect, 12000);
       });
-      audio.addEventListener("playing", () => { clearStall(); retries = 0; if (isCurrent()) setIsBuffering(false); });
+      audio.addEventListener("playing", () => { clearStall(); retries = 0; if (isCurrent()) { setIsBuffering(false); setAutoplayBlocked(false); } });
       audio.addEventListener("canplay", () => { if (isCurrent()) setIsBuffering(false); });
 
       // Start warming the next track once this one is safely buffered or nearing its end.
@@ -549,7 +553,13 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       }
       if (autoplay) {
         if (audio.readyState < 3) setIsBuffering(true);
-        audio.play().then(() => { if (isCurrent()) { setIsPlaying(true); startInterval(); resetAutoPauseTimer(); } }).catch(() => {});
+        audio.play().then(() => { if (isCurrent()) { setIsPlaying(true); startInterval(); resetAutoPauseTimer(); } }).catch((err: unknown) => {
+          // Phones refuse sound that wasn't started by a tap; let the screen ask for one.
+          if (isCurrent() && (err as { name?: string } | null)?.name === "NotAllowedError") {
+            setIsBuffering(false);
+            setAutoplayBlocked(true);
+          }
+        });
       } else {
         setIsPlaying(false);
       }
@@ -650,7 +660,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             dm.getDownloadedAudioUrl(resume.id).catch(() => null),
             dm.getDownloadedInstrumentalUrl(resume.id).catch(() => null),
           ]);
-          if (!audioUrl) return;
+          // Something else (e.g. a scanned song) already started — don't replace it.
+          if (!audioUrl || wantPlayingRef.current) return;
           internalPlay({ ...resume, audioUrl, instrumentalUrl: instrumentalUrl || undefined }, !!saved.isKaraoke, at, false);
         }).catch(() => undefined);
       } else {
@@ -942,7 +953,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
   const togglePlay = useCallback(() => {
     if (audioRef.current) {
       if (isPlaying) { wantPlayingRef.current = false; audioRef.current.pause(); stopInterval(); clearAutoPauseTimer(); }
-      else { wantPlayingRef.current = true; audioRef.current.play().catch(() => {}); startInterval(); resetAutoPauseTimer(); }
+      else { wantPlayingRef.current = true; setAutoplayBlocked(false); audioRef.current.play().catch(() => {}); startInterval(); resetAutoPauseTimer(); }
     }
     setIsPlaying((p) => !p);
   }, [isPlaying, startInterval, stopInterval, resetAutoPauseTimer, clearAutoPauseTimer]);
@@ -1028,7 +1039,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       queue, queueIndex, volume, trackEndCount, playSong, playQueue, togglePlay,
       playVideo, playVideoQueue, singQueue, playQueueIndex, requestVideoMode, videoModeRequest, clearVideoModeRequest,
       singThis, karaokeModeRequest, clearKaraokeModeRequest,
-      toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev, isBuffering,
+      toggleKaraoke, toggleExpanded, seekTo, skipNext, skipPrev, isBuffering, autoplayBlocked,
       cycleRepeat, toggleShuffle, setVolume, applyLyrics, handoffPause, resumeAt,
       sessionMode, setSessionMode, extendQueue,
       autoAddedIds, reorderQueue, removeFromQueue, playNextInQueue, insertIntoQueue, shuffleUpcoming, restoreUpcoming,

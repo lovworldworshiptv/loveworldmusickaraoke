@@ -1,5 +1,6 @@
 import { useState, useEffect, memo, useCallback, useRef } from "react";
 import ShareTrackButton from "@/components/share/ShareTrackButton";
+import SharedSongTapToPlay from "@/components/share/SharedSongTapToPlay";
 import AppLayout from "@/components/layout/AppLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Search, Play, Heart, Plus, Music, ListMusic, Trash2, Shuffle, Download, Lock, Crown, WifiOff, ListPlus, ListMinus, Disc3, MoreVertical, Share2, CloudDownload } from "lucide-react";
@@ -51,7 +52,7 @@ type SongRow = {
 };
 
 const Library = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const defaultTab = searchParams.get("tab") || "all";
   const [tab, setTab] = useState(defaultTab);
   useEffect(() => { setTab(defaultTab); }, [defaultTab]);
@@ -67,7 +68,9 @@ const Library = () => {
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const navigate = useNavigate();
-  const { playSong, playQueue, currentSong, isPlaying } = usePlayer();
+  const { playSong, playQueue, currentSong, isPlaying, isExpanded, toggleExpanded } = usePlayer();
+  const isExpandedRef = useRef(isExpanded);
+  isExpandedRef.current = isExpanded;
   const { user } = useAuth();
   const { isAdmin } = useIsAdmin();
   const { isPremium } = useIsPremium();
@@ -117,25 +120,37 @@ const Library = () => {
     },
   });
 
-  // Deep link: /library?song=<id> auto-plays the shared track
+  // Deep link (share link / QR card): /library?song=<id> opens that song in the full
+  // player and starts it straight away — fetched on its own so it never waits for the
+  // whole catalogue. More songs follow automatically when it ends.
   const sharedSongId = searchParams.get("song");
   const handledSharedRef = useRef<string | null>(null);
+  const [tapToPlayId, setTapToPlayId] = useState<string | null>(null);
   useEffect(() => {
-    if (!sharedSongId || songs.length === 0) return;
-    if (handledSharedRef.current === sharedSongId) return;
-    const idx = songs.findIndex((s: SongRow) => s.id === sharedSongId);
-    if (idx === -1) return;
+    if (!sharedSongId || !isOnline || handledSharedRef.current === sharedSongId) return;
     handledSharedRef.current = sharedSongId;
-    playQueue(
-      songs.map((s: SongRow) => ({
+    const id = sharedSongId;
+    (async () => {
+      const { data, error } = await supabase
+        .from("songs")
+        .select("id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, duration_seconds, album, is_free_download")
+        .eq("id", id)
+        .maybeSingle();
+      // Drop the link's song params so going back or refreshing doesn't restart it.
+      setSearchParams((prev) => { const next = new URLSearchParams(prev); next.delete("song"); next.delete("title"); return next; }, { replace: true });
+      if (error || !data) { toast.error("This shared song is no longer available"); return; }
+      const s = data as SongRow;
+      setTapToPlayId(s.id);
+      playSong({
         id: s.id, title: s.title, artist: s.artist, album: s.album || undefined,
         coverUrl: s.cover_url || undefined, audioUrl: s.audio_url || undefined,
         instrumentalUrl: s.instrumental_url || undefined, lyricsLrc: s.lyrics_lrc || undefined,
-        durationSeconds: s.duration_seconds,
-      })),
-      idx
-    );
-  }, [sharedSongId, songs, playQueue]);
+        lyricsText: s.lyrics_text || undefined, durationSeconds: s.duration_seconds,
+        isFreeDownload: s.is_free_download,
+      });
+      if (!isExpandedRef.current) toggleExpanded();
+    })();
+  }, [sharedSongId, isOnline, playSong, toggleExpanded, setSearchParams]);
 
   // Fetch favorites
   const { data: favorites = [], isLoading: loadingFavs } = useQuery({
@@ -562,6 +577,7 @@ const Library = () => {
 
   return (
     <AppLayout>
+      {tapToPlayId && <SharedSongTapToPlay songId={tapToPlayId} onDone={() => setTapToPlayId(null)} />}
       <div className="px-4 lg:px-6 pt-4 lg:pt-6">
         <h2 className="text-2xl font-serif font-bold text-foreground mb-4">My Library</h2>
 
