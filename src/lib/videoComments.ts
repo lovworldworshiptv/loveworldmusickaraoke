@@ -19,9 +19,10 @@ export function linkifyComment(body: string): CommentPart[] {
 export function relativeTime(iso: string, now = Date.now()) {
   const s = Math.max(0, Math.round((now - new Date(iso).getTime()) / 1000));
   if (s < 60) return "just now";
-  const m = Math.floor(s / 60); if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60); if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24); if (d < 7) return `${d}d ago`;
-  const w = Math.floor(d / 7); if (w < 5) return `${w}w ago`;
-  return new Date(iso).toLocaleDateString();
+  const m = Math.floor(s / 60); if (m < 60) return `${m} min ago`;
+  const h = Math.floor(m / 60); if (h < 24) return `${h} hr ago`;
+  const d = Math.floor(h / 24); if (d < 7) return `${d} ${d === 1 ? "day" : "days"} ago`;
+  if (d < 30) return `${Math.floor(d / 7)} wk ago`;
+  if (d < 365) return `${Math.floor(d / 30)} mo ago`;
+  return `${Math.floor(d / 365)} yr ago`;
 }
