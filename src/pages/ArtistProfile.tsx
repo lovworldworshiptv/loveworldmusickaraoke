@@ -56,7 +56,14 @@ export const ArtistHero = ({ artist, overlay }: {
     {artist.cover_url || artist.image_url ? (
       <img src={artist.cover_url || artist.image_url!} alt="" className="absolute inset-0 w-full h-full object-cover object-top" />
     ) : <div className="absolute inset-0 gradient-purple" />}
-    <div className="absolute inset-0" style={{ backgroundImage: "linear-gradient(to top, var(--a-bg, hsl(var(--background))) 0%, var(--a-bg-soft, hsl(var(--background) / 0.35)) 45%, transparent 75%)" }} />
+    {(artist.cover_url || artist.image_url) && (
+      <div aria-hidden className="absolute inset-x-0 bottom-0 h-[55%] overflow-hidden"
+        style={{ maskImage: "linear-gradient(to top, black 35%, transparent 100%)", WebkitMaskImage: "linear-gradient(to top, black 35%, transparent 100%)" }}>
+        <img src={artist.cover_url || artist.image_url!} alt="" className="absolute inset-x-0 bottom-0 w-full h-[182%] object-cover object-top blur-2xl scale-110 saturate-150" />
+      </div>
+    )}
+    <div className="absolute inset-0" style={{ backgroundImage: "linear-gradient(to top, var(--a-bg, hsl(var(--background))) 0%, var(--a-bg-soft, hsl(var(--background) / 0.45)) 22%, transparent 55%)" }} />
+    <div aria-hidden className="absolute inset-x-0 -bottom-px h-10" style={{ background: "linear-gradient(to top, var(--a-bg, hsl(var(--background))), transparent)" }} />
     {overlay}
     <div className="absolute bottom-4 left-4 right-4">
       <h1 className="font-serif text-[2.75rem] sm:text-6xl font-bold text-foreground leading-[1.02] break-words drop-shadow-lg">{artist.name}</h1>
