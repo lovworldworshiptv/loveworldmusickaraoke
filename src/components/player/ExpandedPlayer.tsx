@@ -33,6 +33,7 @@ import UpNextSheet, { PEEK_HEIGHT, UpNextCountdown, useIsDesktop, useIsFullscree
 import { createVideoStatus } from "@/lib/videoProgress";
 import LyricsLanguageSheet from "@/components/player/LyricsLanguageSheet";
 import PlaybackProgress from "@/components/player/PlaybackProgress";
+import { KaraokeUpNextBar, KaraokeUpNextPanel } from "@/components/player/KaraokeUpNext";
 
 type PlayerMode = "song" | "karaoke" | "video";
 
@@ -122,6 +123,7 @@ const ExpandedPlayer = () => {
   const [regionEl, setRegionEl] = useState<HTMLDivElement | null>(null);
   const [upNextOpen, setUpNextOpen] = useState(false);
   const showUpNext = videoSession && !isFullscreen;
+  const karaokePanel = mode === "karaoke";
   useEffect(() => { if (!showUpNext || isDesktop) setUpNextOpen(false); }, [showUpNext, isDesktop]);
   // Back closes the open list first instead of leaving the player.
   useEffect(() => {
@@ -665,8 +667,8 @@ const ExpandedPlayer = () => {
         )}
 
         {/* Main view: video, artwork or synced lyrics (desktop Video mode adds the Up Next panel beside it) */}
-        <div className={showUpNext && isDesktop ? "flex-1 min-h-0 flex gap-[11px] px-4 pb-4" : "contents"}>
-        <div className={showUpNext && isDesktop ? "flex-1 min-w-0 min-h-0 flex flex-col" : "contents"}>
+        <div className={(showUpNext || karaokePanel) && isDesktop ? "flex-1 min-h-0 flex gap-[11px] px-4 pb-4" : "contents"}>
+        <div className={(showUpNext || karaokePanel) && isDesktop ? "flex-1 min-w-0 min-h-0 flex flex-col" : "contents"}>
         {mode === "video" && videos[0] ? (
           <div ref={setRegionEl} className="flex-1 min-h-0 flex flex-col" style={showUpNext && !isDesktop ? { touchAction: "pan-x pinch-zoom" } : undefined}>
             <VideoMode
@@ -774,6 +776,7 @@ const ExpandedPlayer = () => {
           </div>
         )}
         </div>
+        {karaokePanel && isDesktop && <KaraokeUpNextPanel />}
         {showUpNext && isDesktop && (
           <UpNextSheet
             variant="panel" open onOpenChange={() => {}} upNext={upNext} videos={queueVideos} status={videoStatus}
@@ -851,6 +854,7 @@ const ExpandedPlayer = () => {
             frameEl={frameEl} slotEl={slotEl} regionEl={regionEl}
           />
         )}
+        {karaokePanel && !isDesktop && <KaraokeUpNextBar />}
       </div>
     </div>
 
