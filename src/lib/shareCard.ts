@@ -3,6 +3,20 @@ import { tagShareUrl } from "@/lib/acquisitionAnalytics";
 
 export type ShareCardKind = "song" | "album" | "playlist";
 export type ShareCardFormat = "portrait" | "square";
+export type ShareCardStyle = "glass" | "arch";
+
+export const CARD_STYLES: { id: ShareCardStyle; label: string }[] = [
+  { id: "glass", label: "Royal Glass Wave" },
+  { id: "arch", label: "Symphony Arch" },
+];
+
+const STYLE_KEY = "lmk_share_card_style";
+export const readCardStyle = (): ShareCardStyle => {
+  try { return localStorage.getItem(STYLE_KEY) === "arch" ? "arch" : "glass"; } catch { return "glass"; }
+};
+export const saveCardStyle = (s: ShareCardStyle) => {
+  try { localStorage.setItem(STYLE_KEY, s); } catch { /* storage unavailable */ }
+};
 
 export interface ShareCardItem {
   kind: ShareCardKind;
