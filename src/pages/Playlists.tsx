@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import DownloadButton from "@/components/offline/DownloadButton";
 import { useSaveSong } from "@/hooks/useSaveSong";
 import DownloadAllButton from "@/components/offline/DownloadAllButton";
@@ -70,6 +71,23 @@ const Playlists = () => {
       return (data as any[]).filter(p => p.user_id !== user?.id);
     },
   });
+
+  const [searchParams] = useSearchParams();
+  const linkedId = searchParams.get("id");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const handledLink = useRef<string | null>(null);
+  useEffect(() => {
+    if (!linkedId || handledLink.current === linkedId) return;
+    const all = [...adminPlaylists, ...myPlaylists];
+    if (all.length === 0) return;
+    handledLink.current = linkedId;
+    if (!all.some((p: any) => p.id === linkedId)) { toast.error("Playlist not available"); return; }
+    setExpandedPlaylists(prev => new Set(prev).add(linkedId));
+    setHighlightId(linkedId);
+    requestAnimationFrame(() => document.getElementById(`playlist-${linkedId}`)?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" }));
+    const t = setTimeout(() => setHighlightId(null), 2500);
+    return () => clearTimeout(t);
+  }, [linkedId, adminPlaylists, myPlaylists]);
 
   const createPlaylist = useMutation({
     mutationFn: async (name: string) => {

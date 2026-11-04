@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Crown, User, Shield, Clock, Mail, Calendar, Music, Heart, Sparkles, Download, AtSign } from "lucide-react";
+import { Crown, User, Shield, Clock, Mail, Calendar, Music, Heart, Sparkles, Download, AtSign, Headphones } from "lucide-react";
 
 interface UserDetailDialogProps {
   userId: string | null;
@@ -29,6 +29,7 @@ interface UserDetail {
   playlists_count: number;
   feedback_count: number;
   downloads_count: number;
+  streams: { total: number; song: number; karaoke: number; video: number };
 }
 
 const UserDetailDialog = ({ userId, open, onOpenChange }: UserDetailDialogProps) => {
@@ -40,7 +41,13 @@ const UserDetailDialog = ({ userId, open, onOpenChange }: UserDetailDialogProps)
     setLoading(true);
 
     const fetchAll = async () => {
-      const [profileRes, roleRes, subRes, favRes, recentRes, playlistRes, feedbackRes, downloadsRes] = await Promise.all([
+      const streams = (mode?: string) => {
+        let q = supabase.from("play_events").select("id", { count: "exact", head: true }).eq("user_id", userId);
+        if (mode) q = mode === "song" ? q.in("mode", ["song", "listen"]) : q.eq("mode", mode);
+        return q.then((r) => r.count || 0);
+      };
+      const streamCounts = Promise.all([streams(), streams("song"), streams("karaoke"), streams("video")]);
+      const [profileRes, roleRes, subRes, favRes, recentRes, playlistRes, feedbackRes, downloadsRes, [total, song, karaoke, video]] = await Promise.all([
         supabase.from("profiles").select("username, email, avatar_url, kingschat_handle, church, zone, region, created_at").eq("user_id", userId).single(),
         supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
         supabase.from("user_subscriptions").select("subscription, subscription_plan, subscription_start_date, subscription_expiry_date").eq("user_id", userId).maybeSingle(),
@@ -49,6 +56,7 @@ const UserDetailDialog = ({ userId, open, onOpenChange }: UserDetailDialogProps)
         supabase.from("playlists").select("id", { count: "exact", head: true }).eq("user_id", userId),
         supabase.from("feedback").select("id", { count: "exact", head: true }).eq("user_id", userId),
         supabase.from("downloads").select("id", { count: "exact", head: true }).eq("user_id", userId).is("deleted_at", null),
+        streamCounts,
       ]);
 
       const p = profileRes.data;
@@ -73,6 +81,7 @@ const UserDetailDialog = ({ userId, open, onOpenChange }: UserDetailDialogProps)
         playlists_count: playlistRes.count || 0,
         feedback_count: feedbackRes.count || 0,
         downloads_count: downloadsRes.count || 0,
+        streams: { total, song, karaoke, video },
       });
       setLoading(false);
     };
@@ -168,6 +177,13 @@ const UserDetailDialog = ({ userId, open, onOpenChange }: UserDetailDialogProps)
             <div className="rounded-lg border border-border p-3 space-y-2">
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Activity</h4>
               <div className="grid grid-cols-2 gap-y-1.5 text-sm">
+                <span className="text-muted-foreground flex items-center gap-1"><Headphones className="w-3 h-3" /> Total streams</span>
+                <span className="text-foreground font-semibold">
+                  {detail.streams.total}
+                  <span className="block text-[11px] font-normal text-muted-foreground">
+                    Song {detail.streams.song} · Karaoke {detail.streams.karaoke} · Video {detail.streams.video}
+                  </span>
+                </span>
                 <span className="text-muted-foreground flex items-center gap-1"><Heart className="w-3 h-3" /> Favorites</span>
                 <span className="text-foreground">{detail.favorites_count}</span>
                 <span className="text-muted-foreground flex items-center gap-1"><Music className="w-3 h-3" /> Recently Played</span>
