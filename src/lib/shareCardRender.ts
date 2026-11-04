@@ -283,9 +283,9 @@ async function drawArch({ ctx, W, H, portrait, item, link, cover, logo, pal }: C
   ctx.fillRect(0, 0, W, H);
 
   const coverW = portrait ? 420 : 440;
-  const coverH = portrait ? 560 : 680;
+  const coverH = portrait ? 540 : 680;
   const coverX = portrait ? (W - coverW) / 2 : 104;
-  const coverY = portrait ? 160 : 196;
+  const coverY = portrait ? 156 : 196;
   const ccx = coverX + coverW / 2;
 
   const glow = ctx.createRadialGradient(ccx, coverY + coverH * 0.4, 0, ccx, coverY + coverH * 0.4, coverW * 1.2);
@@ -367,7 +367,7 @@ async function drawArch({ ctx, W, H, portrait, item, link, cover, logo, pal }: C
   ctx.fillText(KIND_LABELS[item.kind], colX, ty);
   ty += 46;
   ctx.fillStyle = CREAM;
-  const titleSize = portrait ? 56 : 50;
+  const titleSize = portrait ? 52 : 50;
   ctx.font = `700 ${titleSize}px 'Playfair Display', serif`;
   for (const l of wrapLines(truncateTitle(item.title), textW, (s) => ctx.measureText(s).width, 2)) {
     ctx.fillText(l, colX, ty);
@@ -381,9 +381,9 @@ async function drawArch({ ctx, W, H, portrait, item, link, cover, logo, pal }: C
   }
 
   // Pearl QR plate, anchored to the bottom of the text column
-  const plate = portrait ? 240 : 300;
+  const plate = portrait ? 270 : 300;
   const px = colX - plate / 2;
-  const py = H - 84 - 44 - plate;
+  const py = H - 76 - 40 - plate;
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.35)";
   ctx.shadowBlur = 36;
