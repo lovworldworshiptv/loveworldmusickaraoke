@@ -11,7 +11,8 @@ describe("video comments", () => {
   });
   it("formats relative time", () => {
     const now = Date.parse("2026-01-01T12:00:00Z");
-    expect(relativeTime("2026-01-01T11:55:00Z", now)).toBe("5m ago");
+    expect(relativeTime("2026-01-01T11:55:00Z", now)).toBe("5 min ago");
     expect(relativeTime("2026-01-01T11:59:50Z", now)).toBe("just now");
+    expect(relativeTime("2021-01-01T12:00:00Z", now)).toBe("5 yr ago");
   });
 });

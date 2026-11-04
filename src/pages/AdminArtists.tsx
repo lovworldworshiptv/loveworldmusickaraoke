@@ -21,7 +21,7 @@ const AdminArtists = () => {
   return (
     <AppLayout>
       <div className="p-4 max-w-5xl mx-auto pb-28">
-        <h1 className="font-display text-3xl text-foreground mb-4">Artists</h1>
+        <h1 className="font-serif text-3xl text-foreground mb-4">Artists</h1>
         <div className="flex gap-2 mb-4" role="tablist">
           {(["artists", "comments"] as const).map((t) => (
             <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}
