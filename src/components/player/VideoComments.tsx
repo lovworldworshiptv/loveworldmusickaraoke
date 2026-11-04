@@ -201,7 +201,12 @@ const CommentsPanel = ({ videoId, onClose }: { videoId: string; onClose: () => v
     const parent = c.parent_id ? itemsRef.current.find((x) => x.id === c.parent_id) ?? c : c;
     setReplyTo(parent);
     setText(`@${authorCache.get(c.user_id)?.username || "Listener"} `);
-    setTimeout(() => inputRef.current?.focus(), 0);
+    setTimeout(() => {
+      const el = inputRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    }, 0);
   };
 
   const post = async () => {
