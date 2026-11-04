@@ -302,6 +302,13 @@
       "when": 1793812851809,
       "tag": "0042_artists_and_video_comments",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1793816796185,
+      "tag": "0043_video_comment_count",
+      "breakpoints": true
     }
   ]
 }

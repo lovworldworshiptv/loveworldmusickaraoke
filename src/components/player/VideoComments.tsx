@@ -38,25 +38,38 @@ const VideoComments = ({ videoId }: { videoId: string }) => {
   const [preview, setPreview] = useState<VComment | null>(null);
 
   const refreshSummary = useCallback(async () => {
-    if (!user) { setCount(null); setPreview(null); return; }
-    const [{ count: c }, { data }] = await Promise.all([
-      supabase.from("video_comments").select("id", { count: "exact", head: true }).eq("song_video_id", videoId).eq("is_deleted", false),
-      supabase.from("video_comments").select(COLS).eq("song_video_id", videoId).is("parent_id", null).eq("is_deleted", false).order("created_at", { ascending: false }).limit(1),
-    ]);
-    setCount(c ?? 0);
+    const { data: c } = await supabase.rpc("get_video_comment_count", { p_video_id: videoId });
+    setCount(typeof c === "number" ? c : 0);
+    if (!user) { setPreview(null); return; }
+    const { data } = await supabase.from("video_comments").select(COLS).eq("song_video_id", videoId).is("parent_id", null).eq("is_deleted", false).order("created_at", { ascending: false }).limit(1);
     const top = (data?.[0] as VComment | undefined) ?? null;
     if (top) await loadAuthors([top.user_id]);
     setPreview(top);
   }, [user, videoId]);
 
-  useEffect(() => { refreshSummary(); }, [refreshSummary]);
+  useEffect(() => { setCount(null); setPreview(null); refreshSummary(); }, [refreshSummary]);
+
+  // Keep the count right while the video is on screen: new, removed and replies from anyone.
+  useEffect(() => {
+    if (!user) return;
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const ch = supabase.channel(`vc-count-${videoId}-${Math.random().toString(36).slice(2)}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "video_comments", filter: `song_video_id=eq.${videoId}` }, () => {
+        clearTimeout(t); t = setTimeout(refreshSummary, 400);
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "video_comments" }, () => {
+        clearTimeout(t); t = setTimeout(refreshSummary, 400);
+      })
+      .subscribe();
+    return () => { clearTimeout(t); supabase.removeChannel(ch); };
+  }, [user, videoId, refreshSummary]);
 
   return (
     <>
       <div className="px-4 mt-2 mb-1 flex gap-2 overflow-x-auto flex-shrink-0">
         <button onClick={() => setOpen(true)}
           className="h-10 shrink-0 rounded-full bg-muted/70 hover:bg-muted px-4 inline-flex items-center gap-2 text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
-          aria-label={`Open comments${count != null ? `, ${count} comments` : ""}`}>
+          aria-label={`Open comments${count != null ? `, ${count} ${count === 1 ? "comment" : "comments"}` : ""}`}>
           <MessageSquareText className="w-5 h-5" aria-hidden />
           <span className="tabular-nums">{count != null ? count.toLocaleString() : "Comments"}</span>
         </button>
