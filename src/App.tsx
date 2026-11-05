@@ -78,6 +78,8 @@ import OfflineRedirect from "@/components/offline/OfflineRedirect";
 import SecureDownloadsBoot from "@/components/offline/SecureDownloadsBoot";
 import AppDownloadPrompt from "@/components/share/AppDownloadPrompt";
 import AppUpdatePrompt from "@/components/share/AppUpdatePrompt";
+import AppSessionTracker from "@/components/AppSessionTracker";
+import QrScanHandoff from "@/components/share/QrScanHandoff";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -100,6 +102,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <OfflineBanner />
+        <QrScanHandoff />
         <AppDownloadPrompt />
         <AppUpdatePrompt />
         <BrowserRouter>
@@ -107,6 +110,7 @@ const App = () => (
             <FeatureProvider>
             <PlayerProvider>
               <OfflineRedirect />
+              <AppSessionTracker />
               <ChallengeRulesPromptHost />
               <SecureDownloadsBoot />
               <FeatureRouteGate>
