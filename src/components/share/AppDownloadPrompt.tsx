@@ -15,6 +15,8 @@ const AppDownloadPrompt = () => {
     if (isMedianApp()) return;
     if (window.matchMedia?.("(display-mode: standalone)").matches) return;
     if (window.location.pathname.startsWith("/admin")) return;
+    // QR scans get their own Get-the-app sheet instead.
+    if (new URLSearchParams(window.location.search).get("src") === "qr_card") return;
     try {
       const at = Number(localStorage.getItem(DISMISS_KEY) || 0);
       if (Date.now() - at < WEEK) return;
@@ -31,7 +33,7 @@ const AppDownloadPrompt = () => {
   if (!show) return null;
   return (
     <div role="dialog" aria-label="Get the app"
-      className="fixed left-3 right-3 top-3 z-[120] mx-auto max-w-md glass-card rounded-2xl p-3 flex items-center gap-3 shadow-lg animate-fade-in-up">
+      className="fixed left-3 right-3 top-[calc(env(safe-area-inset-top)+0.75rem)] md:top-3 z-[120] mx-auto max-w-md glass-card rounded-2xl p-3 flex items-center gap-3 shadow-lg animate-fade-in-up">
       <div className="w-10 h-10 rounded-xl gradient-gold flex items-center justify-center shrink-0">
         <Download className="w-5 h-5 text-primary-foreground" />
       </div>
