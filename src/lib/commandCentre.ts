@@ -108,3 +108,16 @@ export const alertTypeLabel = (type: string) => ALERT_LABELS[type] ?? type.repla
 export const CREATE_MENU_OPTIONS = ["Playlist", "Studio Mode", "Reminders", "Stage Mode"];
 
 export const fmt = (n: number | null | undefined) => (n ?? 0).toLocaleString("en-US");
+
+export type ListeningStats = { listen_seconds: number; sessions: number; session_seconds: number; avg_session_seconds: number };
+
+/** Seconds as a short readable duration: "45s", "12m", "3h 05m", "2d 4h". */
+export function formatDuration(totalSeconds: number): string {
+  const s = Math.max(0, Math.round(totalSeconds || 0));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ${String(m % 60).padStart(2, "0")}m`;
+  return `${Math.floor(h / 24)}d ${h % 24}h`;
+}
