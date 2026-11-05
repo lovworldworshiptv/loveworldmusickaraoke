@@ -25,7 +25,7 @@ import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 
 /** Handle (20px) + peek row (64px): the collapsed sheet's visible height, before the safe area. */
 export const PEEK_HEIGHT = 84;
-const ROW_H = 76;
+export const ROW_H = 76;
 const DIVIDER_H = 40;
 const VIRTUALIZE_AFTER = 50;
 const AUTOPLAY_KEY = "lw-video-autoplay";
@@ -167,7 +167,7 @@ const fmtDur = (s?: number) => {
   const m = Math.floor(s / 60);
   return `${m}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
 };
-const fmtTotal = (s: number) => {
+export const fmtTotal = (s: number) => {
   const m = Math.round(s / 60);
   if (m < 60) return `${m} min`;
   return `${Math.floor(m / 60)} hr ${m % 60} min`;
@@ -177,7 +177,7 @@ const fmtTotal = (s: number) => {
 // Small pieces
 // ---------------------------------------------------------------------------
 
-function Thumb({ src, fallback, className = "", children }: { src?: string | null; fallback?: string; className?: string; children?: ReactNode }) {
+export function Thumb({ src, fallback, className = "", children }: { src?: string | null; fallback?: string; className?: string; children?: ReactNode }) {
   const candidates = useMemo(() => [src, fallback].filter(Boolean) as string[], [src, fallback]);
   const [stage, setStage] = useState(0);
   useEffect(() => setStage(0), [candidates]);
@@ -194,7 +194,7 @@ function Thumb({ src, fallback, className = "", children }: { src?: string | nul
   );
 }
 
-function Equalizer({ playing }: { playing: boolean }) {
+export function Equalizer({ playing }: { playing: boolean }) {
   return (
     <span className="absolute inset-0 flex items-end justify-center gap-[3px] pb-2 bg-background/40" aria-hidden="true">
       {[0, 1, 2].map((i) => (
@@ -266,9 +266,15 @@ export function UpNextCountdown({ status, show, song, thumb, onPlayNow, onCancel
 // Rows
 // ---------------------------------------------------------------------------
 
-type RowItem = { kind: "row"; qi: number; song: PlayerSong; auto: boolean } | { kind: "divider" };
+export type RowItem = { kind: "row"; qi: number; song: PlayerSong; auto: boolean } | { kind: "divider" };
 
-interface RowProps {
+export interface RowProps {
+  /** Square cover art (Karaoke) instead of a 16:9 video thumbnail. */
+  square?: boolean;
+  /** Replaces the artist line, e.g. a skip notice. */
+  note?: string;
+  dim?: boolean;
+  playLabel?: string;
   qi: number;
   song: PlayerSong;
   thumb: string | null;
@@ -295,7 +301,7 @@ interface RowProps {
   onDragStart: (e: React.PointerEvent) => void;
 }
 
-function QueueRow(p: RowProps) {
+export function QueueRow(p: RowProps) {
   const [swipeX, setSwipeX] = useState(0);
   const [leaving, setLeaving] = useState(false);
   const gesture = useRef<{ x: number; y: number; t: number; horizontal: boolean | null; longPress: number | null; consumed: boolean } | null>(null);
@@ -365,8 +371,8 @@ function QueueRow(p: RowProps) {
         }}
       >
         <button type="button" onClick={p.onPlay} className="flex items-center gap-3 flex-1 min-w-0 h-full text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
-          aria-label={`Play ${p.song.title}`}>
-          <Thumb src={p.thumb} fallback={p.song.coverUrl} className="w-[104px]">
+          aria-label={p.playLabel ?? `Play ${p.song.title}`}>
+          <Thumb src={p.thumb} fallback={p.song.coverUrl} className={p.square ? "w-[60px] !aspect-square" : "w-[104px]"}>
             {!!p.song.durationSeconds && (
               <span className="absolute bottom-1 right-1 rounded px-1 py-px text-[10px] font-semibold bg-background/80 text-foreground">{fmtDur(p.song.durationSeconds)}</span>
             )}
@@ -376,9 +382,9 @@ function QueueRow(p: RowProps) {
               </span>
             )}
           </Thumb>
-          <span className="min-w-0 flex-1">
+          <span className={`min-w-0 flex-1 ${p.dim ? "opacity-50" : ""}`}>
             <span className="block text-sm font-medium text-foreground line-clamp-2 leading-snug">{p.song.title}</span>
-            <span className="block text-xs text-muted-foreground truncate">{p.song.album ? `${p.song.artist} · ${p.song.album}` : p.song.artist}</span>
+            <span className={`block text-xs truncate ${p.square ? "text-foreground" : "text-muted-foreground"}`}>{p.note ?? (p.song.album ? `${p.song.artist} · ${p.song.album}` : p.song.artist)}</span>
           </span>
         </button>
         <DropdownMenu open={p.menuOpen} onOpenChange={p.setMenuOpen}>
