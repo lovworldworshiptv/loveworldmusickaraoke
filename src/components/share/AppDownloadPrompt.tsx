@@ -34,7 +34,7 @@ const AppDownloadPrompt = () => {
   useEffect(() => {
     const root = document.documentElement;
     if (show) root.style.setProperty("--app-banner-h", "5rem"); else root.style.removeProperty("--app-banner-h");
-    return () => root.style.removeProperty("--app-banner-h");
+    return () => { root.style.removeProperty("--app-banner-h"); };
   }, [show]);
 
   if (!show) return null;
