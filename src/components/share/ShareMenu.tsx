@@ -82,30 +82,22 @@ const ShareMenu = ({ url, title, text, imageUrl, kingschatFirst = false, trigger
     }
   };
 
-  const btnClass = "flex items-center gap-2.5 w-full px-2 py-2 rounded-md text-sm text-foreground hover:bg-accent transition-colors";
-
-  const kcBtn = (
-    <button key="kc" onClick={handleKingsChat} className={btnClass}>
-      <img src={kingschatLogo} alt="KingsChat" className="w-4 h-4 rounded-sm" /> KingsChat
+  const btnClass = "flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-gold/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold";
+  const tile = (key: string, label: string, onClick: () => void, icon: React.ReactNode) => (
+    <button key={key} onClick={onClick} className="group flex flex-col items-center gap-1.5 rounded-xl py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
+      <span className="w-11 h-11 rounded-full glass border border-gold/25 flex items-center justify-center transition-all duration-200 group-hover:border-gold/60 group-hover:-translate-y-0.5 group-hover:shadow-[0_0_14px_hsl(var(--gold)/0.35)] group-active:scale-95">{icon}</span>
+      <span className="text-[11px] leading-none text-foreground/90">{label}</span>
     </button>
   );
 
+  const kcBtn = tile("kc", "KingsChat", handleKingsChat, <img src={kingschatLogo} alt="" className="w-5 h-5 rounded-sm" />);
+
   const socialBtns = [
-    <button key="wa" onClick={handleWhatsApp} className={btnClass}>
-      <WhatsAppIcon /> WhatsApp
-    </button>,
-    <button key="x" onClick={handleTwitter} className={btnClass}>
-      <XIcon /> X (Twitter)
-    </button>,
-    <button key="fb" onClick={handleFacebook} className={btnClass}>
-      <FacebookIcon /> Facebook
-    </button>,
-    <button key="tg" onClick={handleTelegram} className={btnClass}>
-      <TelegramIcon /> Telegram
-    </button>,
-    <button key="em" onClick={handleEmail} className={btnClass}>
-      <Mail className="w-4 h-4 text-gold" /> Email
-    </button>,
+    tile("wa", "WhatsApp", handleWhatsApp, <WhatsAppIcon />),
+    tile("x", "X", handleTwitter, <XIcon />),
+    tile("fb", "Facebook", handleFacebook, <FacebookIcon />),
+    tile("tg", "Telegram", handleTelegram, <TelegramIcon />),
+    tile("em", "Email", handleEmail, <Mail className="w-5 h-5 text-gold" />),
   ];
 
   const orderedBtns = kingschatFirst ? [kcBtn, ...socialBtns] : [...socialBtns.slice(0, 1), kcBtn, ...socialBtns.slice(1)];
@@ -120,17 +112,20 @@ const ShareMenu = ({ url, title, text, imageUrl, kingschatFirst = false, trigger
           </button>
         )}
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-2" align="end">
-        {imageUrl && (
-          <div className="px-2 pb-2">
-            <img src={imageUrl} alt={title} className="w-full h-20 object-cover rounded-md" />
-            <p className="text-xs font-semibold text-foreground mt-1 truncate">{title}</p>
+      <PopoverContent className="w-72 p-3 rounded-2xl glass border-gold/25 shadow-[0_8px_32px_hsl(var(--gold)/0.18)]" align="end">
+        <div className="flex items-center gap-3 px-1 pb-3">
+          {imageUrl
+            ? <img src={imageUrl} alt="" className="w-11 h-11 object-cover rounded-xl shrink-0" />
+            : <span className="w-11 h-11 rounded-xl bg-gold/15 flex items-center justify-center shrink-0"><Share2 className="w-5 h-5 text-gold" /></span>}
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-wider text-gold font-semibold">Share</p>
+            <p className="text-sm font-semibold text-foreground truncate">{title}</p>
           </div>
-        )}
-        {!imageUrl && <p className="text-xs font-semibold text-foreground px-2 py-1.5">Share</p>}
-        <div className="space-y-0.5">
+        </div>
+        <div className="grid grid-cols-3 gap-y-2 pb-2">
           {orderedBtns}
-          <div className="border-t border-border my-1" />
+        </div>
+        <div className="space-y-0.5 border-t border-gold/15 pt-2">
           <button onClick={handleCopy} className={btnClass}>
             {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
             {copied ? "Copied!" : "Copy Link"}
