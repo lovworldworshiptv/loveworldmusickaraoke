@@ -130,7 +130,8 @@ const CommentsTab = () => {
     },
   });
   const del = async (id: string) => {
-    const { error } = await supabase.from("video_comments").delete().eq("id", id);
+    // Keeps replies under "Comment deleted" and wipes the text, same as listeners' own delete.
+    const { error } = await supabase.rpc("delete_video_comment", { p_id: id });
     if (error) toast.error(error.message); else { toast.success("Comment deleted"); qc.invalidateQueries({ queryKey: ["admin-video-comments"] }); }
   };
   const shown = q.trim() ? data : data;

@@ -178,7 +178,7 @@ const ArtistView = ({ artist }: { artist: Artist }) => {
   return (
     <div className="pb-28 min-h-full" style={themeVars}>
       <ArtistHero artist={artist} overlay={
-        <div className="absolute top-3 left-3 right-3 flex justify-between">
+        <div className="absolute top-[calc(var(--app-banner-h,0px)+0.75rem)] md:top-3 left-3 right-3 flex justify-between transition-[top]">
           <button onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/"))} className={roundBtn} aria-label="Go back"><ArrowLeft className="w-5 h-5" /></button>
           <button className={roundBtn} aria-label="More options for this artist" onClick={() => setMenuOpen(true)}><MoreVertical className="w-5 h-5" /></button>
         </div>

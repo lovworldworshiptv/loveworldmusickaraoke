@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { formatDuration, type ListeningStats } from "@/lib/commandCentre";
 import { Crown, User, Shield, Clock, Mail, Calendar, Music, Heart, Sparkles, Download, AtSign, Headphones } from "lucide-react";
 
 interface UserDetailDialogProps {
@@ -30,6 +31,7 @@ interface UserDetail {
   feedback_count: number;
   downloads_count: number;
   streams: { total: number; song: number; karaoke: number; video: number };
+  listening: ListeningStats;
 }
 
 const UserDetailDialog = ({ userId, open, onOpenChange }: UserDetailDialogProps) => {
@@ -58,6 +60,8 @@ const UserDetailDialog = ({ userId, open, onOpenChange }: UserDetailDialogProps)
         supabase.from("downloads").select("id", { count: "exact", head: true }).eq("user_id", userId).is("deleted_at", null),
         streamCounts,
       ]);
+      const { data: lt } = await supabase.rpc("admin_listening_stats", { p_days: null as unknown as number, p_user_id: userId });
+      const listening = (lt as unknown as ListeningStats) || { listen_seconds: 0, sessions: 0, session_seconds: 0, avg_session_seconds: 0 };
 
       const p = profileRes.data;
       if (!p) { setLoading(false); return; }
@@ -82,6 +86,7 @@ const UserDetailDialog = ({ userId, open, onOpenChange }: UserDetailDialogProps)
         feedback_count: feedbackRes.count || 0,
         downloads_count: downloadsRes.count || 0,
         streams: { total, song, karaoke, video },
+        listening,
       });
       setLoading(false);
     };
@@ -184,6 +189,10 @@ const UserDetailDialog = ({ userId, open, onOpenChange }: UserDetailDialogProps)
                     Song {detail.streams.song} · Karaoke {detail.streams.karaoke} · Video {detail.streams.video}
                   </span>
                 </span>
+                <span className="text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Listening time</span>
+                <span className="text-foreground">{formatDuration(detail.listening.listen_seconds)}</span>
+                <span className="text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Avg. session</span>
+                <span className="text-foreground">{formatDuration(detail.listening.avg_session_seconds)} <span className="text-[11px] text-muted-foreground">({detail.listening.sessions} sessions)</span></span>
                 <span className="text-muted-foreground flex items-center gap-1"><Heart className="w-3 h-3" /> Favorites</span>
                 <span className="text-foreground">{detail.favorites_count}</span>
                 <span className="text-muted-foreground flex items-center gap-1"><Music className="w-3 h-3" /> Recently Played</span>

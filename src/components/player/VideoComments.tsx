@@ -198,9 +198,7 @@ const CommentsPanel = ({ videoId, onClose }: { videoId: string; onClose: () => v
 
   const remove = async (c: VComment) => {
     const hasReplies = !c.parent_id && c.reply_count > 0;
-    const { error } = hasReplies
-      ? await supabase.from("video_comments").update({ is_deleted: true }).eq("id", c.id)
-      : await supabase.from("video_comments").delete().eq("id", c.id);
+    const { error } = await supabase.rpc("delete_video_comment", { p_id: c.id });
     if (error) { toast.error("Couldn't delete comment."); return; }
     if (hasReplies) patch(c.id, (x) => ({ ...x, is_deleted: true }));
     else {

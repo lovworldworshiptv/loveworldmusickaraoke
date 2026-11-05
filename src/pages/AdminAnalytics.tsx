@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CHANNEL_LABELS } from "@/lib/acquisitionAnalytics";
 import {
   CREATE_MENU_OPTIONS, MAX_RANGE_DAYS, RANGE_PRESETS, alertTypeLabel, fmt, gameModeLabel, listenerTierParts, parseRangeDays, premiumPlanParts, rangeLabel as labelFor,
-  type CommandCentreStats, type CountryStats, type Part, type RangeDays,
+  formatDuration, type ListeningStats, type CommandCentreStats, type CountryStats, type Part, type RangeDays,
 } from "@/lib/commandCentre";
 import { countryFlag, countryName } from "@/lib/activityCountry";
 
@@ -65,6 +65,17 @@ const AdminAnalytics = () => {
       if (main.error) throw main.error;
       if (referrals.error) throw referrals.error;
       return { ...(main.data as unknown as CommandCentreStats), referrals: referrals.data as unknown as CommandCentreStats["referrals"] };
+    },
+  });
+
+  const listening = useQuery({
+    queryKey: ["admin-listening-stats", days],
+    enabled: isAdmin,
+    placeholderData: (previous) => previous,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_listening_stats", { p_days: days as number });
+      if (error) throw error;
+      return data as unknown as ListeningStats;
     },
   });
 
@@ -154,6 +165,16 @@ const AdminAnalytics = () => {
                 <StatCard icon={Play} label="Plays" value={s.plays.total} sub={`${fmt(s.plays.all_time)} all time`} parts={[
                   { label: "Listened", value: s.plays.song }, { label: "Sung (karaoke)", value: s.plays.karaoke }, { label: "Watched (video)", value: s.plays.video }, { label: "Different songs", value: s.plays.songs_played },
                 ]} />
+                <div className={panel}>
+                  <p className="text-xs text-muted-foreground">Total listening time</p>
+                  <p className="text-2xl font-bold text-foreground tabular-nums">{formatDuration(listening.data?.listen_seconds ?? 0)}</p>
+                  <p className="text-[11px] text-muted-foreground">{rangeLabel} · counted from now on</p>
+                </div>
+                <div className={panel}>
+                  <p className="text-xs text-muted-foreground">Average session length</p>
+                  <p className="text-2xl font-bold text-foreground tabular-nums">{formatDuration(listening.data?.avg_session_seconds ?? 0)}</p>
+                  <p className="text-[11px] text-muted-foreground">{fmt(listening.data?.sessions ?? 0)} sessions · {rangeLabel}</p>
+                </div>
                 <StatCard icon={Music} label="Songs" value={s.songs.total} sub="in the library" parts={[
                   { label: "Featured", value: s.songs.featured }, { label: "With video", value: s.songs.with_video }, { label: "With lyrics", value: s.songs.with_lyrics }, { label: "With karaoke track", value: s.songs.with_karaoke_track }, { label: "Free to download", value: s.songs.free },
                 ]} />
