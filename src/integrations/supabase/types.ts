@@ -95,6 +95,30 @@ export type Database = {
         }
         Relationships: []
       }
+      app_sessions: {
+        Row: {
+          id: string
+          platform: string
+          seconds: number
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          platform?: string
+          seconds?: number
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          platform?: string
+          seconds?: number
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           key: string
@@ -3071,8 +3095,20 @@ export type Database = {
       }
     }
     Functions: {
+      add_play_seconds: {
+        Args: { p_seconds: number; p_song_id: string }
+        Returns: undefined
+      }
+      add_session_seconds: {
+        Args: { p_seconds: number; p_session_id: string }
+        Returns: undefined
+      }
       admin_command_centre: { Args: { p_days?: number }; Returns: Json }
       admin_country_stats: { Args: { p_days?: number }; Returns: Json }
+      admin_listening_stats: {
+        Args: { p_days?: number; p_user_id?: string }
+        Returns: Json
+      }
       admin_referral_stats: { Args: { p_days?: number }; Returns: Json }
       can_moderate_community: {
         Args: { p_community_id: string }
@@ -3091,6 +3127,7 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      delete_video_comment: { Args: { p_id: string }; Returns: string }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
@@ -3309,6 +3346,7 @@ export type Database = {
         Args: { p_community_id: string; p_enabled: boolean; p_user_id: string }
         Returns: undefined
       }
+      start_app_session: { Args: { p_platform: string }; Returns: string }
       stem_queue_disarm: { Args: never; Returns: undefined }
       stem_worker_acquire: { Args: { p_seconds?: number }; Returns: boolean }
     }
