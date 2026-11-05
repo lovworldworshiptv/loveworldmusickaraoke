@@ -7,6 +7,7 @@ import { isMedianApp, nativeShare, openExternal } from "@/lib/median";
 import { logShareClick } from "@/lib/acquisitionAnalytics";
 import { APP_DOWNLOAD_URL } from "@/components/share/AppDownloadPrompt";
 import { CARD_STYLES, cardBaseUrl, cardFilename, cardLink, readCardStyle, saveCardStyle, type ShareCardFormat, type ShareCardItem, type ShareCardStyle } from "@/lib/shareCard";
+import { cardCacheKey, getCachedCard, putCachedCard } from "@/lib/shareCardCache";
 import logoUrl from "@/assets/logo.png";
 import kingschatLogo from "@/assets/kingschat_logo.png";
 import { WhatsAppIcon, XIcon, FacebookIcon, TelegramIcon } from "@/components/share/SocialIcons";
@@ -37,9 +38,12 @@ const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
     let cancelled = false;
     let url: string | null = null;
     setBlob(null); setPreview(null); setFailed(false);
-    import("@/lib/shareCardRender")
-      .then(({ renderShareCard }) => renderShareCard(item, format, style, link, logoUrl))
-      .then((canvas) => new Promise<Blob | null>((r) => canvas.toBlob(r, "image/png")))
+    const key = cardCacheKey({ kind: item.kind, id: item.id, style, format, title: item.title, subtitle: item.subtitle, coverUrl: item.coverUrl, link });
+    getCachedCard(key)
+      .then((hit) => hit ?? import("@/lib/shareCardRender")
+        .then(({ renderShareCard }) => renderShareCard(item, format, style, link, logoUrl))
+        .then((canvas) => new Promise<Blob | null>((r) => canvas.toBlob(r, "image/png")))
+        .then((b) => { if (b) putCachedCard(key, b); return b; }))
       .then((b) => {
         if (cancelled) return;
         if (!b) { setFailed(true); return; }
