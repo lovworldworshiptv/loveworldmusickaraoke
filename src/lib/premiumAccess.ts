@@ -30,7 +30,11 @@ export function planFromSubscriptionRow(row: SubscriptionRow, now = new Date()):
     isPremium: active,
     isTrial: !expired && sub === "trial",
     expiry,
-    trialAvailable: canStartTrial(row ?? null, now),
+    trialAvailable: canStartTrial({
+      subscription: sub ?? null,
+      subscription_expiry_date: expiry,
+      trial_used_at: row?.trial_used_at ?? null,
+    }, now),
   };
 }
 
