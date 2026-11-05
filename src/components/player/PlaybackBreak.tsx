@@ -9,6 +9,9 @@ import { useFreeSongIds, isFreeSong } from "@/lib/freeSongs";
 import { BREAK_SECONDS, countFinishedSong, isBreakExempt, isVideoUrl, setBreakGate } from "@/lib/playbackBreak";
 import logo from "@/assets/logo.png";
 
+// Survives page changes (each page mounts its own layout).
+const finishedCount = { n: 0 };
+
 interface BreakCard { id: string; title: string; subtitle: string | null; description: string | null; image_url: string | null; cta_text: string | null; link_url: string | null }
 
 /** Full-screen 10-second break for free listeners; admin cards come from Premium Ads ("Playback Break"). */
@@ -21,7 +24,6 @@ const PlaybackBreak = () => {
   const [cards, setCards] = useState<BreakCard[]>([]);
   const [active, setActive] = useState<BreakCard | null | undefined>(undefined); // undefined = no break
   const [left, setLeft] = useState(BREAK_SECONDS);
-  const countRef = useRef(0);
   const doneRef = useRef<((go: boolean) => void) | null>(null);
   const state = useRef({ exempt: true, freeIds, cards });
   state.current = { exempt: !resolved || aL || eL || isBreakExempt({ isPremium, isTrial, isEditor, isAdmin }), freeIds, cards };
@@ -36,8 +38,8 @@ const PlaybackBreak = () => {
     setBreakGate((song) => {
       const s = state.current;
       if (s.exempt) return Promise.resolve(true);
-      const r = countFinishedSong(countRef.current, isFreeSong(song, s.freeIds));
-      countRef.current = r.count;
+      const r = countFinishedSong(finishedCount.n, isFreeSong(song, s.freeIds));
+      finishedCount.n = r.count;
       if (!r.breakNow) return Promise.resolve(true);
       const pick = s.cards.length ? s.cards[Math.floor(Math.random() * s.cards.length)] : null;
       return new Promise<boolean>((resolve) => {
@@ -80,7 +82,7 @@ const PlaybackBreak = () => {
           ) : (
             <div className="text-center"><h2 className="text-2xl font-bold text-foreground">{active.title}</h2>{active.description && <p className="text-muted-foreground mt-2">{active.description}</p>}</div>
           )}
-          <button onClick={goPremium} className="w-full rounded-full py-3.5 font-bold gold-gradient text-primary-foreground shadow-lg">{active.cta_text || "Go Premium"}</button>
+          <button onClick={goPremium} className="w-full rounded-full py-3.5 font-bold gradient-gold text-primary-foreground shadow-lg">{active.cta_text || "Go Premium"}</button>
           <p className="text-sm font-semibold text-foreground">Music resumes in {left}s</p>
         </div>
       ) : (
@@ -93,7 +95,7 @@ const PlaybackBreak = () => {
             <h2 className="mt-6 text-3xl font-extrabold leading-tight text-[hsl(225_55%_15%)]">Worship without interruptions</h2>
             <p className="mt-3 text-[hsl(225_15%_30%)]">Go Premium for non-stop listening, karaoke, video, Stage Mode and offline downloads.</p>
           </div>
-          <div className="relative gold-gradient px-6 pb-6 pt-10 text-center">
+          <div className="relative gradient-gold px-6 pb-6 pt-10 text-center">
             <button onClick={goPremium} className="absolute -top-7 left-6 right-6 rounded-full bg-[hsl(225_55%_20%)] py-4 text-lg font-bold text-primary shadow-xl">Go Premium</button>
             <Music2 className="absolute -top-6 -right-1 h-12 w-12 rounded-full bg-primary p-2.5 text-[hsl(225_55%_15%)] ring-4 ring-[hsl(40_33%_95%)]" />
             <p className="text-lg font-bold text-[hsl(225_55%_15%)]">Music resumes in {left}s</p>
