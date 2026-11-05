@@ -135,7 +135,9 @@ const Profile = () => {
     { label: "Edit Profile", path: "", icon: Edit, action: () => setEditModalOpen(true) },
     { label: "My Favorites", path: "/library", icon: ChevronRight },
     { label: "My Playlists", path: "/library", icon: ChevronRight },
-    { label: subscription === "premium" ? "Manage Subscription" : "Upgrade to Premium", path: "/subscription", icon: Crown },
+    // Trial and Premium listeners already have paid access, so they manage it;
+    // only free listeners are offered the upgrade.
+    { label: subscription === "premium" || subscription === "trial" ? "Manage Subscription" : "Upgrade to Premium", path: "/subscription", icon: Crown },
     { label: "Settings", path: "", icon: Settings, action: () => setSettingsOpen(true) },
     ...(role === "admin" ? [{ label: "Admin Panel", path: "/admin/songs", icon: Shield }] : []),
   ];
