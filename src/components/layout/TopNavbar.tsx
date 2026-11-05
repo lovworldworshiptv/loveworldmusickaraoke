@@ -5,7 +5,7 @@ import NotificationCenter from "@/components/notifications/NotificationCenter";
 import ProfileMenu from "@/components/layout/ProfileMenu";
 import GlobalSearch from "@/components/search/GlobalSearch";
 import { useAuth } from "@/contexts/AuthContext";
-import { useIsPremium } from "@/hooks/useIsPremium";
+import { useIsFreeUser } from "@/hooks/useIsFreeUser";
 import { useState } from "react";
 
 interface TopNavbarProps {
@@ -16,10 +16,10 @@ const TopNavbar = ({ desktopSidebarCollapsed = false }: TopNavbarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isHome = location.pathname === "/";
-  const { username, user } = useAuth();
-  const { isPremium, isTrial, loading: planLoading } = useIsPremium();
+  const { username } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
-  const isFreeUser = user && !planLoading && !isPremium && !isTrial;
+  // Free listeners only: Premium and trial accounts never see the stripe.
+  const isFreeUser = useIsFreeUser();
 
   return (
     <>

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Music, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useIsPremium } from "@/hooks/useIsPremium";
+import { seesPremiumUpsell } from "@/lib/premiumAccess";
 import premiumBannerBg from "@/assets/premium-banner-bg.jpg";
 
 interface PremiumAd {
@@ -18,7 +19,7 @@ interface PremiumAd {
 
 const SecondaryBanner = () => {
   const [ad, setAd] = useHomeState<PremiumAd | null>("secondary_banner", null);
-  const { isPremium, isTrial, loading: planLoading } = useIsPremium();
+  const { isPremium, isTrial, resolved } = useIsPremium();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,9 +35,9 @@ const SecondaryBanner = () => {
       });
   }, []);
 
-  // Hide only for full premium users (show for free and trial)
-  // Wait for the plan check so Premium listeners never see this flash in and out.
-  if (planLoading || (isPremium && !isTrial)) return null;
+  // Free listeners only: Premium and trial accounts never see this card.
+  // Wait for the plan check so nobody sees it flash in and out.
+  if (!seesPremiumUpsell({ isPremium, isTrial, resolved })) return null;
 
   const title = ad?.title || "Upgrade to Music+";
   const subtitle = ad?.subtitle || "Unlimited songs, karaoke mode, games & offline downloads.";

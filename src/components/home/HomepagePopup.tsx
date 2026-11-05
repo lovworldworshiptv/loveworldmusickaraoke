@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsPremium } from "@/hooks/useIsPremium";
+import { matchesPromoSegment } from "@/lib/premiumAccess";
 import { X, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
@@ -56,6 +58,7 @@ const HomepagePopup = () => {
   const [popup, setPopup] = useState<PopupData | null>(null);
   const [visible, setVisible] = useState(false);
   const { user } = useAuth();
+  const { isPremium, isTrial, resolved } = useIsPremium();
 
   useEffect(() => {
     supabase
@@ -74,19 +77,13 @@ const HomepagePopup = () => {
 
     // Check targeting
     const seg = popup.target_segment || "all";
-    if (seg === "specific" && popup.target_user_ids) {
-      if (!user || !popup.target_user_ids.includes(user.id)) return;
-    }
-    if (seg === "free" || seg === "premium" || seg === "trial") {
+    if (seg === "specific") {
+      if (!user || !popup.target_user_ids?.includes(user.id)) return;
+    } else if (seg === "free" || seg === "premium" || seg === "trial") {
       if (!user) return;
-      // Check subscription - we'll do a quick lookup
-      supabase.from("user_subscriptions").select("subscription").eq("user_id", user.id).single().then(({ data }) => {
-        const sub = data?.subscription || "free";
-        if (seg !== sub) return;
-        const timer = setTimeout(() => { setVisible(true); markShown(popup.show_frequency); }, (popup.delay_seconds || 2) * 1000);
-        return () => clearTimeout(timer);
-      });
-      return;
+      // Wait for the account's plan instead of guessing, so a Premium listener
+      // is never shown a card aimed at free listeners.
+      if (!matchesPromoSegment(seg, { isPremium, isTrial, resolved })) return;
     }
 
     const timer = setTimeout(() => {
@@ -94,7 +91,7 @@ const HomepagePopup = () => {
       markShown(popup.show_frequency);
     }, (popup.delay_seconds || 2) * 1000);
     return () => clearTimeout(timer);
-  }, [popup, user]);
+  }, [popup, user, isPremium, isTrial, resolved]);
 
   const close = () => setVisible(false);
 
