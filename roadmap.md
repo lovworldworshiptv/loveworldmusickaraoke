@@ -112,3 +112,10 @@
 - [x] Video Comments (per video, replies, likes, live updates, admin moderation tab) — not yet tested with two live accounts
 - [x] Artist page takes its colours from the profile photo (colourful, graceful)
 - [x] Restyle artist page (Spotify-style ref) and video comments (YouTube Music ref)
+
+- [x] QR scans without the app: Android opens app / Play Store; other phones get a Get-the-app sheet
+- [ ] App links file: add Play Console "App signing key" SHA-256 — waiting on the full key from the user (2F:CB:90…E5:8A already present)
+- [x] App update editor: Newest Android version code (latestVersionCode)
+- [x] Listening time + app sessions in Command Centre and User details
+- [x] Get-the-app banner no longer covers artist page back / ⋮ buttons
+- [x] Deleted comments with replies: text wiped, replies kept under "Comment deleted" (listener + admin)
