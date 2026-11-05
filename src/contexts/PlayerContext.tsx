@@ -729,6 +729,22 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     return () => window.removeEventListener("online", flushPendingPlays);
   }, [flushPendingPlays]);
 
+  // Listening time: while something plays, add the real seconds to that song's latest play.
+  const listenRef = useRef<{ songId: string; since: number } | null>(null);
+  useEffect(() => {
+    const flush = () => {
+      const l = listenRef.current;
+      if (!l) return;
+      const secs = Math.round((Date.now() - l.since) / 1000);
+      l.since = Date.now();
+      if (secs >= 1) supabase.rpc("add_play_seconds", { p_song_id: l.songId, p_seconds: secs }).then(() => {}, () => {});
+    };
+    if (isPlaying && currentSong?.id) listenRef.current = { songId: currentSong.id, since: Date.now() };
+    const t = window.setInterval(flush, 30000);
+    window.addEventListener("pagehide", flush);
+    return () => { flush(); listenRef.current = null; window.clearInterval(t); window.removeEventListener("pagehide", flush); };
+  }, [isPlaying, currentSong?.id]);
+
   /** Logs a play with the way it was started: listening, singing (karaoke) or watching (video). */
   const recordPlayFn = useCallback(async (songId: string, mode?: PlayMode) => {
     const playMode: PlayMode = mode ?? (isKaraokeRef.current ? "karaoke" : sessionModeRef.current);
