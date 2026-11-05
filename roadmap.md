@@ -119,3 +119,4 @@
 - [x] Listening time + app sessions in Command Centre and User details
 - [x] Get-the-app banner no longer covers artist page back / ⋮ buttons
 - [x] Deleted comments with replies: text wiped, replies kept under "Comment deleted" (listener + admin)
+- [x] 10-second free-listener playback break with admin-managed cards

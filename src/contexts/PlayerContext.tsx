@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchContinuation, type ContinueMode } from "@/lib/autoContinue";
 import { fetchAllRows } from "@/lib/fetchAll";
 import { PREFERRED_LANGUAGE_EVENT, preferredAudioFor, type PreferredLanguage } from "@/lib/preferredLanguage";
+import { runBreakGate } from "@/lib/playbackBreak";
 import { moveItem, removeItem, playNextItem, insertItem, shuffleAfter, restoreAfter, type QueueEdit } from "@/lib/queueOps";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -488,8 +489,13 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
           audio.play().catch(() => {});
           return;
         }
-        // Continuous play: stay in the same mode, adding more songs for it when the list is done.
-        resolveNext(karaokeMode).then((idx) => {
+        // Free listeners may get a short break first; then continue in the same mode.
+        runBreakGate(song).then((go) => {
+          if (!isCurrent()) return;
+          if (!go) { wantPlayingRef.current = false; setIsPlaying(false); stopInterval(); clearAutoPauseTimer(); return; }
+          return resolveNext(karaokeMode);
+        }).then((idx) => {
+          if (idx === undefined) return;
           if (!isCurrent()) return;
           if (idx < 0) {
             wantPlayingRef.current = false;

@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePlayerHidden } from "@/lib/playerVisibility";
 import ProfileUpdateModal from "@/components/profile/ProfileUpdateModal";
+import PlaybackBreak from "@/components/player/PlaybackBreak";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -41,6 +42,7 @@ const AppLayout = memo(({ children, mainClassName = "" }: AppLayoutProps) => {
         {children}
       </main>
       <PlayerBar desktopSidebarCollapsed={desktopSidebarCollapsed} />
+      <PlaybackBreak />
       <BottomNav />
       {user && !profileCompleted && (
         <ProfileUpdateModal

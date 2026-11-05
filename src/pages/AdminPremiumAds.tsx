@@ -29,6 +29,7 @@ const PLACEMENTS = [
   { value: "secondary_banner", label: "Home Secondary Banner" },
   { value: "library_banner", label: "Library Banner" },
   { value: "player_banner", label: "Player Banner" },
+  { value: "playback_break", label: "10-second Playback Break (image or video)" },
 ];
 
 const AdminPremiumAds = () => {
