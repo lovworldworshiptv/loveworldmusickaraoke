@@ -68,6 +68,17 @@ const AdminAnalytics = () => {
     },
   });
 
+  const listening = useQuery({
+    queryKey: ["admin-listening-stats", days],
+    enabled: isAdmin,
+    placeholderData: (previous) => previous,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_listening_stats", { p_days: days as number });
+      if (error) throw error;
+      return data as unknown as ListeningStats;
+    },
+  });
+
   const countries = useQuery({
     queryKey: ["admin-command-centre-countries", days],
     enabled: isAdmin,
@@ -154,6 +165,16 @@ const AdminAnalytics = () => {
                 <StatCard icon={Play} label="Plays" value={s.plays.total} sub={`${fmt(s.plays.all_time)} all time`} parts={[
                   { label: "Listened", value: s.plays.song }, { label: "Sung (karaoke)", value: s.plays.karaoke }, { label: "Watched (video)", value: s.plays.video }, { label: "Different songs", value: s.plays.songs_played },
                 ]} />
+                <div className={`${panel} p-4`}>
+                  <p className="text-xs text-muted-foreground">Total listening time</p>
+                  <p className="text-2xl font-bold text-foreground tabular-nums">{formatDuration(listening.data?.listen_seconds ?? 0)}</p>
+                  <p className="text-[11px] text-muted-foreground">{rangeLabel} · counted from now on</p>
+                </div>
+                <div className={`${panel} p-4`}>
+                  <p className="text-xs text-muted-foreground">Average session length</p>
+                  <p className="text-2xl font-bold text-foreground tabular-nums">{formatDuration(listening.data?.avg_session_seconds ?? 0)}</p>
+                  <p className="text-[11px] text-muted-foreground">{fmt(listening.data?.sessions ?? 0)} sessions · {rangeLabel}</p>
+                </div>
                 <StatCard icon={Music} label="Songs" value={s.songs.total} sub="in the library" parts={[
                   { label: "Featured", value: s.songs.featured }, { label: "With video", value: s.songs.with_video }, { label: "With lyrics", value: s.songs.with_lyrics }, { label: "With karaoke track", value: s.songs.with_karaoke_track }, { label: "Free to download", value: s.songs.free },
                 ]} />
