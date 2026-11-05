@@ -27,6 +27,19 @@ const AppUpdateEditor = () => {
       <Textarea placeholder="Message" value={n.message || ""} onChange={(e) => setN({ ...n, message: e.target.value })} />
       <Input placeholder="Button text (e.g. Update now)" value={n.buttonLabel || ""} onChange={(e) => setN({ ...n, buttonLabel: e.target.value })} />
       <Input placeholder="Update link (optional, https://…)" value={n.url || ""} onChange={(e) => setN({ ...n, url: e.target.value })} />
+      <div className="space-y-1">
+        <label htmlFor="latest-version-code" className="text-sm text-foreground">Newest Android version code (optional)</label>
+        <Input id="latest-version-code" type="number" inputMode="numeric" min={1} step={1} placeholder="e.g. 105"
+          value={n.latestVersionCode ?? ""}
+          onChange={(e) => {
+            const v = e.target.value.trim();
+            const num = Number(v);
+            const next = { ...n };
+            if (!v || !Number.isInteger(num) || num < 1) delete next.latestVersionCode; else next.latestVersionCode = num;
+            setN(next);
+          }} />
+        <p className="text-[11px] text-muted-foreground">Android phones already on this version or newer won't see the popup.</p>
+      </div>
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={send}>Send update to all users</Button>
         <Button variant="outline" onClick={() => save(n, "Update notice saved")}>Save without resending</Button>

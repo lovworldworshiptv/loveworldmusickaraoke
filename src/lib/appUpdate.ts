@@ -11,6 +11,8 @@ export type AppUpdateNotice = {
   buttonLabel?: string;
   /** Store/download link. Empty means "reload the website to the latest version". */
   url?: string;
+  /** Newest Android version code; the Android app hides the popup on this version or newer. */
+  latestVersionCode?: number;
 };
 
 /** True when the notice should be shown to someone who last updated to `updatedVersion`. */

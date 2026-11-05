@@ -30,6 +30,13 @@ const AppDownloadPrompt = () => {
     setShow(false);
   };
 
+  // Lets pages with top-corner buttons (artist page) move them below the banner on phones.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (show) root.style.setProperty("--app-banner-h", "5rem"); else root.style.removeProperty("--app-banner-h");
+    return () => root.style.removeProperty("--app-banner-h");
+  }, [show]);
+
   if (!show) return null;
   return (
     <div role="dialog" aria-label="Get the app"
