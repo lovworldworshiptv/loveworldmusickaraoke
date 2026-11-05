@@ -7,6 +7,7 @@ import { isMedianApp, nativeShare, openExternal } from "@/lib/median";
 import { logShareClick } from "@/lib/acquisitionAnalytics";
 import { APP_DOWNLOAD_URL } from "@/components/share/AppDownloadPrompt";
 import { CARD_STYLES, cardBaseUrl, cardFilename, cardLink, readCardStyle, saveCardStyle, type ShareCardFormat, type ShareCardItem, type ShareCardStyle } from "@/lib/shareCard";
+import { cardCacheKey, getCachedCard, putCachedCard } from "@/lib/shareCardCache";
 import logoUrl from "@/assets/logo.png";
 import kingschatLogo from "@/assets/kingschat_logo.png";
 import { WhatsAppIcon, XIcon, FacebookIcon, TelegramIcon } from "@/components/share/SocialIcons";
@@ -37,9 +38,12 @@ const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
     let cancelled = false;
     let url: string | null = null;
     setBlob(null); setPreview(null); setFailed(false);
-    import("@/lib/shareCardRender")
-      .then(({ renderShareCard }) => renderShareCard(item, format, style, link, logoUrl))
-      .then((canvas) => new Promise<Blob | null>((r) => canvas.toBlob(r, "image/png")))
+    const key = cardCacheKey({ kind: item.kind, id: item.id, style, format, title: item.title, subtitle: item.subtitle, coverUrl: item.coverUrl, link });
+    getCachedCard(key)
+      .then((hit) => hit ?? import("@/lib/shareCardRender")
+        .then(({ renderShareCard }) => renderShareCard(item, format, style, link, logoUrl))
+        .then((canvas) => new Promise<Blob | null>((r) => canvas.toBlob(r, "image/png")))
+        .then((b) => { if (b) putCachedCard(key, b); return b; }))
       .then((b) => {
         if (cancelled) return;
         if (!b) { setFailed(true); return; }
@@ -165,18 +169,26 @@ const ShareCardSheet = ({ item, open, onOpenChange }: ShareCardSheetProps) => {
           <p className="text-xs text-muted-foreground text-center">The song link is copied too, ready to paste as a link sticker.</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <button onClick={kingschat} className={cn(btn, "bg-muted/60 text-foreground hover:bg-muted")}>
-            <img src={kingschatLogo} alt="" className="w-4 h-4 rounded-sm" /> KingsChat
-          </button>
-          <button onClick={whatsapp} className={cn(btn, "bg-muted/60 text-foreground hover:bg-muted")}><WhatsAppIcon /> WhatsApp</button>
-          <button onClick={facebook} className={cn(btn, "bg-muted/60 text-foreground hover:bg-muted")}><FacebookIcon /> Facebook</button>
-          <button onClick={twitter} className={cn(btn, "bg-muted/60 text-foreground hover:bg-muted")}><XIcon /> X</button>
-          <button onClick={telegram} className={cn(btn, "bg-muted/60 text-foreground hover:bg-muted")}><TelegramIcon /> Telegram</button>
-          <button onClick={copy} className={cn(btn, "bg-muted/60 text-foreground hover:bg-muted")}>
-            {copied ? <Check className="w-4 h-4" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />} {copied ? "Copied" : "Copy link"}
-          </button>
-          <button onClick={save} disabled={!ready} className={cn(btn, "col-span-3 border border-gold/50 text-foreground hover:bg-gold/10")}>
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-foreground">Send the link</p>
+          <div className="grid grid-cols-6 gap-1">
+            {[
+              { label: "KingsChat", on: kingschat, icon: <img src={kingschatLogo} alt="" className="w-5 h-5 rounded-sm" /> },
+              { label: "WhatsApp", on: whatsapp, icon: <WhatsAppIcon /> },
+              { label: "Facebook", on: facebook, icon: <FacebookIcon /> },
+              { label: "X", on: twitter, icon: <XIcon /> },
+              { label: "Telegram", on: telegram, icon: <TelegramIcon /> },
+              { label: copied ? "Copied" : "Copy", on: copy, icon: copied ? <Check className="w-5 h-5 text-gold" aria-hidden="true" /> : <Copy className="w-5 h-5 text-gold" aria-hidden="true" /> },
+            ].map((s) => (
+              <button key={s.label} onClick={s.on} className="group flex flex-col items-center gap-1.5 rounded-xl py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
+                <span className="w-11 h-11 rounded-full glass border border-gold/25 flex items-center justify-center shadow-sm transition-all duration-200 group-hover:border-gold/60 group-hover:-translate-y-0.5 group-hover:shadow-[0_0_14px_hsl(var(--gold)/0.35)] group-active:scale-95">{s.icon}</span>
+                <span className="text-[11px] text-foreground/90 leading-none">{s.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <button onClick={save} disabled={!ready} className={cn(btn, "w-full border border-gold/50 text-foreground hover:bg-gold/10")}>
             <Download className="w-4 h-4" aria-hidden="true" /> Save image
           </button>
         </div>
