@@ -120,3 +120,7 @@
 - [x] Get-the-app banner no longer covers artist page back / ⋮ buttons
 - [x] Deleted comments with replies: text wiped, replies kept under "Comment deleted" (listener + admin)
 - [x] 10-second free-listener playback break with admin-managed cards
+
+## Feature posters — next updates
+- [ ] Choose an existing Stage Mode background for the “Project Lyrics Effortlessly” poster, preserving the real “The Healing Christ” app mockup and matching the previous designs.
+- [ ] Prepare all corrected poster designs as HD, large-format print editions, each at least 10 MB; retain exact app mockups, approved copy, branding and store logos. Verify print dimensions, effective resolution and visual sharpness rather than treating file size alone as print quality; save new versions and visually inspect every poster.
