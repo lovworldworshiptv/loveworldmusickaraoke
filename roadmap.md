@@ -122,5 +122,5 @@
 - [x] 10-second free-listener playback break with admin-managed cards
 
 ## Feature posters — next updates
-- [ ] Choose an existing Stage Mode background for the “Project Lyrics Effortlessly” poster, preserving the real “The Healing Christ” app mockup and matching the previous designs.
-- [ ] Prepare all corrected poster designs as HD, large-format print editions, each at least 10 MB; retain exact app mockups, approved copy, branding and store logos. Verify print dimensions, effective resolution and visual sharpness rather than treating file size alone as print quality; save new versions and visually inspect every poster.
+- [x] Choose Ocean sunset still for the “Project Lyrics Effortlessly” poster; capture real “The Healing Christ” Stage Mode at 1950 × 4220 and preserve the screen in a matching print layout.
+- [x] Export all six corrected posters as 6000 × 8824 sRGB PNGs with 200 DPI metadata, each over 10 MB; render headline text at print resolution, preserve app mockups and store branding, inspect every poster, refine lighting/edges/store sizing, and add print notes and new versions to the existing collection. Smaller source mockups are enlarged, not newly detailed; a physical print proof remains recommended.
