@@ -40,7 +40,7 @@ export function PlaylistPreviewCard({ cover, name, count, songs, onOpen, badge, 
           <ul className="mt-1.5 space-y-0.5">
             {firstThree.map((s, i) => (
               <li key={i} className="flex items-center gap-1.5 min-w-0">
-                <span aria-hidden className="w-1 h-1 rounded-full bg-primary/70 shrink-0" />
+                <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-primary/80 shrink-0" />
                 <span className="text-xs truncate text-foreground/80 min-w-0">
                   {s.title}
                   {s.artist && <span className="text-muted-foreground"> · {s.artist}</span>}
