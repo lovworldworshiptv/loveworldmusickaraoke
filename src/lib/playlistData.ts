@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetchAll";
 import { orderedPlaylistEntries } from "@/lib/playlistArtwork";
 
-const SONG_FIELDS = "id,title,artist,cover_url,audio_url,instrumental_url,lyrics_lrc,lyrics_text,duration_seconds,album,is_free_download";
+const SONG_FIELDS = "id,title,artist,cover_url,audio_url,instrumental_url,lyrics_lrc,lyrics_text,duration_seconds,album,category_id,original_language,is_free_download";
 
 /** Page child rows separately: paging playlists cannot page embedded songs. */
 export async function loadPlaylists(userId?: string, includeSongs = true): Promise<any[]> {
