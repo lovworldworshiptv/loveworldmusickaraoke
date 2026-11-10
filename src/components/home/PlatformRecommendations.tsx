@@ -41,7 +41,7 @@ const PlatformRecommendations = () => {
           const tint = cardGradient(color);
           return (
             <button key={p.id} onClick={() => navigate(`/collection/${p.id}?color=${encodeURIComponent(color)}`)}
-              className={`group snap-start flex-shrink-0 w-full md:w-[calc(50%_-_0.375rem)] lg:w-[29.6%] h-[199px] md:h-[173px] rounded-2xl p-3 text-left transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_14px_40px_hsl(var(--gold)/0.35)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${tint ? "border-0 shadow-lg" : "glass-card hover:border-gold/40"}`}
+              className={`group snap-start flex-shrink-0 w-full md:w-[calc(50%_-_0.375rem)] lg:w-[29.6%] h-[199px] md:h-[173px] rounded-2xl p-3 text-left transition-all duration-300 ease-out hover:-translate-y-1 hover:ring-2 hover:ring-gold/50 hover:shadow-[0_14px_40px_hsl(var(--gold)/0.35)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${tint ? "border-0 shadow-lg" : "glass-card hover:border-gold/40"}`}
               style={tint ? { background: tint } : undefined}>
               <div className="flex h-full gap-3">
                 <div className="aspect-square h-[88px] md:h-[73px] rounded-xl overflow-hidden flex-shrink-0 bg-muted">

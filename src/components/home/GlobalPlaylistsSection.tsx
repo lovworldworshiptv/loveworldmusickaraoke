@@ -96,7 +96,7 @@ const GlobalPlaylistsSection = () => {
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") navigate(`/collection/${playlist.id}?color=${encodeURIComponent(playlist.card_color || globalColor)}`);
               }}
-              className="group snap-start flex-shrink-0 w-full md:w-[calc(50%_-_0.375rem)] lg:w-[29.6%] h-[199px] md:h-[173px] rounded-2xl p-3 text-left cursor-pointer border-0 shadow-lg transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_14px_40px_hsl(var(--gold)/0.35)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+              className="group snap-start flex-shrink-0 w-full md:w-[calc(50%_-_0.375rem)] lg:w-[29.6%] h-[199px] md:h-[173px] rounded-2xl p-3 text-left cursor-pointer border-0 shadow-lg transition-all duration-300 ease-out hover:-translate-y-1 hover:ring-2 hover:ring-gold/50 hover:shadow-[0_14px_40px_hsl(var(--gold)/0.35)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
               style={{ background: cardGradient(playlist.card_color || globalColor) }}
             >
               <div className="flex h-full gap-3">
