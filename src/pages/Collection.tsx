@@ -13,10 +13,14 @@ import { ArrowLeft, ListMusic, Music2, Play, Shuffle } from "lucide-react";
 import { pageGradient } from "@/lib/siteSettings";
 import { Button } from "@/components/ui/button";
 import { loadDailyDiscover } from "@/components/home/DailyDiscover";
+import { loadPlaylistEntries } from "@/lib/playlistData";
+import { playlistArtwork } from "@/lib/playlistArtwork";
+import { useAuth } from "@/contexts/AuthContext";
 
 /** Collection of recommended songs behind a home recommendation card. */
 const Collection = () => {
   const { id } = useParams();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { playQueue, currentSong } = usePlayer();
   const { save, canSave } = useSaveSong();
@@ -45,17 +49,19 @@ const Collection = () => {
       });
       return;
     }
-    supabase.from("playlists").select(`name,description,cover_url,playlist_songs(sort_order,songs(${SONG_COLUMNS}))`).eq("id", id).maybeSingle()
-      .then(({ data }) => {
+    Promise.all([
+      supabase.from("playlists").select("name,description,cover_url,user_id").eq("id", id).maybeSingle(),
+      loadPlaylistEntries(id),
+    ]).then(([{ data }, entries]) => {
         const d = data as any;
         setName(d?.name || "Collection");
         setDescription(d?.description || null);
-        const rows = ((d?.playlist_songs || []) as any[]).sort((a, b) => a.sort_order - b.sort_order).map((x) => x.songs).filter(Boolean) as SongRow[];
+        const rows = entries.map((x) => x.songs).filter(Boolean) as SongRow[];
         setSongs(rows);
-        setCover(d?.cover_url || rows[0]?.cover_url || null);
+        setCover(playlistArtwork({ ...d, playlist_songs: entries }, !!user && d?.user_id === user.id));
         setLoading(false);
-      });
-  }, [id]);
+      }).catch(() => { setSongs([]); setCover(null); setLoading(false); });
+  }, [id, user?.id]);
 
   const queue = songs.map(toPlayerSong);
   const autoDescription = songs.length

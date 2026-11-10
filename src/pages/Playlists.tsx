@@ -8,6 +8,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetchAll";
+import { loadPlaylists } from "@/lib/playlistData";
+import { nextPlaylistOrder, orderedPlaylistEntries, playlistArtwork } from "@/lib/playlistArtwork";
+import PlaylistArtwork from "@/components/playlist/PlaylistArtwork";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ListMusic, Plus, Trash2, Play, Music, Shuffle, Pencil, Check, X, Minus, ChevronDown, Search, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,6 +37,7 @@ const Playlists = () => {
   const [allSongs, setAllSongs] = useState<any[]>([]);
   const [playlistSongIds, setPlaylistSongIds] = useState<Set<string>>(new Set());
   const [songSearch, setSongSearch] = useState("");
+  const nextOrderRef = useRef(0);
 
   const toggleExpanded = (id: string) => {
     setExpandedPlaylists(prev => {
@@ -47,28 +51,16 @@ const Playlists = () => {
     queryKey: ["playlists-page", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("playlists")
-        .select("id, name, cover_url, created_at, user_id, playlist_songs(id, song_id, sort_order, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album, is_free_download))")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as any[];
+      if (!user) return [];
+      return loadPlaylists(user.id);
     },
   });
 
   const { data: adminPlaylists = [] } = useQuery({
     queryKey: ["admin-playlists", user?.id],
     queryFn: async () => {
-      const selectFields = user
-        ? "id, name, cover_url, created_at, user_id, playlist_songs(id, song_id, sort_order, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, duration_seconds, album, is_free_download))"
-        : "id, name, cover_url, created_at, user_id";
-      const { data, error } = await supabase
-        .from("playlists")
-        .select(selectFields)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data as any[]).filter(p => p.user_id !== user?.id);
+      const data = await loadPlaylists(undefined, !!user);
+      return data.filter(p => p.user_id !== user?.id);
     },
   });
 
@@ -91,7 +83,8 @@ const Playlists = () => {
 
   const createPlaylist = useMutation({
     mutationFn: async (name: string) => {
-      const { error } = await supabase.from("playlists").insert({ name, user_id: user!.id });
+      if (!user) throw new Error("Sign in required");
+      const { error } = await supabase.from("playlists").insert({ name, user_id: user.id });
       if (error) throw error;
     },
     onError: () => toast.error("Couldn't create the playlist — please try again"),
@@ -140,10 +133,11 @@ const Playlists = () => {
     setSongSearch("");
     const [{ data: songs }, { data: existing }] = await Promise.all([
       fetchAllRows((from, to) => supabase.from("songs").select("id, title, artist, cover_url").order("title").order("id").range(from, to)).then((data) => ({ data }), () => ({ data: null })),
-      supabase.from("playlist_songs").select("song_id").eq("playlist_id", playlistId),
+      fetchAllRows((from, to) => supabase.from("playlist_songs").select("song_id,sort_order").eq("playlist_id", playlistId).order("id").range(from, to)).then((data) => ({ data })),
     ]);
     setAllSongs(sortSongsByTitle(songs || []));
     setPlaylistSongIds(new Set((existing || []).map((e) => e.song_id)));
+    nextOrderRef.current = nextPlaylistOrder(existing || []);
   };
 
   // The tick shows on the first tap; repeat taps wait for the save, and a failed save is undone.
@@ -156,13 +150,16 @@ const Playlists = () => {
     const adding = !playlistSongIds.has(songId);
     markSong(songId, adding);
     const { error } = adding
-      ? await supabase.from("playlist_songs").insert({ playlist_id: managingSongsPlaylistId, song_id: songId, sort_order: playlistSongIds.size })
+      ? await supabase.from("playlist_songs").insert({ playlist_id: managingSongsPlaylistId, song_id: songId, sort_order: nextOrderRef.current++ })
       : await supabase.from("playlist_songs").delete().eq("playlist_id", managingSongsPlaylistId).eq("song_id", songId);
     togglingIds.current.delete(songId);
     if (error) {
       markSong(songId, !adding);
       toast.error(adding ? "Couldn't add the song — please try again" : "Couldn't remove the song — please try again");
     }
+    queryClient.invalidateQueries({ queryKey: ["playlists-page"] });
+    queryClient.invalidateQueries({ queryKey: ["library-playlists"] });
+    queryClient.invalidateQueries({ queryKey: ["user-playlists-for-add"] });
   };
 
   const filteredSongs = allSongs.filter(s =>
@@ -180,7 +177,8 @@ const Playlists = () => {
   const formatDuration = (sec: number) => `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, "0")}`;
 
   const renderPlaylist = (pl: any, isOwn: boolean) => {
-    const playlistSongs = (pl.playlist_songs || []).filter((ps: any) => ps.songs);
+    const playlistSongs = orderedPlaylistEntries<any>(pl.playlist_songs || []).filter((ps: any) => ps.songs);
+    const cover = playlistArtwork(pl, isOwn);
     const songs = playlistSongs.map((ps: any) => toPlayerSong(ps.songs));
     const isEditing = editingId === pl.id;
     const requiresAuth = !user && !isOwn;
@@ -188,31 +186,33 @@ const Playlists = () => {
 
     return (
       <div key={pl.id} id={`playlist-${pl.id}`} className={`rounded-xl border p-4 transition-shadow duration-700 ${highlightId === pl.id ? "border-gold shadow-[0_0_24px_hsl(43_70%_53%/0.5)]" : "border-border"}`}>
-        <div className="flex items-center justify-between">
-          <button onClick={() => toggleExpanded(pl.id)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+          <Button variant="ghost" size="icon" onClick={() => toggleExpanded(pl.id)} aria-label={`${isExpanded ? "Collapse" : "Expand"} ${pl.name}`} aria-expanded={isExpanded} className="shrink-0 w-6 h-11">
             <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-0" : "-rotate-90"}`} />
-            <ListMusic className="w-5 h-5 text-primary shrink-0" />
+          </Button>
+            <PlaylistArtwork cover={cover} name={pl.name} />
             {isEditing ? (
               <form onSubmit={(e) => { e.preventDefault(); renamePlaylist(pl.id, editName); }} className="flex items-center gap-1 flex-1" onClick={e => e.stopPropagation()}>
                 <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-7 text-sm" autoFocus />
-                <button type="submit" className="p-1 text-green-500 hover:text-green-600"><Check className="w-4 h-4" /></button>
-                <button type="button" onClick={() => setEditingId(null)} className="p-1 text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+                <Button type="submit" variant="ghost" size="icon" aria-label="Save playlist name" className="w-7 h-7"><Check className="w-4 h-4" /></Button>
+                <Button type="button" variant="ghost" size="icon" aria-label="Cancel rename" onClick={() => setEditingId(null)} className="w-7 h-7"><X className="w-4 h-4" /></Button>
               </form>
             ) : (
               <>
-                <h3 className="font-semibold text-foreground truncate">{pl.name}</h3>
-                <span className="text-xs text-muted-foreground shrink-0">({songs.length})</span>
+                <Button variant="ghost" onClick={() => toggleExpanded(pl.id)} className="min-w-0 flex-1 justify-start px-0 hover:bg-transparent"><h3 className="font-semibold text-foreground truncate">{pl.name}</h3></Button>
+                {user && <span className="text-xs text-muted-foreground shrink-0">({songs.length})</span>}
                 {!isOwn && <span className="text-[10px] font-semibold uppercase tracking-wider text-gold bg-gold/10 px-2 py-0.5 rounded-full shrink-0">Official</span>}
               </>
             )}
-          </button>
+          </div>
           <div className="flex gap-1 shrink-0">
             <ShareMenu
               url={buildShareUrl(`/playlists?id=${pl.id}`)}
               title={pl.name}
               text={`Check out this playlist: ${pl.name}`}
-              imageUrl={pl.cover_url || (songs[0]?.coverUrl ? songs[0].coverUrl : undefined)}
-              card={isOwn ? undefined : { kind: "playlist", id: pl.id, title: pl.name, subtitle: `${songs.length} songs`, coverUrl: pl.cover_url || songs[0]?.coverUrl }}
+              imageUrl={cover || undefined}
+              card={isOwn ? undefined : { kind: "playlist", id: pl.id, title: pl.name, subtitle: `${songs.length} songs`, coverUrl: cover || undefined }}
             />
             {songs.length > 0 && (
               <>
@@ -229,7 +229,7 @@ const Playlists = () => {
                 <button onClick={() => openManageSongs(pl.id)} className="p-2 text-muted-foreground hover:text-primary transition-colors" title="Manage songs">
                   <Settings2 className="w-4 h-4" />
                 </button>
-                <button onClick={() => { setEditingId(pl.id); setEditName(pl.name); }} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
+                <button aria-label={`Rename ${pl.name}`} onClick={() => { setEditingId(pl.id); setEditName(pl.name); }} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
                   <Pencil className="w-4 h-4" />
                 </button>
                 <button onClick={() => deletePlaylist.mutate(pl.id)} disabled={deletePlaylist.isPending && deletePlaylist.variables === pl.id} aria-label="Delete playlist" className="p-2 disabled:opacity-50 text-muted-foreground hover:text-destructive transition-colors">
