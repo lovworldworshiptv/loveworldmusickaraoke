@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] User playlists: first-song artwork in playlist lists and picker, fully paged tracks, stable append order; verify naming and artwork changes signed-in.
 - [x] Make "King Of Eternity" a free download (all three identical copies; shown once on the home row)
 - [x] Voice search in the search box (titles + lyrics, fast matching) — signed-in end-to-end tap not yet tried
 - [x] Remove the song count "(1)" beside "Available For Free Download" on the home page
