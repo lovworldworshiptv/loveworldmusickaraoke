@@ -96,16 +96,16 @@ const GlobalPlaylistsSection = () => {
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") navigate(`/collection/${playlist.id}?color=${encodeURIComponent(playlist.card_color || globalColor)}`);
               }}
-              className="snap-start flex-shrink-0 w-full md:w-[calc(50%_-_0.375rem)] lg:w-[29.6%] h-[199px] md:h-[173px] rounded-2xl p-3 text-left cursor-pointer border-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+              className="group snap-start flex-shrink-0 w-full md:w-[calc(50%_-_0.375rem)] lg:w-[29.6%] h-[199px] md:h-[173px] rounded-2xl p-3 text-left cursor-pointer border-0 shadow-lg transition-all duration-300 ease-out hover:-translate-y-1 hover:ring-2 hover:ring-gold/50 hover:shadow-[0_14px_40px_hsl(var(--gold)/0.35)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
               style={{ background: cardGradient(playlist.card_color || globalColor) }}
             >
               <div className="flex h-full gap-3">
                 <div className="aspect-square h-[88px] md:h-[73px] rounded-xl overflow-hidden flex-shrink-0 bg-muted">
                   {cover ? (
-                    <img src={cover} alt={playlist.name} className="w-full h-full object-cover" loading="lazy" />
+                    <img src={cover} alt={playlist.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <ListMusic className="w-8 h-8 text-gold/60" />
+                      <ListMusic className="w-8 h-8 text-gold/60 transition-colors duration-300 group-hover:text-gold" />
                     </div>
                   )}
                 </div>
@@ -120,7 +120,7 @@ const GlobalPlaylistsSection = () => {
                         playQueue(orderedSongs);
                       }}
                       aria-label={`Play ${playlist.name}`}
-                      className="mt-auto self-end w-9 h-9 rounded-full gradient-gold flex items-center justify-center shadow-[0_2px_12px_hsl(var(--gold)/0.4)]"
+                      className="mt-auto self-end w-9 h-9 rounded-full gradient-gold flex items-center justify-center shadow-[0_2px_12px_hsl(var(--gold)/0.4)] transition-transform duration-200 hover:scale-110 active:scale-95"
                     >
                       <Play className="w-4 h-4 text-white ml-0.5" fill="currentColor" />
                     </button>

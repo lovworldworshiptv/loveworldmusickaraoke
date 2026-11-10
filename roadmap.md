@@ -1,6 +1,7 @@
 # Roadmap
 - [x] User playlists: first-song artwork in playlist lists and picker, fully paged tracks, stable append order; nine tests pass and signed-in creation, renaming, Library artwork and removal verified with a temporary playlist cleaned up.
 - [x] Playlist preview rows: no numbering, small gold dot in front of each of the first three songs; verified signed-in on /library?tab=playlists and /playlists.
+- [x] Playlist hover effects: preview cards lift with a gold border, gold title, glow and a chevron cue; home playlist rails lift with a gold ring, glow, cover zoom and play-button scale; verified hovered and resting states in the preview.
 - [x] Make "King Of Eternity" a free download (all three identical copies; shown once on the home row)
 - [x] Voice search in the search box (titles + lyrics, fast matching) — signed-in end-to-end tap not yet tried
 - [x] Remove the song count "(1)" beside "Available For Free Download" on the home page
