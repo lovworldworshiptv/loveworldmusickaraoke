@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetchAll";
 import { loadPlaylists } from "@/lib/playlistData";
 import { playlistArtwork } from "@/lib/playlistArtwork";
-import PlaylistArtwork from "@/components/playlist/PlaylistArtwork";
+import { PlaylistHero, PlaylistPreviewCard } from "@/components/playlist/PlaylistViews";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -167,6 +167,7 @@ const Library = () => {
     },
   });
 
+  const [openPlaylistId, setOpenPlaylistId] = useState<string | null>(null);
   // Fetch playlists
   const { data: playlists = [], isLoading: loadingPlaylists } = useQuery({
     queryKey: ["library-playlists", user?.id],
@@ -729,26 +730,28 @@ const Library = () => {
 
                 ) : (
                   <div className="space-y-4">
-                    {filteredPlaylists.map((pl: any) => {
+                    {(openPlaylistId ? filteredPlaylists.filter((p: any) => p.id === openPlaylistId) : filteredPlaylists).map((pl: any) => {
                       const plMatchesName = q ? fuzzyMatch(q, [pl.name]) : false;
                       const visibleSongs = (pl.playlist_songs || []).filter((ps: any) => ps.songs && (!q || plMatchesName || matchesSong(ps.songs)));
+                      const total = pl.playlist_songs?.length ?? 0;
+                      const plSongs = visibleSongs.map((ps: any) => toPlayerSong(ps.songs));
+                      const del = (
+                        <button onClick={() => { deletePlaylist.mutate(pl.id); setOpenPlaylistId(null); }} aria-label={`Delete ${pl.name}`} className="p-2 text-muted-foreground hover:text-destructive transition-colors touch-target">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      );
+                      if (openPlaylistId !== pl.id) {
+                        return <PlaylistPreviewCard key={pl.id} cover={playlistArtwork(pl)} name={<Highlight text={pl.name} query={q} />} count={total} songs={visibleSongs.map((ps: any) => ps.songs)} onOpen={() => { setOpenPlaylistId(pl.id); window.scrollTo({ top: 0 }); }} actions={del} />;
+                      }
                       return (
-                      <div key={pl.id} className="rounded-xl border border-border p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <PlaylistArtwork cover={playlistArtwork(pl)} name={pl.name} />
-                            <div className="min-w-0">
-                            <h3 className="font-semibold text-foreground truncate"><Highlight text={pl.name} query={q} /></h3>
-                            <span className="text-xs text-muted-foreground">{pl.playlist_songs?.length ?? 0} songs</span>
-                            </div>
-                          </div>
-                          <button onClick={() => deletePlaylist.mutate(pl.id)} className="p-2 text-muted-foreground hover:text-destructive transition-colors touch-target">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                      <div key={pl.id}>
+                        <PlaylistHero cover={playlistArtwork(pl)} name={pl.name} count={total} onBack={() => setOpenPlaylistId(null)} actions={<>
+                          {plSongs.length > 0 && <Button size="sm" className="gradient-gold text-primary-foreground gap-1" onClick={() => playQueue(plSongs)}><Play className="w-3.5 h-3.5" fill="currentColor" /> Play</Button>}
+                          {del}
+                        </>} />
                         {visibleSongs.length > 0 ? (
                           <div className="space-y-1">
-                            {(() => { const plSongs = visibleSongs.map((ps: any) => toPlayerSong(ps.songs)); return visibleSongs.map((ps: any, i: number) => <SongRowItem key={ps.id} song={ps.songs} index={i} songList={plSongs} compactActions onRemove={() => removeFromPlaylist(pl.id, ps)} removeLabel={`Remove ${ps.songs.title} from ${pl.name}`} />); })()}
+                            {visibleSongs.map((ps: any, i: number) => <SongRowItem key={ps.id} song={ps.songs} index={i} songList={plSongs} compactActions onRemove={() => removeFromPlaylist(pl.id, ps)} removeLabel={`Remove ${ps.songs.title} from ${pl.name}`} />)}
                           </div>
                         ) : (
                           <p className="text-xs text-muted-foreground">{q ? "No matching songs in this playlist" : "No songs in this playlist"}</p>
