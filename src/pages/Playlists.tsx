@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetchAll";
 import { loadPlaylists } from "@/lib/playlistData";
 import { nextPlaylistOrder, orderedPlaylistEntries, playlistArtwork } from "@/lib/playlistArtwork";
-import PlaylistArtwork from "@/components/playlist/PlaylistArtwork";
+import { PlaylistHero, PlaylistPreviewCard } from "@/components/playlist/PlaylistViews";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ListMusic, Plus, Trash2, Play, Music, Shuffle, Pencil, Check, X, Minus, ChevronDown, Search, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,7 @@ const Playlists = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
-  const [expandedPlaylists, setExpandedPlaylists] = useState<Set<string>>(new Set());
+  const [openId, setOpenId] = useState<string | null>(null);
 
   // Manage songs state
   const [managingSongsPlaylistId, setManagingSongsPlaylistId] = useState<string | null>(null);
@@ -39,13 +39,7 @@ const Playlists = () => {
   const [songSearch, setSongSearch] = useState("");
   const nextOrderRef = useRef(0);
 
-  const toggleExpanded = (id: string) => {
-    setExpandedPlaylists(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
+  const openPlaylist = (id: string | null) => { setOpenId(id); window.scrollTo({ top: 0 }); };
 
   const { data: myPlaylists = [], isLoading } = useQuery({
     queryKey: ["playlists-page", user?.id],
@@ -66,7 +60,6 @@ const Playlists = () => {
 
   const [searchParams] = useSearchParams();
   const linkedId = searchParams.get("id");
-  const [highlightId, setHighlightId] = useState<string | null>(null);
   const handledLink = useRef<string | null>(null);
   useEffect(() => {
     if (!linkedId || handledLink.current === linkedId) return;
@@ -74,11 +67,7 @@ const Playlists = () => {
     if (all.length === 0) return;
     handledLink.current = linkedId;
     if (!all.some((p: any) => p.id === linkedId)) { toast.error("Playlist not available"); return; }
-    setExpandedPlaylists(prev => new Set(prev).add(linkedId));
-    setHighlightId(linkedId);
-    requestAnimationFrame(() => document.getElementById(`playlist-${linkedId}`)?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" }));
-    const t = setTimeout(() => setHighlightId(null), 2500);
-    return () => clearTimeout(t);
+    setOpenId(linkedId);
   }, [linkedId, adminPlaylists, myPlaylists]);
 
   const createPlaylist = useMutation({
@@ -182,65 +171,62 @@ const Playlists = () => {
     const songs = playlistSongs.map((ps: any) => toPlayerSong(ps.songs));
     const isEditing = editingId === pl.id;
     const requiresAuth = !user && !isOwn;
-    const isExpanded = expandedPlaylists.has(pl.id);
+    const isOpen = openId === pl.id;
+    const officialBadge = !isOwn ? <span className="text-[10px] font-semibold uppercase tracking-wider text-gold bg-gold/10 px-2 py-0.5 rounded-full">Official</span> : null;
+    const actions = (
+      <>
+        <ShareMenu
+          url={buildShareUrl(`/playlists?id=${pl.id}`)}
+          title={pl.name}
+          text={`Check out this playlist: ${pl.name}`}
+          imageUrl={cover || undefined}
+          card={isOwn ? undefined : { kind: "playlist", id: pl.id, title: pl.name, subtitle: `${songs.length} songs`, coverUrl: cover || undefined }}
+        />
+        {songs.length > 0 && (
+          <>
+            <button onClick={() => playQueue(songs)} aria-label={`Play ${pl.name}`} className="w-8 h-8 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_2px_12px_hsl(43_70%_53%/0.4)] ring-1 ring-white/20 hover:scale-110 transition-transform">
+              <Play className="w-3.5 h-3.5 text-white ml-0.5 drop-shadow-sm" fill="currentColor" />
+            </button>
+            {isOpen && (
+              <button onClick={() => { const shuffled = [...songs].sort(() => Math.random() - 0.5); playQueue(shuffled); }} aria-label={`Shuffle ${pl.name}`} className="p-2 text-gold hover:bg-gold/10 rounded-lg transition-colors">
+                <Shuffle className="w-4 h-4" />
+              </button>
+            )}
+          </>
+        )}
+        {isOpen && isOwn && !isEditing && (
+          <>
+            <button onClick={() => openManageSongs(pl.id)} className="p-2 text-muted-foreground hover:text-primary transition-colors" title="Manage songs">
+              <Settings2 className="w-4 h-4" />
+            </button>
+            <button aria-label={`Rename ${pl.name}`} onClick={() => { setEditingId(pl.id); setEditName(pl.name); }} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button onClick={() => { deletePlaylist.mutate(pl.id); setOpenId(null); }} disabled={deletePlaylist.isPending && deletePlaylist.variables === pl.id} aria-label="Delete playlist" className="p-2 disabled:opacity-50 text-muted-foreground hover:text-destructive transition-colors">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </>
+        )}
+      </>
+    );
+
+    if (!isOpen) {
+      return (
+        <PlaylistPreviewCard key={pl.id} cover={cover} name={pl.name} count={songs.length} songs={songs} onOpen={() => openPlaylist(pl.id)} badge={officialBadge} actions={actions} />
+      );
+    }
+
+    const title = isEditing ? (
+      <form onSubmit={(e) => { e.preventDefault(); renamePlaylist(pl.id, editName); }} className="flex items-center gap-1">
+        <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8 text-sm" autoFocus />
+        <Button type="submit" variant="ghost" size="icon" aria-label="Save playlist name" className="w-7 h-7"><Check className="w-4 h-4" /></Button>
+        <Button type="button" variant="ghost" size="icon" aria-label="Cancel rename" onClick={() => setEditingId(null)} className="w-7 h-7"><X className="w-4 h-4" /></Button>
+      </form>
+    ) : pl.name;
 
     return (
-      <div key={pl.id} id={`playlist-${pl.id}`} className={`rounded-xl border p-4 transition-shadow duration-700 ${highlightId === pl.id ? "border-gold shadow-[0_0_24px_hsl(43_70%_53%/0.5)]" : "border-border"}`}>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 w-full min-w-0">
-          <Button variant="ghost" size="icon" onClick={() => toggleExpanded(pl.id)} aria-label={`${isExpanded ? "Collapse" : "Expand"} ${pl.name}`} aria-expanded={isExpanded} className="shrink-0 w-6 h-11">
-            <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-0" : "-rotate-90"}`} />
-          </Button>
-            <PlaylistArtwork cover={cover} name={pl.name} />
-            {isEditing ? (
-              <form onSubmit={(e) => { e.preventDefault(); renamePlaylist(pl.id, editName); }} className="flex items-center gap-1 flex-1" onClick={e => e.stopPropagation()}>
-                <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-7 text-sm" autoFocus />
-                <Button type="submit" variant="ghost" size="icon" aria-label="Save playlist name" className="w-7 h-7"><Check className="w-4 h-4" /></Button>
-                <Button type="button" variant="ghost" size="icon" aria-label="Cancel rename" onClick={() => setEditingId(null)} className="w-7 h-7"><X className="w-4 h-4" /></Button>
-              </form>
-            ) : (
-              <>
-                <Button variant="ghost" onClick={() => toggleExpanded(pl.id)} className="min-w-0 flex-1 justify-start px-0 hover:bg-transparent"><h3 className="font-semibold text-foreground truncate">{pl.name}</h3></Button>
-                {user && <span className="text-xs text-muted-foreground shrink-0">({songs.length})</span>}
-                {!isOwn && <span className="text-[10px] font-semibold uppercase tracking-wider text-gold bg-gold/10 px-2 py-0.5 rounded-full shrink-0">Official</span>}
-              </>
-            )}
-          </div>
-          <div className="flex gap-1 shrink-0 ml-auto">
-            <ShareMenu
-              url={buildShareUrl(`/playlists?id=${pl.id}`)}
-              title={pl.name}
-              text={`Check out this playlist: ${pl.name}`}
-              imageUrl={cover || undefined}
-              card={isOwn ? undefined : { kind: "playlist", id: pl.id, title: pl.name, subtitle: `${songs.length} songs`, coverUrl: cover || undefined }}
-            />
-            {songs.length > 0 && (
-              <>
-                <button onClick={() => playQueue(songs)} className="w-8 h-8 rounded-full bg-gradient-to-br from-gold via-gold-light to-gold flex items-center justify-center shadow-[0_2px_12px_hsl(43_70%_53%/0.4)] ring-1 ring-white/20 hover:scale-110 transition-transform">
-                  <Play className="w-3.5 h-3.5 text-white ml-0.5 drop-shadow-sm" fill="currentColor" />
-                </button>
-                <button onClick={() => { const shuffled = [...songs].sort(() => Math.random() - 0.5); playQueue(shuffled); }} aria-label={`Shuffle ${pl.name}`} className="p-2 text-gold hover:bg-gold/10 rounded-lg transition-colors">
-                  <Shuffle className="w-4 h-4" />
-                </button>
-              </>
-            )}
-            {isOwn && !isEditing && (
-              <>
-                <button onClick={() => openManageSongs(pl.id)} className="p-2 text-muted-foreground hover:text-primary transition-colors" title="Manage songs">
-                  <Settings2 className="w-4 h-4" />
-                </button>
-                <button aria-label={`Rename ${pl.name}`} onClick={() => { setEditingId(pl.id); setEditName(pl.name); }} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button onClick={() => deletePlaylist.mutate(pl.id)} disabled={deletePlaylist.isPending && deletePlaylist.variables === pl.id} aria-label="Delete playlist" className="p-2 disabled:opacity-50 text-muted-foreground hover:text-destructive transition-colors">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-        {isExpanded && (
-          <div className="mt-3">
+      <div key={pl.id}>
+        <PlaylistHero cover={cover} name={title} count={songs.length} onBack={() => openPlaylist(null)} badge={officialBadge} actions={actions} />
             {requiresAuth ? (
               <div className="text-center py-4">
                 <p className="text-sm text-muted-foreground mb-2">Sign in to view tracks in this playlist</p>
@@ -281,8 +267,6 @@ const Playlists = () => {
             ) : (
               <p className="text-xs text-muted-foreground">No songs in this playlist</p>
             )}
-          </div>
-        )}
       </div>
     );
   };
@@ -310,10 +294,13 @@ const Playlists = () => {
           )}
         </div>
 
+        {openId && [...adminPlaylists, ...myPlaylists].some((p: any) => p.id === openId) ? (
+          (() => { const own = myPlaylists.find((p: any) => p.id === openId); return own ? renderPlaylist(own, true) : renderPlaylist(adminPlaylists.find((p: any) => p.id === openId), false); })()
+        ) : (<>
         {adminPlaylists.length > 0 && (
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Official Playlists</h3>
-            <div className="space-y-4">{adminPlaylists.map((pl: any) => renderPlaylist(pl, false))}</div>
+            <div className="space-y-3">{adminPlaylists.map((pl: any) => renderPlaylist(pl, false))}</div>
           </div>
         )}
 
@@ -331,6 +318,7 @@ const Playlists = () => {
             {myPlaylists.map((pl: any) => renderPlaylist(pl, true))}
           </div>
         ) : null}
+        </>)}
       </div>
 
       {/* Manage Songs Dialog */}
