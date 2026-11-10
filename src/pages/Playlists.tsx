@@ -187,7 +187,7 @@ const Playlists = () => {
     return (
       <div key={pl.id} id={`playlist-${pl.id}`} className={`rounded-xl border p-4 transition-shadow duration-700 ${highlightId === pl.id ? "border-gold shadow-[0_0_24px_hsl(43_70%_53%/0.5)]" : "border-border"}`}>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="flex items-center gap-2 w-full min-w-0">
           <Button variant="ghost" size="icon" onClick={() => toggleExpanded(pl.id)} aria-label={`${isExpanded ? "Collapse" : "Expand"} ${pl.name}`} aria-expanded={isExpanded} className="shrink-0 w-6 h-11">
             <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-0" : "-rotate-90"}`} />
           </Button>
@@ -206,7 +206,7 @@ const Playlists = () => {
               </>
             )}
           </div>
-          <div className="flex gap-1 shrink-0">
+          <div className="flex gap-1 shrink-0 ml-auto">
             <ShareMenu
               url={buildShareUrl(`/playlists?id=${pl.id}`)}
               title={pl.name}
