@@ -37,14 +37,14 @@ export function PlaylistPreviewCard({ cover, name, count, songs, onOpen, badge, 
           {actions && <div className="flex gap-1 shrink-0">{actions}</div>}
         </div>
         {firstThree.length > 0 ? (
-          <ol className="mt-1.5 space-y-0.5">
+          <ul className="mt-1.5 space-y-0.5">
             {firstThree.map((s, i) => (
               <li key={i} className="text-xs truncate text-foreground/80">
-                <span className="text-muted-foreground mr-1.5">{i + 1}.</span>{s.title}
+                {s.title}
                 {s.artist && <span className="text-muted-foreground"> · {s.artist}</span>}
               </li>
             ))}
-          </ol>
+          </ul>
         ) : <p className="mt-1.5 text-xs text-muted-foreground">No songs yet</p>}
       </div>
     </div>
