@@ -7,6 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { loadPlaylists } from "@/lib/playlistData";
+import { playlistArtwork } from "@/lib/playlistArtwork";
+import PlaylistArtwork from "@/components/playlist/PlaylistArtwork";
 
 interface AddToPlaylistModalProps {
   open: boolean;
@@ -26,12 +29,8 @@ const AddToPlaylistModal = ({ open, onOpenChange, songId, songTitle }: AddToPlay
     queryKey: ["user-playlists-for-add", user?.id],
     enabled: !!user && open,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("playlists")
-        .select("id, name, playlist_songs(song_id)")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: false });
-      return (data || []) as any[];
+      if (!user) return [];
+      return loadPlaylists(user.id);
     },
   });
 
@@ -39,6 +38,7 @@ const AddToPlaylistModal = ({ open, onOpenChange, songId, songTitle }: AddToPlay
     (pl.playlist_songs || []).some((ps: any) => ps.song_id === songId);
 
   const addToPlaylist = async (playlistId: string) => {
+    if (addingTo) return;
     setAddingTo(playlistId);
     try {
       const { data: existing } = await supabase
@@ -91,9 +91,10 @@ const AddToPlaylistModal = ({ open, onOpenChange, songId, songTitle }: AddToPlay
         .single();
       if (error) throw error;
 
-      await supabase
+      const { error: songError } = await supabase
         .from("playlist_songs")
         .insert({ playlist_id: data.id, song_id: songId, sort_order: 0 });
+      if (songError) throw songError;
 
       toast.success(`Created "${newName.trim()}" and added song!`);
       setNewName("");
@@ -136,22 +137,22 @@ const AddToPlaylistModal = ({ open, onOpenChange, songId, songTitle }: AddToPlay
             playlists.map((pl: any) => {
               const alreadyIn = isSongInPlaylist(pl);
               return (
-                <button
+                <Button variant="ghost"
                   key={pl.id}
                   onClick={() => !alreadyIn && addToPlaylist(pl.id)}
-                  disabled={alreadyIn || addingTo === pl.id}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                  disabled={alreadyIn || !!addingTo}
+                  className={`w-full h-auto flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
                     alreadyIn ? "opacity-60 cursor-default" : "hover:bg-muted/60"
                   }`}
                 >
-                  <ListMusic className="w-4 h-4 text-primary shrink-0" />
+                  <PlaylistArtwork cover={playlistArtwork(pl)} name={pl.name} />
                   <span className="text-sm font-medium text-foreground truncate flex-1">{pl.name}</span>
                   {alreadyIn ? (
                     <Check className="w-4 h-4 text-green-500 shrink-0" />
                   ) : addingTo === pl.id ? (
                     <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0" />
                   ) : null}
-                </button>
+                </Button>
               );
             })
           )}

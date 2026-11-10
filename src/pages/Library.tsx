@@ -10,6 +10,9 @@ import { usePlayer, type PlayerSong } from "@/contexts/PlayerContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetchAll";
+import { loadPlaylists } from "@/lib/playlistData";
+import { playlistArtwork } from "@/lib/playlistArtwork";
+import PlaylistArtwork from "@/components/playlist/PlaylistArtwork";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -169,9 +172,8 @@ const Library = () => {
     queryKey: ["library-playlists", user?.id],
     enabled: !!user && isOnline,
     queryFn: async () => {
-      const { data, error } = await supabase.from("playlists").select("id, name, cover_url, created_at, playlist_songs(id, song_id, sort_order, songs(id, title, artist, cover_url, audio_url, instrumental_url, lyrics_lrc, lyrics_text, duration_seconds, album))").eq("user_id", user!.id).order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as any[];
+      if (!user) return [];
+      return loadPlaylists(user.id);
     },
   });
 
@@ -276,6 +278,8 @@ const Library = () => {
       },
     });
     queryClient.invalidateQueries({ queryKey: playlistsKey });
+    queryClient.invalidateQueries({ queryKey: ["playlists-page"] });
+    queryClient.invalidateQueries({ queryKey: ["user-playlists-for-add"] });
   };
 
 
@@ -731,10 +735,12 @@ const Library = () => {
                       return (
                       <div key={pl.id} className="rounded-xl border border-border p-4">
                         <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <ListMusic className="w-5 h-5 text-primary" />
-                            <h3 className="font-semibold text-foreground"><Highlight text={pl.name} query={q} /></h3>
-                            <span className="text-xs text-muted-foreground">({pl.playlist_songs?.length ?? 0} songs)</span>
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <PlaylistArtwork cover={playlistArtwork(pl)} name={pl.name} />
+                            <div className="min-w-0">
+                            <h3 className="font-semibold text-foreground truncate"><Highlight text={pl.name} query={q} /></h3>
+                            <span className="text-xs text-muted-foreground">{pl.playlist_songs?.length ?? 0} songs</span>
+                            </div>
                           </div>
                           <button onClick={() => deletePlaylist.mutate(pl.id)} className="p-2 text-muted-foreground hover:text-destructive transition-colors touch-target">
                             <Trash2 className="w-4 h-4" />
