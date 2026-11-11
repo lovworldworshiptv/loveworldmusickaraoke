@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS "Follows readable" ON public.artist_follows;
+CREATE POLICY "Users read own follows" ON public.artist_follows FOR SELECT TO authenticated USING (user_id = (SELECT auth.uid()) OR public.has_role((SELECT auth.uid()), 'admin'));
