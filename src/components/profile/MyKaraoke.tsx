@@ -1,3 +1,4 @@
+import { withPlayUrls } from "@/lib/karaokeAudio";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +14,7 @@ interface Recording {
   song_id: string;
   song_title: string;
   audio_url: string;
+  play_url?: string;
   created_at: string;
 }
 
@@ -54,7 +56,7 @@ const MyKaraoke = () => {
       .eq("user_id", user.id)
       .gte("created_at", new Date(Date.now() - 24 * 3600000).toISOString())
       .order("created_at", { ascending: false }) as any;
-    const recs: Recording[] = data || [];
+    const recs: Recording[] = await withPlayUrls(data || []);
     setRecordings(recs);
     setLoading(false);
 
@@ -150,7 +152,7 @@ const MyKaraoke = () => {
   const playRecording = (rec: Recording) => {
     if (playingId === rec.id) { audioRef.current?.pause(); setPlayingId(null); return; }
     audioRef.current?.pause();
-    const audio = new Audio(rec.audio_url);
+    const audio = new Audio(rec.play_url || rec.audio_url);
     audio.onended = () => setPlayingId(null);
     audio.play();
     audioRef.current = audio;
