@@ -69,7 +69,7 @@ const PublicProfile = () => {
       supabase.rpc("get_public_profile", { p_user_id: userId }),
       supabase.rpc("get_public_recently_played", { p_user_id: userId, p_limit: 5 }),
       supabase.rpc("get_public_karaoke", { p_user_id: userId }),
-    ]).then(([profileRes, recentRes, karaokeRes]) => {
+    ]).then(async ([profileRes, recentRes, karaokeRes]) => {
       if (profileRes.data && (profileRes.data as any[]).length > 0) {
         setProfile((profileRes.data as any[])[0]);
       }
