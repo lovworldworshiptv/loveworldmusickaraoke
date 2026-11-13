@@ -330,6 +330,13 @@
       "when": 1794598254078,
       "tag": "0046_karaoke_signed_in_only",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1794598946501,
+      "tag": "0047_karaoke_storage_bound_read",
+      "breakpoints": true
     }
   ]
 }
