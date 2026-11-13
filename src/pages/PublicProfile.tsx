@@ -1,3 +1,4 @@
+import { withPlayUrls } from "@/lib/karaokeAudio";
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
@@ -29,6 +30,7 @@ interface KaraokeRecording {
   song_id: string;
   song_title: string;
   audio_url: string;
+  play_url?: string;
   created_at: string;
   caption: string | null;
 }
@@ -72,7 +74,7 @@ const PublicProfile = () => {
         setProfile((profileRes.data as any[])[0]);
       }
       setRecentTracks((recentRes.data as RecentTrack[]) || []);
-      setKaraoke((karaokeRes.data as unknown as KaraokeRecording[]) || []);
+      setKaraoke(await withPlayUrls((karaokeRes.data as unknown as KaraokeRecording[]) || []));
       setLoading(false);
     });
   }, [userId]);
@@ -84,7 +86,7 @@ const PublicProfile = () => {
       return;
     }
     karaokeAudio?.pause();
-    const audio = new Audio(rec.audio_url);
+    const audio = new Audio(rec.play_url || rec.audio_url);
     audio.play();
     audio.onended = () => setPlayingKaraoke(null);
     setKaraokeAudio(audio);

@@ -1,3 +1,4 @@
+import { karaokeAudioUrl } from "@/lib/karaokeAudio";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -149,7 +150,7 @@ const Studio = () => {
   const keepCloud = async (c: (typeof cloudRecs)[number]) => {
     setSavingCloud(c.id);
     try {
-      const res = await fetch(c.audio_url);
+      const res = await fetch(await karaokeAudioUrl(c.audio_url));
       if (!res.ok) throw new Error();
       const blob = await res.blob();
       await saveStudioRecording(blob, {

@@ -1,3 +1,4 @@
+import { withPlayUrls } from "@/lib/karaokeAudio";
 import { useHomeState } from "@/lib/homeMemory";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +15,7 @@ interface KaraokeStory {
   avatar_url: string | null;
   song_title: string;
   audio_url: string;
+  play_url?: string;
   caption: string | null;
   created_at: string;
 }
@@ -98,7 +100,7 @@ const KaraokeStories = () => {
           avatar_url: profiles[d.user_id].avatar_url,
         }));
 
-      setStories(enriched);
+      setStories(await withPlayUrls(enriched));
     };
 
     fetchStories();
@@ -110,7 +112,7 @@ const KaraokeStories = () => {
     if (!story) return;
     setActiveIndex(index);
     recordView(story.id);
-    const audio = new Audio(story.audio_url);
+    const audio = new Audio(story.play_url || story.audio_url);
     audio.onended = () => {
       if (index + 1 < stories.length) {
         playStoryAt(index + 1);

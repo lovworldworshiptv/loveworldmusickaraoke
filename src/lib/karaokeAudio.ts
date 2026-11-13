@@ -11,3 +11,8 @@ export async function karaokeAudioUrl(stored: string): Promise<string> {
   if (error || !data?.signedUrl) throw error ?? new Error("Recording unavailable");
   return data.signedUrl;
 }
+
+/** Attach a ready-to-play signed link so taps can start audio instantly. */
+export async function withPlayUrls<T extends { audio_url: string }>(rows: T[]): Promise<(T & { play_url: string })[]> {
+  return Promise.all(rows.map(async (r) => ({ ...r, play_url: await karaokeAudioUrl(r.audio_url).catch(() => r.audio_url) })));
+}
