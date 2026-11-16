@@ -128,6 +128,9 @@ const HeroBanner = () => {
         </>
       )}
       <div className="absolute bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-6">
+        {/* Rhapsody Daily: the black topic and date sit on a soft white caption panel so they
+            stay readable over any picture, with no blurred extension behind the picture */}
+        <div className={isRhapsody ? "inline-block max-w-[80%] rounded-2xl bg-white/92 px-4 py-3 md:px-5 md:py-4 shadow-[0_10px_35px_rgba(0,0,0,0.28)]" : ""}>
         {banner?.title && (
           <h2 className={`max-w-[18ch] sm:max-w-md md:max-w-xl text-lg sm:text-xl md:text-3xl lg:text-4xl font-serif font-bold mb-1 md:mb-2 text-balance ${isRhapsody ? "text-black" : "text-foreground"}`}>
             {banner.title}
