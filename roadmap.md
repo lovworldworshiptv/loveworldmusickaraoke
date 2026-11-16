@@ -131,3 +131,4 @@
 - [ ] Five-mode colour-box poster: five coloured boxes (Full Song, Instrumental, Video, Games, Stage), each with its real mockup and people using the app like the reference; footer with Loveworld Music+ and Available on Loveworld App Store + Google Play.
 - [x] Hero banner image rendering reverted to original (user decision: keep as it had been)
 - [x] Rhapsody hero slide shows the day's featured scripture reference + opening scripture
+- [x] Rhapsody Daily hero: the day's picture is trimmed to its centred photograph and fills the hero edge to edge (no blurred extension, no white bars), topic in extra-bold white with the date beneath, scripture reference removed; verified signed-in on phone, tablet and desktop with zero white edge pixels.

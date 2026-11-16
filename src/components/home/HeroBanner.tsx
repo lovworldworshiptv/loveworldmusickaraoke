@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import heroBannerFallback from "@/assets/hero-banner.jpg";
 import { useHomeState } from "@/lib/homeMemory";
 import { useRhapsodyDaily } from "@/hooks/useRhapsodyDaily";
-import { formatDevotionalDate, scriptureReference } from "@/lib/rhapsodyDaily";
+import { formatDevotionalDate } from "@/lib/rhapsodyDaily";
 
 interface Banner {
   id: string;
@@ -25,10 +25,24 @@ const savedRatio = () => {
   return n > 0.5 && n < 6 ? n : 16 / 9;
 };
 
+// The day's devotional picture is a wide banner with the photograph centred inside it.
+// The hero shows only that photograph, zoomed so it fills the frame edge to edge — no
+// blurred extension, no empty bars. The window is measured from the picture (0.482 of its
+// width) and kept slightly tighter so a wider photo area can never leave white edges.
+const RHAPSODY_PHOTO_WINDOW = 0.47;
+
+const rhapsodyZoom = (frameRatio: number, imgRatio: number) => {
+  if (!imgRatio || !frameRatio) return 1;
+  return imgRatio >= frameRatio
+    ? Math.max(1, frameRatio / (RHAPSODY_PHOTO_WINDOW * imgRatio))
+    : 1 / RHAPSODY_PHOTO_WINDOW;
+};
+
 const HeroBanner = () => {
   const [banners, setBanners] = useHomeState<Banner[] | null>("hero", null);
   // One height for every slide (the tallest picture's shape) so the page never moves when slides change.
   const [ratio, setRatio] = useState(savedRatio);
+  const [imgRatios, setImgRatios] = useState<Record<string, number>>({});
   const [current, setCurrent] = useState(0);
   const navigate = useNavigate();
   const { devotional } = useRhapsodyDaily();
@@ -42,8 +56,8 @@ const HeroBanner = () => {
   const rhapsody: Banner | null = devotional?.imageUrl ? {
     id: `rhapsody-${devotional.id}-${devotional.date}`,
     title: devotional.title,
-    subtitle: `Rhapsody Daily, ${formatDevotionalDate(devotional.date)} · ${scriptureReference(devotional.openingScripture)}`,
-    description: devotional.openingScripture,
+    subtitle: `Rhapsody Daily, ${formatDevotionalDate(devotional.date)}`,
+    description: null,
     image_url: devotional.imageUrl,
     link_url: "/articles?rhapsody=today",
     cta_text: "Study Now",
@@ -62,7 +76,9 @@ const HeroBanner = () => {
       const img = new Image();
       img.onload = () => {
         if (cancelled || !img.naturalWidth || !img.naturalHeight) return;
-        shapes.push(img.naturalWidth / img.naturalHeight);
+        const shape = img.naturalWidth / img.naturalHeight;
+        shapes.push(shape);
+        setImgRatios((prev) => (prev[src] === shape ? prev : { ...prev, [src]: shape }));
         const tallest = Math.min(...shapes);
         setRatio((r) => {
           // Grow to fit taller pictures as they load; shrink only once every picture is known.
@@ -110,28 +126,22 @@ const HeroBanner = () => {
       {/* Every picture is shown whole; slides cross-fade in place so nothing around them moves */}
       {slides.map((b, i) => (
         <div key={b.id} className={`absolute inset-0 transition-opacity duration-700 ${i === index ? "opacity-100" : "opacity-0"}`} aria-hidden={i !== index}>
-          {/* Rhapsody Daily only: a blurred extension of the same picture fills the taller frame */}
-          {b.id.startsWith("rhapsody-") && (
-            <img
-              src={urls[i]}
-              alt=""
-              aria-hidden
-              className="absolute inset-0 block w-full h-full object-cover scale-110 blur-2xl brightness-[0.55] saturate-150"
-              loading={i === 0 ? "eager" : "lazy"}
-              decoding="async"
-            />
-          )}
+          {/* Rhapsody Daily only: the day's picture is trimmed to its photograph and
+              fills the hero frame edge to edge — no blurred extension, no empty bars */}
           <img
             src={urls[i]}
             alt={i === index ? (b.title || "Banner") : ""}
-            className="absolute inset-0 block w-full h-full object-contain object-top"
+            className={`absolute inset-0 block w-full h-full ${b.id.startsWith("rhapsody-") ? "object-cover object-center" : "object-contain object-top"}`}
+            style={b.id.startsWith("rhapsody-") ? { transform: `scale(${rhapsodyZoom(frameRatio, imgRatios[urls[i]] || 0)})` } : undefined}
             loading={i === 0 ? "eager" : "lazy"}
             decoding="async"
           />
         </div>
       ))}
       {isRhapsody ? (
-        <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
+        // Rhapsody Daily: a soft dark scrim under the white topic/date keeps them readable
+        // over the picture, which fills the hero frame with no blurred extension
+        <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
       ) : (
         <>
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
@@ -140,17 +150,17 @@ const HeroBanner = () => {
       )}
       <div className="absolute bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-6">
         {banner?.title && (
-          <h2 className={`max-w-[18ch] sm:max-w-md md:max-w-xl text-lg sm:text-xl md:text-3xl lg:text-4xl font-serif font-bold mb-1 md:mb-2 text-balance ${isRhapsody ? "text-gold drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" : "text-foreground"}`}>
+          <h2 className={`max-w-[18ch] sm:max-w-md md:max-w-xl text-lg sm:text-xl md:text-3xl lg:text-4xl font-serif ${isRhapsody ? "font-black" : "font-bold"} mb-1 md:mb-2 text-balance ${isRhapsody ? "text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" : "text-foreground"}`}>
             {banner.title}
           </h2>
         )}
         {banner?.subtitle && (
-          <p className={`text-xs sm:text-sm md:text-base mb-1 md:mb-2 max-w-md ${isRhapsody ? "text-gold/95 drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]" : "text-muted-foreground"}`}>
+          <p className={`text-xs sm:text-sm md:text-base mb-1 md:mb-2 max-w-md ${isRhapsody ? "text-white/90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]" : "text-muted-foreground"}`}>
             {banner.subtitle}
           </p>
         )}
         {banner?.description && (
-          <p className={`text-[10px] sm:text-xs md:text-sm mb-2 md:mb-4 max-w-lg line-clamp-2 ${isRhapsody ? "text-gold/85 drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]" : "text-muted-foreground/80"}`}>
+          <p className={`text-[10px] sm:text-xs md:text-sm mb-2 md:mb-4 max-w-lg line-clamp-2 text-muted-foreground/80`}>
             {banner.description}
           </p>
         )}
@@ -168,7 +178,7 @@ const HeroBanner = () => {
         <div className="absolute bottom-4 right-4 md:bottom-6 md:right-6 flex gap-1.5">
           {slides.map((_, i) => (
             <button key={i} onClick={() => setCurrent(i)} aria-label={`Show banner ${i + 1}`}
-              className={`w-2 h-2 rounded-full transition-all ${i === index ? "bg-gold w-5" : "bg-foreground/30"}`} />
+              className={`w-2 h-2 rounded-full transition-all ${i === index ? "bg-gold w-5" : isRhapsody ? "bg-white/60" : "bg-foreground/30"}`} />
           ))}
         </div>
       )}
