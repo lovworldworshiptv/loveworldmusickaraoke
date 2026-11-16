@@ -42,8 +42,8 @@ const HeroBanner = () => {
   const rhapsody: Banner | null = devotional?.imageUrl ? {
     id: `rhapsody-${devotional.id}-${devotional.date}`,
     title: devotional.title,
-    subtitle: `Rhapsody Daily, ${formatDevotionalDate(devotional.date)}`,
-    description: null,
+    subtitle: `Rhapsody Daily, ${formatDevotionalDate(devotional.date)} · ${scriptureReference(devotional.openingScripture)}`,
+    description: devotional.openingScripture,
     image_url: devotional.imageUrl,
     link_url: "/articles?rhapsody=today",
     cta_text: "Study Now",
