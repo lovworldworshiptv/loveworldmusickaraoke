@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import heroBannerFallback from "@/assets/hero-banner.jpg";
 import { useHomeState } from "@/lib/homeMemory";
+import { useRhapsodyDaily } from "@/hooks/useRhapsodyDaily";
+import { formatDevotionalDate } from "@/lib/rhapsodyDaily";
 
 interface Banner {
   id: string;
@@ -29,13 +31,26 @@ const HeroBanner = () => {
   const [ratio, setRatio] = useState(savedRatio);
   const [current, setCurrent] = useState(0);
   const navigate = useNavigate();
+  const { devotional } = useRhapsodyDaily();
 
   useEffect(() => {
     supabase.from("hero_banners").select("*").eq("is_active", true).order("sort_order")
       .then(({ data, error }) => { if (!error) setBanners((data as Banner[]) || []); });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const slides = banners === null ? [] : banners.length ? banners : [FALLBACK];
+  // Today's Rhapsody of Realities leads the carousel and updates itself whenever a new day is published.
+  const rhapsody: Banner | null = devotional?.imageUrl ? {
+    id: `rhapsody-${devotional.id}-${devotional.date}`,
+    title: devotional.title,
+    subtitle: `Rhapsody Daily, ${formatDevotionalDate(devotional.date)}`,
+    description: null,
+    image_url: devotional.imageUrl,
+    link_url: "/articles?rhapsody=today",
+    cta_text: "Study Now",
+    show_cta: true,
+  } : null;
+  const adminSlides = banners === null ? [] : banners.length ? banners : (rhapsody ? [] : [FALLBACK]);
+  const slides = banners === null && !rhapsody ? [] : rhapsody ? [rhapsody, ...adminSlides] : adminSlides;
   const urls = slides.map((b) => b.image_url || heroBannerFallback);
   const urlKey = urls.join("|");
 
