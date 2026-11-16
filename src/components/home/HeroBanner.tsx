@@ -84,6 +84,10 @@ const HeroBanner = () => {
 
   const index = slides.length ? current % slides.length : 0;
   const banner = slides[index];
+  // The Rhapsody Daily slide gets a taller frame with a blurred extension of its own
+  // picture so the topic, date and scripture sit gracefully over the extension.
+  const isRhapsody = !!banner?.id.startsWith("rhapsody-");
+  const frameRatio = isRhapsody ? Math.min(ratio, 1.05) : ratio;
 
   const handleCTA = () => {
     const linkUrl = banner?.link_url;
