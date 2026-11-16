@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import heroBannerFallback from "@/assets/hero-banner.jpg";
 import { useHomeState } from "@/lib/homeMemory";
 import { useRhapsodyDaily } from "@/hooks/useRhapsodyDaily";
-import { formatDevotionalDate } from "@/lib/rhapsodyDaily";
+import { formatDevotionalDate, scriptureReference } from "@/lib/rhapsodyDaily";
 
 interface Banner {
   id: string;
@@ -42,8 +42,8 @@ const HeroBanner = () => {
   const rhapsody: Banner | null = devotional?.imageUrl ? {
     id: `rhapsody-${devotional.id}-${devotional.date}`,
     title: devotional.title,
-    subtitle: `Rhapsody Daily, ${formatDevotionalDate(devotional.date)}`,
-    description: null,
+    subtitle: `Rhapsody Daily, ${formatDevotionalDate(devotional.date)} · ${scriptureReference(devotional.openingScripture)}`,
+    description: devotional.openingScripture,
     image_url: devotional.imageUrl,
     link_url: "/articles?rhapsody=today",
     cta_text: "Study Now",

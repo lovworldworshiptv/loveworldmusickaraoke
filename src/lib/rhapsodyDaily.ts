@@ -112,6 +112,15 @@ export function normalizeDevotional(raw: any): RhapsodyDevotional | null {
 }
 
 /** "2026-10-25" → "Sunday, October 25, 2026" without timezone drift. */
+/** Citation of the opening scripture, e.g. "John 1:1" or "Romans 4:17" — leading or trailing "(Book 1:1)"; falls back to the full text. */
+export function scriptureReference(openingScripture: string): string {
+  const s = (openingScripture || "").replace(/\s+/g, " ").trim();
+  const trailing = /\(((?:[1-3]\s*)?[A-Za-z][A-Za-z .]*?\s+\d+:\d+(?:[–-]\d+)?[^)]*)\)\s*\.?\s*$/.exec(s);
+  if (trailing) return trailing[1].trim();
+  const leading = /^(?:[1-3]\s*)?[A-Za-z][A-Za-z .]*?\s+\d+:\d+(?:[–-]\d+)?(?:\s*[,(]\s*\d+(?:[–-]\d+)?[)]?)*/.exec(s);
+  return leading ? leading[0].trim() : s;
+}
+
 export function formatDevotionalDate(date: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date || "");
   if (!m) return date;

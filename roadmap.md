@@ -129,3 +129,5 @@
 - [x] Choose Ocean sunset still for the “Project Lyrics Effortlessly” poster; capture real “The Healing Christ” Stage Mode at 1950 × 4220 and preserve the screen in a matching print layout.
 - [x] Export all six corrected posters as 6000 × 8824 sRGB PNGs with 200 DPI metadata, each over 10 MB; render headline text at print resolution, preserve app mockups and store branding, inspect every poster, refine lighting/edges/store sizing, and add print notes and new versions to the existing collection. Smaller source mockups are enlarged, not newly detailed; a physical print proof remains recommended.
 - [ ] Five-mode colour-box poster: five coloured boxes (Full Song, Instrumental, Video, Games, Stage), each with its real mockup and people using the app like the reference; footer with Loveworld Music+ and Available on Loveworld App Store + Google Play.
+- [x] Hero banner image rendering reverted to original (user decision: keep as it had been)
+- [x] Rhapsody hero slide shows the day's featured scripture reference + opening scripture
