@@ -139,17 +139,17 @@ const HeroBanner = () => {
       )}
       <div className="absolute bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-6">
         {banner?.title && (
-          <h2 className="max-w-[18ch] sm:max-w-md md:max-w-xl text-lg sm:text-xl md:text-3xl lg:text-4xl font-serif font-bold text-foreground mb-1 md:mb-2 text-balance">
+          <h2 className={`max-w-[18ch] sm:max-w-md md:max-w-xl text-lg sm:text-xl md:text-3xl lg:text-4xl font-serif font-bold mb-1 md:mb-2 text-balance ${isRhapsody ? "text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" : "text-foreground"}`}>
             {banner.title}
           </h2>
         )}
         {banner?.subtitle && (
-          <p className="text-xs sm:text-sm md:text-base text-muted-foreground mb-1 md:mb-2 max-w-md">
+          <p className={`text-xs sm:text-sm md:text-base mb-1 md:mb-2 max-w-md ${isRhapsody ? "text-white/95 drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]" : "text-muted-foreground"}`}>
             {banner.subtitle}
           </p>
         )}
         {banner?.description && (
-          <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground/80 mb-2 md:mb-4 max-w-lg line-clamp-2">
+          <p className={`text-[10px] sm:text-xs md:text-sm mb-2 md:mb-4 max-w-lg line-clamp-2 ${isRhapsody ? "text-white/85 drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]" : "text-muted-foreground/80"}`}>
             {banner.description}
           </p>
         )}
