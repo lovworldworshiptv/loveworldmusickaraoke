@@ -102,36 +102,18 @@ const HeroBanner = () => {
       aria-roledescription="carousel"
     >
       {!slides.length && <div aria-hidden className="absolute inset-0 bg-muted/30 animate-pulse" />}
-      {/* Every picture is shown whole; slides cross-fade in place so nothing around them moves.
-          The Rhapsody Daily slide also fills its empty sides with a blurred copy of the day's picture, so it has no borders. */}
-      {slides.map((b, i) => {
-        const isRhapsody = b.id.startsWith("rhapsody-");
-        return (
-          <div
-            key={b.id}
-            aria-hidden={i !== index}
-            className={`absolute inset-0 transition-opacity duration-700 ${i === index ? "opacity-100" : "opacity-0"}`}
-          >
-            {isRhapsody && (
-              <img
-                src={urls[i]}
-                alt=""
-                aria-hidden
-                className="absolute inset-0 block w-full h-full object-cover scale-110 blur-2xl brightness-[0.55] saturate-150"
-                loading={i === 0 ? "eager" : "lazy"}
-                decoding="async"
-              />
-            )}
-            <img
-              src={urls[i]}
-              alt={i === index ? (b.title || "Banner") : ""}
-              className={`absolute inset-0 block w-full h-full object-contain ${isRhapsody ? "object-center" : "object-top"}`}
-              loading={i === 0 ? "eager" : "lazy"}
-              decoding="async"
-            />
-          </div>
-        );
-      })}
+      {/* Every picture is shown whole; slides cross-fade in place so nothing around them moves */}
+      {slides.map((b, i) => (
+        <img
+          key={b.id}
+          src={urls[i]}
+          alt={i === index ? (b.title || "Banner") : ""}
+          aria-hidden={i !== index}
+          className={`absolute inset-0 block w-full h-full object-contain object-top transition-opacity duration-700 ${i === index ? "opacity-100" : "opacity-0"}`}
+          loading={i === 0 ? "eager" : "lazy"}
+          decoding="async"
+        />
+      ))}
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
       <div className="absolute inset-0 bg-gradient-to-r from-background/40 to-transparent" />
       <div className="absolute bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-6">
