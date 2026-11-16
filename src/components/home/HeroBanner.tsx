@@ -101,8 +101,8 @@ const HeroBanner = () => {
 
   return (
     <section
-      className="relative w-full overflow-hidden rounded-2xl mx-4 mt-4 lg:mx-6 lg:mt-6 bg-background group"
-      style={{ maxWidth: 'calc(100vw - 2rem)', aspectRatio: String(ratio) }}
+      className="relative w-full overflow-hidden rounded-2xl mx-4 mt-4 lg:mx-6 lg:mt-6 bg-background group transition-[aspect-ratio] duration-700"
+      style={{ maxWidth: 'calc(100vw - 2rem)', aspectRatio: String(frameRatio) }}
       aria-roledescription="carousel"
     >
       {!slides.length && <div aria-hidden className="absolute inset-0 bg-muted/30 animate-pulse" />}
