@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import heroBannerFallback from "@/assets/hero-banner.jpg";
 import { useHomeState } from "@/lib/homeMemory";
 import { useRhapsodyDaily } from "@/hooks/useRhapsodyDaily";
-import { formatDevotionalDate } from "@/lib/rhapsodyDaily";
+import { formatDevotionalDate, scriptureReference } from "@/lib/rhapsodyDaily";
 
 interface Banner {
   id: string;
