@@ -154,13 +154,14 @@ const HeroBanner = () => {
             {banner.cta_text}
           </button>
         )}
+        </div>
       </div>
 
       {slides.length > 1 && (
         <div className="absolute bottom-4 right-4 md:bottom-6 md:right-6 flex gap-1.5">
           {slides.map((_, i) => (
             <button key={i} onClick={() => setCurrent(i)} aria-label={`Show banner ${i + 1}`}
-              className={`w-2 h-2 rounded-full transition-all ${i === index ? "bg-gold w-5" : isRhapsody ? "bg-black/40" : "bg-foreground/30"}`} />
+              className={`w-2 h-2 rounded-full transition-all ${i === index ? "bg-gold w-5" : isRhapsody ? "bg-white/60" : "bg-foreground/30"}`} />
           ))}
         </div>
       )}
