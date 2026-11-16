@@ -102,17 +102,29 @@ const HeroBanner = () => {
       aria-roledescription="carousel"
     >
       {!slides.length && <div aria-hidden className="absolute inset-0 bg-muted/30 animate-pulse" />}
-      {/* Every picture is shown whole; slides cross-fade in place so nothing around them moves */}
+      {/* Every picture is shown whole; a blurred copy of the same picture fills the slide so there are no empty borders. Slides cross-fade in place so nothing around them moves */}
       {slides.map((b, i) => (
-        <img
+        <div
           key={b.id}
-          src={urls[i]}
-          alt={i === index ? (b.title || "Banner") : ""}
           aria-hidden={i !== index}
-          className={`absolute inset-0 block w-full h-full object-contain object-top transition-opacity duration-700 ${i === index ? "opacity-100" : "opacity-0"}`}
-          loading={i === 0 ? "eager" : "lazy"}
-          decoding="async"
-        />
+          className={`absolute inset-0 transition-opacity duration-700 ${i === index ? "opacity-100" : "opacity-0"}`}
+        >
+          <img
+            src={urls[i]}
+            alt=""
+            aria-hidden
+            className="absolute inset-0 block w-full h-full object-cover scale-110 blur-2xl brightness-[0.55] saturate-150"
+            loading={i === 0 ? "eager" : "lazy"}
+            decoding="async"
+          />
+          <img
+            src={urls[i]}
+            alt={i === index ? (b.title || "Banner") : ""}
+            className="absolute inset-0 block w-full h-full object-contain object-center"
+            loading={i === 0 ? "eager" : "lazy"}
+            decoding="async"
+          />
+        </div>
       ))}
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
       <div className="absolute inset-0 bg-gradient-to-r from-background/40 to-transparent" />
