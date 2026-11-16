@@ -25,10 +25,24 @@ const savedRatio = () => {
   return n > 0.5 && n < 6 ? n : 16 / 9;
 };
 
+// The day's devotional picture is a wide banner with the photograph centred inside it.
+// The hero shows only that photograph, zoomed so it fills the frame edge to edge — no
+// blurred extension, no empty bars. The window is measured from the picture (0.482 of its
+// width) and kept slightly tighter so a wider photo area can never leave white edges.
+const RHAPSODY_PHOTO_WINDOW = 0.47;
+
+const rhapsodyZoom = (frameRatio: number, imgRatio: number) => {
+  if (!imgRatio || !frameRatio) return 1;
+  return imgRatio >= frameRatio
+    ? Math.max(1, frameRatio / (RHAPSODY_PHOTO_WINDOW * imgRatio))
+    : 1 / RHAPSODY_PHOTO_WINDOW;
+};
+
 const HeroBanner = () => {
   const [banners, setBanners] = useHomeState<Banner[] | null>("hero", null);
   // One height for every slide (the tallest picture's shape) so the page never moves when slides change.
   const [ratio, setRatio] = useState(savedRatio);
+  const [imgRatios, setImgRatios] = useState<Record<string, number>>({});
   const [current, setCurrent] = useState(0);
   const navigate = useNavigate();
   const { devotional } = useRhapsodyDaily();
@@ -62,7 +76,9 @@ const HeroBanner = () => {
       const img = new Image();
       img.onload = () => {
         if (cancelled || !img.naturalWidth || !img.naturalHeight) return;
-        shapes.push(img.naturalWidth / img.naturalHeight);
+        const shape = img.naturalWidth / img.naturalHeight;
+        shapes.push(shape);
+        setImgRatios((prev) => (prev[src] === shape ? prev : { ...prev, [src]: shape }));
         const tallest = Math.min(...shapes);
         setRatio((r) => {
           // Grow to fit taller pictures as they load; shrink only once every picture is known.
@@ -116,6 +132,7 @@ const HeroBanner = () => {
             src={urls[i]}
             alt={i === index ? (b.title || "Banner") : ""}
             className={`absolute inset-0 block w-full h-full ${b.id.startsWith("rhapsody-") ? "object-cover object-center" : "object-contain object-top"}`}
+            style={b.id.startsWith("rhapsody-") ? { transform: `scale(${rhapsodyZoom(frameRatio, imgRatios[urls[i]] || 0)})` } : undefined}
             loading={i === 0 ? "eager" : "lazy"}
             decoding="async"
           />
