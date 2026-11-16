@@ -110,21 +110,12 @@ const HeroBanner = () => {
       {/* Every picture is shown whole; slides cross-fade in place so nothing around them moves */}
       {slides.map((b, i) => (
         <div key={b.id} className={`absolute inset-0 transition-opacity duration-700 ${i === index ? "opacity-100" : "opacity-0"}`} aria-hidden={i !== index}>
-          {/* Rhapsody Daily only: a blurred extension of the same picture fills the taller frame */}
-          {b.id.startsWith("rhapsody-") && (
-            <img
-              src={urls[i]}
-              alt=""
-              aria-hidden
-              className="absolute inset-0 block w-full h-full object-cover scale-110 blur-2xl brightness-[0.55] saturate-150"
-              loading={i === 0 ? "eager" : "lazy"}
-              decoding="async"
-            />
-          )}
+          {/* Rhapsody Daily only: the day's picture is trimmed to its photograph and
+              fills the hero frame edge to edge — no blurred extension, no empty bars */}
           <img
             src={urls[i]}
             alt={i === index ? (b.title || "Banner") : ""}
-            className="absolute inset-0 block w-full h-full object-contain object-top"
+            className={`absolute inset-0 block w-full h-full ${b.id.startsWith("rhapsody-") ? "object-cover object-center" : "object-contain object-top"}`}
             loading={i === 0 ? "eager" : "lazy"}
             decoding="async"
           />
@@ -133,7 +124,7 @@ const HeroBanner = () => {
       {isRhapsody ? (
         // Fixed light panel under the black topic/date text (explicit user choice): a soft
         // white wash keeps the black legible over the blurred extension in both themes.
-        <div className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-white/95 via-white/70 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-[48%] bg-gradient-to-t from-white/95 via-white/60 to-transparent" />
       ) : (
         <>
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
