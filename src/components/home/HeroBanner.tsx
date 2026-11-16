@@ -133,7 +133,7 @@ const HeroBanner = () => {
       {isRhapsody ? (
         // Fixed light panel under the black topic/date text (explicit user choice): a soft
         // white wash keeps the black legible over the blurred extension in both themes.
-        <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-white/92 via-white/65 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-white/95 via-white/70 to-transparent" />
       ) : (
         <>
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
