@@ -84,6 +84,11 @@ const HeroBanner = () => {
 
   const index = slides.length ? current % slides.length : 0;
   const banner = slides[index];
+  // The Rhapsody Daily slide keeps the same height as the other banners (e.g. the
+  // Loveworld Music Challenge banner); a blurred extension of its own picture fills
+  // the frame so the topic, date and scripture sit gracefully over the extension.
+  const isRhapsody = !!banner?.id.startsWith("rhapsody-");
+  const frameRatio = ratio;
 
   const handleCTA = () => {
     const linkUrl = banner?.link_url;
@@ -97,38 +102,55 @@ const HeroBanner = () => {
 
   return (
     <section
-      className="relative w-full overflow-hidden rounded-2xl mx-4 mt-4 lg:mx-6 lg:mt-6 bg-background group"
-      style={{ maxWidth: 'calc(100vw - 2rem)', aspectRatio: String(ratio) }}
+      className="relative w-full overflow-hidden rounded-2xl mx-4 mt-4 lg:mx-6 lg:mt-6 bg-background group transition-[aspect-ratio] duration-700"
+      style={{ maxWidth: 'calc(100vw - 2rem)', aspectRatio: String(frameRatio) }}
       aria-roledescription="carousel"
     >
       {!slides.length && <div aria-hidden className="absolute inset-0 bg-muted/30 animate-pulse" />}
       {/* Every picture is shown whole; slides cross-fade in place so nothing around them moves */}
       {slides.map((b, i) => (
-        <img
-          key={b.id}
-          src={urls[i]}
-          alt={i === index ? (b.title || "Banner") : ""}
-          aria-hidden={i !== index}
-          className={`absolute inset-0 block w-full h-full object-contain object-top transition-opacity duration-700 ${i === index ? "opacity-100" : "opacity-0"}`}
-          loading={i === 0 ? "eager" : "lazy"}
-          decoding="async"
-        />
+        <div key={b.id} className={`absolute inset-0 transition-opacity duration-700 ${i === index ? "opacity-100" : "opacity-0"}`} aria-hidden={i !== index}>
+          {/* Rhapsody Daily only: a blurred extension of the same picture fills the taller frame */}
+          {b.id.startsWith("rhapsody-") && (
+            <img
+              src={urls[i]}
+              alt=""
+              aria-hidden
+              className="absolute inset-0 block w-full h-full object-cover scale-110 blur-2xl brightness-[0.55] saturate-150"
+              loading={i === 0 ? "eager" : "lazy"}
+              decoding="async"
+            />
+          )}
+          <img
+            src={urls[i]}
+            alt={i === index ? (b.title || "Banner") : ""}
+            className="absolute inset-0 block w-full h-full object-contain object-top"
+            loading={i === 0 ? "eager" : "lazy"}
+            decoding="async"
+          />
+        </div>
       ))}
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-r from-background/40 to-transparent" />
+      {isRhapsody ? (
+        <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
+      ) : (
+        <>
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/40 to-transparent" />
+        </>
+      )}
       <div className="absolute bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-6">
         {banner?.title && (
-          <h2 className="max-w-[18ch] sm:max-w-md md:max-w-xl text-lg sm:text-xl md:text-3xl lg:text-4xl font-serif font-bold text-foreground mb-1 md:mb-2 text-balance">
+          <h2 className={`max-w-[18ch] sm:max-w-md md:max-w-xl text-lg sm:text-xl md:text-3xl lg:text-4xl font-serif font-bold mb-1 md:mb-2 text-balance ${isRhapsody ? "text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" : "text-foreground"}`}>
             {banner.title}
           </h2>
         )}
         {banner?.subtitle && (
-          <p className="text-xs sm:text-sm md:text-base text-muted-foreground mb-1 md:mb-2 max-w-md">
+          <p className={`text-xs sm:text-sm md:text-base mb-1 md:mb-2 max-w-md ${isRhapsody ? "text-white/95 drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]" : "text-muted-foreground"}`}>
             {banner.subtitle}
           </p>
         )}
         {banner?.description && (
-          <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground/80 mb-2 md:mb-4 max-w-lg line-clamp-2">
+          <p className={`text-[10px] sm:text-xs md:text-sm mb-2 md:mb-4 max-w-lg line-clamp-2 ${isRhapsody ? "text-white/85 drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]" : "text-muted-foreground/80"}`}>
             {banner.description}
           </p>
         )}
